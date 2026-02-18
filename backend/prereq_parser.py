@@ -5,10 +5,13 @@ from normalizer import normalize_code
 # Case-insensitive OR splitter — preserves token casing before normalize_code()
 OR_SPLIT = re.compile(r'\s+or\s+', re.IGNORECASE)
 
-# Signals that the prereq_hard string contains unsupported grammar
+# Regex to strip parenthetical annotation clauses, e.g. "(may be concurrent)"
+ANNOTATION_RE = re.compile(r'\s*\([^)]*\)')
+
+# Signals that the prereq_hard string contains unsupported grammar.
+# Note: "(" and ")" are NOT in this list — parenthetical annotations are
+# handled by _strip_annotations() before this list is checked.
 UNSUPPORTED_SIGNALS = [
-    "(",
-    ")",
     "permission",
     "concurrent",
     "minimum grade",
@@ -25,6 +28,11 @@ UNSUPPORTED_SIGNALS = [
 NONE_VALUES = {"none", "none listed", "n/a", ""}
 
 
+def _strip_annotations(s: str) -> str:
+    """Remove parenthetical annotation clauses, e.g. '(may be concurrent)'."""
+    return ANNOTATION_RE.sub('', s).strip()
+
+
 def parse_prereqs(prereq_str) -> dict:
     """
     Parses the prereq_hard field (machine-parsable grammar only).
@@ -34,6 +42,9 @@ def parse_prereqs(prereq_str) -> dict:
       CODE                     → {"type": "single", "course": "DEPT NNNN"}
       CODE;CODE;...            → {"type": "and", "courses": [...]}
       CODE or CODE             → {"type": "or", "courses": [...]}
+
+    Parenthetical annotations (e.g. "(may be concurrent)") are stripped before
+    parsing, so "FINA 3001 (may be concurrent)" → {"type": "single", "course": "FINA 3001"}.
 
     Anything else →            {"type": "unsupported", "raw": "<original string>"}
 
@@ -47,6 +58,14 @@ def parse_prereqs(prereq_str) -> dict:
 
     if s.lower() in NONE_VALUES:
         return {"type": "none"}
+
+    # If parentheses are present, try stripping annotation clauses first.
+    # If the stripped string is clean and parseable, use it.
+    if "(" in s:
+        stripped = _strip_annotations(s)
+        if stripped and not any(sig in stripped.lower() for sig in UNSUPPORTED_SIGNALS):
+            return parse_prereqs(stripped)
+        return {"type": "unsupported", "raw": s}
 
     s_lower = s.lower()
     for signal in UNSUPPORTED_SIGNALS:

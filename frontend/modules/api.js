@@ -1,0 +1,17 @@
+/**
+ * Network API wrappers.
+ */
+
+export async function loadCourses(url = "/courses") {
+  const res = await fetch(url);
+  return await res.json();
+}
+
+export async function postRecommend(payload, url = "/recommend") {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return await res.json();
+}
