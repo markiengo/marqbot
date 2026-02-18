@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MarqBot – Finance Course Advisor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="header-logo">
+        <span class="logo-mu">MU</span>
+        <div>
+          <div class="logo-title">MarqBot</div>
+          <div class="logo-sub">Finance Course Advisor</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <form id="advisor-form">
+
+      <!-- Completed courses -->
+      <div class="form-group">
+        <label>Completed Courses</label>
+        <p class="form-hint">Type to search and click to add. Or <button type="button" class="link-btn" id="toggle-paste-completed">paste codes</button>.</p>
+        <div class="multiselect" id="ms-completed">
+          <div class="ms-chips" id="chips-completed"></div>
+          <input type="text" class="ms-input" id="search-completed" placeholder="Search courses…" autocomplete="off" />
+          <div class="ms-dropdown" id="dropdown-completed"></div>
+        </div>
+        <textarea class="paste-area hidden" id="paste-completed" placeholder="Paste comma-separated codes, e.g. FINA 3001, ECON 1103"></textarea>
+        <button type="button" class="link-btn hidden" id="apply-paste-completed">Apply</button>
+        <div class="paste-errors hidden" id="paste-errors-completed"></div>
+      </div>
+
+      <!-- In-progress courses -->
+      <div class="form-group">
+        <label>Currently In-Progress Courses <span class="label-note">(this semester)</span></label>
+        <p class="form-hint">Type to search and click to add. Or <button type="button" class="link-btn" id="toggle-paste-ip">paste codes</button>.</p>
+        <div class="multiselect" id="ms-ip">
+          <div class="ms-chips" id="chips-ip"></div>
+          <input type="text" class="ms-input" id="search-ip" placeholder="Search courses…" autocomplete="off" />
+          <div class="ms-dropdown" id="dropdown-ip"></div>
+        </div>
+        <textarea class="paste-area hidden" id="paste-ip" placeholder="Paste comma-separated codes, e.g. FINA 4001"></textarea>
+        <button type="button" class="link-btn hidden" id="apply-paste-ip">Apply</button>
+        <div class="paste-errors hidden" id="paste-errors-ip"></div>
+      </div>
+
+      <!-- Target semester -->
+      <div class="form-group form-group--inline">
+        <div>
+          <label for="target-semester">Target Semester</label>
+          <select id="target-semester">
+            <option>Fall 2025</option>
+            <option selected>Spring 2026</option>
+            <option>Summer 2026</option>
+            <option>Fall 2026</option>
+            <option>Spring 2027</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="max-recs">Recommendations</label>
+          <select id="max-recs">
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Can-take check (optional) -->
+      <div class="form-group">
+        <label for="can-take-input">Check a specific course <span class="label-note">(optional)</span></label>
+        <p class="form-hint">Enter a course code to ask "can I take this?" instead of getting recommendations.</p>
+        <input type="text" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
+      </div>
+
+      <button type="submit" class="btn-primary" id="submit-btn">
+        Get Recommendations
+      </button>
+    </form>
+
+    <!-- Results area -->
+    <section id="results" class="hidden"></section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

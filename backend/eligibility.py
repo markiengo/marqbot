@@ -1,0 +1,329 @@
+import pandas as pd
+from prereq_parser import prereqs_satisfied, build_prereq_check_string
+from requirements import SOFT_WARNING_TAGS, COMPLEX_PREREQ_TAG, CONCURRENT_TAGS, TRACK_ID
+
+
+def parse_term(s: str) -> str:
+    """'Fall 2026' → 'Fall'. Year is ignored."""
+    for t in ("Fall", "Spring", "Summer"):
+        if t.lower() in s.lower():
+            return t
+    raise ValueError(f"Cannot parse term from: {s!r}")
+
+
+def _safe_bool(val) -> bool:
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.strip().upper() == "TRUE"
+    return bool(val)
+
+
+def get_course_eligible_buckets(
+    course_code: str,
+    course_bucket_map_df: pd.DataFrame,
+    courses_df: pd.DataFrame,
+    buckets_df: pd.DataFrame,
+) -> list[dict]:
+    """
+    Returns all (bucket_id, label, priority, can_double_count) dicts
+    for a given course, filtered by min_level constraint.
+    """
+    track_map = course_bucket_map_df[
+        (course_bucket_map_df["track_id"] == TRACK_ID)
+        & (course_bucket_map_df["course_code"] == course_code)
+    ]
+
+    course_rows = courses_df[courses_df["course_code"] == course_code]
+    course_level = None
+    if len(course_rows) > 0:
+        lvl = course_rows.iloc[0].get("level")
+        if lvl is not None and not (isinstance(lvl, float) and pd.isna(lvl)):
+            course_level = int(lvl)
+
+    bucket_meta = {
+        row["bucket_id"]: row
+        for _, row in buckets_df[buckets_df["track_id"] == TRACK_ID].iterrows()
+    }
+
+    result = []
+    for _, row in track_map.iterrows():
+        bid = row["bucket_id"]
+        meta = bucket_meta.get(bid)
+        if meta is None:
+            continue
+        # Check min_level
+        min_lvl = meta.get("min_level")
+        if min_lvl is not None and not (isinstance(min_lvl, float) and pd.isna(min_lvl)):
+            min_lvl = int(min_lvl)
+            if course_level is not None and course_level < min_lvl:
+                continue
+
+        result.append({
+            "bucket_id": bid,
+            "label": str(meta.get("bucket_label", bid)),
+            "priority": int(meta.get("priority", 99)),
+            "can_double_count": _safe_bool(row.get("can_double_count", False)),
+        })
+
+    result.sort(key=lambda b: b["priority"])
+    return result
+
+
+def get_eligible_courses(
+    courses_df: pd.DataFrame,
+    completed: list[str],
+    in_progress: list[str],
+    target_term: str,
+    prereq_map: dict,
+    allocator_remaining: dict,
+    course_bucket_map_df: pd.DataFrame,
+    buckets_df: pd.DataFrame,
+    equivalencies_df: pd.DataFrame = None,
+) -> list[dict]:
+    """
+    Returns eligible courses for the target term, sorted by:
+      1. Primary bucket priority (ascending = most important first)
+      2. Multi-bucket score (descending = more unmet buckets filled = better)
+
+    Eligible = offered in term AND not yet taken AND prereqs satisfied
+             AND not a manual_review course
+
+    Each returned dict:
+    {
+      "course_code": str,
+      "course_name": str,
+      "credits": int,
+      "primary_bucket": str,          # bucket_id of highest-priority bucket
+      "primary_bucket_label": str,
+      "fills_buckets": [str, ...],    # all bucket_ids this course fills (unmet)
+      "multi_bucket_score": int,      # count of unmet buckets filled
+      "prereq_check": str,            # human-readable prereq label
+      "has_soft_requirement": bool,
+      "soft_tags": [str, ...],        # non-blocking soft tags
+      "manual_review": bool,          # True if prereq_hard is unsupported
+      "low_confidence": bool,         # offering_confidence != high
+      "notes": str | None,            # course notes from sheet
+      "unlocks": [],                  # filled in by server.py
+    }
+    """
+    completed_set = set(completed)
+    in_progress_set = set(in_progress)
+    satisfied_codes = completed_set | in_progress_set
+
+    term_col = {
+        "Fall": "offered_fall",
+        "Spring": "offered_spring",
+        "Summer": "offered_summer",
+    }.get(target_term, "offered_fall")
+
+    results = []
+
+    for _, row in courses_df.iterrows():
+        code = row["course_code"]
+
+        # Skip already taken / in-progress
+        if code in completed_set or code in in_progress_set:
+            continue
+
+        # Check offering
+        offered = _safe_bool(row.get(term_col, False))
+        if not offered:
+            continue
+
+        # Parse prereqs
+        parsed = prereq_map.get(code, {"type": "none"})
+        manual_review = parsed["type"] == "unsupported"
+
+        # Parse prereq_soft tags
+        soft_raw = str(row.get("prereq_soft", "") or "")
+        soft_tags = [t.strip() for t in soft_raw.split(";") if t.strip()] if soft_raw else []
+
+        # hard_prereq_complex tag → also manual review
+        if COMPLEX_PREREQ_TAG in soft_tags:
+            manual_review = True
+
+        # Check prereq satisfaction (manual review courses are excluded)
+        if manual_review:
+            # Still include in list but flagged
+            prereq_satisfied = False
+        else:
+            prereq_satisfied = prereqs_satisfied(parsed, satisfied_codes)
+
+        if not prereq_satisfied:
+            if not manual_review:
+                continue
+            # manual_review courses: include with flag even if prereq check is N/A
+
+        # Soft requirement warnings (non-blocking)
+        warning_tags = [t for t in soft_tags if t in SOFT_WARNING_TAGS]
+        has_soft_requirement = bool(warning_tags)
+
+        # Offering confidence
+        confidence = str(row.get("offering_confidence", "high") or "high").lower()
+        low_confidence = confidence in ("low", "unknown")
+
+        # Course notes
+        course_notes = str(row.get("notes", "") or "")
+        if not course_notes or course_notes == "nan":
+            course_notes = None
+
+        # Bucket info
+        eligible_buckets = get_course_eligible_buckets(
+            code, course_bucket_map_df, courses_df, buckets_df
+        )
+
+        if not eligible_buckets and not manual_review:
+            continue  # course doesn't belong to any tracked bucket
+
+        # Multi-bucket score: count unmet buckets this course can fill
+        unmet_buckets = [
+            b for b in eligible_buckets
+            if allocator_remaining.get(b["bucket_id"], {}).get("slots_remaining", 0) > 0
+        ]
+        multi_bucket_score = len(unmet_buckets)
+
+        primary = eligible_buckets[0] if eligible_buckets else None
+
+        # prereq_check string
+        prereq_check = build_prereq_check_string(parsed, completed_set, in_progress_set)
+        if manual_review:
+            prereq_check = "Manual review required"
+
+        results.append({
+            "course_code": code,
+            "course_name": str(row.get("course_name", "")),
+            "credits": int(row.get("credits", 3)) if not pd.isna(row.get("credits", 3)) else 3,
+            "primary_bucket": primary["bucket_id"] if primary else None,
+            "primary_bucket_label": primary["label"] if primary else None,
+            "primary_bucket_priority": primary["priority"] if primary else 99,
+            "fills_buckets": [b["bucket_id"] for b in unmet_buckets],
+            "multi_bucket_score": multi_bucket_score,
+            "prereq_check": prereq_check,
+            "has_soft_requirement": has_soft_requirement,
+            "soft_tags": warning_tags,
+            "manual_review": manual_review,
+            "low_confidence": low_confidence,
+            "notes": course_notes,
+            "unlocks": [],  # populated by server.py
+        })
+
+    # Sort: primary bucket priority ASC, then multi_bucket_score DESC, then code
+    results.sort(
+        key=lambda c: (
+            c["primary_bucket_priority"],
+            -c["multi_bucket_score"],
+            c["course_code"],
+        )
+    )
+
+    return results
+
+
+def check_can_take(
+    requested_code: str,
+    courses_df: pd.DataFrame,
+    completed: list[str],
+    in_progress: list[str],
+    target_term: str,
+    prereq_map: dict,
+) -> dict:
+    """
+    Returns a can-take assessment for a specific requested course.
+
+    Returns:
+    {
+      "can_take": True | False | None,   # None = unknown (unsupported prereq)
+      "why_not": str | None,
+      "missing_prereqs": [str],
+      "not_offered_this_term": bool,
+      "unsupported_prereq_format": bool,
+    }
+    """
+    completed_set = set(completed)
+    in_progress_set = set(in_progress)
+    satisfied_codes = completed_set | in_progress_set
+
+    course_rows = courses_df[courses_df["course_code"] == requested_code]
+    if len(course_rows) == 0:
+        return {
+            "can_take": False,
+            "why_not": f"{requested_code} is not in the course catalog.",
+            "missing_prereqs": [],
+            "not_offered_this_term": False,
+            "unsupported_prereq_format": False,
+        }
+
+    row = course_rows.iloc[0]
+
+    # Check offering
+    term_col = {
+        "Fall": "offered_fall",
+        "Spring": "offered_spring",
+        "Summer": "offered_summer",
+    }.get(target_term, "offered_fall")
+    offered = _safe_bool(row.get(term_col, False))
+
+    if not offered:
+        return {
+            "can_take": False,
+            "why_not": f"{requested_code} is not offered in {target_term}.",
+            "missing_prereqs": [],
+            "not_offered_this_term": True,
+            "unsupported_prereq_format": False,
+        }
+
+    # Check if already taken
+    if requested_code in completed_set:
+        return {
+            "can_take": False,
+            "why_not": f"You have already completed {requested_code}.",
+            "missing_prereqs": [],
+            "not_offered_this_term": False,
+            "unsupported_prereq_format": False,
+        }
+
+    parsed = prereq_map.get(requested_code, {"type": "none"})
+
+    # Check soft tags
+    soft_raw = str(row.get("prereq_soft", "") or "")
+    soft_tags = [t.strip() for t in soft_raw.split(";") if t.strip()] if soft_raw else []
+
+    if parsed["type"] == "unsupported" or COMPLEX_PREREQ_TAG in soft_tags:
+        return {
+            "can_take": None,
+            "why_not": "Cannot determine eligibility: prerequisite format requires manual review.",
+            "missing_prereqs": [],
+            "not_offered_this_term": False,
+            "unsupported_prereq_format": True,
+        }
+
+    if prereqs_satisfied(parsed, satisfied_codes):
+        return {
+            "can_take": True,
+            "why_not": None,
+            "missing_prereqs": [],
+            "not_offered_this_term": False,
+            "unsupported_prereq_format": False,
+        }
+
+    # Determine which prereqs are missing
+    missing: list[str] = []
+    t = parsed["type"]
+    if t == "single":
+        if parsed["course"] not in satisfied_codes:
+            missing = [parsed["course"]]
+    elif t == "and":
+        missing = [c for c in parsed["courses"] if c not in satisfied_codes]
+    elif t == "or":
+        missing = parsed["courses"]  # none of the OR options are satisfied
+
+    why_not = f"Missing prerequisite(s): {', '.join(missing)}." if missing else "Prerequisites not satisfied."
+
+    return {
+        "can_take": False,
+        "why_not": why_not,
+        "missing_prereqs": missing,
+        "not_offered_this_term": False,
+        "unsupported_prereq_format": False,
+    }
