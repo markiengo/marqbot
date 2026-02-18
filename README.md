@@ -1,131 +1,95 @@
-# MarqBot — Marquette Finance Course Advisor
+# MarqBot - Marquette Finance Course Advisor
 
-A Finance major course recommendation chatbot for Marquette University. Students enter their completed and in-progress courses, pick a target semester, and receive 2–3 prioritized course recommendations with prerequisite validation, degree progress tracking, and sequencing intelligence.
+MarqBot is a Finance-major advising app for Marquette students. It recommends eligible courses using deterministic prerequisite and requirement logic, with optional OpenAI explanations.
 
-## How It Works
+## Current Features
 
-**Backend (deterministic Python):**
-- Normalizes and validates course code input
-- Parses prerequisites using a strict grammar
-- Filters eligible courses: offered this term + prereqs satisfied + not yet taken
-- Allocates completed courses to requirement buckets (CORE → FIN\_CHOOSE\_2 → FIN\_CHOOSE\_1 → BUS\_ELEC\_4)
-- Handles double-counting (one Finance elective can fill both FIN\_CHOOSE\_2 and FIN\_CHOOSE\_1)
-- Computes direct unlocks and blocking warnings
-- Estimates rough graduation timeline
-
-**AI (OpenAI GPT):**
-- Receives 6–10 pre-filtered, pre-labeled eligible candidates
-- Selects 2–3 best courses in priority order
-- Writes 1–2 sentence explanations for each
-- Never decides eligibility — only explains and ranks
+- Deterministic eligibility: offered term + hard prereqs met + not already completed/in progress.
+- Two-semester planning:
+- Semester 1 recommendations for selected target semester.
+- Optional Semester 2 recommendations built on Semester 1 picks (assumed completed).
+- `Target Semester (2)` supports `Auto`, explicit term, or `None (Do not generate)`.
+- Can-take mode: `Can I take this next semester?` check for one course.
+- Degree progress by requirement bucket with completed vs in-progress handling.
+- Multi-bucket visibility on recommendation cards (courses can count toward multiple buckets).
+- Timeline estimate shown as time to complete Finance major requirements.
+- Fast mode by default (no LLM call); optional OpenAI ranking/explanation.
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | HTML5, CSS3 (MU #003366/#FFC82E), Vanilla JS |
-| Backend | Python Flask + pandas + openpyxl |
-| AI | OpenAI (`gpt-4o-mini` by default, configurable via `OPENAI_MODEL`) |
-| Data | `marquette_courses_full.xlsx` (5 sheets) |
+- Frontend: HTML, CSS, vanilla JavaScript
+- Backend: Flask, pandas, openpyxl
+- AI (optional): OpenAI Chat Completions (`OPENAI_MODEL`)
+- Data: `marquette_courses_full.xlsx`
 
 ## Setup
 
-### 1. Prerequisites
-- Python 3.10+
-- The Excel data file at the project root: `marquette_courses_full.xlsx`
-
-### 2. Install dependencies
+1. Create and activate a virtual environment.
+2. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configure API key
+3. Configure `.env`:
 
-Create a `.env` file at the project root:
-
-```
+```env
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
+USE_OPENAI_EXPLANATIONS=0
 ```
 
-You can switch to a different OpenAI model by changing `OPENAI_MODEL` (for example `gpt-4.1-mini`).
+`USE_OPENAI_EXPLANATIONS=0` (default) keeps recommendations deterministic and fast.  
+Set it to `1` to call OpenAI for ranking/explanations.
 
-### 4. Run
+4. Run:
 
 ```bash
 python backend/server.py
 ```
 
-Open [http://localhost:5000](http://localhost:5000) in your browser.
+Open `http://localhost:5000`.
 
-## Data File
+## API Notes
 
-The app reads `marquette_courses_full.xlsx` from the project root. It expects these sheets:
+`POST /recommend` accepts:
 
-| Sheet | Purpose |
-|---|---|
-| `courses` | Course catalog with prereq\_hard, offering flags, level |
-| `equivalencies` | 4000/5000 course equivalency groups |
-| `tracks` | Track metadata (currently FIN\_MAJOR) |
-| `buckets` | Requirement bucket definitions and priorities |
-| `bucket_course_map` | Which courses satisfy which buckets |
+- `completed_courses` (string list input)
+- `in_progress_courses` (string list input)
+- `target_semester_primary` (for example `Spring 2026`)
+- `target_semester_secondary` (`Auto` via null/empty, explicit label, or `__NONE__`)
+- `requested_course` (optional can-take mode)
+- `max_recommendations` (1 to 4)
 
-## Running Tests
+Response in recommendation mode includes:
+
+- `semesters`: array of semester recommendation blocks
+- Sem1 fields also mirrored at top level for compatibility
+
+## Workbook Schema
+
+`marquette_courses_full.xlsx` uses these sheets:
+
+- `courses`
+- `equivalencies`
+- `tracks`
+- `buckets`
+- `bucket_course_map`
+
+The workbook may store `program_id`; backend maps it to `track_id` internally for compatibility.
+
+## Finance Bucket Labels
+
+- `CORE`: Core Required
+- `FIN_CHOOSE_1`: Upper Division Finance Elective (One)
+- `FIN_CHOOSE_2`: Upper Division Finance Elective (Two)
+- `BUS_ELEC_4`: Business Electives
+
+Double-counting is enabled by data flags and bucket configuration.
+
+## Tests
 
 ```bash
 python -m pytest tests/ -v
 ```
 
-## Key Scenarios
-
-| Scenario | Expected |
-|---|---|
-| Completed: `FINA 3001`, `ECON 1103`, `ACCO 1030` — Fall | Recommends FINA 4001, FINA 4011 (CORE) |
-| In-progress: `FINA 3001` | FINA 4001 eligible; labeled "(in progress) ✓" |
-| No `FINA 3001` completed | FINA 4001/4011 excluded |
-| Requested: `FINA 4081` without prereqs | `can_take: false`, shows missing prereqs |
-| Input: `fina-3001` | Normalized to `FINA 3001` correctly |
-| Input: `asdfasdf` | `INVALID_INPUT` error |
-
-## Finance Major Requirements (FIN_MAJOR)
-
-| Bucket | Description | Count Required |
-|---|---|---|
-| CORE | Core Required (FINA 3001, 4001, 4011) | 3 |
-| FIN\_CHOOSE\_2 | Choose Two Finance Courses (3000+ level) | 2 |
-| FIN\_CHOOSE\_1 | Choose One Finance/Approved Course (3000+ level) | 1 |
-| BUS\_ELEC\_4 | Business Electives | 4 |
-
-Double-counting: A Finance elective can count toward both FIN\_CHOOSE\_2 and FIN\_CHOOSE\_1 if both buckets have remaining slots.
-
-## Project Structure
-
-```
-marqbot/
-├── backend/
-│   ├── server.py          # Flask: POST /recommend, GET /courses
-│   ├── normalizer.py      # Course code normalization + validation
-│   ├── prereq_parser.py   # Prerequisite grammar parser
-│   ├── requirements.py    # Constants (allowed double-count pairs, etc.)
-│   ├── allocator.py       # Deterministic bucket allocation algorithm
-│   ├── unlocks.py         # Reverse-prereq map + blocking warnings
-│   ├── timeline.py        # Graduation timeline estimation
-│   ├── eligibility.py     # Eligibility filter + can-take check
-│   └── prompt_builder.py  # LLM prompt construction
-├── frontend/
-│   ├── index.html
-│   ├── style.css          # Marquette branding
-│   └── app.js             # Searchable dropdowns, fetch, render
-├── tests/
-│   ├── test_normalizer.py
-│   ├── test_prereq_parser.py
-│   ├── test_allocator.py
-│   ├── test_unlocks.py
-│   └── test_eligibility.py
-├── marquette_courses_full.xlsx
-├── .env                   # OPENAI_API_KEY (create this yourself)
-├── .gitignore
-├── requirements.txt
-└── prd.md
-```
