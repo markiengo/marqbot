@@ -13,7 +13,7 @@ from openai import OpenAI
 
 from normalizer import normalize_code, normalize_input
 from prereq_parser import parse_prereqs
-from requirements import TRACK_ID, SOFT_WARNING_TAGS, BLOCKING_WARNING_THRESHOLD, PREREQ_HARD_OVERRIDES, COMPLEX_PREREQ_TAG
+from requirements import TRACK_ID, SOFT_WARNING_TAGS, BLOCKING_WARNING_THRESHOLD
 from allocator import allocate_courses
 from unlocks import build_reverse_prereq_map, get_direct_unlocks, get_blocking_warnings
 from timeline import estimate_timeline
@@ -77,20 +77,6 @@ def load_data() -> dict:
     courses_df["course_code"] = courses_df["course_code"].astype(str).str.strip()
     courses_df["prereq_hard"] = courses_df.get("prereq_hard", pd.Series(dtype=str)).fillna("none")
     courses_df["prereq_soft"] = courses_df.get("prereq_soft", pd.Series(dtype=str)).fillna("")
-
-    # Apply hard-prereq overrides for known data gaps.
-    if PREREQ_HARD_OVERRIDES:
-        for code, prereq_expr in PREREQ_HARD_OVERRIDES.items():
-            courses_df.loc[courses_df["course_code"] == code, "prereq_hard"] = prereq_expr
-            # Override implies hard prereq is known; remove stale complex-tag marker.
-            mask = courses_df["course_code"] == code
-            soft_vals = courses_df.loc[mask, "prereq_soft"].astype(str)
-            courses_df.loc[mask, "prereq_soft"] = soft_vals.apply(
-                lambda s: ";".join(
-                    t for t in [p.strip() for p in s.split(";") if p.strip()]
-                    if t != COMPLEX_PREREQ_TAG
-                )
-            )
 
     # Build course catalog set
     catalog_codes = set(courses_df["course_code"].tolist())
