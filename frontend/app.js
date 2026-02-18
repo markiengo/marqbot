@@ -4,6 +4,7 @@ const state = {
   completed: new Set(),
   inProgress: new Set(),
 };
+const STORAGE_KEY = "marqbot_session_v1";
 
 /* ── DOM refs ────────────────────────────────────────────────────────────── */
 const form           = document.getElementById("advisor-form");
@@ -19,6 +20,78 @@ const dropdownIp     = document.getElementById("dropdown-ip");
 const chipsIp        = document.getElementById("chips-ip");
 
 const canTakeInput   = document.getElementById("can-take-input");
+
+function getSessionSnapshot() {
+  return {
+    completed: [...state.completed],
+    inProgress: [...state.inProgress],
+    targetSemester: document.getElementById("target-semester")?.value || "",
+    targetSemester2: document.getElementById("target-semester-2")?.value || "",
+    maxRecs: document.getElementById("max-recs")?.value || "3",
+    canTake: canTakeInput?.value || "",
+  };
+}
+
+function saveSession() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(getSessionSnapshot()));
+  } catch (_) {
+    // Ignore storage errors (private mode/quota/etc.)
+  }
+}
+
+function restoreSession() {
+  let raw = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEY);
+  } catch (_) {
+    return;
+  }
+  if (!raw) return;
+
+  let parsed = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (_) {
+    return;
+  }
+
+  const catalog = new Set(state.courses.map(c => c.course_code));
+  const restoreCodes = (arr) =>
+    (Array.isArray(arr) ? arr : []).filter(code => typeof code === "string" && catalog.has(code));
+
+  const restoredCompleted = restoreCodes(parsed.completed);
+  const restoredInProgress = restoreCodes(parsed.inProgress);
+
+  // Do not replace Set objects: listeners hold references to these.
+  state.completed.clear();
+  state.inProgress.clear();
+  restoredCompleted.forEach(code => state.completed.add(code));
+  restoredInProgress
+    .filter(code => !state.completed.has(code))
+    .forEach(code => state.inProgress.add(code));
+
+  renderChips(chipsCompleted, state.completed);
+  renderChips(chipsIp, state.inProgress);
+
+  const targetSemesterEl = document.getElementById("target-semester");
+  const targetSemester2El = document.getElementById("target-semester-2");
+  const maxRecsEl = document.getElementById("max-recs");
+
+  if (targetSemesterEl && parsed.targetSemester) {
+    const ok = Array.from(targetSemesterEl.options).some(o => o.value === parsed.targetSemester);
+    if (ok) targetSemesterEl.value = parsed.targetSemester;
+  }
+  if (targetSemester2El && parsed.targetSemester2 !== undefined) {
+    const ok = Array.from(targetSemester2El.options).some(o => o.value === parsed.targetSemester2);
+    if (ok) targetSemester2El.value = parsed.targetSemester2;
+  }
+  if (maxRecsEl && parsed.maxRecs) {
+    const ok = Array.from(maxRecsEl.options).some(o => o.value === String(parsed.maxRecs));
+    if (ok) maxRecsEl.value = String(parsed.maxRecs);
+  }
+  if (canTakeInput && typeof parsed.canTake === "string") canTakeInput.value = parsed.canTake;
+}
 
 /* ── Fetch course list on load ───────────────────────────────────────────── */
 async function loadCourses() {
@@ -72,11 +145,13 @@ function addChip(code, targetSet, chipsEl, otherSet) {
   // Re-render other chips too in case we removed a code
   if (otherSet === state.completed) renderChips(chipsCompleted, state.completed);
   if (otherSet === state.inProgress) renderChips(chipsIp, state.inProgress);
+  saveSession();
 }
 
 function removeChip(code, targetSet, chipsEl) {
   targetSet.delete(code);
   renderChips(chipsEl, targetSet);
+  saveSession();
 }
 
 function renderChips(chipsEl, set) {
@@ -155,6 +230,7 @@ function setupPasteFallback(toggleBtnId, pasteId, applyBtnId, errorsId, targetSe
 /* ── Form submit ─────────────────────────────────────────────────────────── */
 form.addEventListener("submit", async e => {
   e.preventDefault();
+  saveSession();
 
   submitBtn.disabled = true;
   submitBtn.innerHTML = `<span class="spinner"></span> Analyzing…`;
@@ -413,7 +489,7 @@ function formatCourseNotes(note) {
 
 function bucketLabel(bucketId) {
   const labels = {
-    CORE: "Core Required",
+    CORE: "Finance Required",
     FIN_CHOOSE_2: "Upper Division Finance Elective (Two)",
     FIN_CHOOSE_1: "Upper Division Finance Elective (One)",
     BUS_ELEC_4: "Business Electives",
@@ -451,6 +527,13 @@ async function init() {
     "toggle-paste-ip", "paste-ip", "apply-paste-ip", "paste-errors-ip",
     state.inProgress, chipsIp, state.completed
   );
+  restoreSession();
+
+  document.getElementById("target-semester")?.addEventListener("change", saveSession);
+  document.getElementById("target-semester-2")?.addEventListener("change", saveSession);
+  document.getElementById("max-recs")?.addEventListener("change", saveSession);
+  canTakeInput?.addEventListener("input", saveSession);
+  window.addEventListener("beforeunload", saveSession);
 }
 
 init();
