@@ -13,7 +13,7 @@ A Finance major course recommendation chatbot for Marquette University. Students
 - Computes direct unlocks and blocking warnings
 - Estimates rough graduation timeline
 
-**AI (Claude Haiku 4.5):**
+**AI (OpenAI GPT):**
 - Receives 6–10 pre-filtered, pre-labeled eligible candidates
 - Selects 2–3 best courses in priority order
 - Writes 1–2 sentence explanations for each
@@ -25,7 +25,7 @@ A Finance major course recommendation chatbot for Marquette University. Students
 |---|---|
 | Frontend | HTML5, CSS3 (MU #003366/#FFC82E), Vanilla JS |
 | Backend | Python Flask + pandas + openpyxl |
-| AI | Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) |
+| AI | OpenAI (`gpt-4o-mini` by default, configurable via `OPENAI_MODEL`) |
 | Data | `marquette_courses_full.xlsx` (5 sheets) |
 
 ## Setup
@@ -45,8 +45,11 @@ pip install -r requirements.txt
 Create a `.env` file at the project root:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
 ```
+
+You can switch to a different OpenAI model by changing `OPENAI_MODEL` (for example `gpt-4.1-mini`).
 
 ### 4. Run
 
@@ -109,7 +112,7 @@ marqbot/
 │   ├── unlocks.py         # Reverse-prereq map + blocking warnings
 │   ├── timeline.py        # Graduation timeline estimation
 │   ├── eligibility.py     # Eligibility filter + can-take check
-│   └── prompt_builder.py  # Claude prompt construction
+│   └── prompt_builder.py  # LLM prompt construction
 ├── frontend/
 │   ├── index.html
 │   ├── style.css          # Marquette branding
@@ -121,7 +124,7 @@ marqbot/
 │   ├── test_unlocks.py
 │   └── test_eligibility.py
 ├── marquette_courses_full.xlsx
-├── .env                   # ANTHROPIC_API_KEY (create this yourself)
+├── .env                   # OPENAI_API_KEY (create this yourself)
 ├── .gitignore
 ├── requirements.txt
 └── prd.md

@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from flask import Flask, jsonify, request, send_from_directory
 import pandas as pd
 from dotenv import load_dotenv
-import anthropic
+from openai import OpenAI
 
 from normalizer import normalize_code, normalize_input
 from prereq_parser import parse_prereqs
@@ -108,41 +108,45 @@ except Exception as exc:
     print(f"[ERROR] Failed to load data: {exc}")
 
 
-# ── Anthropic client ─────────────────────────────────────────────────────────
-def get_claude_client():
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+# ── OpenAI client ────────────────────────────────────────────────────────────
+def get_openai_client():
+    api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY not set in environment")
-    return anthropic.Anthropic(api_key=api_key)
+        raise RuntimeError("OPENAI_API_KEY not set in environment")
+    return OpenAI(api_key=api_key)
 
 
-def call_claude(
+def call_openai(
     candidates: list[dict],
     completed: list[str],
     in_progress: list[str],
     target_semester: str,
     max_recommendations: int,
 ) -> list[dict]:
-    """Calls Claude Haiku with pre-filtered candidates. Returns parsed JSON recommendations."""
-    client = get_claude_client()
+    """Calls OpenAI with pre-filtered candidates. Returns parsed JSON recommendations."""
+    client = get_openai_client()
+    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
     user_msg = build_prompt(candidates, completed, in_progress, target_semester, max_recommendations)
 
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+    response = client.chat.completions.create(
+        model=model,
         max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_msg}],
+        temperature=0.2,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_msg},
+        ],
     )
 
-    raw = response.content[0].text.strip()
-    # Strip markdown code fences if Claude wraps the JSON
+    raw = (response.choices[0].message.content or "").strip()
+    # Strip markdown code fences if the model wraps the JSON
     if raw.startswith("```"):
         lines = raw.splitlines()
         raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
 
     recommendations = json.loads(raw)
 
-    # Re-attach fields Claude shouldn't change but might have dropped
+    # Re-attach fields the model shouldn't change but might have dropped
     code_to_candidate = {c["course_code"]: c for c in candidates}
     enriched = []
     for rec in recommendations:
@@ -351,7 +355,7 @@ def recommend():
             },
         })
 
-    # ── 7. Attach unlocks + take top 10 for Claude ────────────────────────────
+    # ── 7. Attach unlocks + take top 10 for LLM ───────────────────────────────
     top_candidates = non_manual_eligible[:10]
     for cand in top_candidates:
         cand["unlocks"] = get_direct_unlocks(cand["course_code"], reverse_map, limit=3)
@@ -375,9 +379,9 @@ def recommend():
     # ── 9. Timeline ───────────────────────────────────────────────────────────
     timeline = estimate_timeline(allocation["remaining"])
 
-    # ── 10. Call Claude ───────────────────────────────────────────────────────
+    # ── 10. Call OpenAI ───────────────────────────────────────────────────────
     try:
-        recommendations = call_claude(
+        recommendations = call_openai(
             top_candidates,
             completed,
             in_progress,
@@ -390,7 +394,7 @@ def recommend():
             "recommendations": None,
             "error": {
                 "error_code": "API_ERROR",
-                "message": f"Claude API error: {exc}",
+                "message": f"OpenAI API error: {exc}",
             },
         })
 

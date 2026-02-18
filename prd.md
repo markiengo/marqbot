@@ -111,7 +111,7 @@ An AI-powered course advising chatbot that analyzes a student's completed course
 - ✅ Direct unlock computation (reverse-prereq map)
 - ✅ Blocking warnings (unmet Finance electives only)
 - ✅ Rough graduation timeline from allocator slot counts
-- ✅ Claude Haiku 4.5 for ranking + explanation only (never determines eligibility)
+- ✅ OpenAI GPT for ranking + explanation only (never determines eligibility)
 
 ### 3.4 Out of Scope (MVP)
 - Section times / live scheduling
@@ -148,13 +148,13 @@ An AI-powered course advising chatbot that analyzes a student's completed course
 │  - Normalize input      │
 │  - Filter eligible      │
 │  - Allocate buckets     │
-│  - Call Claude API      │
+│  - Call OpenAI API      │
 └──────┬──────────────────┘
        │
        │ API Request (6-10 pre-filtered candidates only)
        ▼
 ┌─────────────────────────┐
-│   Claude Haiku 4.5      │
+│   OpenAI GPT model      │
 │   - Rank candidates     │
 │   - Write explanations  │
 │   - Return JSON only    │
@@ -180,7 +180,7 @@ An AI-powered course advising chatbot that analyzes a student's completed course
 - Flask (minimal web server)
 - pandas (Excel data loading)
 - openpyxl (Excel file reading)
-- anthropic (API client)
+- openai (API client)
 - python-dotenv (environment variables)
 
 **Data Storage:**
@@ -188,7 +188,7 @@ An AI-powered course advising chatbot that analyzes a student's completed course
 - No database (simple file-based for MVP)
 
 **External APIs:**
-- Anthropic Claude Haiku 4.5 (claude-haiku-4-5-20251001)
+- OpenAI model (default: gpt-4o-mini; configurable via OPENAI_MODEL)
 
 **Hosting (MVP):**
 - Local development only (localhost:5000)
@@ -340,7 +340,7 @@ marqbot/
 │   ├── requirements.py     # ALLOWED_DOUBLE_COUNT_PAIRS, MAX_BUCKETS_PER_COURSE
 │   ├── unlocks.py          # Reverse-prereq map + blocking warnings
 │   ├── timeline.py         # Rough timeline from allocator slot counts
-│   └── prompt_builder.py   # Claude prompt (candidates only)
+│   └── prompt_builder.py   # LLM prompt (candidates only)
 ├── data/
 │   └── marquette_courses.xlsx
 ├── tests/
@@ -350,7 +350,7 @@ marqbot/
 │   ├── test_allocator.py
 │   ├── test_unlocks.py
 │   └── test_cases.json
-├── .env                    # ANTHROPIC_API_KEY (gitignored)
+├── .env                    # OPENAI_API_KEY (gitignored)
 ├── .gitignore
 ├── requirements.txt
 └── README.md
@@ -519,7 +519,7 @@ marqbot/
 | API rate limits | Medium | High | Cache responses, implement rate limiting |
 | Prereq parsing errors | High | Critical | Extensive testing, unsupported-format fallback |
 | Excel file corruption | Low | Medium | Version control, backup |
-| Claude gives bad ranking | Medium | High | Prompt engineering; eligibility is never AI-determined |
+| LLM gives bad ranking | Medium | High | Prompt engineering; eligibility is never AI-determined |
 | Slow API response | Low | Medium | Loading indicators, timeout handling |
 
 ### 8.2 Data Risks

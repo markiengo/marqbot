@@ -33,8 +33,8 @@ def build_prompt(
     max_recommendations: int = 3,
 ) -> str:
     """
-    Builds the user message sent to Claude.
-    Claude only receives pre-filtered candidates — never decides eligibility.
+    Builds the user message sent to the LLM.
+    The LLM only receives pre-filtered candidates — never decides eligibility.
     """
     context_lines = []
 
@@ -53,10 +53,10 @@ def build_prompt(
         "Eligible courses (pre-filtered — all prereqs satisfied, all offered this term):"
     )
 
-    # Simplify candidates for Claude — only what's needed for explanation
-    claude_candidates = []
+    # Simplify candidates for the LLM — only what's needed for explanation
+    llm_candidates = []
     for c in candidates:
-        claude_candidates.append({
+        llm_candidates.append({
             "course_code": c["course_code"],
             "course_name": c["course_name"],
             "prereq_check": c.get("prereq_check", ""),
@@ -67,6 +67,6 @@ def build_prompt(
             "low_confidence_offering": c.get("low_confidence", False),
         })
 
-    context_lines.append(json.dumps(claude_candidates, indent=2))
+    context_lines.append(json.dumps(llm_candidates, indent=2))
 
     return "\n".join(context_lines)
