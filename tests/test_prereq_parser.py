@@ -52,8 +52,29 @@ class TestParsePrereqs:
         assert result["type"] == "or"
         assert "FINA 4001" in result["courses"]
 
-    def test_unsupported_parens(self):
+    def test_parens_annotation_stripped(self):
+        # Parenthetical annotation should be stripped; base course parses correctly
         result = parse_prereqs("FINA 3001 (may be concurrent)")
+        assert result["type"] == "single"
+        assert result["course"] == "FINA 3001"
+
+    def test_or_with_annotation(self):
+        # Trailing annotation on OR clause should be stripped
+        result = parse_prereqs("FINA 4001 or FINA 5001 (non-majors)")
+        assert result["type"] == "or"
+        assert "FINA 4001" in result["courses"]
+        assert "FINA 5001" in result["courses"]
+        assert len(result["courses"]) == 2
+
+    def test_annotation_with_leading_parens(self):
+        # Leading parenthetical annotation stripped; remaining course code parses
+        result = parse_prereqs("(minimum grade B) FINA 3001")
+        assert result["type"] == "single"
+        assert result["course"] == "FINA 3001"
+
+    def test_unsupported_no_course_with_parens(self):
+        # Stripping annotation still leaves unsupported signal word "consent"
+        result = parse_prereqs("consent of (the) instructor")
         assert result["type"] == "unsupported"
 
     def test_unsupported_instructor_consent(self):
