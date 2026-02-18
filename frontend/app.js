@@ -165,6 +165,8 @@ form.addEventListener("submit", async e => {
     completed_courses: [...state.completed].join(", "),
     in_progress_courses: [...state.inProgress].join(", "),
     target_semester: document.getElementById("target-semester").value,
+    target_semester_primary: document.getElementById("target-semester").value,
+    target_semester_secondary: document.getElementById("target-semester-2").value || null,
     requested_course: canTakeInput.value.trim() || null,
     max_recommendations: parseInt(document.getElementById("max-recs").value),
   };
@@ -242,7 +244,17 @@ function renderCanTake(data) {
 }
 
 function renderRecommendations(data) {
+  if (Array.isArray(data.semesters) && data.semesters.length) {
+    const chunks = data.semesters.map((sem, i) => renderSemesterRecommendations(sem, i + 1));
+    resultsEl.innerHTML = chunks.join("");
+    return;
+  }
+  renderSemesterRecommendations(data, 1, true);
+}
+
+function renderSemesterRecommendations(data, index, writeDirect = false) {
   let html = "";
+  const requested = parseInt(document.getElementById("max-recs").value || "3", 10);
 
   // Not-in-catalog warning
   if (data.not_in_catalog_warning?.length) {
@@ -258,7 +270,11 @@ function renderRecommendations(data) {
 
   // Recommendations
   if (data.recommendations?.length) {
-    html += `<div class="section-title">Recommended for ${esc(document.getElementById("target-semester").value)}</div>`;
+    if ((data.eligible_count || 0) < requested) {
+      html += `<div class="warnings-box"><h4>Recommendation Count</h4><ul><li>You requested ${requested}, but only ${data.eligible_count} eligible course(s) match your completed/in-progress courses for this term.</li></ul></div>`;
+    }
+    const semesterLabel = data.target_semester || document.getElementById("target-semester").value;
+    html += `<div class="section-title">Semester ${index}: Recommended for ${esc(semesterLabel)}</div>`;
     html += `<div class="rec-cards">` + data.recommendations.map(renderCard).join("") + `</div>`;
   }
 
@@ -270,6 +286,10 @@ function renderRecommendations(data) {
   // Progress
   if (data.progress && Object.keys(data.progress).length) {
     html += `<div class="section-title">Degree Progress</div>`;
+    html += `<p style="font-size:13px;color:var(--ink-500);margin:0 0 10px;">Progress bars show completed courses applied to each requirement bucket. In-progress courses are listed separately and do not count as completed yet.</p>`;
+    if ((data.input_completed_count || 0) > 0 && (data.applied_completed_count || 0) === 0) {
+      html += `<div class="catalog-warn">None of your completed courses currently map into tracked FIN major requirement buckets. They may still be valid prerequisites, but they do not move these specific progress bars.</div>`;
+    }
     html += `<div class="progress-grid">`;
     for (const [bid, prog] of Object.entries(data.progress)) {
       const needed = prog.needed || 0;
@@ -283,7 +303,7 @@ function renderRecommendations(data) {
           <div class="progress-bar-track">
             <div class="progress-bar-fill ${doneClass}" style="width:${pct}%"></div>
           </div>
-          <div class="progress-label">${done} / ${needed} ${prog.satisfied ? "✓ Done" : "remaining"}</div>
+          <div class="progress-label">Completed ${done} of ${needed}${prog.satisfied ? " (Done)" : ""}</div>
           ${ipCodes.length ? `<div class="in-progress-badge">+ ${ipCodes.join(", ")} in progress</div>` : ""}
         </div>`;
     }
@@ -324,27 +344,33 @@ function renderRecommendations(data) {
         </div>
         <div class="timeline-stat">
           <div class="num">${t.estimated_min_terms}</div>
-          <div class="lbl">Est. terms to finish</div>
+          <div class="lbl">Est. terms to finish major</div>
         </div>
         <div class="timeline-disclaimer">${esc(t.disclaimer)}</div>
       </div>`;
   }
 
-  resultsEl.innerHTML = html;
+  if (writeDirect) {
+    resultsEl.innerHTML = html;
+    return html;
+  }
+  return `<section class="semester-block">${html}</section>`;
 }
 
 function renderCard(c) {
-  const bucketTag = c.requirement_bucket
-    ? `<span class="tag tag-bucket">${esc(c.requirement_bucket)}</span>` : "";
-
-  const multiTag = c.fills_buckets?.length > 1
-    ? `<span class="tag tag-gold">Fills ${c.fills_buckets.length} buckets</span>` : "";
+  const bucketIds = c.fills_buckets || [];
+  const bucketTags = bucketIds.map((bid, idx) => {
+    const cls = idx === 0 ? "tag-bucket" : idx === 1 ? "tag-secondary" : "tag-gold";
+    return `<span class="tag ${cls}">${esc(bucketLabel(bid))}</span>`;
+  }).join("");
 
   // Color-coded prereq string
   const prereqHtml = colorizePrereq(c.prereq_check || "");
 
   const unlocksHtml = c.unlocks?.length
     ? `<div class="unlocks-line">Unlocks: ${c.unlocks.map(esc).join(", ")}</div>` : "";
+  const bucketsHtml = bucketIds.length
+    ? `<div class="unlocks-line">Counts toward: ${bucketIds.map(bucketLabel).map(esc).join(", ")}</div>` : "";
 
   const softWarn = c.soft_tags?.length
     ? `<div class="soft-warn">⚠ ${c.soft_tags.join(", ").replace(/_/g, " ")}</div>` : "";
@@ -353,7 +379,10 @@ function renderCard(c) {
     ? `<div class="low-conf-warn">Note: offering schedule may vary — confirm with registrar.</div>` : "";
 
   const courseNotes = c.notes
-    ? `<div class="low-conf-warn">${esc(c.notes)}</div>` : "";
+    ? `<div class="low-conf-warn">${formatCourseNotes(c.notes)}</div>` : "";
+  const whyClass = (c.why || "").startsWith("This course advances your Finance major path")
+    ? "rec-card-why rec-card-why-gold"
+    : "rec-card-why";
 
   return `
     <div class="rec-card">
@@ -362,15 +391,34 @@ function renderCard(c) {
           <div class="rec-card-title">${esc(c.course_code)} — ${esc(c.course_name)}</div>
           <div class="rec-card-sub">${c.credits || 3} credits</div>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${bucketTag}${multiTag}
-        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${bucketTags}</div>
       </div>
-      <div class="rec-card-why">${esc(c.why || "")}</div>
+      <div class="${whyClass}">${esc(c.why || "")}</div>
       <div class="prereq-line">${prereqHtml}</div>
+      ${bucketsHtml}
       ${unlocksHtml}
       ${softWarn}${lowConf}${courseNotes}
     </div>`;
+}
+
+function formatCourseNotes(note) {
+  const txt = String(note || "");
+  if (txt.toLowerCase().includes("todo") && txt.toLowerCase().includes("complex prereq")) {
+    const codes = txt.match(/[A-Z]{2,6}\s\d{4}[A-Za-z]?/g) || [];
+    if (codes.length) return `Hard prereq codes: ${codes.join(", ")}`;
+    return "Hard prereq codes: see catalog.";
+  }
+  return esc(txt);
+}
+
+function bucketLabel(bucketId) {
+  const labels = {
+    CORE: "Core Required",
+    FIN_CHOOSE_2: "Upper Division Finance Elective (Two)",
+    FIN_CHOOSE_1: "Upper Division Finance Elective (One)",
+    BUS_ELEC_4: "Business Electives",
+  };
+  return labels[bucketId] || String(bucketId || "").replace(/_/g, " ");
 }
 
 function colorizePrereq(str) {

@@ -28,6 +28,11 @@ CONCURRENT_TAGS = {"may_be_concurrent"}
 # Minimum blocking threshold: warn if a CORE course blocks this many Finance electives
 BLOCKING_WARNING_THRESHOLD = 2
 
+# Data quality override: enforce known hard prereqs when source sheet is incomplete/noisy.
+PREREQ_HARD_OVERRIDES = {
+    "FINA 3001": "ACCO 1031",
+}
+
 
 def get_allowed_double_count_pairs(buckets_df: pd.DataFrame) -> set:
     """

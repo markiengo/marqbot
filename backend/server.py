@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import re
 
 # Ensure backend/ is on sys.path so sibling imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -12,7 +13,7 @@ from openai import OpenAI
 
 from normalizer import normalize_code, normalize_input
 from prereq_parser import parse_prereqs
-from requirements import TRACK_ID, SOFT_WARNING_TAGS, BLOCKING_WARNING_THRESHOLD
+from requirements import TRACK_ID, SOFT_WARNING_TAGS, BLOCKING_WARNING_THRESHOLD, PREREQ_HARD_OVERRIDES, COMPLEX_PREREQ_TAG
 from allocator import allocate_courses
 from unlocks import build_reverse_prereq_map, get_direct_unlocks, get_blocking_warnings
 from timeline import estimate_timeline
@@ -22,6 +23,7 @@ from prompt_builder import build_prompt, SYSTEM_PROMPT
 load_dotenv()
 
 app = Flask(__name__)
+USE_OPENAI_EXPLANATIONS = os.environ.get("USE_OPENAI_EXPLANATIONS", "0") == "1"
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -56,6 +58,13 @@ def load_data() -> dict:
         else next(s for s in sheet_names if "bucket" in s.lower() and "map" in s.lower())
     )
 
+    # Backward/forward compatibility for workbook schema naming.
+    # Current workbook may use program_id instead of track_id.
+    if "track_id" not in buckets_df.columns and "program_id" in buckets_df.columns:
+        buckets_df = buckets_df.rename(columns={"program_id": "track_id"})
+    if "track_id" not in course_bucket_map_df.columns and "program_id" in course_bucket_map_df.columns:
+        course_bucket_map_df = course_bucket_map_df.rename(columns={"program_id": "track_id"})
+
     # Normalize bool columns
     for col in ["offered_fall", "offered_spring", "offered_summer"]:
         courses_df = _safe_bool_col(courses_df, col)
@@ -68,6 +77,20 @@ def load_data() -> dict:
     courses_df["course_code"] = courses_df["course_code"].astype(str).str.strip()
     courses_df["prereq_hard"] = courses_df.get("prereq_hard", pd.Series(dtype=str)).fillna("none")
     courses_df["prereq_soft"] = courses_df.get("prereq_soft", pd.Series(dtype=str)).fillna("")
+
+    # Apply hard-prereq overrides for known data gaps.
+    if PREREQ_HARD_OVERRIDES:
+        for code, prereq_expr in PREREQ_HARD_OVERRIDES.items():
+            courses_df.loc[courses_df["course_code"] == code, "prereq_hard"] = prereq_expr
+            # Override implies hard prereq is known; remove stale complex-tag marker.
+            mask = courses_df["course_code"] == code
+            soft_vals = courses_df.loc[mask, "prereq_soft"].astype(str)
+            courses_df.loc[mask, "prereq_soft"] = soft_vals.apply(
+                lambda s: ";".join(
+                    t for t in [p.strip() for p in s.split(";") if p.strip()]
+                    if t != COMPLEX_PREREQ_TAG
+                )
+            )
 
     # Build course catalog set
     catalog_codes = set(courses_df["course_code"].tolist())
@@ -130,7 +153,7 @@ def call_openai(
 
     response = client.chat.completions.create(
         model=model,
-        max_tokens=1024,
+        max_tokens=420,
         temperature=0.2,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -144,13 +167,19 @@ def call_openai(
         lines = raw.splitlines()
         raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
 
-    recommendations = json.loads(raw)
+    parsed_output = json.loads(raw)
+    if not isinstance(parsed_output, list):
+        parsed_output = []
 
     # Re-attach fields the model shouldn't change but might have dropped
     code_to_candidate = {c["course_code"]: c for c in candidates}
     enriched = []
-    for rec in recommendations:
+    for rec in parsed_output:
+        if not isinstance(rec, dict):
+            continue
         code = rec.get("course_code")
+        if code not in code_to_candidate:
+            continue
         original = code_to_candidate.get(code, {})
         enriched.append({
             "course_code": code,
@@ -165,7 +194,60 @@ def call_openai(
             "low_confidence": original.get("low_confidence", False),
             "notes": original.get("notes"),
         })
-    return enriched
+
+    # Guarantee requested count when enough candidates exist:
+    # if model returns fewer items, fill with top deterministic candidates.
+    target_count = min(max_recommendations, len(candidates))
+    chosen_codes = {r["course_code"] for r in enriched}
+    for cand in candidates:
+        if len(enriched) >= target_count:
+            break
+        if cand["course_code"] in chosen_codes:
+            continue
+        enriched.append({
+            "course_code": cand["course_code"],
+            "course_name": cand.get("course_name", ""),
+            "why": "Recommended based on unmet requirement priority and prerequisite readiness.",
+            "prereq_check": cand.get("prereq_check", ""),
+            "requirement_bucket": cand.get("primary_bucket_label", ""),
+            "fills_buckets": cand.get("fills_buckets", []),
+            "unlocks": cand.get("unlocks", []),
+            "has_soft_requirement": cand.get("has_soft_requirement", False),
+            "soft_tags": cand.get("soft_tags", []),
+            "low_confidence": cand.get("low_confidence", False),
+            "notes": cand.get("notes"),
+        })
+        chosen_codes.add(cand["course_code"])
+
+    candidate_order = {c["course_code"]: i for i, c in enumerate(candidates)}
+    enriched.sort(key=lambda r: candidate_order.get(r["course_code"], 10**9))
+    return enriched[:target_count]
+
+
+def build_deterministic_recommendations(candidates: list[dict], max_recommendations: int) -> list[dict]:
+    """Fast local recommendation builder: no LLM call."""
+    target_count = min(max_recommendations, len(candidates))
+    recs = []
+    for cand in candidates[:target_count]:
+        buckets = cand.get("fills_buckets", [])
+        if buckets:
+            why = f"This course advances your Finance major path and counts toward {len(buckets)} unmet requirement bucket(s)."
+        else:
+            why = "This course advances your Finance major path based on prerequisite order and remaining requirements."
+        recs.append({
+            "course_code": cand["course_code"],
+            "course_name": cand.get("course_name", ""),
+            "why": why,
+            "prereq_check": cand.get("prereq_check", ""),
+            "requirement_bucket": cand.get("primary_bucket_label", ""),
+            "fills_buckets": cand.get("fills_buckets", []),
+            "unlocks": cand.get("unlocks", []),
+            "has_soft_requirement": cand.get("has_soft_requirement", False),
+            "soft_tags": cand.get("soft_tags", []),
+            "low_confidence": cand.get("low_confidence", False),
+            "notes": cand.get("notes"),
+        })
+    return recs
 
 
 # ── Helper: build progress output for response ───────────────────────────────
@@ -184,6 +266,46 @@ def build_progress_output(allocation: dict, course_bucket_map_df: pd.DataFrame) 
             "slots_remaining": remaining.get("slots_remaining", 0),
         }
     return progress
+
+
+def _prereq_courses(parsed: dict) -> set[str]:
+    t = parsed.get("type")
+    if t == "single":
+        return {parsed["course"]}
+    if t in ("and", "or"):
+        return set(parsed["courses"])
+    return set()
+
+
+SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
+
+
+def _normalize_semester_label(label: str) -> str:
+    m = SEM_RE.match((label or "").strip())
+    if not m:
+        return label
+    term = m.group(1).capitalize()
+    year = int(m.group(2))
+    return f"{term} {year}"
+
+
+def _default_followup_semester(first_semester: str) -> str:
+    """
+    Optional second-semester default:
+    - Spring YYYY -> Fall YYYY (skip Summer by default)
+    - Summer YYYY -> Fall YYYY
+    - Fall YYYY   -> Spring YYYY+1
+    """
+    m = SEM_RE.match((first_semester or "").strip())
+    if not m:
+        return "Fall 2026"
+    term = m.group(1).capitalize()
+    year = int(m.group(2))
+    if term == "Spring":
+        return f"Fall {year}"
+    if term == "Summer":
+        return f"Fall {year}"
+    return f"Spring {year + 1}"
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -215,13 +337,28 @@ def recommend():
     body = request.get_json(force=True)
     completed_raw = str(body.get("completed_courses", "") or "")
     in_progress_raw = str(body.get("in_progress_courses", "") or "")
-    target_semester = str(body.get("target_semester", "Fall 2026") or "Fall 2026")
+    target_semester_primary = str(
+        body.get("target_semester_primary")
+        or body.get("target_semester")
+        or "Spring 2026"
+    )
+    target_semester_primary = _normalize_semester_label(target_semester_primary)
+    target_semester_secondary = body.get("target_semester_secondary")
+    target_semester_secondary = str(target_semester_secondary).strip() if target_semester_secondary is not None else None
+    if target_semester_secondary == "__NONE__":
+        target_semester_secondary = "__NONE__"
+    else:
+        target_semester_secondary = (
+            _normalize_semester_label(target_semester_secondary)
+            if target_semester_secondary
+            else None
+        )
     requested_course_raw = body.get("requested_course") or None
     max_recs = int(body.get("max_recommendations", 3) or 3)
+    max_recs = max(1, min(4, max_recs))
 
     catalog_codes = _data["catalog_codes"]
 
-    # ── 1. Normalize inputs ───────────────────────────────────────────────────
     comp_result = normalize_input(completed_raw, catalog_codes)
     ip_result = normalize_input(in_progress_raw, catalog_codes)
 
@@ -241,13 +378,11 @@ def recommend():
     in_progress = ip_result["valid"]
     not_in_catalog_warn = comp_result["not_in_catalog"] + ip_result["not_in_catalog"]
 
-    # ── 2. Parse term ─────────────────────────────────────────────────────────
     try:
-        target_term = parse_term(target_semester)
+        target_term = parse_term(target_semester_primary)
     except ValueError:
         target_term = "Fall"
 
-    # ── 3. Normalize requested_course if provided ─────────────────────────────
     requested_course = None
     if requested_course_raw:
         requested_course = normalize_code(str(requested_course_raw).strip())
@@ -262,7 +397,6 @@ def recommend():
                 },
             })
 
-    # ── 4. Run allocator ──────────────────────────────────────────────────────
     allocation = allocate_courses(
         completed,
         in_progress,
@@ -272,10 +406,8 @@ def recommend():
         _data["equivalencies_df"],
     )
 
-    # ── 5. Build reverse prereq map ───────────────────────────────────────────
     reverse_map = build_reverse_prereq_map(_data["courses_df"], _data["prereq_map"])
 
-    # ── can-take mode ──────────────────────────────────────────────────────────
     if requested_course:
         result = check_can_take(
             requested_course,
@@ -286,7 +418,6 @@ def recommend():
             _data["prereq_map"],
         )
 
-        # Find same-bucket alternatives for the requested course
         eligible_all = get_eligible_courses(
             _data["courses_df"],
             completed + ([requested_course] if result["can_take"] else []),
@@ -298,7 +429,7 @@ def recommend():
             _data["buckets_df"],
             _data["equivalencies_df"],
         )
-        # Best alternatives from same primary bucket
+
         req_course_rows = _data["courses_df"][_data["courses_df"]["course_code"] == requested_course]
         alternatives = []
         if not result["can_take"] and len(req_course_rows) > 0:
@@ -326,98 +457,132 @@ def recommend():
             "error": None,
         })
 
-    # ── 6. Get eligible courses ───────────────────────────────────────────────
-    eligible = get_eligible_courses(
-        _data["courses_df"],
-        completed,
-        in_progress,
-        target_term,
-        _data["prereq_map"],
-        allocation["remaining"],
-        _data["course_bucket_map_df"],
-        _data["buckets_df"],
-        _data["equivalencies_df"],
-    )
-
-    # Separate manual review courses
-    manual_review_courses = [c["course_code"] for c in eligible if c.get("manual_review")]
-    non_manual_eligible = [c for c in eligible if not c.get("manual_review")]
-
-    if not non_manual_eligible:
-        return jsonify({
-            "mode": "error",
-            "recommendations": None,
-            "error": {
-                "error_code": "NO_ELIGIBLE_COURSES",
-                "message": "No eligible courses found for the specified criteria.",
-                "invalid_courses": [],
-                "not_in_catalog": [],
-            },
-        })
-
-    # ── 7. Attach unlocks + take top 10 for LLM ───────────────────────────────
-    top_candidates = non_manual_eligible[:10]
-    for cand in top_candidates:
-        cand["unlocks"] = get_direct_unlocks(cand["course_code"], reverse_map, limit=3)
-
-    # ── 8. Blocking warnings ──────────────────────────────────────────────────
-    core_remaining = allocation["remaining"].get("CORE", {}).get("remaining_courses", [])
-    fin_choose_2_courses = _data["course_bucket_map_df"][
-        (_data["course_bucket_map_df"]["track_id"] == TRACK_ID)
-        & (_data["course_bucket_map_df"]["bucket_id"] == "FIN_CHOOSE_2")
-    ]["course_code"].tolist()
-
-    blocking_warnings = get_blocking_warnings(
-        core_remaining,
-        reverse_map,
-        fin_choose_2_courses,
-        completed,
-        in_progress,
-        threshold=BLOCKING_WARNING_THRESHOLD,
-    )
-
-    # ── 9. Timeline ───────────────────────────────────────────────────────────
-    timeline = estimate_timeline(allocation["remaining"])
-
-    # ── 10. Call OpenAI ───────────────────────────────────────────────────────
-    try:
-        recommendations = call_openai(
-            top_candidates,
-            completed,
-            in_progress,
-            target_semester,
-            max_recs,
+    def run_recommendation_semester(completed_sem: list[str], in_progress_sem: list[str], target_semester_label: str) -> dict:
+        term = parse_term(target_semester_label)
+        alloc = allocate_courses(
+            completed_sem,
+            in_progress_sem,
+            _data["buckets_df"],
+            _data["course_bucket_map_df"],
+            _data["courses_df"],
+            _data["equivalencies_df"],
         )
-    except Exception as exc:
-        return jsonify({
-            "mode": "error",
-            "recommendations": None,
-            "error": {
-                "error_code": "API_ERROR",
-                "message": f"OpenAI API error: {exc}",
-            },
-        })
 
-    # ── 11. Build progress output ─────────────────────────────────────────────
-    progress = build_progress_output(allocation, _data["course_bucket_map_df"])
-
-    # ── 12. in_progress note ──────────────────────────────────────────────────
-    in_progress_note = None
-    if any("in progress" in (r.get("prereq_check") or "") for r in recommendations):
-        in_progress_note = (
-            "Prerequisites satisfied via in-progress courses assume successful completion."
+        eligible_sem = get_eligible_courses(
+            _data["courses_df"],
+            completed_sem,
+            in_progress_sem,
+            term,
+            _data["prereq_map"],
+            alloc["remaining"],
+            _data["course_bucket_map_df"],
+            _data["buckets_df"],
+            _data["equivalencies_df"],
         )
+        manual_review_sem = [c["course_code"] for c in eligible_sem if c.get("manual_review")]
+        non_manual_sem = [c for c in eligible_sem if not c.get("manual_review")]
+        eligible_count_sem = len(non_manual_sem)
+
+        progress_sem = build_progress_output(alloc, _data["course_bucket_map_df"])
+        timeline_sem = estimate_timeline(alloc["remaining"])
+        if isinstance(timeline_sem, dict):
+            timeline_sem["disclaimer"] = (
+                "Estimated time to complete Finance major requirements only. "
+                "Assumes about 3 major courses per term and typical course availability."
+            )
+
+        if not non_manual_sem:
+            return {
+                "target_semester": target_semester_label,
+                "recommendations": [],
+                "requested_recommendations": max_recs,
+                "eligible_count": 0,
+                "input_completed_count": len(completed_sem),
+                "applied_completed_count": sum(p.get("done_count", 0) for p in progress_sem.values()),
+                "in_progress_note": None,
+                "blocking_warnings": [],
+                "progress": progress_sem,
+                "double_counted_courses": alloc["double_counted_courses"],
+                "allocation_notes": alloc["notes"],
+                "manual_review_courses": manual_review_sem,
+                "timeline": timeline_sem,
+            }
+
+        core_remaining_sem = alloc["remaining"].get("CORE", {}).get("remaining_courses", [])
+        core_prereq_blockers_sem: set[str] = set()
+        for core_code in core_remaining_sem:
+            core_prereq_blockers_sem |= _prereq_courses(_data["prereq_map"].get(core_code, {"type": "none"}))
+
+        ranked_sem = sorted(
+            non_manual_sem,
+            key=lambda c: (
+                0 if c["course_code"] in core_prereq_blockers_sem else 1,
+                c.get("prereq_level", 0),
+                c.get("primary_bucket_priority", 99),
+                -c.get("multi_bucket_score", 0),
+                c["course_code"],
+            ),
+        )
+        selected_sem = ranked_sem[:max_recs]
+        for cand in selected_sem:
+            cand["unlocks"] = get_direct_unlocks(cand["course_code"], reverse_map, limit=3)
+
+        if USE_OPENAI_EXPLANATIONS:
+            recommendations_sem = call_openai(
+                selected_sem,
+                completed_sem,
+                in_progress_sem,
+                target_semester_label,
+                len(selected_sem),
+            )
+        else:
+            recommendations_sem = build_deterministic_recommendations(selected_sem, len(selected_sem))
+
+        fin_choose_2_courses = _data["course_bucket_map_df"][
+            (_data["course_bucket_map_df"]["track_id"] == TRACK_ID)
+            & (_data["course_bucket_map_df"]["bucket_id"] == "FIN_CHOOSE_2")
+        ]["course_code"].tolist()
+        blocking_sem = get_blocking_warnings(
+            core_remaining_sem,
+            reverse_map,
+            fin_choose_2_courses,
+            completed_sem,
+            in_progress_sem,
+            threshold=BLOCKING_WARNING_THRESHOLD,
+        )
+
+        in_progress_note_sem = None
+        if any("in progress" in (r.get("prereq_check") or "") for r in recommendations_sem):
+            in_progress_note_sem = "Prerequisites satisfied via in-progress courses assume successful completion."
+
+        return {
+            "target_semester": target_semester_label,
+            "recommendations": recommendations_sem,
+            "requested_recommendations": max_recs,
+            "eligible_count": eligible_count_sem,
+            "input_completed_count": len(completed_sem),
+            "applied_completed_count": sum(p.get("done_count", 0) for p in progress_sem.values()),
+            "in_progress_note": in_progress_note_sem,
+            "blocking_warnings": blocking_sem,
+            "progress": progress_sem,
+            "double_counted_courses": alloc["double_counted_courses"],
+            "allocation_notes": alloc["notes"],
+            "manual_review_courses": manual_review_sem,
+            "timeline": timeline_sem,
+        }
+
+    sem1 = run_recommendation_semester(completed, in_progress, target_semester_primary)
+    semesters_payload = [sem1]
+    if target_semester_secondary != "__NONE__":
+        second_label = target_semester_secondary or _default_followup_semester(target_semester_primary)
+        completed_for_sem2 = list(dict.fromkeys(completed + in_progress + [r["course_code"] for r in sem1["recommendations"] if r.get("course_code")]))
+        sem2 = run_recommendation_semester(completed_for_sem2, [], second_label)
+        semesters_payload.append(sem2)
 
     return jsonify({
         "mode": "recommendations",
-        "recommendations": recommendations,
-        "in_progress_note": in_progress_note,
-        "blocking_warnings": blocking_warnings,
-        "progress": progress,
-        "double_counted_courses": allocation["double_counted_courses"],
-        "allocation_notes": allocation["notes"],
-        "manual_review_courses": manual_review_courses,
-        "timeline": timeline,
+        "semesters": semesters_payload,
+        **sem1,
         "not_in_catalog_warning": not_in_catalog_warn if not_in_catalog_warn else None,
         "error": None,
     })

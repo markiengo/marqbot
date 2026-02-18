@@ -19,6 +19,13 @@ def _safe_bool(val) -> bool:
     return bool(val)
 
 
+def _is_none_prereq(raw_val) -> bool:
+    if raw_val is None:
+        return True
+    s = str(raw_val).strip().lower()
+    return s in ("", "none", "none listed", "n/a", "nan")
+
+
 def get_course_eligible_buckets(
     course_code: str,
     course_bucket_map_df: pd.DataFrame,
@@ -133,14 +140,29 @@ def get_eligible_courses(
 
         # Parse prereqs
         parsed = prereq_map.get(code, {"type": "none"})
+        raw_concurrent = row.get("prereq_concurrent", "none")
+        parsed_concurrent = prereq_map.get(f"{code}::__concurrent__")
+        if parsed_concurrent is None:
+            from prereq_parser import parse_prereqs
+            parsed_concurrent = parse_prereqs(raw_concurrent if not _is_none_prereq(raw_concurrent) else "none")
+
         manual_review = parsed["type"] == "unsupported"
 
         # Parse prereq_soft tags
         soft_raw = str(row.get("prereq_soft", "") or "")
         soft_tags = [t.strip() for t in soft_raw.split(";") if t.strip()] if soft_raw else []
+        allow_concurrent = any(t in CONCURRENT_TAGS for t in soft_tags)
+        has_explicit_concurrent = not _is_none_prereq(raw_concurrent)
 
-        # hard_prereq_complex tag → also manual review
-        if COMPLEX_PREREQ_TAG in soft_tags:
+        # Data exception: some starter courses have no hard prereqs but include a
+        # concurrent-enrollment soft tag; do not force manual review in that case.
+        complex_tag_blocks = (
+            COMPLEX_PREREQ_TAG in soft_tags
+            and not (parsed["type"] == "none" and any(t in CONCURRENT_TAGS for t in soft_tags))
+        )
+        if complex_tag_blocks:
+            manual_review = True
+        if parsed_concurrent["type"] == "unsupported":
             manual_review = True
 
         # Check prereq satisfaction (manual review courses are excluded)
@@ -148,7 +170,15 @@ def get_eligible_courses(
             # Still include in list but flagged
             prereq_satisfied = False
         else:
-            prereq_satisfied = prereqs_satisfied(parsed, satisfied_codes)
+            if has_explicit_concurrent:
+                hard_ok = prereqs_satisfied(parsed, completed_set)
+                concurrent_ok = prereqs_satisfied(parsed_concurrent, satisfied_codes)
+                prereq_satisfied = hard_ok and concurrent_ok
+            else:
+                # Default: hard prereqs must be completed; in-progress only counts
+                # when may_be_concurrent soft tag is present.
+                prereq_source = satisfied_codes if allow_concurrent else completed_set
+                prereq_satisfied = prereqs_satisfied(parsed, prereq_source)
 
         if not prereq_satisfied:
             if not manual_review:
@@ -186,7 +216,15 @@ def get_eligible_courses(
         primary = eligible_buckets[0] if eligible_buckets else None
 
         # prereq_check string
-        prereq_check = build_prereq_check_string(parsed, completed_set, in_progress_set)
+        if has_explicit_concurrent:
+            hard_label = build_prereq_check_string(parsed, completed_set, set())
+            concurrent_label = build_prereq_check_string(parsed_concurrent, completed_set, in_progress_set)
+            prereq_check = f"Hard prereq: {hard_label}; Concurrent allowed: {concurrent_label}"
+        else:
+            ip_for_check = in_progress_set if allow_concurrent else set()
+            prereq_check = build_prereq_check_string(parsed, completed_set, ip_for_check)
+            if allow_concurrent and parsed["type"] != "none":
+                prereq_check = f"{prereq_check} (concurrent allowed)"
         if manual_review:
             prereq_check = "Manual review required"
 
@@ -194,6 +232,7 @@ def get_eligible_courses(
             "course_code": code,
             "course_name": str(row.get("course_name", "")),
             "credits": int(row.get("credits", 3)) if not pd.isna(row.get("credits", 3)) else 3,
+            "prereq_level": int(row.get("prereq_level", 0)) if not pd.isna(row.get("prereq_level", 0)) else 0,
             "primary_bucket": primary["bucket_id"] if primary else None,
             "primary_bucket_label": primary["label"] if primary else None,
             "primary_bucket_priority": primary["priority"] if primary else 99,
@@ -208,9 +247,11 @@ def get_eligible_courses(
             "unlocks": [],  # populated by server.py
         })
 
-    # Sort: primary bucket priority ASC, then multi_bucket_score DESC, then code
+    # Sort: prerequisite depth ASC (bottom-up), then bucket priority ASC,
+    # then multi_bucket_score DESC, then code.
     results.sort(
         key=lambda c: (
+            c["prereq_level"],
             c["primary_bucket_priority"],
             -c["multi_bucket_score"],
             c["course_code"],
@@ -284,12 +325,22 @@ def check_can_take(
         }
 
     parsed = prereq_map.get(requested_code, {"type": "none"})
+    raw_concurrent = row.get("prereq_concurrent", "none")
+    from prereq_parser import parse_prereqs
+    parsed_concurrent = parse_prereqs(raw_concurrent if not _is_none_prereq(raw_concurrent) else "none")
 
     # Check soft tags
     soft_raw = str(row.get("prereq_soft", "") or "")
     soft_tags = [t.strip() for t in soft_raw.split(";") if t.strip()] if soft_raw else []
+    allow_concurrent = any(t in CONCURRENT_TAGS for t in soft_tags)
+    has_explicit_concurrent = not _is_none_prereq(raw_concurrent)
 
-    if parsed["type"] == "unsupported" or COMPLEX_PREREQ_TAG in soft_tags:
+    complex_tag_blocks = (
+        COMPLEX_PREREQ_TAG in soft_tags
+        and not (parsed["type"] == "none" and any(t in CONCURRENT_TAGS for t in soft_tags))
+    )
+
+    if parsed["type"] == "unsupported" or parsed_concurrent["type"] == "unsupported" or complex_tag_blocks:
         return {
             "can_take": None,
             "why_not": "Cannot determine eligibility: prerequisite format requires manual review.",
@@ -298,7 +349,15 @@ def check_can_take(
             "unsupported_prereq_format": True,
         }
 
-    if prereqs_satisfied(parsed, satisfied_codes):
+    if has_explicit_concurrent:
+        hard_ok = prereqs_satisfied(parsed, completed_set)
+        concurrent_ok = prereqs_satisfied(parsed_concurrent, satisfied_codes)
+        overall_ok = hard_ok and concurrent_ok
+    else:
+        prereq_source = satisfied_codes if allow_concurrent else completed_set
+        overall_ok = prereqs_satisfied(parsed, prereq_source)
+
+    if overall_ok:
         return {
             "can_take": True,
             "why_not": None,
@@ -309,14 +368,23 @@ def check_can_take(
 
     # Determine which prereqs are missing
     missing: list[str] = []
-    t = parsed["type"]
-    if t == "single":
-        if parsed["course"] not in satisfied_codes:
-            missing = [parsed["course"]]
-    elif t == "and":
-        missing = [c for c in parsed["courses"] if c not in satisfied_codes]
-    elif t == "or":
-        missing = parsed["courses"]  # none of the OR options are satisfied
+    def missing_from(parsed_req: dict, source: set) -> list[str]:
+        t = parsed_req["type"]
+        if t == "single":
+            return [parsed_req["course"]] if parsed_req["course"] not in source else []
+        if t == "and":
+            return [c for c in parsed_req["courses"] if c not in source]
+        if t == "or":
+            return [] if any(c in source for c in parsed_req["courses"]) else parsed_req["courses"]
+        return []
+
+    if has_explicit_concurrent:
+        missing_hard = missing_from(parsed, completed_set)
+        missing_conc = missing_from(parsed_concurrent, satisfied_codes)
+        missing = missing_hard + [m for m in missing_conc if m not in missing_hard]
+    else:
+        source = satisfied_codes if allow_concurrent else completed_set
+        missing = missing_from(parsed, source)
 
     why_not = f"Missing prerequisite(s): {', '.join(missing)}." if missing else "Prerequisites not satisfied."
 

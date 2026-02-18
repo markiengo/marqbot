@@ -15,6 +15,7 @@ def courses_df():
         {"course_code": "FINA 4081", "course_name": "Inv Banking",    "credits": 3, "level": 4000, "offered_fall": False, "offered_spring": True,  "offered_summer": False, "prereq_hard": "FINA 3001; FINA 4001","prereq_soft": "",                     "offering_confidence": "high", "notes": None},
         {"course_code": "FINA 4210", "course_name": "Commercial Bank","credits": 3, "level": 4000, "offered_fall": True,  "offered_spring": False, "offered_summer": False, "prereq_hard": "none",                "prereq_soft": "instructor_consent",   "offering_confidence": "high", "notes": None},
         {"course_code": "FINA 4095", "course_name": "Complex Course", "credits": 3, "level": 4000, "offered_fall": True,  "offered_spring": True,  "offered_summer": False, "prereq_hard": "none",                "prereq_soft": "hard_prereq_complex",  "offering_confidence": "low",  "notes": None},
+        {"course_code": "FINA 4300", "course_name": "Concurrent Cap", "credits": 3, "level": 4000, "offered_fall": True,  "offered_spring": False, "offered_summer": False, "prereq_hard": "FINA 3001",           "prereq_soft": "may_be_concurrent",    "offering_confidence": "high", "notes": None},
     ])
 
 
@@ -34,6 +35,7 @@ def course_bucket_map():
         {"track_id": "FIN_MAJOR", "bucket_id": "CORE",         "course_code": "FINA 4011", "is_required": True,  "can_double_count": False, "constraints": None},
         {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "course_code": "FINA 4020", "is_required": False, "can_double_count": True,  "constraints": None},
         {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "course_code": "FINA 4081", "is_required": False, "can_double_count": True,  "constraints": None},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "course_code": "FINA 4300", "is_required": False, "can_double_count": True,  "constraints": None},
     ])
 
 
@@ -94,22 +96,22 @@ class TestGetEligibleCourses:
         codes = [c["course_code"] for c in eligible]
         assert "FINA 4001" in codes
 
-    def test_prereq_satisfied_by_in_progress(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
-        # FINA 3001 in-progress → FINA 4001 eligible for Fall
+    def test_hard_prereq_not_satisfied_by_in_progress_by_default(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
+        # FINA 3001 in-progress should NOT satisfy hard prereq for FINA 4001
         eligible = get_eligible_courses(
             courses_df, [], ["FINA 3001"], "Fall", prereq_map,
             allocator_remaining, course_bucket_map, buckets_df
         )
         codes = [c["course_code"] for c in eligible]
-        assert "FINA 4001" in codes
+        assert "FINA 4001" not in codes
 
-    def test_prereq_check_string_in_progress(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
+    def test_prereq_satisfied_by_in_progress_when_concurrent_allowed(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
         eligible = get_eligible_courses(
             courses_df, [], ["FINA 3001"], "Fall", prereq_map,
             allocator_remaining, course_bucket_map, buckets_df
         )
-        fina4001 = next(c for c in eligible if c["course_code"] == "FINA 4001")
-        assert "in progress" in fina4001["prereq_check"]
+        fina4300 = next(c for c in eligible if c["course_code"] == "FINA 4300")
+        assert "concurrent allowed" in fina4300["prereq_check"]
 
     def test_soft_requirement_flagged(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
         eligible = get_eligible_courses(

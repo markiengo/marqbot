@@ -3,91 +3,131 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MarqBot – Finance Course Advisor</title>
+  <title>MarqBot - Finance Course Advisor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Sora:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <div class="header-inner">
-      <div class="header-logo">
-        <span class="logo-mu">MU</span>
+  <div class="bg-orb bg-orb-a"></div>
+  <div class="bg-orb bg-orb-b"></div>
+  <div class="bg-grid"></div>
+
+  <div class="app-shell">
+    <aside class="app-sidebar">
+      <div class="brand">
+        <img src="marquette-logo.jpg" alt="Marquette logo" class="brand-logo" />
         <div>
-          <div class="logo-title">MarqBot</div>
-          <div class="logo-sub">Finance Course Advisor</div>
+          <div class="brand-title">MarqBot</div>
+          <div class="brand-sub">Finance Advisor</div>
         </div>
       </div>
-    </div>
-  </header>
 
-  <main>
-    <form id="advisor-form">
+      <nav class="side-nav">
+        <button type="button" class="side-item side-item-active">Advisor</button>
+        <button type="button" class="side-item">Planner</button>
+        <button type="button" class="side-item">Progress</button>
+        <button type="button" class="side-item">Catalog</button>
+      </nav>
 
-      <!-- Completed courses -->
-      <div class="form-group">
-        <label>Completed Courses</label>
-        <p class="form-hint">Type to search and click to add. Or <button type="button" class="link-btn" id="toggle-paste-completed">paste codes</button>.</p>
-        <div class="multiselect" id="ms-completed">
-          <div class="ms-chips" id="chips-completed"></div>
-          <input type="text" class="ms-input" id="search-completed" placeholder="Search courses…" autocomplete="off" />
-          <div class="ms-dropdown" id="dropdown-completed"></div>
-        </div>
-        <textarea class="paste-area hidden" id="paste-completed" placeholder="Paste comma-separated codes, e.g. FINA 3001, ECON 1103"></textarea>
-        <button type="button" class="link-btn hidden" id="apply-paste-completed">Apply</button>
-        <div class="paste-errors hidden" id="paste-errors-completed"></div>
+      <div class="sidebar-note">
+        Smart recommendations with deterministic prerequisite checks.
       </div>
+    </aside>
 
-      <!-- In-progress courses -->
-      <div class="form-group">
-        <label>Currently In-Progress Courses <span class="label-note">(this semester)</span></label>
-        <p class="form-hint">Type to search and click to add. Or <button type="button" class="link-btn" id="toggle-paste-ip">paste codes</button>.</p>
-        <div class="multiselect" id="ms-ip">
-          <div class="ms-chips" id="chips-ip"></div>
-          <input type="text" class="ms-input" id="search-ip" placeholder="Search courses…" autocomplete="off" />
-          <div class="ms-dropdown" id="dropdown-ip"></div>
-        </div>
-        <textarea class="paste-area hidden" id="paste-ip" placeholder="Paste comma-separated codes, e.g. FINA 4001"></textarea>
-        <button type="button" class="link-btn hidden" id="apply-paste-ip">Apply</button>
-        <div class="paste-errors hidden" id="paste-errors-ip"></div>
-      </div>
-
-      <!-- Target semester -->
-      <div class="form-group form-group--inline">
+    <main class="app-main">
+      <header class="topbar">
         <div>
-          <label for="target-semester">Target Semester</label>
-          <select id="target-semester">
-            <option>Fall 2025</option>
-            <option selected>Spring 2026</option>
-            <option>Summer 2026</option>
-            <option>Fall 2026</option>
-            <option>Spring 2027</option>
-          </select>
+          <p class="eyebrow">Welcome back</p>
+          <h1>Finance Dashboard</h1>
         </div>
+        <div class="topbar-badge">Marquette University</div>
+      </header>
 
-        <div>
-          <label for="max-recs">Recommendations</label>
-          <select id="max-recs">
-            <option value="2">2</option>
-            <option value="3" selected>3</option>
-            <option value="4">4</option>
-          </select>
-        </div>
-      </div>
+      <section class="panel">
+        <form id="advisor-form">
+          <div class="form-grid">
+            <div class="form-group form-group-full">
+              <label>Completed Courses</label>
+              <p class="form-hint">Type to search and click to add. Or <button type="button" class="link-btn" id="toggle-paste-completed">paste codes</button>.</p>
+              <div class="multiselect" id="ms-completed">
+                <div class="ms-chips" id="chips-completed"></div>
+                <input type="text" class="ms-input" id="search-completed" placeholder="Search courses..." autocomplete="off" />
+                <div class="ms-dropdown" id="dropdown-completed"></div>
+              </div>
+              <textarea class="paste-area hidden" id="paste-completed" placeholder="Paste comma-separated codes, e.g. FINA 3001, ECON 1103"></textarea>
+              <button type="button" class="link-btn hidden" id="apply-paste-completed">Apply</button>
+              <div class="paste-errors hidden" id="paste-errors-completed"></div>
+            </div>
 
-      <!-- Can-take check (optional) -->
-      <div class="form-group">
-        <label for="can-take-input">Check a specific course <span class="label-note">(optional)</span></label>
-        <p class="form-hint">Enter a course code to ask "can I take this?" instead of getting recommendations.</p>
-        <input type="text" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
-      </div>
+            <div class="form-group form-group-full">
+              <label>Currently In-Progress Courses <span class="label-note">(this semester)</span></label>
+              <p class="form-hint">Type to search and click to add. Or <button type="button" class="link-btn" id="toggle-paste-ip">paste codes</button>.</p>
+              <div class="multiselect" id="ms-ip">
+                <div class="ms-chips" id="chips-ip"></div>
+                <input type="text" class="ms-input" id="search-ip" placeholder="Search courses..." autocomplete="off" />
+                <div class="ms-dropdown" id="dropdown-ip"></div>
+              </div>
+              <textarea class="paste-area hidden" id="paste-ip" placeholder="Paste comma-separated codes, e.g. FINA 4001"></textarea>
+              <button type="button" class="link-btn hidden" id="apply-paste-ip">Apply</button>
+              <div class="paste-errors hidden" id="paste-errors-ip"></div>
+            </div>
 
-      <button type="submit" class="btn-primary" id="submit-btn">
-        Get Recommendations
-      </button>
-    </form>
+            <div class="form-group">
+              <label for="target-semester">Target Semester (1)</label>
+              <p class="form-hint">Pick first upcoming semester.</p>
+              <select id="target-semester">
+                <option selected>Spring 2026</option>
+                <option>Summer 2026</option>
+                <option>Fall 2026</option>
+                <option>Spring 2027</option>
+                <option>Summer 2027</option>
+                <option>Fall 2027</option>
+              </select>
+            </div>
 
-    <!-- Results area -->
-    <section id="results" class="hidden"></section>
-  </main>
+            <div class="form-group">
+              <label for="max-recs">Recommendations</label>
+              <p class="form-hint">Maximum shown if enough courses are eligible this term.</p>
+              <select id="max-recs">
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="target-semester-2">Target Semester (2) <span class="label-note">(optional)</span></label>
+              <p class="form-hint">Leave blank to auto-pick next term (Spring goes to Fall).</p>
+              <select id="target-semester-2">
+                <option value="" selected>Auto</option>
+                <option value="__NONE__">None (Do not generate)</option>
+                <option>Spring 2026</option>
+                <option>Summer 2026</option>
+                <option>Fall 2026</option>
+                <option>Spring 2027</option>
+                <option>Summer 2027</option>
+                <option>Fall 2027</option>
+              </select>
+            </div>
+
+            <div class="form-group form-group-full">
+              <label for="can-take-input">Can I take this next semester? <span class="label-note">(optional)</span></label>
+              <p class="form-hint">Enter a course code to check next-semester eligibility based on courses you've already taken.</p>
+              <input type="text" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" id="submit-btn">
+            Get Recommendations
+          </button>
+        </form>
+      </section>
+
+      <section id="results" class="panel hidden"></section>
+    </main>
+  </div>
 
   <script src="app.js"></script>
 </body>
