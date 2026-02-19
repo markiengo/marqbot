@@ -106,8 +106,8 @@ body {
   width: 52px;
   height: 52px;
   border-radius: 12px;
-  box-shadow: 0 8px 18px rgba(10, 47, 102, 0.24);
-  background: #fff;
+  object-fit: contain;
+  background: transparent;
 }
 
 .brand-title {
@@ -443,7 +443,7 @@ select:focus,
 
 .rec-card-title { font-size: 1.02rem; font-weight: 800; }
 .rec-card-sub { color: var(--ink-500); font-size: 0.85rem; margin-top: 1px; }
-.rec-card-why { margin: 7px 0 9px; line-height: 1.6; color: #273a57; }
+.rec-card-why { margin: 7px 0 9px; line-height: 1.6; color: var(--ink-700); }
 .rec-card-why-gold { color: var(--mu-gold); font-weight: 700; }
 
 .tag {

@@ -162,6 +162,7 @@ def recommend():
         target_term = "Fall"
 
     requested_course = None
+    can_take_result = None
     if requested_course_raw:
         requested_course = normalize_code(str(requested_course_raw).strip())
         if requested_course and requested_course not in catalog_codes:
@@ -185,7 +186,7 @@ def recommend():
     )
 
     if requested_course:
-        result = check_can_take(
+        ct = check_can_take(
             requested_course,
             _data["courses_df"],
             completed,
@@ -193,45 +194,14 @@ def recommend():
             target_term,
             _data["prereq_map"],
         )
-
-        eligible_all = get_eligible_courses(
-            _data["courses_df"],
-            completed + ([requested_course] if result["can_take"] else []),
-            in_progress,
-            target_term,
-            _data["prereq_map"],
-            allocation["remaining"],
-            _data["course_bucket_map_df"],
-            _data["buckets_df"],
-            _data["equivalencies_df"],
-        )
-
-        req_course_rows = _data["courses_df"][_data["courses_df"]["course_code"] == requested_course]
-        alternatives = []
-        if not result["can_take"] and len(req_course_rows) > 0:
-            alternatives = [
-                c for c in eligible_all
-                if c["primary_bucket"] == _data["course_bucket_map_df"][
-                    (_data["course_bucket_map_df"]["course_code"] == requested_course)
-                    & (_data["course_bucket_map_df"]["track_id"] == TRACK_ID)
-                ]["bucket_id"].iloc[0]
-                if len(_data["course_bucket_map_df"][
-                    (_data["course_bucket_map_df"]["course_code"] == requested_course)
-                    & (_data["course_bucket_map_df"]["track_id"] == TRACK_ID)
-                ]) > 0
-            ][:3]
-
-        return jsonify({
-            "mode": "can_take",
+        can_take_result = {
             "requested_course": requested_course,
-            "can_take": result["can_take"],
-            "why_not": result["why_not"],
-            "missing_prereqs": result["missing_prereqs"],
-            "not_offered_this_term": result["not_offered_this_term"],
-            "unsupported_prereq_format": result["unsupported_prereq_format"],
-            "next_best_alternatives": alternatives[:3],
-            "error": None,
-        })
+            "can_take": ct["can_take"],
+            "why_not": ct["why_not"],
+            "missing_prereqs": ct["missing_prereqs"],
+            "not_offered_this_term": ct["not_offered_this_term"],
+            "unsupported_prereq_format": ct["unsupported_prereq_format"],
+        }
 
     sem1 = run_recommendation_semester(
         completed, in_progress, target_semester_primary,
@@ -253,6 +223,7 @@ def recommend():
         "mode": "recommendations",
         "semesters": semesters_payload,
         **sem1,
+        "can_take_result": can_take_result,
         "not_in_catalog_warning": not_in_catalog_warn if not_in_catalog_warn else None,
         "error": None,
     })
