@@ -156,71 +156,12 @@ def recommend():
     in_progress = ip_result["valid"]
     not_in_catalog_warn = comp_result["not_in_catalog"] + ip_result["not_in_catalog"]
 
-    # Validate consistency: completed courses cannot require in-progress courses anywhere
-    # in their prerequisite chain (directly or transitively, including via OR branches).
-    completed_set_raw = set(completed)
-    in_progress_set_raw = set(in_progress)
-
-    # Also catch courses listed in both fields
-    overlap = completed_set_raw & in_progress_set_raw
-    if overlap:
-        return jsonify({
-            "mode": "error",
-            "recommendations": None,
-            "error": {
-                "error_code": "INCONSISTENT_INPUT",
-                "message": "Some courses appear in both completed and in-progress lists.",
-                "validation_errors": [
-                    f"{c} is listed in both completed and in-progress courses."
-                    for c in sorted(overlap)
-                ],
-            },
-        })
-
-    prereq_conflicts = []
-    if in_progress:
-        blocked = _find_blocked_by_in_progress(
-            in_progress_set_raw, completed_set_raw,
-            _data["catalog_codes"], _data["prereq_map"],
-        )
-        for course_code in completed:
-            if course_code in blocked:
-                root_causes = sorted(blocked[course_code])
-                n = len(root_causes)
-                prereq_conflicts.append(
-                    f"{course_code} is listed as completed, but its prerequisite chain "
-                    f"includes {', '.join(root_causes)} "
-                    f"({'which is' if n == 1 else 'which are'} currently in-progress). "
-                    f"Move {'it' if n == 1 else 'them'} to completed courses, or remove "
-                    f"{course_code} from completed."
-                )
-    if prereq_conflicts:
-        return jsonify({
-            "mode": "error",
-            "recommendations": None,
-            "error": {
-                "error_code": "INCONSISTENT_INPUT",
-                "message": "Some completed courses have prerequisites that are still in-progress.",
-                "validation_errors": prereq_conflicts,
-            },
-        })
-
-    # Infer prerequisites: if a student completed/is-taking course X, they must
-    # have already completed X's prerequisites (single/AND chains only — OR is ambiguous).
-    explicitly_provided = set(completed) | set(in_progress)
-    inferred = _infer_prereq_courses(explicitly_provided, _data["prereq_map"])
-    inferred_only = sorted(inferred - explicitly_provided)
-    if inferred_only:
-        # Inferred prereqs count as completed (not in-progress)
-        completed = list(dict.fromkeys(completed + inferred_only))
-
     try:
         target_term = parse_term(target_semester_primary)
     except ValueError:
         target_term = "Fall"
 
     requested_course = None
-    can_take_result = None
     if requested_course_raw:
         requested_course = normalize_code(str(requested_course_raw).strip())
         if requested_course and requested_course not in catalog_codes:
@@ -244,7 +185,7 @@ def recommend():
     )
 
     if requested_course:
-        ct = check_can_take(
+        result = check_can_take(
             requested_course,
             _data["courses_df"],
             completed,
@@ -252,14 +193,6 @@ def recommend():
             target_term,
             _data["prereq_map"],
         )
-        can_take_result = {
-            "requested_course": requested_course,
-            "can_take": ct["can_take"],
-            "why_not": ct["why_not"],
-            "missing_prereqs": ct["missing_prereqs"],
-            "not_offered_this_term": ct["not_offered_this_term"],
-            "unsupported_prereq_format": ct["unsupported_prereq_format"],
-        }
 
     sem1 = run_recommendation_semester(
         completed, in_progress, target_semester_primary,
@@ -281,9 +214,7 @@ def recommend():
         "mode": "recommendations",
         "semesters": semesters_payload,
         **sem1,
-        "can_take_result": can_take_result,
         "not_in_catalog_warning": not_in_catalog_warn if not_in_catalog_warn else None,
-        "inferred_prerequisites": inferred_only if inferred_only else None,
         "error": None,
     })
 
