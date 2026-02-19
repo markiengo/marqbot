@@ -33,8 +33,11 @@ def get_course_eligible_buckets(
     buckets_df: pd.DataFrame,
 ) -> list[dict]:
     """
-    Returns all (bucket_id, label, priority, can_double_count) dicts
-    for a given course, filtered by min_level constraint.
+    Returns all {bucket_id, label, priority} dicts for a given course,
+    filtered by min_level constraint.
+
+    Double-count eligibility is not tracked here — it is gated solely by
+    bucket-level allow_double_count (see allocator.py).
     """
     track_map = course_bucket_map_df[
         (course_bucket_map_df["track_id"] == TRACK_ID)
@@ -70,7 +73,6 @@ def get_course_eligible_buckets(
             "bucket_id": bid,
             "label": str(meta.get("bucket_label", bid)),
             "priority": int(meta.get("priority", 99)),
-            "can_double_count": _safe_bool(row.get("can_double_count", False)),
         })
 
     result.sort(key=lambda b: b["priority"])

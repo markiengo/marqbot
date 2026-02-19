@@ -4,7 +4,7 @@ import pandas as pd
 TRACK_ID = "FIN_MAJOR"
 
 # Maximum number of requirement buckets a single course can fill
-MAX_BUCKETS_PER_COURSE = 2
+MAX_BUCKETS_PER_COURSE = 6
 
 # prereq_soft tags that surface as warnings but do NOT block eligibility
 SOFT_WARNING_TAGS = {

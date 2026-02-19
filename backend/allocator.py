@@ -151,7 +151,11 @@ def allocate_courses(
         return None
 
     def get_eligible_buckets_for_course(course_code: str) -> list[dict]:
-        """Returns list of {bucket_id, can_double_count} dicts, filtered by min_level."""
+        """Returns list of {bucket_id} dicts for a course, filtered by min_level.
+
+        Double-count eligibility is gated solely by bucket-level allow_double_count
+        (via allowed_pairs). There is no row-level can_double_count field.
+        """
         rows = track_map[track_map["course_code"] == course_code]
         result = []
         course_level = get_course_level(course_code)
@@ -164,10 +168,7 @@ def allocate_courses(
             min_lvl = bucket_meta[bid].get("min_level")
             if min_lvl is not None and course_level is not None and course_level < min_lvl:
                 continue
-            result.append({
-                "bucket_id": bid,
-                "can_double_count": _safe_bool(row.get("can_double_count", False)),
-            })
+            result.append({"bucket_id": bid})
 
         # Sort by priority ascending
         result.sort(key=lambda b: bucket_meta.get(b["bucket_id"], {}).get("priority", 99))
@@ -243,12 +244,11 @@ def allocate_courses(
             )
 
         # Secondary assignment (double-count)
+        # Gated solely by bucket-level allowed_pairs (allow_double_count on buckets sheet).
         if len(assigned_to) < MAX_BUCKETS_PER_COURSE:
             for bucket_info in eligible_buckets:
                 bid = bucket_info["bucket_id"]
                 if bid in assigned_to:
-                    continue
-                if not bucket_info["can_double_count"]:
                     continue
                 pair = frozenset([primary_bid, bid])
                 if pair not in allowed_pairs:
