@@ -1,68 +1,133 @@
 # MarqBot - Marquette Finance Course Advisor
 
-MarqBot helps Marquette Finance students choose what courses to take next.
-You enter completed/in-progress courses, pick your next semester(s), and get recommendations with prereq checks and degree-progress buckets.
+MarqBot is a student-facing planning app for Marquette Finance majors.  
+It recommends what to take next based on completed courses, in-progress courses, term availability, and prerequisite readiness.
 
-## What This App Does
+## Key Features
 
-- Recommends eligible Finance courses based on what you already took
-- Supports planning for 1 or 2 semesters
-- Shows if a course counts toward multiple requirement buckets
-- Includes a "Can I take this next semester?" checker
-- Shows estimated terms left for Finance major requirements
+## 1. Deterministic Prerequisite Eligibility
 
-## Beginner Setup (Windows, step-by-step)
+What it does:
+- Validates and normalizes course input (`fina3001` -> `FINA 3001`)
+- Checks hard prerequisites from catalog data
+- Filters by term offering (`Fall`, `Spring`, `Summer`)
+- Excludes already completed or in-progress courses
 
-Use this if you are not technical.
+Why it matters:
+- Prevents recommending courses the student cannot actually take.
 
-## 1. Install required tools
+## 2. One- or Two-Semester Planning
 
-Install these 3 things first:
+What it does:
+- Returns Semester 1 recommendations for the selected target term.
+- Optionally returns Semester 2 recommendations.
+- Semester 2 is built on Semester 1 picks (assumed completed).
+- Supports `Auto` follow-up semester and `None (Do not generate)`.
 
-1. `Git` (for downloading project code)  
-   Download: https://git-scm.com/download/win
-2. `Python 3.10+`  
-   Download: https://www.python.org/downloads/windows/  
-   Important: during install, check `Add Python to PATH`.
-3. `VS Code` (optional, but easiest editor)  
-   Download: https://code.visualstudio.com/
+Why it matters:
+- Gives a short roadmap, not just a single next-course suggestion.
 
-## 2. Download the project
+## 3. Requirement Bucket Progress
 
-Option A (recommended): open `Git Bash` or `PowerShell` and run:
+What it does:
+- Allocates completed/in-progress courses into Finance requirement buckets.
+- Shows per-bucket progress bars, remaining slots, and applied courses.
+- Supports multi-bucket course mappings (double count behavior from data flags).
+
+Why it matters:
+- Students see how each course choice moves degree completion.
+
+## 4. Can-Take Mode
+
+What it does:
+- If `requested_course` is provided, evaluates that single course.
+- Returns `can_take` + missing prerequisites + not-offered flags.
+
+Why it matters:
+- Quick check for “Can I take X next semester?”
+
+## 5. Fast Local Mode + Optional OpenAI Explanations
+
+What it does:
+- Default mode (`USE_OPENAI_EXPLANATIONS=0`) runs fully deterministic and local.
+- Optional mode (`USE_OPENAI_EXPLANATIONS=1`) uses OpenAI to improve recommendation wording/ranking over already-eligible candidates.
+
+Why it matters:
+- You can optimize for speed/cost or richer explanations.
+
+## 6. Session Persistence in Browser
+
+What it does:
+- Saves selected courses and controls in browser storage.
+- Restores state on refresh.
+
+Why it matters:
+- Students do not need to re-enter everything after reload.
+
+## Tech Stack
+
+- Backend: Python, Flask, pandas, openpyxl
+- Frontend: HTML/CSS, vanilla JavaScript (modular ES modules)
+- AI (optional): OpenAI Chat Completions API
+- Data: Excel workbook (`marquette_courses_full.xlsx`)
+- Frontend unit tests: Jest + jsdom
+
+## Architecture
+
+Backend:
+- `backend/server.py`: API routes and request orchestration
+- `backend/data_loader.py`: workbook load/validation/compatibility mapping
+- `backend/semester_recommender.py`: semester pipeline and ranking flow
+- `backend/llm_recommender.py`: OpenAI call wrapper + deterministic fallback
+- `backend/eligibility.py`, `backend/allocator.py`, `backend/unlocks.py`: core logic
+
+Frontend:
+- `frontend/app.js`: UI orchestration
+- `frontend/modules/api.js`: HTTP calls
+- `frontend/modules/multiselect.js`: course picker behavior
+- `frontend/modules/rendering.js`: result rendering
+- `frontend/modules/session.js`: localStorage persistence
+- `frontend/modules/utils.js`: shared helpers
+
+## API Overview
+
+`GET /courses`
+- Returns catalog for frontend pickers.
+
+`POST /recommend`
+- Recommendation mode: returns `mode=recommendations` with `semesters` array.
+- Can-take mode: if `requested_course` is set, returns `mode=can_take`.
+
+Important request fields:
+- `completed_courses`
+- `in_progress_courses`
+- `target_semester_primary` (`Spring 2026` format)
+- `target_semester_secondary` (`Auto`/explicit/`__NONE__`)
+- `max_recommendations` (1-4)
+- `requested_course` (optional)
+
+## Setup (Windows, beginner-friendly)
+
+1. Install tools:
+- Git: https://git-scm.com/download/win
+- Python 3.10+ (check “Add Python to PATH”): https://www.python.org/downloads/windows/
+
+2. Clone:
 
 ```powershell
 git clone https://github.com/markiengo/marqbot.git
 cd marqbot
 ```
 
-Option B: on GitHub page, click `Code` -> `Download ZIP`, then extract and open folder.
-
-## 3. Open project folder
-
-If using VS Code:
-
-1. Open VS Code
-2. Click `File` -> `Open Folder...`
-3. Select the `marqbot` folder
-
-## 4. Create local config file
-
-In project root, create a file named `.env` (same folder as `README.md`) and add:
+3. Create `.env` in project root:
 
 ```env
-OPENAI_API_KEY=sk-your-key-here
+OPENAI_API_KEY=sk-your-key
 OPENAI_MODEL=gpt-4o-mini
 USE_OPENAI_EXPLANATIONS=0
 ```
 
-Notes:
-- `USE_OPENAI_EXPLANATIONS=0` = faster and cheaper (deterministic mode)
-- `USE_OPENAI_EXPLANATIONS=1` = call OpenAI for explanation text
-
-## 5. Install Python packages
-
-From project root in PowerShell:
+4. Install deps:
 
 ```powershell
 python -m venv .venv
@@ -70,72 +135,31 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## 6. Run the app
-
-From project root:
+5. Run:
 
 ```powershell
 .\.venv\Scripts\python.exe backend/server.py
 ```
 
-Then open your browser at:
+Open: `http://localhost:5000`
 
-`http://localhost:5000`
+## Testing
 
-## 7. Stop the app
-
-In the same terminal window, press:
-
-`Ctrl + C`
-
-## Common Issues (Quick Fixes)
-
-- Error: `No module named flask`  
-  Run install again:
-  ```powershell
-  .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-  ```
-
-- Error: `running scripts is disabled on this system`  
-  Do not activate with `Activate.ps1`; run Python directly:
-  ```powershell
-  .\.venv\Scripts\python.exe backend/server.py
-  ```
-
-- Error: `Address already in use` (port 5000 busy)  
-  Use another port:
-  ```powershell
-  $env:PORT=5001; .\.venv\Scripts\python.exe backend/server.py
-  ```
-  Then open `http://localhost:5001`.
-
-## Project Data File
-
-Main data file:
-
-- `marquette_courses_full.xlsx`
-
-Main sheets:
-
-- `courses`
-- `equivalencies`
-- `tracks`
-- `buckets`
-- `bucket_course_map`
-
-## API (for developers)
-
-`POST /recommend` supports:
-
-- `target_semester_primary`
-- optional `target_semester_secondary` (`Auto`, explicit label, or `__NONE__`)
-- `max_recommendations` (1-4)
-- optional `requested_course` for can-take mode
-
-Response includes a `semesters` array for 1-2 semester output.
-
-## Run Tests (optional)
+Backend tests:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests -v
 ```
+
+Frontend unit tests:
+
+```powershell
+npm install
+npm test
+```
+
+## Notes
+
+MarqBot is not official academic advising.  
+Students should confirm final course decisions with advisors and registrar systems.
+

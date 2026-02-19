@@ -1,188 +1,229 @@
 # MARQBOT PRODUCT REQUIREMENTS DOCUMENT
-Version: 2.0
-Last Updated: February 18, 2026
+Version: 3.0
+Last Updated: February 19, 2026
 Owner: Markie Ngo
-Status: Implemented MVP (active iteration)
+Status: Implemented + Iterating
 
 ---
 
 ## 1. Product Summary
 
-MarqBot helps Marquette Finance majors decide what to take next using deterministic prerequisite and requirement logic. It supports one or two semester plans and an optional can-take eligibility check.
+MarqBot is a Finance-major course planning assistant for Marquette students.  
+It recommends realistic next courses by combining deterministic prerequisite checks, requirement-bucket progress, and optional AI explanation text.
 
-Primary value:
-- Recommend courses students can actually take now.
-- Keep sequencing tight from lower prerequisite levels to higher levels.
-- Show major progress by requirement buckets.
-
----
-
-## 2. Core Behavior (Current)
-
-### 2.1 Inputs
-
-- Completed courses (search or paste)
-- In-progress courses (search or paste)
-- Target Semester (1): for example `Spring 2026`
-- Recommendations count: 1 to 4
-- Target Semester (2) optional:
-- `Auto` (default follow-up term)
-- Explicit semester label
-- `None (Do not generate)`
-- Can-take input (optional): "Can I take this next semester?"
-
-### 2.2 Recommendation Logic
-
-Deterministic by default:
-1. Normalize and validate input codes.
-2. Parse prerequisite expressions.
-3. Filter by term offering and prereq satisfaction.
-4. Exclude already completed/in-progress courses.
-5. Score by requirement priority, prereq level, and multi-bucket value.
-6. Return top N eligible results (N = requested count, up to available eligible courses).
-
-OpenAI is optional and used only for explanation/ranking text when enabled.
-
-### 2.3 Two-Semester Planning
-
-- Semester 1 uses user-entered completed/in-progress data.
-- Semester 2 (if enabled) is generated from updated completion state:
-- Original completed
-- Original in-progress
-- Semester 1 recommended courses (treated as completed)
-- If Semester 2 is `Auto`, follow-up defaults:
-- Spring -> Fall (same year)
-- Summer -> Fall (same year)
-- Fall -> Spring (next year)
-
-### 2.4 Can-Take Mode
-
-If `requested_course` is provided, response switches to can-take mode:
-- `can_take: true/false/null`
-- Missing prereqs (if any)
-- Offering mismatch flag
-- Manual-review flag for unsupported prereq patterns
-- Alternative eligible suggestions
+Primary outcome:
+- Students quickly know what they can take next and why.
 
 ---
 
-## 3. Data Model and Rules
+## 2. Key Features and Explanations
 
-Workbook: `marquette_courses_full.xlsx`
+## 2.1 Deterministic Eligibility Engine
 
-Sheets:
+Feature:
+- Course recommendations are eligibility-gated by rule-based logic.
+
+How it works:
+1. Normalize/validate course input.
+2. Parse prerequisite expressions from workbook.
+3. Enforce offering term + prereq satisfaction + not-yet-taken checks.
+4. Rank eligible set by sequencing and requirement impact.
+
+Why this exists:
+- Avoids “hallucinated” recommendations and keeps outputs auditable.
+
+## 2.2 Two-Semester Planning
+
+Feature:
+- Supports one or two recommendation semesters in one request.
+
+How it works:
+- Semester 1 uses user-entered completed/in-progress courses.
+- Semester 2 (optional) assumes Semester 1 recommendations are completed.
+- Secondary semester supports:
+- explicit term
+- `Auto` follow-up
+- `__NONE__` to suppress semester 2
+
+Why this exists:
+- Lets students see immediate next-step sequencing, not just one-term advice.
+
+## 2.3 Requirement Bucket Allocation + Progress
+
+Feature:
+- Course completion is mapped to major requirement buckets with progress output.
+
+How it works:
+- Allocator applies course-to-bucket mapping from workbook.
+- Tracks completed vs in-progress applied courses.
+- Supports multi-bucket mappings via data flags.
+- Returns remaining slots and per-bucket satisfaction state.
+
+Why this exists:
+- Converts recommendations into visible degree movement.
+
+## 2.4 Can-Take Course Check
+
+Feature:
+- Optional mode to evaluate a single requested course.
+
+How it works:
+- Returns `can_take`, missing prereqs, term-offering mismatch, and unsupported-prereq/manual-review indicators.
+
+Why this exists:
+- Enables quick registration-readiness checks.
+
+## 2.5 Optional OpenAI Explanation Layer
+
+Feature:
+- Toggle between deterministic-only output and LLM-enhanced explanations.
+
+How it works:
+- `USE_OPENAI_EXPLANATIONS=0`: deterministic recommendation text.
+- `USE_OPENAI_EXPLANATIONS=1`: OpenAI ranks/explains pre-filtered candidates.
+- Eligibility remains deterministic in both modes.
+
+Why this exists:
+- Balance speed/cost with explanation quality.
+
+## 2.6 Session Persistence
+
+Feature:
+- Frontend stores user session state in browser storage.
+
+How it works:
+- Saves selected courses + target semester controls + can-take input.
+- Restores on refresh.
+
+Why this exists:
+- Reduces repetitive re-entry during planning.
+
+---
+
+## 3. Users and Use Cases
+
+Primary user:
+- Marquette undergraduate Finance majors.
+
+Core use cases:
+- “What should I take next semester?”
+- “Can I take course X next semester?”
+- “If I follow next-term recommendations, what should I take after that?”
+- “How far am I in each requirement bucket?”
+
+---
+
+## 4. Functional Requirements
+
+## 4.1 Inputs
+
+- Completed courses (search + paste)
+- In-progress courses (search + paste)
+- Target Semester (1) required
+- Target Semester (2) optional
+- Max recommendations (1-4)
+- Optional requested course for can-take mode
+
+## 4.2 Outputs
+
+Recommendation mode:
+- `semesters` array (1 or 2 semester blocks)
+- recommendation cards with:
+- course identity
+- prereq check status
+- bucket tags
+- unlocks
+- explanation
+- progress by requirement bucket
+- blocking warnings and timeline estimate
+
+Can-take mode:
+- eligibility state for requested course
+- missing prereqs / not-offered / manual-review metadata
+
+## 4.3 Validation and Error Behavior
+
+- Invalid semester format returns `INVALID_INPUT`.
+- Unknown course codes return structured invalid/not-in-catalog responses.
+- Unexpected server errors return `SERVER_ERROR`.
+
+---
+
+## 5. Data Model
+
+Source workbook: `marquette_courses_full.xlsx`
+
+Expected sheets:
 - `courses`
 - `equivalencies`
 - `tracks`
 - `buckets`
 - `bucket_course_map`
 
-Important schema notes:
-- Workbook may use `program_id`; backend maps to `track_id` for compatibility.
-- Prereqs are split into hard and soft logic in the course data.
-- Prereq hierarchy fields (`prereq_level` / tiering) are used to keep recommendations bottom-up.
+Compatibility:
+- If workbook uses `program_id`, backend maps to `track_id`.
 
-Buckets for Finance major:
-- `CORE` (includes core required path items)
-- `FIN_CHOOSE_1` -> "Upper Division Finance Elective (One)"
-- `FIN_CHOOSE_2` -> "Upper Division Finance Elective (Two)"
-- `BUS_ELEC_4` -> "Business Electives"
-
-Double counting:
-- Controlled by data flags (`allow_double_count`, `can_double_count`).
-- Courses may appear in multiple buckets and are shown as such in UI.
+Prereq fields:
+- `prereq_hard` is parsed deterministically.
+- `prereq_soft` supports advisory/manual-review flags.
 
 ---
 
-## 4. API Contract (Current)
+## 6. System Design
 
-### 4.1 POST `/recommend`
+Backend modules:
+- `server.py`: API endpoints + orchestration
+- `data_loader.py`: workbook ingestion + integrity warnings
+- `semester_recommender.py`: per-semester pipeline
+- `llm_recommender.py`: OpenAI wrapper + deterministic fallback
+- `eligibility.py`, `allocator.py`, `unlocks.py`, `timeline.py`
 
-Request (recommendation mode):
-
-```json
-{
-  "completed_courses": "ACCO 1031, BUAD 1560",
-  "in_progress_courses": "",
-  "target_semester_primary": "Spring 2026",
-  "target_semester_secondary": "Fall 2026",
-  "max_recommendations": 4,
-  "requested_course": null
-}
-```
-
-Response includes:
-- `mode: recommendations`
-- `semesters: [...]` (1 or 2 blocks)
-- Top-level fields mirroring semester 1 for backward compatibility
-- Per-semester:
-- recommendations
-- blocking warnings
-- progress
-- double-count information
-- manual-review list
-- timeline estimate
-
-Can-take mode:
-- `mode: can_take`
-- eligibility and reason fields only (no semester planning)
-
-### 4.2 GET `/courses`
-
-Returns course catalog for searchable UI inputs.
+Frontend modules:
+- `app.js`: orchestration
+- `modules/api.js`
+- `modules/multiselect.js`
+- `modules/rendering.js`
+- `modules/session.js`
+- `modules/utils.js`
 
 ---
 
-## 5. UX Requirements (Current)
+## 7. Non-Functional Requirements
 
-- Dashboard-style interface with modern glass visuals.
-- Marquette brand colors:
-- Blue `#003366`
-- Gold `#FFCC00`
-- Semester cards:
-- "Semester 1: Recommended for ..."
-- "Semester 2: Recommended for ..."
-- Recommendation cards show:
-- course code/name
-- prereq check line
-- bucket tags (including secondary bucket tags)
-- unlocks
-- why text
-- Degree progress:
-- one card per bucket
-- completed vs required counts
-- in-progress courses shown separately and not counted as completed
-- Timeline wording explicitly states estimate for Finance major completion only.
+Performance:
+- Deterministic mode should respond substantially faster than LLM mode.
+
+Reliability:
+- Recommendations must never bypass deterministic hard-prereq checks.
+
+Maintainability:
+- Logic split into domain modules (loader/recommender/render/session).
+
+Cost:
+- LLM calls are optional and controlled by env flag.
 
 ---
 
-## 6. Performance and Cost
+## 8. Quality and Testing
 
-- Default mode does not call OpenAI (`USE_OPENAI_EXPLANATIONS=0`), so latency and cost are low.
-- Optional OpenAI mode (`USE_OPENAI_EXPLANATIONS=1`) adds API latency/cost for explanation generation.
+Backend:
+- Pytest suite for parser, eligibility, allocator, unlock logic.
 
-Targets:
-- Deterministic response typically much faster than LLM mode.
-- Recommendations must not violate hard prereq gating.
+Frontend:
+- Jest + jsdom tests for rendering/session/utils modules.
 
----
-
-## 7. Quality and Validation
-
-Required checks:
-- No recommendation should bypass deterministic eligibility.
-- Recommendation count must honor requested max when enough eligible courses exist.
-- Progress bars must reflect bucket allocations correctly.
-- Semester 2 must build on Semester 1 recommendations when generated.
-- Can-take behavior remains based only on user-completed/in-progress state.
-
-Testing:
-- Unit tests for parsing, eligibility, allocation, unlocks.
-- Integration checks on `/recommend` for one-semester and two-semester responses.
+Acceptance criteria:
+- Input normalization works for messy formats.
+- Recommendation count respects max when eligible courses exist.
+- Two-semester chaining reflects sem1-as-completed rule.
+- Progress cards match allocator output.
+- Can-take mode reflects deterministic eligibility only.
 
 ---
 
-## 8. Known Product Positioning
+## 9. Product Constraints and Positioning
 
-MarqBot is a student-facing planning assistant, not official academic advising. Students should verify schedules and policy constraints with university advisors and official systems.
+- This is a student planning tool, not official advising.
+- Output must be presented with advising disclaimer language.
+- Students should verify final registration with advisors and official systems.
 
