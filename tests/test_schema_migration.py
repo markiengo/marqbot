@@ -12,10 +12,12 @@ import sys
 import os
 import pytest
 import pandas as pd
+import openpyxl
 
-# conftest.py already adds backend/ to sys.path
+# conftest.py already adds backend/ and scripts/ to sys.path
 from data_loader import _safe_bool_col, load_data
 from allocator import allocate_courses
+from migrate_schema import main as migrate_main
 
 
 # ── 1. Boolean coercion ────────────────────────────────────────────────────────
@@ -294,3 +296,99 @@ class TestLoaderFallbackChain:
         assert course_row["offered_summer"] == False, "offered_summer=0 should load as False"
         assert type(course_row["offered_fall"]) in (bool, __import__("numpy").bool_), \
             "offered_fall should be a bool type, not raw int"
+
+
+# ── 4. --clean mode ───────────────────────────────────────────────────────────
+
+def _make_clean_workbook(
+    tmp_path,
+    *,
+    course_headers=("course_code", "bucket1", "bucket2", "extra_col"),
+    course_row=("FINA 3001", "CORE", "ELECTIVE", "something"),
+    include_course_bucket=True,
+    course_bucket_has_data=True,
+    filename="test.xlsx",
+):
+    """Build a minimal .xlsx for --clean mode tests using openpyxl directly."""
+    wb = openpyxl.Workbook()
+    del wb[wb.sheetnames[0]]  # remove default "Sheet"
+
+    ws_c = wb.create_sheet("courses")
+    ws_c.append(list(course_headers))
+    ws_c.append(list(course_row))
+
+    if include_course_bucket:
+        ws_cb = wb.create_sheet("course_bucket")
+        ws_cb.append(["track_id", "course_code", "bucket_id"])
+        if course_bucket_has_data:
+            ws_cb.append(["FIN_MAJOR", "FINA 3001", "CORE"])
+
+    path = str(tmp_path / filename)
+    wb.save(path)
+    return path
+
+
+def _courses_headers(path):
+    """Return the courses sheet header row from a saved workbook.
+    Uses a binary file object so openpyxl works regardless of file extension (.bak etc.)."""
+    with open(path, "rb") as f:
+        wb = openpyxl.load_workbook(f)
+    ws = wb["courses"]
+    return [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
+
+
+class TestCleanMode:
+    def test_clean_aborts_when_course_bucket_missing(self, tmp_path):
+        path = _make_clean_workbook(tmp_path, include_course_bucket=False)
+        headers_before = _courses_headers(path)
+        with pytest.raises(SystemExit):
+            migrate_main(["--clean", "--path", path])
+        assert _courses_headers(path) == headers_before
+
+    def test_clean_aborts_when_course_bucket_empty(self, tmp_path):
+        path = _make_clean_workbook(tmp_path, course_bucket_has_data=False)
+        headers_before = _courses_headers(path)
+        with pytest.raises(SystemExit):
+            migrate_main(["--clean", "--path", path])
+        assert _courses_headers(path) == headers_before
+
+    def test_clean_creates_backup_before_delete(self, tmp_path):
+        path = _make_clean_workbook(tmp_path)
+        migrate_main(["--clean", "--path", path])
+        backup = path + ".bak"
+        assert os.path.exists(backup), ".bak must exist after --clean"
+        assert "bucket1" in _courses_headers(backup), "backup must retain deprecated cols"
+        assert "bucket1" not in _courses_headers(path), "cleaned workbook must not have bucket1"
+        assert "bucket2" not in _courses_headers(path), "cleaned workbook must not have bucket2"
+
+    def test_clean_noop_when_no_bucket_columns(self, tmp_path, capsys):
+        path = _make_clean_workbook(
+            tmp_path,
+            course_headers=("course_code", "extra_col"),
+            course_row=("FINA 3001", "something"),
+        )
+        headers_before = _courses_headers(path)
+        migrate_main(["--clean", "--path", path])  # must not raise
+        assert _courses_headers(path) == headers_before
+        assert not os.path.exists(path + ".bak"), "no backup when nothing to remove"
+        assert "[INFO] No deprecated columns found. Nothing to remove." in capsys.readouterr().out
+
+    def test_clean_dry_run_no_writes(self, tmp_path):
+        path = _make_clean_workbook(tmp_path)
+        migrate_main(["--clean", "--dry-run", "--path", path])
+        assert not os.path.exists(path + ".bak"), "dry-run must not write .bak"
+        assert "bucket1" in _courses_headers(path), "dry-run must not modify workbook"
+
+    def test_clean_preserves_nondeprecated_columns_order(self, tmp_path):
+        path = _make_clean_workbook(
+            tmp_path,
+            course_headers=("course_code", "bucket1", "extra_col", "bucket2"),
+            course_row=("FINA 3001", "CORE", "something", "ELECTIVE"),
+        )
+        migrate_main(["--clean", "--path", path])
+        headers = _courses_headers(path)
+        assert "bucket1" not in headers
+        assert "bucket2" not in headers
+        assert headers == ["course_code", "extra_col"], (
+            f"expected ['course_code', 'extra_col'], got {headers}"
+        )

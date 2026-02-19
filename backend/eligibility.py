@@ -1,6 +1,6 @@
 import pandas as pd
 from prereq_parser import prereqs_satisfied, build_prereq_check_string
-from requirements import SOFT_WARNING_TAGS, COMPLEX_PREREQ_TAG, CONCURRENT_TAGS, TRACK_ID
+from requirements import SOFT_WARNING_TAGS, COMPLEX_PREREQ_TAG, CONCURRENT_TAGS, DEFAULT_TRACK_ID
 
 
 def parse_term(s: str) -> str:
@@ -31,6 +31,7 @@ def get_course_eligible_buckets(
     course_bucket_map_df: pd.DataFrame,
     courses_df: pd.DataFrame,
     buckets_df: pd.DataFrame,
+    track_id: str = DEFAULT_TRACK_ID,
 ) -> list[dict]:
     """
     Returns all {bucket_id, label, priority} dicts for a given course,
@@ -40,7 +41,7 @@ def get_course_eligible_buckets(
     bucket-level allow_double_count (see allocator.py).
     """
     track_map = course_bucket_map_df[
-        (course_bucket_map_df["track_id"] == TRACK_ID)
+        (course_bucket_map_df["track_id"] == track_id)
         & (course_bucket_map_df["course_code"] == course_code)
     ]
 
@@ -53,7 +54,7 @@ def get_course_eligible_buckets(
 
     bucket_meta = {
         row["bucket_id"]: row
-        for _, row in buckets_df[buckets_df["track_id"] == TRACK_ID].iterrows()
+        for _, row in buckets_df[buckets_df["track_id"] == track_id].iterrows()
     }
 
     result = []
@@ -89,6 +90,7 @@ def get_eligible_courses(
     course_bucket_map_df: pd.DataFrame,
     buckets_df: pd.DataFrame,
     equivalencies_df: pd.DataFrame = None,
+    track_id: str = DEFAULT_TRACK_ID,
 ) -> list[dict]:
     """
     Returns eligible courses for the target term, sorted by:
@@ -202,7 +204,7 @@ def get_eligible_courses(
 
         # Bucket info
         eligible_buckets = get_course_eligible_buckets(
-            code, course_bucket_map_df, courses_df, buckets_df
+            code, course_bucket_map_df, courses_df, buckets_df, track_id=track_id
         )
 
         if not eligible_buckets and not manual_review:

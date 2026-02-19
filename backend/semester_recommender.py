@@ -1,7 +1,7 @@
 import re
 import pandas as pd
 
-from requirements import TRACK_ID, BLOCKING_WARNING_THRESHOLD
+from requirements import DEFAULT_TRACK_ID, BLOCKING_WARNING_THRESHOLD, get_bucket_by_role, get_buckets_by_role
 from allocator import allocate_courses
 from unlocks import get_direct_unlocks, get_blocking_warnings
 from timeline import estimate_timeline
@@ -74,6 +74,7 @@ def run_recommendation_semester(
     max_recs: int,
     reverse_map: dict,
     use_openai: bool,
+    track_id: str = DEFAULT_TRACK_ID,
 ) -> dict:
     """Run the full recommendation pipeline for a single semester."""
     term = parse_term(target_semester_label)
@@ -84,6 +85,7 @@ def run_recommendation_semester(
         data["course_bucket_map_df"],
         data["courses_df"],
         data["equivalencies_df"],
+        track_id=track_id,
     )
 
     eligible_sem = get_eligible_courses(
@@ -96,6 +98,7 @@ def run_recommendation_semester(
         data["course_bucket_map_df"],
         data["buckets_df"],
         data["equivalencies_df"],
+        track_id=track_id,
     )
     manual_review_sem = [c["course_code"] for c in eligible_sem if c.get("manual_review")]
     non_manual_sem = [c for c in eligible_sem if not c.get("manual_review")]
@@ -126,7 +129,8 @@ def run_recommendation_semester(
             "timeline": timeline_sem,
         }
 
-    core_remaining_sem = alloc["remaining"].get("CORE", {}).get("remaining_courses", [])
+    core_bucket_id = get_bucket_by_role(data["buckets_df"], track_id, "core")
+    core_remaining_sem = alloc["remaining"].get(core_bucket_id, {}).get("remaining_courses", []) if core_bucket_id else []
     core_prereq_blockers_sem: set[str] = set()
     for core_code in core_remaining_sem:
         core_prereq_blockers_sem |= _prereq_courses(data["prereq_map"].get(core_code, {"type": "none"}))
@@ -156,14 +160,18 @@ def run_recommendation_semester(
     else:
         recommendations_sem = build_deterministic_recommendations(selected_sem, len(selected_sem))
 
-    fin_choose_2_courses = data["course_bucket_map_df"][
-        (data["course_bucket_map_df"]["track_id"] == TRACK_ID)
-        & (data["course_bucket_map_df"]["bucket_id"] == "FIN_CHOOSE_2")
-    ]["course_code"].tolist()
+    elective_bucket_ids = get_buckets_by_role(data["buckets_df"], track_id, "elective")
+    if elective_bucket_ids:
+        elective_courses = data["course_bucket_map_df"][
+            (data["course_bucket_map_df"]["track_id"] == track_id)
+            & (data["course_bucket_map_df"]["bucket_id"].isin(elective_bucket_ids))
+        ]["course_code"].tolist()
+    else:
+        elective_courses = []
     blocking_sem = get_blocking_warnings(
         core_remaining_sem,
         reverse_map,
-        fin_choose_2_courses,
+        elective_courses,
         completed,
         in_progress,
         threshold=BLOCKING_WARNING_THRESHOLD,

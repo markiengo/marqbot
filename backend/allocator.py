@@ -1,5 +1,5 @@
 import pandas as pd
-from requirements import TRACK_ID, MAX_BUCKETS_PER_COURSE, get_allowed_double_count_pairs
+from requirements import DEFAULT_TRACK_ID, MAX_BUCKETS_PER_COURSE, get_allowed_double_count_pairs
 
 
 def _safe_bool(val) -> bool:
@@ -64,6 +64,7 @@ def allocate_courses(
     course_bucket_map_df: pd.DataFrame,
     courses_df: pd.DataFrame,
     equivalencies_df: pd.DataFrame = None,
+    track_id: str = DEFAULT_TRACK_ID,
 ) -> dict:
     """
     Deterministically allocates completed courses to requirement buckets.
@@ -99,9 +100,9 @@ def allocate_courses(
       "bucket_order": ["CORE", "FIN_CHOOSE_2", ...],
     }
     """
-    # Filter to our track
-    track_buckets = buckets_df[buckets_df["track_id"] == TRACK_ID].copy()
-    track_map = course_bucket_map_df[course_bucket_map_df["track_id"] == TRACK_ID].copy()
+    # Filter to requested track
+    track_buckets = buckets_df[buckets_df["track_id"] == track_id].copy()
+    track_map = course_bucket_map_df[course_bucket_map_df["track_id"] == track_id].copy()
     track_map = _expand_map_with_equivalencies(track_map, equivalencies_df)
 
     # Build allowed double-count pairs from bucket data

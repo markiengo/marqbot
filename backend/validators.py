@@ -1,33 +1,47 @@
 """
 Pure input-validation helpers for the /recommend endpoint.
-No Flask or data_loader imports — safe to use in tests without side effects.
+No Flask or data-loader imports.
 """
 
+from typing import Dict, List, Optional, Set
 
-def _get_all_required_prereqs(course_code: str, prereq_map: dict, visited: set = None) -> set:
+
+def _get_all_required_prereqs(
+    course_code: str,
+    prereq_map: Dict[str, dict],
+    visited: Optional[Set[str]] = None,
+) -> Set[str]:
     """
-    Returns the set of all courses that are *definitively required* before
-    course_code can be completed (transitive single/and prereq closure).
+    Return all transitively required prerequisites for course_code.
 
-    Stops at "or" branches — we can't determine which path was taken, so
-    we don't flag either branch to avoid false positives.
-    Stops at "none" and "unsupported".
-    Cycle-safe via visited set.
+    Traverses only required branches:
+      - type == "single"
+      - type == "and"
+
+    Stops at:
+      - type == "none"
+      - type == "or"
+      - type == "unsupported"
+      - unknown course
     """
     if visited is None:
         visited = set()
+
     if course_code in visited:
         return set()
     visited.add(course_code)
 
     parsed = prereq_map.get(course_code, {"type": "none"})
-    t = parsed["type"]
-    if t == "single":
-        direct = [parsed["course"]]
-    elif t == "and":
-        direct = parsed["courses"]
+    prereq_type = parsed.get("type", "none")
+
+    if prereq_type == "single":
+        course = parsed.get("course")
+        direct = [course] if isinstance(course, str) and course.strip() else []
+    elif prereq_type == "and":
+        courses = parsed.get("courses", [])
+        direct = [c for c in courses if isinstance(c, str) and c.strip()]
     else:
-        return set()  # "none", "or", "unsupported" — stop
+        return set()
 
     all_required = set(direct)
     for prereq in direct:
@@ -35,36 +49,49 @@ def _get_all_required_prereqs(course_code: str, prereq_map: dict, visited: set =
     return all_required
 
 
-def expand_completed_with_prereqs(completed: list, prereq_map: dict) -> list:
-    """
-    Given a list of completed courses, returns an expanded list that also includes
-    all transitively required prereqs (inferred as completed).
-
-    Rationale: if a student completed FINA 3001, its prereq ACCO 1031 must have
-    been completed first — even if the student didn't explicitly list it.
-    Uses the same single/and transitive closure as the consistency check.
-    """
-    expanded = set(completed)
-    for code in completed:
-        expanded |= _get_all_required_prereqs(code, prereq_map)
-    return list(expanded)
-
-
 def find_inconsistent_completed_courses(
-    completed: list, in_progress: list, prereq_map: dict
-) -> list:
+    completed: List[str],
+    in_progress: List[str],
+    prereq_map: Dict[str, dict],
+) -> List[dict]:
     """
-    For each completed course, walks the full transitive prereq chain (single/and only).
-    Returns a list of dicts for any completed course whose required prereqs are still
-    in in_progress — a logical impossibility (can't complete before the prereq is done).
+    Return detailed inconsistency objects for completed courses that still have
+    required prereqs in-progress.
 
-    Each entry: {"course_code": str, "prereqs_in_progress": [str]}
+    Each item:
+      {"course_code": str, "prereqs_in_progress": List[str]}
     """
     in_progress_set = set(in_progress)
-    issues = []
-    for code in completed:
-        required = _get_all_required_prereqs(code, prereq_map)
+    issues: List[dict] = []
+
+    for course_code in completed:
+        required = _get_all_required_prereqs(course_code, prereq_map)
         in_prog = sorted(p for p in required if p in in_progress_set)
         if in_prog:
-            issues.append({"course_code": code, "prereqs_in_progress": in_prog})
+            issues.append(
+                {
+                    "course_code": course_code,
+                    "prereqs_in_progress": in_prog,
+                }
+            )
     return issues
+
+
+def expand_completed_with_prereqs(
+    completed: List[str],
+    prereq_map: Dict[str, dict],
+) -> List[str]:
+    """
+    Expand completed with transitively required prereqs and return a
+    deterministic deduplicated list.
+    """
+    expanded_set = set(completed)
+    for course_code in completed:
+        expanded_set |= _get_all_required_prereqs(course_code, prereq_map)
+
+    if not completed:
+        return []
+
+    ordered_completed = list(dict.fromkeys(completed))
+    inferred_sorted = sorted(expanded_set - set(ordered_completed))
+    return ordered_completed + inferred_sorted

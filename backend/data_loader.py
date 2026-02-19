@@ -35,6 +35,15 @@ def load_data(data_path: str) -> dict:
     equivalencies_df = xl.parse("equivalencies") if "equivalencies" in sheet_names else pd.DataFrame()
     buckets_df = xl.parse("buckets")
 
+    # ── Always load tracks ─────────────────────────────────────────────────
+    if "tracks" in sheet_names:
+        tracks_df = xl.parse("tracks")
+        if "track_id" not in tracks_df.columns and "program_id" in tracks_df.columns:
+            tracks_df = tracks_df.rename(columns={"program_id": "track_id"})
+        tracks_df = _safe_bool_col(tracks_df, "active")
+    else:
+        tracks_df = pd.DataFrame(columns=["track_id", "track_label", "active"])
+
     # ── Bucket map: 4-level fallback chain ─────────────────────────────────
     if "course_bucket" in sheet_names:
         course_bucket_map_df = xl.parse("course_bucket")
@@ -48,18 +57,12 @@ def load_data(data_path: str) -> dict:
         _map_source = sheet
     else:
         # Last resort: derive normalized rows from courses.bucket1..bucket4.
-        # Read active track from tracks sheet; handle program_id→track_id rename.
+        # Use already-loaded tracks_df to resolve active track.
         default_track = "FIN_MAJOR"
-        if "tracks" in sheet_names:
-            tracks_df = xl.parse("tracks")
-            if "track_id" not in tracks_df.columns and "program_id" in tracks_df.columns:
-                tracks_df = tracks_df.rename(columns={"program_id": "track_id"})
-            if "active" in tracks_df.columns:
-                active_rows = tracks_df[tracks_df["active"].apply(
-                    lambda x: str(x).strip().lower() in _BOOL_TRUTHY if pd.notna(x) else False
-                )]
-                if len(active_rows) > 0:
-                    default_track = str(active_rows.iloc[0]["track_id"])
+        if len(tracks_df) > 0 and "active" in tracks_df.columns:
+            active_rows = tracks_df[tracks_df["active"] == True]
+            if len(active_rows) > 0:
+                default_track = str(active_rows.iloc[0]["track_id"])
         rows = []
         for _, row in courses_df.iterrows():
             for col in ["bucket1", "bucket2", "bucket3", "bucket4"]:
@@ -87,6 +90,12 @@ def load_data(data_path: str) -> dict:
     for col in ["offered_fall", "offered_spring", "offered_summer"]:
         courses_df = _safe_bool_col(courses_df, col)
     buckets_df = _safe_bool_col(buckets_df, "allow_double_count")
+
+    # Ensure role column exists in buckets (may be absent in older workbooks)
+    if "role" not in buckets_df.columns:
+        buckets_df["role"] = ""
+    else:
+        buckets_df["role"] = buckets_df["role"].fillna("")
 
     # Ensure string columns are clean
     courses_df["course_code"] = courses_df["course_code"].astype(str).str.strip()
@@ -123,6 +132,7 @@ def load_data(data_path: str) -> dict:
         "equivalencies_df": equivalencies_df,
         "buckets_df": buckets_df,
         "course_bucket_map_df": course_bucket_map_df,
+        "tracks_df": tracks_df,
         "catalog_codes": catalog_codes,
         "prereq_map": prereq_map,
     }
