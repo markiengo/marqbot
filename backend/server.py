@@ -8,8 +8,9 @@ from flask import Flask, jsonify, request, send_from_directory
 from dotenv import load_dotenv
 
 from normalizer import normalize_code, normalize_input
-from requirements import TRACK_ID
+from requirements import DEFAULT_TRACK_ID
 from allocator import allocate_courses
+from validators import find_inconsistent_completed_courses, expand_completed_with_prereqs
 from unlocks import build_reverse_prereq_map
 from eligibility import check_can_take, parse_term, get_eligible_courses
 from data_loader import load_data
@@ -112,6 +113,34 @@ def recommend():
             "error": {"error_code": err_code, "message": err_msg},
         }), 400
 
+    # ── Track validation ─────────────────────────────────────────────────
+    track_id = str(body.get("track_id", DEFAULT_TRACK_ID) or DEFAULT_TRACK_ID).strip().upper()
+    track_warning = None
+    tracks_df = _data.get("tracks_df")
+    if tracks_df is not None and len(tracks_df) > 0:
+        # Normalize both sides so workbook casing/spacing does not break matching.
+        normalized_track_ids = tracks_df["track_id"].astype(str).str.strip().str.upper()
+        track_row = tracks_df[normalized_track_ids == track_id]
+        if len(track_row) == 0:
+            return jsonify({
+                "mode": "error",
+                "error": {
+                    "error_code": "UNKNOWN_TRACK",
+                    "message": f"Track '{track_id}' is not recognized.",
+                },
+            }), 400
+        if not track_row.iloc[0].get("active", True):
+            track_warning = f"Track '{track_id}' is not yet published (active=0). Results may be incomplete."
+    elif track_id != DEFAULT_TRACK_ID:
+        # No tracks sheet — only the default track is accepted
+        return jsonify({
+            "mode": "error",
+            "error": {
+                "error_code": "UNKNOWN_TRACK",
+                "message": f"Track '{track_id}' is not recognized.",
+            },
+        }), 400
+
     completed_raw = str(body.get("completed_courses", "") or "")
     in_progress_raw = str(body.get("in_progress_courses", "") or "")
     target_semester_primary = str(
@@ -156,6 +185,25 @@ def recommend():
     in_progress = ip_result["valid"]
     not_in_catalog_warn = comp_result["not_in_catalog"] + ip_result["not_in_catalog"]
 
+    inconsistencies = find_inconsistent_completed_courses(
+        completed, in_progress, _data["prereq_map"]
+    )
+    if inconsistencies:
+        return jsonify({
+            "mode": "error",
+            "error": {
+                "error_code": "INCONSISTENT_INPUT",
+                "message": (
+                    "Some completed courses have prerequisites that are still in-progress. "
+                    "A course cannot be completed before its prerequisite is done."
+                ),
+                "inconsistent_courses": inconsistencies,
+            },
+        }), 400
+
+    # Infer implied completed prereqs: if FINA 3001 is completed, ACCO 1031 must be too.
+    completed = expand_completed_with_prereqs(completed, _data["prereq_map"])
+
     try:
         target_term = parse_term(target_semester_primary)
     except ValueError:
@@ -182,6 +230,7 @@ def recommend():
         _data["course_bucket_map_df"],
         _data["courses_df"],
         _data["equivalencies_df"],
+        track_id=track_id,
     )
 
     if requested_course:
@@ -197,6 +246,7 @@ def recommend():
     sem1 = run_recommendation_semester(
         completed, in_progress, target_semester_primary,
         _data, max_recs, _reverse_map, USE_OPENAI_EXPLANATIONS,
+        track_id=track_id,
     )
     semesters_payload = [sem1]
     if target_semester_secondary != "__NONE__":
@@ -207,16 +257,20 @@ def recommend():
         sem2 = run_recommendation_semester(
             completed_for_sem2, [], second_label,
             _data, max_recs, _reverse_map, USE_OPENAI_EXPLANATIONS,
+            track_id=track_id,
         )
         semesters_payload.append(sem2)
 
-    return jsonify({
+    response = {
         "mode": "recommendations",
         "semesters": semesters_payload,
         **sem1,
         "not_in_catalog_warning": not_in_catalog_warn if not_in_catalog_warn else None,
         "error": None,
-    })
+    }
+    if track_warning:
+        response["track_warning"] = track_warning
+    return jsonify(response)
 
 
 if __name__ == "__main__":
