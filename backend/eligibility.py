@@ -247,10 +247,11 @@ def get_eligible_courses(
             "unlocks": [],  # populated by server.py
         })
 
-    # Sort: prerequisite depth ASC (bottom-up), then bucket priority ASC,
-    # then multi_bucket_score DESC, then code.
+    # Sort: courses filling unmet buckets first, then by prereq depth,
+    # bucket priority, multi-bucket score, then code.
     results.sort(
         key=lambda c: (
+            0 if c["multi_bucket_score"] > 0 else 1,
             c["prereq_level"],
             c["primary_bucket_priority"],
             -c["multi_bucket_score"],

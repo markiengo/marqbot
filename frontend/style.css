@@ -321,6 +321,13 @@ select:focus,
 
 .ms-dropdown.open { display: block; }
 
+/* Can-take is the last field in the form — open upward to avoid clipping */
+#dropdown-can-take {
+  top: auto;
+  bottom: calc(100% + 5px);
+  box-shadow: 0 -6px 18px rgba(17, 40, 77, 0.18);
+}
+
 .ms-option,
 .ms-option-empty {
   padding: 10px 11px;
@@ -494,9 +501,13 @@ select:focus,
 .notes-list { margin: 0; padding-left: 18px; }
 .catalog-warn { border-color: rgba(190, 125, 0, 0.28); color: #8e5d00; }
 
-.can-take-true { border-color: rgba(30, 159, 97, 0.35); background: #eefbf4; }
-.can-take-false { border-color: rgba(199, 59, 69, 0.35); background: #fff0f2; }
-.can-take-null { border-color: rgba(190, 125, 0, 0.35); background: #fff7e5; }
+.can-take-true  { border-color: rgba(30, 159, 97, 0.4);  border-left: 4px solid var(--ok); }
+.can-take-false { border-color: rgba(199, 59, 69, 0.4); border-left: 4px solid var(--bad); }
+.can-take-null  { border-color: rgba(190, 125, 0, 0.4); border-left: 4px solid var(--amber); }
+.can-take-true  h3 { color: var(--ok); margin: 0 0 6px; }
+.can-take-false h3 { color: var(--bad); margin: 0 0 6px; }
+.can-take-null  h3 { color: var(--amber); margin: 0 0 6px; }
+.can-take-banner p { margin: 4px 0 0; font-size: 0.9rem; color: var(--ink-700); }
 
 .progress-grid {
   display: grid;
