@@ -367,8 +367,17 @@ def frontend_files(filename):
 def get_courses():
     if not _data:
         return jsonify({"error": "Data not loaded"}), 500
-    cols = ["course_code", "course_name", "credits"]
-    df = _data["courses_df"][cols].dropna(subset=["course_code"])
+    cols = ["course_code", "course_name", "credits", "prereq_level"]
+    df = _data["courses_df"].copy()
+    for col in cols:
+        if col not in df.columns:
+            df[col] = None
+    df = df[cols].dropna(subset=["course_code"])
+    # Ensure JSON-safe numeric ordering field for frontend search ranking.
+    df["prereq_level"] = pd.to_numeric(df["prereq_level"], errors="coerce")
+    df["prereq_level"] = df["prereq_level"].apply(
+        lambda v: int(v) if pd.notna(v) else None
+    )
     return jsonify({"courses": df.to_dict(orient="records")})
 
 

@@ -148,7 +148,7 @@ Open: `http://localhost:5000`
 Backend tests:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests -v
+.\.venv\Scripts\python.exe -m pytest tests/backend_tests -v
 ```
 
 Frontend unit tests:
@@ -162,4 +162,3 @@ npm test
 
 MarqBot is not official academic advising.  
 Students should confirm final course decisions with advisors and registrar systems.
-

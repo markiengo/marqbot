@@ -1,10 +1,10 @@
-﻿import {
+import {
   renderCard,
   renderErrorHtml,
   renderCanTakeHtml,
   renderSemesterHtml,
   renderRecommendationsHtml,
-} from "../modules/rendering.js";
+} from "../../frontend/modules/rendering.js";
 
 describe("renderCard()", () => {
   const baseCard = {

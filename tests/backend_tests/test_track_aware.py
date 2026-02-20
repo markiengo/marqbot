@@ -333,6 +333,17 @@ class TestServerTrackValidation:
         assert tracks["CB_CONC"]["parent_major_id"] == "FIN_MAJOR"
         assert tracks["FP_CONC"]["parent_major_id"] == "FIN_MAJOR"
 
+    def test_courses_endpoint_prereq_level_is_json_safe(self, client):
+        resp = client.get("/courses")
+        assert resp.status_code == 200
+        raw = resp.get_data(as_text=True)
+        assert "NaN" not in raw
+
+        data = resp.get_json()
+        for row in data.get("courses", []):
+            level = row.get("prereq_level")
+            assert level is None or isinstance(level, int)
+
     def test_empty_tracks_rejects_non_default_track(self, client, monkeypatch):
         """When tracks_df is empty, non-default tracks should be rejected."""
         import server

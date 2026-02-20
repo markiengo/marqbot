@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=frontend"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=tests/frontend_tests"
   },
   "jest": {
     "testEnvironment": "jsdom",

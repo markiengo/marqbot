@@ -1,4 +1,4 @@
-ï»¿# MarqBot Platform Roadmap and Planning Rationale
+# MarqBot Platform Roadmap and Planning Rationale
 
 ## 1) What You Are Planning and Why
 
@@ -164,7 +164,7 @@ Safely remove deprecated `bucket1..bucket4` columns once canonical mapping is ve
 ### Scope
 In scope:
 1. `scripts/migrate_schema.py`
-2. `tests/test_schema_migration.py`
+2. `tests/backend_tests/test_schema_migration.py`
 
 Out of scope:
 1. Any backend runtime allocation/eligibility/recommender behavior changes.
@@ -190,7 +190,7 @@ Command behavior:
 2. `find_deprecated_bucket_cols(courses_ws) -> list[int]`
 - Return present **1-based openpyxl column indexes** (not 0-based) among `bucket1..bucket4`.
 - Return empty list when none are present.
-- `remove_columns` depends on these being 1-based â€” keep consistent.
+- `remove_columns` depends on these being 1-based — keep consistent.
 
 3. `backup_workbook(path: str) -> str`
 - Copy workbook to `<path>.bak` before destructive change (use `shutil.copy2`).
@@ -205,8 +205,8 @@ Command behavior:
 1. `main(args=None)` to enable direct test invocation.
 2. If `--clean`:
    1. preflight checks,
-   2. no-op success if no deprecated columns â†’ print `[INFO] No deprecated columns found. Nothing to remove.` and exit 0,
-   3. dry-run exits without writes â†’ print summary of what would be removed,
+   2. no-op success if no deprecated columns ? print `[INFO] No deprecated columns found. Nothing to remove.` and exit 0,
+   3. dry-run exits without writes ? print summary of what would be removed,
    4. create backup,
    5. remove deprecated columns,
    6. save workbook,
@@ -231,9 +231,9 @@ Cleanup aborts with clear error and non-zero exit when:
 ### Known Pre-existing Bug (out of scope but noted)
 `write_course_bucket_sheet` line 121 in `scripts/migrate_schema.py`:
 ```python
-# BUG: max_row returns int â€” len() on int raises TypeError
+# BUG: max_row returns int — len() on int raises TypeError
 print(f"[INFO] Replacing existing 'course_bucket' sheet ({len(wb['course_bucket'].max_row - 1)} existing rows).")
-# Fix when touching this function: remove the len() wrapper â†’ use (wb['course_bucket'].max_row - 1) directly
+# Fix when touching this function: remove the len() wrapper ? use (wb['course_bucket'].max_row - 1) directly
 ```
 This is only triggered if `course_bucket` already exists and the non-`--clean` migration re-runs. Fix it when Phase 2 is being implemented since we're already in that file.
 
@@ -304,7 +304,7 @@ Backend contracts:
 
 ### Phase 3.3: Replace Hardcoded Bucket IDs with Role Lookup
 
-Required helpers (place in `backend/requirements.py` â€” already the shared-config module, imported by all callers):
+Required helpers (place in `backend/requirements.py` — already the shared-config module, imported by all callers):
 1. `_get_bucket_by_role(buckets_df, track_id, role) -> str | None`
 2. `_get_buckets_by_role(buckets_df, track_id, role) -> list[str]`
 
@@ -322,9 +322,9 @@ Why graceful fallback is chosen:
 ### Phase 3.4: Contract and Regression Tests
 
 Update tests:
-1. `tests/test_allocator.py`: explicit `track_id` path coverage.
-2. `tests/test_eligibility.py`: explicit `track_id` path coverage.
-3. `tests/test_track_aware.py` (new): multi-plan isolation behavior in same workbook.
+1. `tests/backend_tests/test_allocator.py`: explicit `track_id` path coverage.
+2. `tests/backend_tests/test_eligibility.py`: explicit `track_id` path coverage.
+3. `tests/backend_tests/test_track_aware.py` (new): multi-plan isolation behavior in same workbook.
 4. server tests for:
 - `UNKNOWN_TRACK` response shape,
 - inactive track warning behavior,
@@ -362,7 +362,7 @@ Inactive track warning on successful recommendation response:
 - `track_id` threaded through allocator, eligibility, recommender, and server as request-scoped parameter.
 - `role` column added to buckets sheet; `get_bucket_by_role()` / `get_buckets_by_role()` replace hardcoded `"CORE"` and `"FIN_CHOOSE_2"`.
 - Server validates track_id (case-insensitive, UNKNOWN_TRACK error, inactive track warning).
-- 28 track-aware tests in `tests/test_track_aware.py` (unit + integration + synthetic smoke).
+- 28 track-aware tests in `tests/backend_tests/test_track_aware.py` (unit + integration + synthetic smoke).
 - Deterministic tie-break in role lookup (priority asc, bucket_id asc).
 
 ---
@@ -377,12 +377,12 @@ Prove that new tracks can be onboarded through workbook data only, with automate
    - Checks: track existence, bucket existence, role policy (1 core, 1+ elective), mapping existence, no orphan courses, no orphan buckets.
    - Warnings: unmapped buckets, unsatisfiable needed_count.
    - Usage: `python scripts/validate_track.py --track FP_CONC` or `--all`.
-2. **Validator test suite** (`tests/test_validate_track.py`): 20 tests with synthetic fixtures.
-3. **End-to-end smoke test** (`tests/test_track_aware.py::TestSyntheticTrackSmoke`): 4 tests proving a synthetic track injected via data produces valid recommendations through `/recommend`.
+2. **Validator test suite** (`tests/backend_tests/test_validate_track.py`): 20 tests with synthetic fixtures.
+3. **End-to-end smoke test** (`tests/backend_tests/test_track_aware.py::TestSyntheticTrackSmoke`): 4 tests proving a synthetic track injected via data produces valid recommendations through `/recommend`.
 4. **Program catalog normalization** (loader + `/programs` endpoint): exposes `kind` and `parent_major_id` metadata for Phase 5 selector UX.
 
 ### Architecture Proof (exit criteria 1)
-The `TestSyntheticTrackSmoke` suite injects a track (`SYNTH_TEST`) with 2 buckets and 5 course mappings via monkeypatch â€” no backend code modified â€” and verifies:
+The `TestSyntheticTrackSmoke` suite injects a track (`SYNTH_TEST`) with 2 buckets and 5 course mappings via monkeypatch — no backend code modified — and verifies:
 - Recommendations are returned.
 - Completed courses reduce remaining slots correctly.
 - Both buckets appear in progress output.
@@ -392,8 +392,8 @@ The `TestSyntheticTrackSmoke` suite injects a track (`SYNTH_TEST`) with 2 bucket
 1. Add track row in `tracks` sheet with `active=0`.
 2. Add bucket rows in `buckets` sheet with valid role assignments (`core`, `elective`).
 3. Add normalized mapping rows in `course_bucket` sheet.
-4. Run `python scripts/validate_track.py --track <TRACK_ID>` â€” all checks must pass.
-5. Run `/recommend` smoke test with explicit `track_id` â€” verify recommendations returned.
+4. Run `python scripts/validate_track.py --track <TRACK_ID>` — all checks must pass.
+5. Run `/recommend` smoke test with explicit `track_id` — verify recommendations returned.
 6. Set `active=1` in `tracks` sheet only after steps 4 and 5 pass.
 
 ### Publish Gate Checks (automated by validator)
@@ -411,8 +411,8 @@ A track cannot be published unless:
 - Activate at least one non-Finance track end-to-end with real workbook data.
 
 ### Phase 4 Exit Criteria
-1. At least one non-Finance track can be onboarded without backend code edits â€” **architecture proven via synthetic smoke test**.
-2. Publish gate process is documented and repeatable â€” **validator CLI + workflow documented above**.
+1. At least one non-Finance track can be onboarded without backend code edits — **architecture proven via synthetic smoke test**.
+2. Publish gate process is documented and repeatable — **validator CLI + workflow documented above**.
 
 ---
 

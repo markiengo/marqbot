@@ -1,4 +1,4 @@
-﻿import {
+import {
   esc,
   bucketLabel,
   colorizePrereq,
@@ -6,7 +6,7 @@
   filterCourses,
   courseDisplayName,
   replaceCourseCodesInText,
-} from "../modules/utils.js";
+} from "../../frontend/modules/utils.js";
 
 describe("esc()", () => {
   test("returns empty string for null/undefined", () => {
@@ -81,9 +81,11 @@ describe("replaceCourseCodesInText()", () => {
 
 describe("filterCourses()", () => {
   const courses = [
-    { course_code: "FINA 3001", course_name: "Financial Management" },
-    { course_code: "FINA 4001", course_name: "Advanced Finance" },
-    { course_code: "ECON 1103", course_name: "Microeconomics" },
+    { course_code: "FINA 3001", course_name: "Financial Management", prereq_level: 3 },
+    { course_code: "FINA 4001", course_name: "Advanced Finance", prereq_level: 4 },
+    { course_code: "ECON 1103", course_name: "Microeconomics", prereq_level: 1 },
+    { course_code: "ECON 4040", course_name: "International Economics", prereq_level: 4 },
+    { course_code: "ECON 3004", course_name: "Intermediate Macroeconomic Analysis", prereq_level: 3 },
   ];
 
   test("matches by course code only", () => {
@@ -95,5 +97,10 @@ describe("filterCourses()", () => {
   test("excludes selected codes", () => {
     const out = filterCourses("fina", new Set(["FINA 3001"]), courses);
     expect(out.map(c => c.course_code)).toEqual(["FINA 4001"]);
+  });
+
+  test("orders matches by prereq_level ascending", () => {
+    const out = filterCourses("econ", new Set(), courses);
+    expect(out.map(c => c.course_code)).toEqual(["ECON 1103", "ECON 3004", "ECON 4040"]);
   });
 });

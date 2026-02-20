@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { getSessionSnapshot, saveSession, restoreSession, STORAGE_KEY } from "../modules/session.js";
+import { getSessionSnapshot, saveSession, restoreSession, STORAGE_KEY } from "../../frontend/modules/session.js";
 
 // jsdom provides localStorage; we reset it before each test
 beforeEach(() => {
