@@ -1,4 +1,4 @@
-import { esc, filterCourses } from "./utils.js";
+﻿import { esc, filterCourses } from "./utils.js";
 
 export function renderDropdown(dropdownEl, items, onSelect) {
   dropdownEl.innerHTML = "";
@@ -10,7 +10,7 @@ export function renderDropdown(dropdownEl, items, onSelect) {
   items.forEach(c => {
     const div = document.createElement("div");
     div.className = "ms-option";
-    div.innerHTML = `<span><span class="opt-code">${c.course_code}</span><span class="opt-name">${c.course_name || ""}</span></span>`;
+    div.innerHTML = `<span><span class="opt-code">${esc(c.course_code)}</span><span class="opt-name">${esc(c.course_name || "")}</span></span>`;
     div.addEventListener("mousedown", e => { e.preventDefault(); onSelect(c); });
     dropdownEl.appendChild(div);
   });
@@ -21,12 +21,12 @@ export function closeDropdowns(...dropdownEls) {
   dropdownEls.forEach(el => el.classList.remove("open"));
 }
 
-export function renderChips(chipsEl, set, onRemove) {
+export function renderChips(chipsEl, set, onRemove, resolveLabel = code => code) {
   chipsEl.innerHTML = "";
   set.forEach(code => {
     const chip = document.createElement("span");
     chip.className = "chip";
-    chip.innerHTML = `${code}<button class="chip-remove" title="Remove">×</button>`;
+    chip.innerHTML = `${esc(resolveLabel(code))}<button class="chip-remove" title="Remove">x</button>`;
     chip.querySelector(".chip-remove").addEventListener("click", () => onRemove(code));
     chipsEl.appendChild(chip);
   });
@@ -102,3 +102,4 @@ export function setupPasteFallback(toggleBtnId, pasteId, applyBtnId, errorsId, t
     }
   });
 }
+

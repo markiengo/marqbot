@@ -178,6 +178,14 @@ def _resolve_program_selection(body, tracks_df):
       None, (payload_dict, status_code)  on error
     """
     catalog_df = _normalize_program_catalog(tracks_df)
+    label_map = {
+        str(r["track_id"]): str(r["track_label"] or r["track_id"])
+        for _, r in catalog_df.iterrows()
+    }
+
+    def _program_label(program_id: str) -> str:
+        return label_map.get(str(program_id), str(program_id))
+
     declared_majors, parse_error = _normalize_declared_majors(body.get("declared_majors"))
     if parse_error:
         code, msg = parse_error
@@ -196,22 +204,20 @@ def _resolve_program_selection(body, tracks_df):
                 return None, (_build_unknown_track_error(track_id), 400)
             if not row.iloc[0].get("active", True):
                 track_warning = (
-                    f"Track '{track_id}' is not yet published (active=0). "
+                    f"Track '{_program_label(track_id)}' is not yet published (active=0). "
                     "Results may be incomplete."
                 )
         elif track_id != DEFAULT_TRACK_ID:
             return None, (_build_unknown_track_error(track_id), 400)
 
-        label_map = {
-            r["track_id"]: r["track_label"]
-            for _, r in catalog_df.iterrows()
-        }
         return {
             "mode": "legacy",
             "declared_majors": None,
+            "declared_major_labels": None,
             "selected_track_id": track_id,
+            "selected_track_label": _program_label(track_id),
             "selected_program_ids": [track_id],
-            "selected_program_labels": [label_map.get(track_id, track_id)],
+            "selected_program_labels": [_program_label(track_id)],
             "program_warnings": [],
             "track_warning": track_warning,
             "effective_track_id": track_id,
@@ -229,7 +235,8 @@ def _resolve_program_selection(body, tracks_df):
             return None, (_build_unknown_major_error(major_id), 400)
         if not row.iloc[0].get("active", True):
             warnings.append(
-                f"Major '{major_id}' is not yet published (active=0). Results may be incomplete."
+                f"Major '{_program_label(major_id)}' is not yet published (active=0). "
+                "Results may be incomplete."
             )
 
     selected_track_id = None
@@ -255,32 +262,33 @@ def _resolve_program_selection(body, tracks_df):
                 "error": {
                     "error_code": "TRACK_MAJOR_MISMATCH",
                     "message": (
-                        f"Track '{selected_track_id}' does not belong to declared majors "
-                        f"{declared_majors}."
+                        f"Track '{_program_label(selected_track_id)}' does not belong to declared majors "
+                        f"{[_program_label(mid) for mid in declared_majors]}."
                     ),
                 },
             }, 400)
         if not track_row.get("active", True):
             warnings.append(
-                f"Track '{selected_track_id}' is not yet published (active=0). Results may be incomplete."
+                f"Track '{_program_label(selected_track_id)}' is not yet published (active=0). "
+                "Results may be incomplete."
             )
 
     selected_program_ids = list(dict.fromkeys(
         declared_majors + ([selected_track_id] if selected_track_id else [])
     ))
-    selected_df = catalog_df[catalog_df["track_id"].isin(selected_program_ids)]
-    label_map = {
-        r["track_id"]: r["track_label"]
-        for _, r in selected_df.iterrows()
-    }
     effective_data = _build_declared_plan_data(_data, selected_program_ids, catalog_df)
+    selected_program_labels = [_program_label(pid) for pid in selected_program_ids]
+    declared_major_labels = [_program_label(mid) for mid in declared_majors]
+    selected_track_label = _program_label(selected_track_id) if selected_track_id else None
 
     return {
         "mode": "declared",
         "declared_majors": declared_majors,
+        "declared_major_labels": declared_major_labels,
         "selected_track_id": selected_track_id,
+        "selected_track_label": selected_track_label,
         "selected_program_ids": selected_program_ids,
-        "selected_program_labels": [label_map.get(pid, pid) for pid in selected_program_ids],
+        "selected_program_labels": selected_program_labels,
         "program_warnings": warnings,
         "track_warning": None,
         "effective_track_id": PHASE5_PLAN_TRACK_ID,
@@ -547,7 +555,9 @@ def recommend():
     if selection["mode"] == "declared":
         response["selection_context"] = {
             "declared_majors": selection["declared_majors"],
+            "declared_major_labels": selection["declared_major_labels"],
             "selected_track_id": selection["selected_track_id"],
+            "selected_track_label": selection["selected_track_label"],
             "selected_program_ids": selection["selected_program_ids"],
             "selected_program_labels": selection["selected_program_labels"],
         }

@@ -88,13 +88,13 @@ function clearResults() {
 function majorLabel(majorId) {
   const row = (state.programs.majors || []).find(m => m.major_id === majorId);
   if (!row) return majorId;
-  return row.active === false ? `${row.label} (inactive)` : row.label;
+  return row.label;
 }
 
 function trackLabel(trackId) {
   const row = (state.programs.tracks || []).find(t => t.track_id === trackId);
   if (!row) return trackId;
-  return row.active === false ? `${row.label} (inactive)` : row.label;
+  return row.label;
 }
 
 function renderProgramDropdown(dropdownEl, items, onSelect) {
@@ -181,7 +181,7 @@ function renderMajorChips() {
   for (const majorId of state.selectedMajors) {
     const chip = document.createElement("span");
     chip.className = "chip";
-    chip.innerHTML = `${esc(majorLabel(majorId))}<button class="chip-remove" title="Remove">×</button>`;
+    chip.innerHTML = `${esc(majorLabel(majorId))}<button class="chip-remove" title="Remove">x</button>`;
     chip.querySelector(".chip-remove")?.addEventListener("click", () => {
       state.selectedMajors.delete(majorId);
       syncHiddenMajorsFromState();
@@ -197,7 +197,7 @@ function renderTrackChip() {
   if (!state.selectedTrack) return;
   const chip = document.createElement("span");
   chip.className = "chip";
-  chip.innerHTML = `${esc(trackLabel(state.selectedTrack))}<button class="chip-remove" title="Remove">×</button>`;
+  chip.innerHTML = `${esc(trackLabel(state.selectedTrack))}<button class="chip-remove" title="Remove">x</button>`;
   chip.querySelector(".chip-remove")?.addEventListener("click", () => {
     state.selectedTrack = null;
     if (declaredTrackSelect) declaredTrackSelect.value = "";
@@ -491,4 +491,5 @@ async function init() {
 }
 
 init();
+
 

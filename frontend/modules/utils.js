@@ -1,7 +1,32 @@
 /**
- * Pure utility functions — no DOM, no state dependencies.
+ * Pure utility functions - no DOM, no state dependencies.
  * Safe to import and test in isolation.
  */
+
+function mapLookup(store, key) {
+  if (!store || !key) return null;
+  if (store instanceof Map) {
+    return store.get(key) || null;
+  }
+  if (Object.prototype.hasOwnProperty.call(store, key)) {
+    return store[key];
+  }
+  return null;
+}
+
+function prettifyIdentifier(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return raw
+    .split("_")
+    .filter(Boolean)
+    .map(part => {
+      if (/^[A-Z0-9]{2,3}$/.test(part)) return part;
+      const lower = part.toLowerCase();
+      return `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`;
+    })
+    .join(" ");
+}
 
 export function esc(str) {
   if (str === null || str === undefined) return "";
@@ -10,34 +35,69 @@ export function esc(str) {
     .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-export function bucketLabel(bucketId) {
-  const raw = String(bucketId || "");
-  const [, localId] = raw.includes("::")
-    ? raw.split("::", 2)
-    : [null, raw];
+export function courseDisplayName(courseCode, courseNameByCode = null) {
+  const normalized = String(courseCode || "").trim();
+  if (!normalized) return "";
+  return mapLookup(courseNameByCode, normalized) || normalized;
+}
+
+export function replaceCourseCodesInText(text, courseNameByCode = null) {
+  return String(text || "");
+}
+
+export function bucketLabel(bucketId, programLabelMap = null) {
+  const raw = String(bucketId || "").trim();
+  if (!raw) return "";
+
+  let programId = null;
+  let localId = raw;
+  if (raw.includes("::")) {
+    [programId, localId] = raw.split("::", 2);
+  }
+
   const labels = {
     CORE: "Finance Required",
     FIN_CHOOSE_2: "Upper Division Finance Elective (Two)",
     FIN_CHOOSE_1: "Upper Division Finance Elective (One)",
     BUS_ELEC_4: "Business Electives",
   };
-  return labels[localId] || String(localId || "").replace(/_/g, " ");
+
+  const localLabel = labels[localId] || prettifyIdentifier(localId);
+  if (!programId) return localLabel;
+
+  const programLabel = mapLookup(programLabelMap, programId);
+  if (!programLabel) return localLabel;
+  return `${programLabel}: ${localLabel}`;
 }
 
-export function colorizePrereq(str) {
+export function colorizePrereq(str, courseNameByCode = null) {
   if (!str) return "";
-  return str
-    .replace(/([A-Z]{2,6} \d{4}[A-Za-z]?) ✓/g, (_, code) => `<span class="check">${esc(code)} ✓</span>`)
-    .replace(/([A-Z]{2,6} \d{4}[A-Za-z]?) \(in progress\) ✓/g, (_, code) =>
-      `<span class="ip">${esc(code)} (in progress) ✓</span>`)
-    .replace(/([A-Z]{2,6} \d{4}[A-Za-z]?) ✗/g, (_, code) => `<span class="miss">${esc(code)} ✗</span>`);
+
+  const check = "\u2713";
+  const cross = "\u2717";
+
+  return String(str)
+    .replace(
+      /([A-Z]{2,6} \d{4}[A-Za-z]?) \(in progress\) \u2713/g,
+      (_, code) => `<span class="ip">${esc(code)} (in progress) ${check}</span>`,
+    )
+    .replace(
+      /([A-Z]{2,6} \d{4}[A-Za-z]?) \u2713/g,
+      (_, code) => `<span class="check">${esc(code)} ${check}</span>`,
+    )
+    .replace(
+      /([A-Z]{2,6} \d{4}[A-Za-z]?) \u2717/g,
+      (_, code) => `<span class="miss">${esc(code)} ${cross}</span>`,
+    );
 }
 
-export function formatCourseNotes(note) {
+export function formatCourseNotes(note, courseNameByCode = null) {
   const txt = String(note || "");
   if (txt.toLowerCase().includes("todo") && txt.toLowerCase().includes("complex prereq")) {
     const codes = txt.match(/[A-Z]{2,6}\s\d{4}[A-Za-z]?/g) || [];
-    if (codes.length) return `Hard prereq codes: ${codes.join(", ")}`;
+    if (codes.length) {
+      return `Hard prereq codes: ${codes.join(", ")}`;
+    }
     return "Hard prereq codes: see catalog.";
   }
   return esc(txt);
@@ -55,7 +115,6 @@ export function filterCourses(query, excludeSet, courses) {
   if (!q) return [];
   return courses
     .filter(c => !excludeSet.has(c.course_code) &&
-      (c.course_code.toLowerCase().includes(q) ||
-       (c.course_name || "").toLowerCase().includes(q)))
+      c.course_code.toLowerCase().includes(q))
     .slice(0, 12);
 }

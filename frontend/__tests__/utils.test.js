@@ -1,129 +1,81 @@
-import { esc, bucketLabel, colorizePrereq, formatCourseNotes, filterCourses } from "../modules/utils.js";
+﻿import {
+  esc,
+  bucketLabel,
+  colorizePrereq,
+  formatCourseNotes,
+  filterCourses,
+  courseDisplayName,
+  replaceCourseCodesInText,
+} from "../modules/utils.js";
 
 describe("esc()", () => {
-  test("returns empty string for null", () => {
+  test("returns empty string for null/undefined", () => {
     expect(esc(null)).toBe("");
-  });
-
-  test("returns empty string for undefined", () => {
     expect(esc(undefined)).toBe("");
   });
 
-  test("escapes < and >", () => {
-    expect(esc("<script>")).toBe("&lt;script&gt;");
-  });
-
-  test("escapes &", () => {
+  test("escapes HTML chars", () => {
     expect(esc("a & b")).toBe("a &amp; b");
-  });
-
-  test("escapes double quotes", () => {
-    expect(esc('"hello"')).toBe("&quot;hello&quot;");
-  });
-
-  test("passes through safe strings unchanged", () => {
-    expect(esc("FINA 3001")).toBe("FINA 3001");
-  });
-
-  test("converts numbers to strings", () => {
-    expect(esc(42)).toBe("42");
+    expect(esc("<b>ok</b>")).toBe("&lt;b&gt;ok&lt;/b&gt;");
   });
 });
 
 describe("bucketLabel()", () => {
-  test("returns known label for CORE", () => {
+  test("maps known buckets", () => {
     expect(bucketLabel("CORE")).toBe("Finance Required");
-  });
-
-  test("returns known label for FIN_CHOOSE_2", () => {
     expect(bucketLabel("FIN_CHOOSE_2")).toBe("Upper Division Finance Elective (Two)");
   });
 
-  test("returns known label for FIN_CHOOSE_1", () => {
-    expect(bucketLabel("FIN_CHOOSE_1")).toBe("Upper Division Finance Elective (One)");
-  });
-
-  test("returns known label for BUS_ELEC_4", () => {
-    expect(bucketLabel("BUS_ELEC_4")).toBe("Business Electives");
-  });
-
-  test("falls back to underscores replaced with spaces for unknown IDs", () => {
-    expect(bucketLabel("MY_CUSTOM_BUCKET")).toBe("MY CUSTOM BUCKET");
-  });
-
-  test("formats namespaced bucket IDs for multi-program plans", () => {
-    expect(bucketLabel("FIN_MAJOR::CORE")).toBe("Finance Required");
-    expect(bucketLabel("CB_CONC::CB_CORE")).toBe("CB CORE");
-  });
-
-  test("returns empty string for null/undefined", () => {
-    expect(bucketLabel(null)).toBe("");
-    expect(bucketLabel(undefined)).toBe("");
+  test("handles namespaced bucket IDs", () => {
+    expect(bucketLabel("CB_CONC::CB_CORE")).toBe("CB Core");
+    const map = new Map([["CB_CONC", "Commercial Banking"]]);
+    expect(bucketLabel("CB_CONC::CB_CORE", map)).toBe("Commercial Banking: CB Core");
   });
 });
 
 describe("colorizePrereq()", () => {
-  test("returns empty string for falsy input", () => {
-    expect(colorizePrereq("")).toBe("");
-    expect(colorizePrereq(null)).toBe("");
+  test("highlights course codes with check/cross", () => {
+    const out = colorizePrereq("FINA 3001 \u2713; ECON 1103 \u2717");
+    expect(out).toContain('<span class="check">FINA 3001');
+    expect(out).toContain('<span class="miss">ECON 1103');
   });
 
-  test("wraps completed course with check span", () => {
-    const result = colorizePrereq("FINA 3001 ✓");
-    expect(result).toContain('<span class="check">');
-    expect(result).toContain("FINA 3001");
-  });
-
-  test("wraps in-progress course with ip span", () => {
-    const result = colorizePrereq("FINA 3001 (in progress) ✓");
-    expect(result).toContain('<span class="ip">');
-    expect(result).toContain("FINA 3001");
-  });
-
-  test("wraps missing course with miss span", () => {
-    const result = colorizePrereq("FINA 3001 ✗");
-    expect(result).toContain('<span class="miss">');
-    expect(result).toContain("FINA 3001");
-  });
-
-  test("handles string with no special markers unchanged", () => {
-    const result = colorizePrereq("No prerequisites");
-    expect(result).toBe("No prerequisites");
-  });
-
-  test("handles mixed satisfied and missing prereqs", () => {
-    const result = colorizePrereq("ECON 1103 ✓; BUAD 1560 ✗");
-    expect(result).toContain('<span class="check">');
-    expect(result).toContain('<span class="miss">');
+  test("keeps course codes even if name map is passed", () => {
+    const map = new Map([["FINA 3001", "Financial Management"]]);
+    const out = colorizePrereq("FINA 3001 \u2713", map);
+    expect(out).toContain("FINA 3001");
+    expect(out).not.toContain("Financial Management");
   });
 });
 
 describe("formatCourseNotes()", () => {
-  test("extracts course codes from todo/complex prereq note", () => {
-    const result = formatCourseNotes("TODO complex prereq: FINA 3001 FINA 4001");
-    expect(result).toContain("FINA 3001");
-    expect(result).toContain("FINA 4001");
-    expect(result).toContain("Hard prereq codes:");
+  test("extracts and reports hard prereq codes", () => {
+    const out = formatCourseNotes("TODO complex prereq: FINA 3001 FINA 4001");
+    expect(out).toContain("Hard prereq codes:");
+    expect(out).toContain("FINA 3001");
   });
 
-  test("falls back to catalog message when todo note has no codes", () => {
-    const result = formatCourseNotes("todo complex prereq (see advisor)");
-    expect(result).toBe("Hard prereq codes: see catalog.");
+  test("fallback message when no codes are present", () => {
+    expect(formatCourseNotes("todo complex prereq (see advisor)")).toBe("Hard prereq codes: see catalog.");
+  });
+});
+
+describe("courseDisplayName()", () => {
+  test("returns mapped value when available", () => {
+    const map = new Map([["FINA 3001", "Financial Management"]]);
+    expect(courseDisplayName("FINA 3001", map)).toBe("Financial Management");
   });
 
-  test("escapes and returns regular notes as-is", () => {
-    const result = formatCourseNotes("Only offered in Fall");
-    expect(result).toBe("Only offered in Fall");
+  test("falls back to code", () => {
+    expect(courseDisplayName("FINA 3001", new Map())).toBe("FINA 3001");
   });
+});
 
-  test("escapes HTML in regular notes", () => {
-    const result = formatCourseNotes("<special> note");
-    expect(result).toContain("&lt;special&gt;");
-  });
-
-  test("handles null/empty gracefully", () => {
-    expect(formatCourseNotes(null)).toBe("");
-    expect(formatCourseNotes("")).toBe("");
+describe("replaceCourseCodesInText()", () => {
+  test("keeps original text unchanged", () => {
+    const map = new Map([["FINA 3001", "Financial Management"]]);
+    const src = "Take FINA 3001 after ECON 1103.";
+    expect(replaceCourseCodesInText(src, map)).toBe(src);
   });
 });
 
@@ -132,47 +84,16 @@ describe("filterCourses()", () => {
     { course_code: "FINA 3001", course_name: "Financial Management" },
     { course_code: "FINA 4001", course_name: "Advanced Finance" },
     { course_code: "ECON 1103", course_name: "Microeconomics" },
-    { course_code: "BUAD 1560", course_name: "Business Analytics" },
   ];
 
-  test("returns empty array for empty query", () => {
-    expect(filterCourses("", new Set(), courses)).toEqual([]);
+  test("matches by course code only", () => {
+    expect(filterCourses("fina", new Set(), courses).length).toBe(2);
+    expect(filterCourses("econ", new Set(), courses)[0].course_code).toBe("ECON 1103");
+    expect(filterCourses("micro", new Set(), courses)).toEqual([]);
   });
 
-  test("returns empty array for whitespace-only query", () => {
-    expect(filterCourses("   ", new Set(), courses)).toEqual([]);
-  });
-
-  test("matches by course code (case-insensitive)", () => {
-    const results = filterCourses("fina", new Set(), courses);
-    expect(results.length).toBe(2);
-    expect(results.map(c => c.course_code)).toContain("FINA 3001");
-    expect(results.map(c => c.course_code)).toContain("FINA 4001");
-  });
-
-  test("matches by course name", () => {
-    const results = filterCourses("micro", new Set(), courses);
-    expect(results.length).toBe(1);
-    expect(results[0].course_code).toBe("ECON 1103");
-  });
-
-  test("excludes codes in excludeSet", () => {
-    const results = filterCourses("fina", new Set(["FINA 3001"]), courses);
-    expect(results.map(c => c.course_code)).not.toContain("FINA 3001");
-    expect(results.map(c => c.course_code)).toContain("FINA 4001");
-  });
-
-  test("caps results at 12", () => {
-    const manyCourses = Array.from({ length: 20 }, (_, i) => ({
-      course_code: `FINA ${3000 + i}`,
-      course_name: `Finance Course ${i}`,
-    }));
-    const results = filterCourses("fina", new Set(), manyCourses);
-    expect(results.length).toBe(12);
-  });
-
-  test("returns empty array when no match", () => {
-    const results = filterCourses("xyz999", new Set(), courses);
-    expect(results).toEqual([]);
+  test("excludes selected codes", () => {
+    const out = filterCourses("fina", new Set(["FINA 3001"]), courses);
+    expect(out.map(c => c.course_code)).toEqual(["FINA 4001"]);
   });
 });

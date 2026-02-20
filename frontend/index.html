@@ -48,9 +48,31 @@
       <section class="panel">
         <form id="advisor-form">
           <div class="form-grid">
+            <div class="form-group">
+              <label for="declared-majors">Declared Major(s)</label>
+              <p class="form-hint">Select up to 2 majors for merged planning.</p>
+              <select id="declared-majors" multiple class="hidden"></select>
+              <div class="multiselect" id="ms-majors">
+                <div class="ms-chips" id="chips-majors"></div>
+                <input type="text" class="ms-input" id="search-majors" placeholder="Search majors..." autocomplete="off" />
+                <div class="ms-dropdown" id="dropdown-majors"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="declared-track">Track <span class="label-note">(optional)</span></label>
+              <p class="form-hint">Select one track that belongs to one chosen major.</p>
+              <select id="declared-track" class="hidden"></select>
+              <div class="multiselect" id="ms-track">
+                <div class="ms-chips" id="chips-track"></div>
+                <input type="text" class="ms-input" id="search-track" placeholder="Search tracks..." autocomplete="off" />
+                <div class="ms-dropdown" id="dropdown-track"></div>
+              </div>
+            </div>
+
             <div class="form-group form-group-full">
               <label>Completed Courses</label>
-              <p class="form-hint">Type to search and click to add. Or <button type="button" class="link-btn" id="toggle-paste-completed">paste codes</button>.</p>
+              <p class="form-hint">Type to search and click to add. Please search for course codes rather than course titles. Or <button type="button" class="link-btn" id="toggle-paste-completed">paste codes</button>.</p>
               <div class="multiselect" id="ms-completed">
                 <div class="ms-chips" id="chips-completed"></div>
                 <input type="text" class="ms-input" id="search-completed" placeholder="Search courses..." autocomplete="off" />
@@ -63,7 +85,7 @@
 
             <div class="form-group form-group-full">
               <label>Currently In-Progress Courses <span class="label-note">(this semester)</span></label>
-              <p class="form-hint">Type to search and click to add. Or <button type="button" class="link-btn" id="toggle-paste-ip">paste codes</button>.</p>
+              <p class="form-hint">Type to search and click to add. Please search for course codes rather than course titles. Or <button type="button" class="link-btn" id="toggle-paste-ip">paste codes</button>.</p>
               <div class="multiselect" id="ms-ip">
                 <div class="ms-chips" id="chips-ip"></div>
                 <input type="text" class="ms-input" id="search-ip" placeholder="Search courses..." autocomplete="off" />
@@ -98,28 +120,6 @@
             </div>
 
             <div class="form-group">
-              <label for="declared-majors">Declared Major(s)</label>
-              <p class="form-hint">Select up to 2 majors for merged planning.</p>
-              <select id="declared-majors" multiple class="hidden"></select>
-              <div class="multiselect" id="ms-majors">
-                <div class="ms-chips" id="chips-majors"></div>
-                <input type="text" class="ms-input" id="search-majors" placeholder="Search majors..." autocomplete="off" />
-                <div class="ms-dropdown" id="dropdown-majors"></div>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="declared-track">Track <span class="label-note">(optional)</span></label>
-              <p class="form-hint">Select one track that belongs to one chosen major.</p>
-              <select id="declared-track" class="hidden"></select>
-              <div class="multiselect" id="ms-track">
-                <div class="ms-chips" id="chips-track"></div>
-                <input type="text" class="ms-input" id="search-track" placeholder="Search tracks..." autocomplete="off" />
-                <div class="ms-dropdown" id="dropdown-track"></div>
-              </div>
-            </div>
-
-            <div class="form-group">
               <label for="target-semester-2">Target Semester (2) <span class="label-note">(optional)</span></label>
               <p class="form-hint">Leave blank to auto-pick next term (Spring goes to Fall).</p>
               <select id="target-semester-2">
@@ -144,6 +144,7 @@
           <button type="submit" class="btn-primary" id="submit-btn">
             Get Recommendations
           </button>
+          <p class="form-hint submit-hint">Press if you want to refresh.</p>
         </form>
       </section>
 

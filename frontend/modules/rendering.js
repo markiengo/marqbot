@@ -1,14 +1,42 @@
-import { esc, bucketLabel, colorizePrereq, formatCourseNotes } from "./utils.js";
+import {
+  esc,
+  bucketLabel,
+  colorizePrereq,
+  formatCourseNotes,
+} from "./utils.js";
 
 /**
- * Rendering functions — all return HTML strings, never touch the DOM directly.
+ * Rendering functions - all return HTML strings, never touch the DOM directly.
  */
 
-export function renderCard(c) {
+function getProgramLabelMap(selectionContext) {
+  const map = new Map();
+  if (!selectionContext) return map;
+  const ids = Array.isArray(selectionContext.selected_program_ids)
+    ? selectionContext.selected_program_ids
+    : [];
+  const labels = Array.isArray(selectionContext.selected_program_labels)
+    ? selectionContext.selected_program_labels
+    : [];
+  ids.forEach((id, idx) => {
+    const key = String(id || "").trim();
+    const label = String(labels[idx] || "").trim();
+    if (key && label) map.set(key, label);
+  });
+  return map;
+}
+
+function humanCourseText(text) {
+  return esc(String(text || ""));
+}
+
+export function renderCard(c, options = {}) {
+  const programLabelMap = options.programLabelMap || null;
+
   const bucketIds = c.fills_buckets || [];
   const bucketTags = bucketIds.map((bid, idx) => {
     const cls = idx === 0 ? "tag-bucket" : idx === 1 ? "tag-secondary" : "tag-gold";
-    return `<span class="tag ${cls}">${esc(bucketLabel(bid))}</span>`;
+    return `<span class="tag ${cls}">${esc(bucketLabel(bid, programLabelMap))}</span>`;
   }).join("");
 
   const prereqHtml = colorizePrereq(c.prereq_check || "");
@@ -16,13 +44,13 @@ export function renderCard(c) {
   const unlocksHtml = c.unlocks?.length
     ? `<div class="unlocks-line">Unlocks: ${c.unlocks.map(esc).join(", ")}</div>` : "";
   const bucketsHtml = bucketIds.length
-    ? `<div class="unlocks-line">Counts toward: ${bucketIds.map(bucketLabel).map(esc).join(", ")}</div>` : "";
+    ? `<div class="unlocks-line">Counts toward: ${bucketIds.map(bid => esc(bucketLabel(bid, programLabelMap))).join(", ")}</div>` : "";
 
   const softWarn = c.soft_tags?.length
-    ? `<div class="soft-warn">⚠ ${c.soft_tags.join(", ").replace(/_/g, " ")}</div>` : "";
+    ? `<div class="soft-warn">Warning: ${c.soft_tags.join(", ").replace(/_/g, " ")}</div>` : "";
 
   const lowConf = c.low_confidence
-    ? `<div class="low-conf-warn">Note: offering schedule may vary — confirm with registrar.</div>` : "";
+    ? `<div class="low-conf-warn">Note: offering schedule may vary; confirm with registrar.</div>` : "";
 
   const courseNotes = c.notes
     ? `<div class="low-conf-warn">${formatCourseNotes(c.notes)}</div>` : "";
@@ -31,16 +59,20 @@ export function renderCard(c) {
     ? "rec-card-why rec-card-why-gold"
     : "rec-card-why";
 
+  const displayTitle = c.course_name
+    ? `${esc(c.course_code)} - ${esc(c.course_name)}`
+    : esc(c.course_code || "");
+
   return `
     <div class="rec-card">
       <div class="rec-card-header">
         <div>
-          <div class="rec-card-title">${esc(c.course_code)} — ${esc(c.course_name)}</div>
+          <div class="rec-card-title">${displayTitle}</div>
           <div class="rec-card-sub">${c.credits || 3} credits</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">${bucketTags}</div>
       </div>
-      <div class="${whyClass}">${esc(c.why || "")}</div>
+      <div class="${whyClass}">${humanCourseText(c.why || "")}</div>
       <div class="prereq-line">${prereqHtml}</div>
       ${bucketsHtml}
       ${unlocksHtml}
@@ -60,41 +92,44 @@ export function renderErrorHtml(msg, errObj) {
   return html;
 }
 
-export function renderCanTakeHtml(data) {
+export function renderCanTakeHtml(data, options = {}) {
   const statusClass = data.can_take === true ? "can-take-true"
     : data.can_take === false ? "can-take-false"
     : "can-take-null";
 
-  const statusText = data.can_take === true ? `✓ Yes, you can take ${esc(data.requested_course)}`
-    : data.can_take === false ? `✗ Not yet: ${esc(data.requested_course)}`
-    : `⚠ Manual review required: ${esc(data.requested_course)}`;
+  const requested = String(data.requested_course || "");
+  const statusText = data.can_take === true ? `Yes, you can take ${esc(requested)}`
+    : data.can_take === false ? `Not yet: ${esc(requested)}`
+    : `Manual review required: ${esc(requested)}`;
 
   let html = `
     <div class="can-take-banner ${statusClass}">
       <h3>${statusText}</h3>
-      ${data.why_not ? `<p>${esc(data.why_not)}</p>` : ""}
+      ${data.why_not ? `<p>${humanCourseText(data.why_not)}</p>` : ""}
       ${data.not_offered_this_term ? `<p>This course is not offered this term.</p>` : ""}
       ${data.missing_prereqs?.length ? `<p>Missing: ${data.missing_prereqs.map(esc).join(", ")}</p>` : ""}
     </div>`;
 
   if (data.next_best_alternatives?.length) {
     html += `<div class="section-title">Alternatives you can take instead</div>`;
-    html += `<div class="rec-cards">` + data.next_best_alternatives.map(renderCard).join("") + `</div>`;
+    html += `<div class="rec-cards">` + data.next_best_alternatives.map(c => renderCard(c, options)).join("") + `</div>`;
   }
 
   return html;
 }
 
-export function renderSemesterHtml(data, index, requestedCount) {
+export function renderSemesterHtml(data, index, requestedCount, options = {}) {
+  const programLabelMap = options.programLabelMap || null;
+
   let html = "";
 
   if (data.not_in_catalog_warning?.length) {
-    html += `<div class="catalog-warn">⚠ Some courses not found in catalog (ignored): ${data.not_in_catalog_warning.map(esc).join(", ")}</div>`;
+    html += `<div class="catalog-warn">Warning: Some courses not found in catalog (ignored): ${data.not_in_catalog_warning.map(esc).join(", ")}</div>`;
   }
 
   if (data.blocking_warnings?.length) {
     html += `<div class="warnings-box"><h4>Sequencing Heads-Up</h4><ul>`;
-    data.blocking_warnings.forEach(w => { html += `<li>${esc(w)}</li>`; });
+    data.blocking_warnings.forEach(w => { html += `<li>${humanCourseText(w)}</li>`; });
     html += `</ul></div>`;
   }
 
@@ -104,11 +139,11 @@ export function renderSemesterHtml(data, index, requestedCount) {
     }
     const semesterLabel = data.target_semester || "";
     html += `<div class="section-title">Semester ${index}: Recommended for ${esc(semesterLabel)}</div>`;
-    html += `<div class="rec-cards">` + data.recommendations.map(renderCard).join("") + `</div>`;
+    html += `<div class="rec-cards">` + data.recommendations.map(c => renderCard(c, options)).join("") + `</div>`;
   }
 
   if (data.in_progress_note) {
-    html += `<p style="font-size:13px;color:var(--amber);margin-top:8px;">⚠ ${esc(data.in_progress_note)}</p>`;
+    html += `<p style="font-size:13px;color:var(--amber);margin-top:8px;">Warning: ${humanCourseText(data.in_progress_note)}</p>`;
   }
 
   if (data.progress && Object.keys(data.progress).length) {
@@ -124,14 +159,15 @@ export function renderSemesterHtml(data, index, requestedCount) {
       const pct = needed > 0 ? Math.min(100, Math.round((done / needed) * 100)) : 0;
       const doneClass = prog.satisfied ? "done" : "";
       const ipCodes = prog.in_progress_applied || [];
+      const progressLabel = prog.label || bucketLabel(bid, programLabelMap);
       html += `
         <div class="progress-card">
-          <h4>${esc(prog.label || bid)}</h4>
+          <h4>${esc(progressLabel)}</h4>
           <div class="progress-bar-track">
             <div class="progress-bar-fill ${doneClass}" style="width:${pct}%"></div>
           </div>
           <div class="progress-label">Completed ${done} of ${needed}${prog.satisfied ? " (Done)" : ""}</div>
-          ${ipCodes.length ? `<div class="in-progress-badge">+ ${ipCodes.join(", ")} in progress</div>` : ""}
+          ${ipCodes.length ? `<div class="in-progress-badge">+ ${ipCodes.map(esc).join(", ")} in progress</div>` : ""}
         </div>`;
     }
     html += `</div>`;
@@ -140,14 +176,15 @@ export function renderSemesterHtml(data, index, requestedCount) {
   if (data.double_counted_courses?.length) {
     html += `<div class="section-title">Double-Counted Courses</div><ul class="notes-list">`;
     data.double_counted_courses.forEach(d => {
-      html += `<li>${esc(d.course_code)} counts toward: ${d.buckets.map(bucketLabel).map(esc).join(" + ")}</li>`;
+      const buckets = (d.buckets || []).map(bid => bucketLabel(bid, programLabelMap)).map(esc).join(" + ");
+      html += `<li>${esc(d.course_code)} counts toward: ${buckets}</li>`;
     });
     html += `</ul>`;
   }
 
   if (data.allocation_notes?.length) {
     html += `<ul class="notes-list" style="margin-top:6px;">`;
-    data.allocation_notes.forEach(n => { html += `<li>${esc(n)}</li>`; });
+    data.allocation_notes.forEach(n => { html += `<li>${humanCourseText(n)}</li>`; });
     html += `</ul>`;
   }
 
@@ -177,24 +214,31 @@ export function renderSemesterHtml(data, index, requestedCount) {
   return html;
 }
 
-export function renderRecommendationsHtml(data, requestedCount) {
+export function renderRecommendationsHtml(data, requestedCount, options = {}) {
+  const programLabelMap = getProgramLabelMap(data.selection_context);
+  const renderOptions = { ...options, programLabelMap };
+
   let prefix = "";
   if (data.selection_context) {
-    const majors = (data.selection_context.declared_majors || []).map(esc).join(", ");
-    const track = data.selection_context.selected_track_id
-      ? esc(data.selection_context.selected_track_id)
-      : "None";
+    const majorLabels = Array.isArray(data.selection_context.declared_major_labels)
+      ? data.selection_context.declared_major_labels
+      : (data.selection_context.declared_majors || []).map(id => programLabelMap.get(id) || id);
+
+    const selectedTrackId = data.selection_context.selected_track_id;
+    const selectedTrackLabel = data.selection_context.selected_track_label
+      || (selectedTrackId ? (programLabelMap.get(selectedTrackId) || selectedTrackId) : null);
+
+    const majors = majorLabels.map(esc).join(", ");
+    const track = selectedTrackLabel ? esc(selectedTrackLabel) : "None";
+
     prefix += `<div class="warnings-box"><h4>Plan Context</h4><ul><li>Majors: ${majors || "None"}</li><li>Track: ${track}</li></ul></div>`;
   }
-  if (data.program_warnings?.length) {
-    prefix += `<div class="warnings-box"><h4>Program Warnings</h4><ul>`;
-    data.program_warnings.forEach(w => { prefix += `<li>${esc(w)}</li>`; });
-    prefix += `</ul></div>`;
-  }
+
   if (Array.isArray(data.semesters) && data.semesters.length) {
     return prefix + data.semesters.map((sem, i) =>
-      `<section class="semester-block">${renderSemesterHtml(sem, i + 1, requestedCount)}</section>`
+      `<section class="semester-block">${renderSemesterHtml(sem, i + 1, requestedCount, renderOptions)}</section>`
     ).join("");
   }
-  return prefix + renderSemesterHtml(data, 1, requestedCount);
+
+  return prefix + renderSemesterHtml(data, 1, requestedCount, renderOptions);
 }
