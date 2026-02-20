@@ -11,6 +11,7 @@ import {
   addChip,
   removeChip,
   setupMultiselect,
+  setupSingleSelectInput,
   setupPasteFallback,
   closeDropdowns,
 } from "./modules/multiselect.js";
@@ -39,6 +40,7 @@ const dropdownIp = document.getElementById("dropdown-ip");
 const chipsIp = document.getElementById("chips-ip");
 
 const canTakeInput = document.getElementById("can-take-input");
+const dropdownCanTake = document.getElementById("dropdown-can-take");
 
 const declaredMajorsSelect = document.getElementById("declared-majors");
 const declaredTrackSelect = document.getElementById("declared-track");
@@ -97,16 +99,33 @@ function trackLabel(trackId) {
   return row.label;
 }
 
-function renderProgramDropdown(dropdownEl, items, onSelect) {
+function clampIndex(idx, length) {
+  if (length <= 0) return -1;
+  if (idx < 0) return 0;
+  if (idx >= length) return length - 1;
+  return idx;
+}
+
+function setActiveProgramOption(dropdownEl, activeIndex) {
+  const options = Array.from(dropdownEl.querySelectorAll(".ms-option"));
+  options.forEach((opt, idx) => opt.classList.toggle("active", idx === activeIndex));
+  const activeEl = options[activeIndex];
+  if (activeEl && typeof activeEl.scrollIntoView === "function") {
+    activeEl.scrollIntoView({ block: "nearest" });
+  }
+}
+
+function renderProgramDropdown(dropdownEl, items, onSelect, activeIndex = 0) {
   dropdownEl.innerHTML = "";
   if (!items.length) {
     dropdownEl.innerHTML = `<div class="ms-option-empty">No results</div>`;
     dropdownEl.classList.add("open");
     return;
   }
-  items.forEach(item => {
+  const safeActive = clampIndex(activeIndex, items.length);
+  items.forEach((item, idx) => {
     const div = document.createElement("div");
-    div.className = "ms-option";
+    div.className = `ms-option${idx === safeActive ? " active" : ""}`;
     div.innerHTML = `<span><span class="opt-code">${esc(item.id)}</span><span class="opt-name">${esc(item.label)}</span></span>`;
     div.addEventListener("mousedown", e => {
       e.preventDefault();
@@ -115,6 +134,7 @@ function renderProgramDropdown(dropdownEl, items, onSelect) {
     dropdownEl.appendChild(div);
   });
   dropdownEl.classList.add("open");
+  setActiveProgramOption(dropdownEl, safeActive);
 }
 
 function filterProgramOptions(query, options, excludeIds = new Set()) {
@@ -263,19 +283,59 @@ function populateProgramSelectors(data) {
 }
 
 function setupProgramSelectors() {
-  const closeProgramDropdowns = () => closeDropdowns(dropdownMajors, dropdownTrack);
+  let majorMatches = [];
+  let majorActiveIndex = -1;
+  let trackMatches = [];
+  let trackActiveIndex = -1;
+
+  const closeProgramDropdowns = () => {
+    majorMatches = [];
+    majorActiveIndex = -1;
+    trackMatches = [];
+    trackActiveIndex = -1;
+    closeDropdowns(dropdownMajors, dropdownTrack);
+  };
+
+  const selectActiveMajor = () => {
+    if (majorActiveIndex < 0 || majorActiveIndex >= majorMatches.length) return;
+    const item = majorMatches[majorActiveIndex];
+    if (!state.selectedMajors.has(item.id) && state.selectedMajors.size >= 2) {
+      return;
+    }
+    state.selectedMajors.add(item.id);
+    syncHiddenMajorsFromState();
+    refreshProgramOptions(true);
+    onSave();
+    searchMajors.value = "";
+    closeProgramDropdowns();
+    searchMajors.focus();
+  };
+
+  const selectActiveTrack = () => {
+    if (trackActiveIndex < 0 || trackActiveIndex >= trackMatches.length) return;
+    const item = trackMatches[trackActiveIndex];
+    state.selectedTrack = item.id;
+    if (declaredTrackSelect) declaredTrackSelect.value = item.id;
+    renderTrackChip();
+    clearResults();
+    onSave();
+    searchTrack.value = "";
+    closeProgramDropdowns();
+    searchTrack.focus();
+  };
 
   searchMajors?.addEventListener("input", () => {
     const options = (state.programs.majors || []).map(m => ({
       id: String(m.major_id),
       label: majorLabel(m.major_id),
     }));
-    const matches = filterProgramOptions(searchMajors.value, options, state.selectedMajors);
+    majorMatches = filterProgramOptions(searchMajors.value, options, state.selectedMajors);
     if (String(searchMajors.value || "").trim().length < 1) {
       closeProgramDropdowns();
       return;
     }
-    renderProgramDropdown(dropdownMajors, matches, item => {
+    majorActiveIndex = majorMatches.length ? 0 : -1;
+    renderProgramDropdown(dropdownMajors, majorMatches, item => {
       if (!state.selectedMajors.has(item.id) && state.selectedMajors.size >= 2) {
         return;
       }
@@ -286,7 +346,7 @@ function setupProgramSelectors() {
       searchMajors.value = "";
       closeProgramDropdowns();
       searchMajors.focus();
-    });
+    }, majorActiveIndex);
   });
 
   searchTrack?.addEventListener("input", () => {
@@ -295,12 +355,13 @@ function setupProgramSelectors() {
       label: trackLabel(t.track_id),
     }));
     const exclude = state.selectedTrack ? new Set([state.selectedTrack]) : new Set();
-    const matches = filterProgramOptions(searchTrack.value, options, exclude);
+    trackMatches = filterProgramOptions(searchTrack.value, options, exclude);
     if (String(searchTrack.value || "").trim().length < 1) {
       closeProgramDropdowns();
       return;
     }
-    renderProgramDropdown(dropdownTrack, matches, item => {
+    trackActiveIndex = trackMatches.length ? 0 : -1;
+    renderProgramDropdown(dropdownTrack, trackMatches, item => {
       state.selectedTrack = item.id;
       if (declaredTrackSelect) declaredTrackSelect.value = item.id;
       renderTrackChip();
@@ -309,19 +370,53 @@ function setupProgramSelectors() {
       searchTrack.value = "";
       closeProgramDropdowns();
       searchTrack.focus();
-    });
+    }, trackActiveIndex);
   });
 
   searchMajors?.addEventListener("blur", () => setTimeout(closeProgramDropdowns, 150));
   searchTrack?.addEventListener("blur", () => setTimeout(closeProgramDropdowns, 150));
 
   searchMajors?.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown" && dropdownMajors?.classList.contains("open")) {
+      e.preventDefault();
+      majorActiveIndex = clampIndex(majorActiveIndex + 1, majorMatches.length);
+      setActiveProgramOption(dropdownMajors, majorActiveIndex);
+      return;
+    }
+    if (e.key === "ArrowUp" && dropdownMajors?.classList.contains("open")) {
+      e.preventDefault();
+      majorActiveIndex = clampIndex(majorActiveIndex - 1, majorMatches.length);
+      setActiveProgramOption(dropdownMajors, majorActiveIndex);
+      return;
+    }
+    if (e.key === "Enter" && dropdownMajors?.classList.contains("open")) {
+      e.preventDefault();
+      selectActiveMajor();
+      return;
+    }
     if (e.key === "Escape") {
       closeProgramDropdowns();
       searchMajors.value = "";
     }
   });
   searchTrack?.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown" && dropdownTrack?.classList.contains("open")) {
+      e.preventDefault();
+      trackActiveIndex = clampIndex(trackActiveIndex + 1, trackMatches.length);
+      setActiveProgramOption(dropdownTrack, trackActiveIndex);
+      return;
+    }
+    if (e.key === "ArrowUp" && dropdownTrack?.classList.contains("open")) {
+      e.preventDefault();
+      trackActiveIndex = clampIndex(trackActiveIndex - 1, trackMatches.length);
+      setActiveProgramOption(dropdownTrack, trackActiveIndex);
+      return;
+    }
+    if (e.key === "Enter" && dropdownTrack?.classList.contains("open")) {
+      e.preventDefault();
+      selectActiveTrack();
+      return;
+    }
     if (e.key === "Escape") {
       closeProgramDropdowns();
       searchTrack.value = "";
@@ -409,7 +504,7 @@ async function init() {
     console.warn("Could not load program catalog:", e);
   }
 
-  const onCloseAll = () => closeDropdowns(dropdownCompleted, dropdownIp);
+  const onCloseAll = () => closeDropdowns(dropdownCompleted, dropdownIp, dropdownCanTake);
 
   setupMultiselect(
     searchCompleted,
@@ -472,6 +567,17 @@ async function init() {
       () => { renderIpChips(); renderCompletedChips(); },
       onSave,
     ),
+    onCloseAll,
+  );
+
+  setupSingleSelectInput(
+    canTakeInput,
+    dropdownCanTake,
+    state.courses,
+    c => {
+      canTakeInput.value = c.course_code;
+      onSave();
+    },
     onCloseAll,
   );
 

@@ -138,7 +138,10 @@
             <div class="form-group form-group-full">
               <label for="can-take-input">Can I take this next semester? <span class="label-note">(optional)</span></label>
               <p class="form-hint">Enter a course code to check next-semester eligibility based on courses you've already taken.</p>
-              <input type="text" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
+              <div class="multiselect" id="ms-can-take">
+                <input type="text" class="ms-input" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
+                <div class="ms-dropdown" id="dropdown-can-take"></div>
+              </div>
             </div>
           </div>
 

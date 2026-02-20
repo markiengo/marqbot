@@ -11,6 +11,11 @@ from llm_recommender import call_openai, build_deterministic_recommendations
 
 SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
 
+_CONCURRENT_ONLY_TAG = "may_be_concurrent"
+_PROJECTION_NOTE = (
+    "Assuming you complete these recommendations, projected progress updates are shown below."
+)
+
 
 def normalize_semester_label(label: str) -> str:
     m = SEM_RE.match((label or "").strip())
@@ -49,6 +54,20 @@ def _prereq_courses(parsed: dict) -> set[str]:
     return set()
 
 
+def _soft_tag_demote_penalty(candidate: dict) -> int:
+    """
+    Demote any course that has prereq_soft tags, except when the only
+    prereq_soft tag is may_be_concurrent.
+    """
+    tags = [str(t).strip() for t in candidate.get("all_soft_tags", []) if str(t).strip()]
+    if not tags:
+        return 0
+    uniq = set(tags)
+    if uniq == {_CONCURRENT_ONLY_TAG}:
+        return 0
+    return 1
+
+
 def build_progress_output(allocation: dict, course_bucket_map_df: pd.DataFrame) -> dict:
     progress = {}
     for bid, applied in allocation["applied_by_bucket"].items():
@@ -64,6 +83,38 @@ def build_progress_output(allocation: dict, course_bucket_map_df: pd.DataFrame) 
             "slots_remaining": remaining.get("slots_remaining", 0),
         }
     return progress
+
+
+def _dedupe_codes(codes: list[str]) -> list[str]:
+    """Return codes in first-seen order without duplicates."""
+    return list(dict.fromkeys([c for c in codes if c]))
+
+
+def _build_projected_outputs(
+    completed: list[str],
+    in_progress: list[str],
+    selected_codes: list[str],
+    data: dict,
+    track_id: str,
+) -> tuple[dict, dict]:
+    projected_completed = _dedupe_codes(completed + in_progress + selected_codes)
+    projected_alloc = allocate_courses(
+        projected_completed,
+        [],
+        data["buckets_df"],
+        data["course_bucket_map_df"],
+        data["courses_df"],
+        data["equivalencies_df"],
+        track_id=track_id,
+    )
+    projected_progress = build_progress_output(projected_alloc, data["course_bucket_map_df"])
+    projected_timeline = estimate_timeline(projected_alloc["remaining"])
+    if isinstance(projected_timeline, dict):
+        projected_timeline["disclaimer"] = (
+            "Estimated time to complete Finance major requirements only. "
+            "Assumes about 3 major courses per term and typical course availability."
+        )
+    return projected_progress, projected_timeline
 
 
 def run_recommendation_semester(
@@ -113,6 +164,13 @@ def run_recommendation_semester(
         )
 
     if not non_manual_sem:
+        projected_progress_sem, projected_timeline_sem = _build_projected_outputs(
+            completed,
+            in_progress,
+            [],
+            data,
+            track_id,
+        )
         return {
             "target_semester": target_semester_label,
             "recommendations": [],
@@ -127,6 +185,9 @@ def run_recommendation_semester(
             "allocation_notes": alloc["notes"],
             "manual_review_courses": manual_review_sem,
             "timeline": timeline_sem,
+            "projected_progress": projected_progress_sem,
+            "projected_timeline": projected_timeline_sem,
+            "projection_note": _PROJECTION_NOTE,
         }
 
     core_bucket_ids = get_buckets_by_role(data["buckets_df"], track_id, "core")
@@ -145,6 +206,7 @@ def run_recommendation_semester(
         non_manual_sem,
         key=lambda c: (
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
+            _soft_tag_demote_penalty(c),
             c.get("prereq_level", 0),
             c.get("primary_bucket_priority", 99),
             -c.get("multi_bucket_score", 0),
@@ -187,6 +249,15 @@ def run_recommendation_semester(
     if any("in progress" in (r.get("prereq_check") or "") for r in recommendations_sem):
         in_progress_note_sem = "Prerequisites satisfied via in-progress courses assume successful completion."
 
+    selected_codes = [r["course_code"] for r in recommendations_sem if r.get("course_code")]
+    projected_progress_sem, projected_timeline_sem = _build_projected_outputs(
+        completed,
+        in_progress,
+        selected_codes,
+        data,
+        track_id,
+    )
+
     return {
         "target_semester": target_semester_label,
         "recommendations": recommendations_sem,
@@ -201,4 +272,7 @@ def run_recommendation_semester(
         "allocation_notes": alloc["notes"],
         "manual_review_courses": manual_review_sem,
         "timeline": timeline_sem,
+        "projected_progress": projected_progress_sem,
+        "projected_timeline": projected_timeline_sem,
+        "projection_note": _PROJECTION_NOTE,
     }

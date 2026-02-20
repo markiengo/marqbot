@@ -413,6 +413,10 @@ select:focus,
   font-weight: 900;
 }
 
+.heading-gold {
+  color: #ffd96a !important;
+}
+
 .semester-block {
   border-top: 1px solid rgba(255, 204, 0, 0.25);
   padding-top: 10px;
@@ -498,13 +502,16 @@ select:focus,
 .notes-list { margin: 0; padding-left: 18px; }
 .catalog-warn { border-color: rgba(190, 125, 0, 0.28); color: #8e5d00; }
 
+.warning-text { color: var(--bad) !important; }
+.sequencing-item { color: var(--ink-900); }
+
 .can-take-true { border-color: rgba(30, 159, 97, 0.35); background: #eefbf4; }
 .can-take-false { border-color: rgba(199, 59, 69, 0.35); background: #fff0f2; }
 .can-take-null { border-color: rgba(190, 125, 0, 0.35); background: #fff7e5; }
 
 .progress-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 11px;
 }
 
@@ -527,6 +534,50 @@ select:focus,
 }
 
 .progress-bar-fill.done { background: linear-gradient(90deg, #1e9f61, #157949); }
+
+.progress-note {
+  font-size: 13px;
+  color: var(--ink-500);
+  margin: 0 0 10px;
+}
+
+.assumption-notes {
+  margin: 0 0 10px 18px;
+  padding: 0;
+  color: var(--ink-500);
+  font-size: 13px;
+}
+
+.assumption-notes li {
+  margin: 0 0 4px;
+}
+
+.projection-note {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.progress-bar-stacked {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 6px;
+  display: flex;
+  border: 1px solid rgba(218, 229, 246, 0.25);
+  background: #dce7f5;
+}
+
+.progress-segment-completed {
+  background: linear-gradient(90deg, #1e9f61, #157949);
+}
+
+.progress-segment-in-progress {
+  background: #ffe89a;
+}
+
+.progress-segment-remaining {
+  background: #ffffff;
+}
 
 .timeline-box {
   margin-top: 15px;
@@ -570,6 +621,10 @@ select:focus,
   .side-nav {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .progress-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
@@ -577,4 +632,5 @@ select:focus,
   .app-main { padding: 16px; }
   .panel { padding: 14px; border-radius: 14px; }
   .topbar { flex-direction: column; gap: 8px; }
+  .progress-grid { grid-template-columns: 1fr; }
 }

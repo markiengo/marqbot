@@ -3,7 +3,7 @@ Pure input-validation helpers for the /recommend endpoint.
 No Flask or data-loader imports.
 """
 
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 
 def _get_all_required_prereqs(
@@ -85,13 +85,90 @@ def expand_completed_with_prereqs(
     Expand completed with transitively required prereqs and return a
     deterministic deduplicated list.
     """
-    expanded_set = set(completed)
-    for course_code in completed:
-        expanded_set |= _get_all_required_prereqs(course_code, prereq_map)
+    expanded_completed, _ = expand_completed_with_prereqs_with_provenance(completed, prereq_map)
+    return expanded_completed
 
-    if not completed:
-        return []
 
+def expand_completed_with_prereqs_with_provenance(
+    completed: List[str],
+    prereq_map: Dict[str, dict],
+) -> Tuple[List[str], List[dict]]:
+    """
+    Expand completed with transitively required prereqs and return deterministic
+    provenance rows for inferred assumptions.
+
+    Returns:
+      (expanded_completed, assumption_rows)
+
+    assumption_rows item shape:
+      {
+        "source_completed": str,
+        "assumed_prereqs": List[str],
+        "already_completed_prereqs": List[str],
+      }
+    """
     ordered_completed = list(dict.fromkeys(completed))
-    inferred_sorted = sorted(expanded_set - set(ordered_completed))
-    return ordered_completed + inferred_sorted
+    completed_set = set(ordered_completed)
+    inferred_global: Set[str] = set()
+    assumption_rows: List[dict] = []
+
+    for source_course in ordered_completed:
+        required = _get_all_required_prereqs(source_course, prereq_map)
+        already_completed = sorted([c for c in required if c in completed_set])
+        assumed = sorted([c for c in required if c not in completed_set])
+
+        if assumed:
+            assumption_rows.append({
+                "source_completed": source_course,
+                "assumed_prereqs": assumed,
+                "already_completed_prereqs": already_completed,
+            })
+            inferred_global.update(assumed)
+
+    expanded_completed = ordered_completed + sorted(inferred_global - completed_set)
+    return expanded_completed, assumption_rows
+
+
+def expand_in_progress_with_prereqs(
+    in_progress: List[str],
+    completed: List[str],
+    prereq_map: Dict[str, dict],
+) -> Tuple[List[str], List[dict]]:
+    """
+    Expand in-progress with transitively required prereqs while preserving
+    deterministic ordering and provenance.
+
+    Returns:
+      (expanded_in_progress, assumption_rows)
+
+    assumption_rows item shape:
+      {
+        "source_in_progress": str,
+        "assumed_prereqs": List[str],
+        "already_completed_prereqs": List[str],
+      }
+    """
+    ordered_in_progress = list(dict.fromkeys(in_progress))
+    completed_set = set(completed)
+    in_progress_set = set(ordered_in_progress)
+    inferred_global: Set[str] = set()
+    assumption_rows: List[dict] = []
+
+    for source_course in ordered_in_progress:
+        required = _get_all_required_prereqs(source_course, prereq_map)
+        already_completed = sorted([c for c in required if c in completed_set])
+        assumed = sorted([
+            c for c in required
+            if c not in completed_set and c not in in_progress_set
+        ])
+
+        if assumed:
+            assumption_rows.append({
+                "source_in_progress": source_course,
+                "assumed_prereqs": assumed,
+                "already_completed_prereqs": already_completed,
+            })
+            inferred_global.update(assumed)
+
+    expanded_in_progress = ordered_in_progress + sorted(inferred_global - in_progress_set)
+    return expanded_in_progress, assumption_rows

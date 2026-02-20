@@ -10,10 +10,15 @@ from dotenv import load_dotenv
 
 from normalizer import normalize_code, normalize_input
 from requirements import DEFAULT_TRACK_ID
-from validators import find_inconsistent_completed_courses, expand_completed_with_prereqs
+from validators import (
+    find_inconsistent_completed_courses,
+    expand_completed_with_prereqs_with_provenance,
+    expand_in_progress_with_prereqs,
+)
 from unlocks import build_reverse_prereq_map
 from eligibility import check_can_take, parse_term
 from data_loader import load_data
+from allocator import allocate_courses
 from semester_recommender import (
     SEM_RE,
     normalize_semester_label,
@@ -340,6 +345,120 @@ def _build_declared_plan_data(data: dict, selected_program_ids: list[str], catal
     return merged
 
 
+def _dedupe_codes(codes):
+    return list(dict.fromkeys([c for c in codes if c]))
+
+
+def _build_current_progress(completed, in_progress, data, track_id):
+    """
+    Build current progress snapshot using:
+      - completed-only counts
+      - completed+in-progress assumed counts
+    """
+    completed_only_alloc = allocate_courses(
+        completed,
+        in_progress,
+        data["buckets_df"],
+        data["course_bucket_map_df"],
+        data["courses_df"],
+        data["equivalencies_df"],
+        track_id=track_id,
+    )
+    assumed_alloc = allocate_courses(
+        _dedupe_codes(completed + in_progress),
+        [],
+        data["buckets_df"],
+        data["course_bucket_map_df"],
+        data["courses_df"],
+        data["equivalencies_df"],
+        track_id=track_id,
+    )
+
+    bucket_order = list(dict.fromkeys(
+        completed_only_alloc.get("bucket_order", [])
+        + assumed_alloc.get("bucket_order", [])
+        + list(completed_only_alloc.get("applied_by_bucket", {}).keys())
+        + list(assumed_alloc.get("applied_by_bucket", {}).keys())
+    ))
+
+    out = {}
+    for bucket_id in bucket_order:
+        baseline = completed_only_alloc.get("applied_by_bucket", {}).get(bucket_id, {})
+        assumed = assumed_alloc.get("applied_by_bucket", {}).get(bucket_id, {})
+
+        completed_done = len(baseline.get("completed_applied", []))
+        assumed_done = len(assumed.get("completed_applied", []))
+        in_progress_increment = max(0, assumed_done - completed_done)
+
+        out[bucket_id] = {
+            "label": str(assumed.get("label") or baseline.get("label") or bucket_id),
+            "needed": assumed.get("needed", baseline.get("needed")),
+            "completed_done": completed_done,
+            "in_progress_increment": in_progress_increment,
+            "assumed_done": assumed_done,
+            "satisfied": bool(assumed.get("satisfied", baseline.get("satisfied", False))),
+        }
+    return out
+
+
+def _build_current_assumption_notes(
+    completed_assumption_rows,
+    in_progress_assumption_rows,
+):
+    """
+    Build user-facing inference notes from completed and in-progress
+    provenance rows.
+    """
+    notes = []
+    for row in completed_assumption_rows or []:
+        source_course = str(row.get("source_completed") or "").strip()
+        assumed = sorted(list(dict.fromkeys(row.get("assumed_prereqs") or [])))
+        already_completed = sorted(list(dict.fromkeys(row.get("already_completed_prereqs") or [])))
+        if not source_course or not assumed:
+            continue
+
+        note = f"Assumed {', '.join(assumed)} because {source_course} is completed."
+        if already_completed:
+            note += f" Already completed in that chain: {', '.join(already_completed)}."
+        notes.append(note)
+
+    for row in in_progress_assumption_rows or []:
+        source_course = str(row.get("source_in_progress") or "").strip()
+        assumed = sorted(list(dict.fromkeys(row.get("assumed_prereqs") or [])))
+        already_completed = sorted(list(dict.fromkeys(row.get("already_completed_prereqs") or [])))
+        if not source_course or not assumed:
+            continue
+
+        note = f"Assumed {', '.join(assumed)} because {source_course} is in progress."
+        if already_completed:
+            note += f" Already completed in that chain: {', '.join(already_completed)}."
+        notes.append(note)
+
+    if notes:
+        notes.append(
+            "Inference scope: required prerequisite chains only (single/and). "
+            "OR and concurrent-optional prerequisites are not auto-assumed."
+        )
+    return notes
+
+
+def _promote_inferred_in_progress_prereqs_to_completed(completed, in_progress, assumption_rows):
+    """
+    Promote inferred prerequisites from in-progress chains into completed.
+
+    Rationale: if course Y is currently in progress and X is a required prereq
+    for Y, X is treated as already completed for progress display and ranking.
+    """
+    inferred = []
+    for row in assumption_rows or []:
+        inferred.extend(row.get("assumed_prereqs") or [])
+    inferred_set = set(inferred)
+
+    promoted_completed = _dedupe_codes(completed + sorted(inferred_set))
+    remaining_in_progress = [c for c in in_progress if c not in inferred_set]
+    return promoted_completed, remaining_in_progress
+
+
 # â”€â”€ 500 handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
@@ -505,7 +624,30 @@ def recommend():
             },
         }), 400
 
-    completed = expand_completed_with_prereqs(completed, effective_data["prereq_map"])
+    completed, completed_assumption_rows = expand_completed_with_prereqs_with_provenance(
+        completed,
+        effective_data["prereq_map"],
+    )
+    in_progress, assumption_rows = expand_in_progress_with_prereqs(
+        in_progress,
+        completed,
+        effective_data["prereq_map"],
+    )
+    completed, in_progress = _promote_inferred_in_progress_prereqs_to_completed(
+        completed,
+        in_progress,
+        assumption_rows,
+    )
+    current_assumption_notes = _build_current_assumption_notes(
+        completed_assumption_rows,
+        assumption_rows,
+    )
+    current_progress = _build_current_progress(
+        completed,
+        in_progress,
+        effective_data,
+        effective_track_id,
+    )
 
     try:
         target_term = parse_term(target_semester_primary)
@@ -558,6 +700,8 @@ def recommend():
         "mode": "recommendations",
         "semesters": semesters_payload,
         **sem1,
+        "current_progress": current_progress,
+        "current_assumption_notes": current_assumption_notes,
         "not_in_catalog_warning": not_in_catalog_warn if not_in_catalog_warn else None,
         "error": None,
     }

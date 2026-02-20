@@ -14,6 +14,8 @@ import pytest
 from validators import (
     find_inconsistent_completed_courses,
     expand_completed_with_prereqs,
+    expand_completed_with_prereqs_with_provenance,
+    expand_in_progress_with_prereqs,
     _get_all_required_prereqs,
 )
 
@@ -234,3 +236,100 @@ class TestExpandCompletedWithPrereqs:
         m = {"A": {"type": "single", "course": "B"}, "B": {"type": "single", "course": "A"}}
         result = expand_completed_with_prereqs(["A"], m)
         assert isinstance(result, list)
+
+
+class TestExpandCompletedWithProvenance:
+    def test_completed_provenance_direct(self):
+        m = _pmap(("FINA 3001", "ACCO 1031"), ("ACCO 1031", None))
+        expanded, rows = expand_completed_with_prereqs_with_provenance(["FINA 3001"], m)
+        assert expanded == ["FINA 3001", "ACCO 1031"]
+        assert rows == [{
+            "source_completed": "FINA 3001",
+            "assumed_prereqs": ["ACCO 1031"],
+            "already_completed_prereqs": [],
+        }]
+
+    def test_completed_provenance_with_already_completed(self):
+        m = _pmap(("FINA 3001", ["ACCO 1031", "ECON 1103"]))
+        expanded, rows = expand_completed_with_prereqs_with_provenance(
+            ["FINA 3001", "ECON 1103"],
+            m,
+        )
+        assert expanded == ["FINA 3001", "ECON 1103", "ACCO 1031"]
+        assert rows == [{
+            "source_completed": "FINA 3001",
+            "assumed_prereqs": ["ACCO 1031"],
+            "already_completed_prereqs": ["ECON 1103"],
+        }]
+
+    def test_completed_provenance_or_not_inferred(self):
+        m = _pmap(("FINA 4001", ("FINA 3001", "ECON 1103")))
+        expanded, rows = expand_completed_with_prereqs_with_provenance(["FINA 4001"], m)
+        assert expanded == ["FINA 4001"]
+        assert rows == []
+
+
+class TestExpandInProgressWithPrereqs:
+    def test_direct_prereq_inferred(self):
+        m = _pmap(("ACCO 1031", "ACCO 1030"), ("ACCO 1030", None))
+        expanded, rows = expand_in_progress_with_prereqs(["ACCO 1031"], [], m)
+        assert expanded == ["ACCO 1031", "ACCO 1030"]
+        assert rows == [{
+            "source_in_progress": "ACCO 1031",
+            "assumed_prereqs": ["ACCO 1030"],
+            "already_completed_prereqs": [],
+        }]
+
+    def test_transitive_chain_inferred(self):
+        m = _pmap(("D", "C"), ("C", "B"), ("B", "A"), ("A", None))
+        expanded, rows = expand_in_progress_with_prereqs(["D"], [], m)
+        assert expanded == ["D", "A", "B", "C"]
+        assert rows == [{
+            "source_in_progress": "D",
+            "assumed_prereqs": ["A", "B", "C"],
+            "already_completed_prereqs": [],
+        }]
+
+    def test_or_prereqs_not_inferred(self):
+        m = _pmap(("FINA 4001", ("FINA 3001", "ECON 1103")))
+        expanded, rows = expand_in_progress_with_prereqs(["FINA 4001"], [], m)
+        assert expanded == ["FINA 4001"]
+        assert rows == []
+
+    def test_no_duplicates_against_completed_or_in_progress(self):
+        m = _pmap(("ACCO 1031", "ACCO 1030"), ("ACCO 1030", None))
+        expanded, rows = expand_in_progress_with_prereqs(
+            ["ACCO 1031", "ACCO 1030"],
+            ["ACCO 1030"],
+            m,
+        )
+        assert expanded == ["ACCO 1031", "ACCO 1030"]
+        assert rows == []
+
+    def test_deterministic_ordering(self):
+        m = _pmap(
+            ("X", ["C", "A"]),
+            ("Y", "B"),
+            ("A", None),
+            ("B", None),
+            ("C", None),
+        )
+        expanded, rows = expand_in_progress_with_prereqs(["Y", "X"], [], m)
+        assert expanded == ["Y", "X", "A", "B", "C"]
+        assert rows[0]["source_in_progress"] == "Y"
+        assert rows[1]["source_in_progress"] == "X"
+
+    def test_provenance_payload_shape(self):
+        m = _pmap(("X", ["A", "B"]), ("A", None), ("B", None))
+        expanded, rows = expand_in_progress_with_prereqs(["X"], ["A"], m)
+        assert expanded == ["X", "B"]
+        assert len(rows) == 1
+        row = rows[0]
+        assert sorted(row.keys()) == [
+            "already_completed_prereqs",
+            "assumed_prereqs",
+            "source_in_progress",
+        ]
+        assert row["source_in_progress"] == "X"
+        assert row["assumed_prereqs"] == ["B"]
+        assert row["already_completed_prereqs"] == ["A"]

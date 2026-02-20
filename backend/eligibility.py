@@ -112,6 +112,7 @@ def get_eligible_courses(
       "prereq_check": str,            # human-readable prereq label
       "has_soft_requirement": bool,
       "soft_tags": [str, ...],        # non-blocking soft tags
+      "all_soft_tags": [str, ...],    # full prereq_soft tags (internal ranking helper)
       "manual_review": bool,          # True if prereq_hard is unsupported
       "low_confidence": bool,         # offering_confidence != high
       "notes": str | None,            # course notes from sheet
@@ -246,6 +247,7 @@ def get_eligible_courses(
             "prereq_check": prereq_check,
             "has_soft_requirement": has_soft_requirement,
             "soft_tags": warning_tags,
+            "all_soft_tags": soft_tags,
             "manual_review": manual_review,
             "low_confidence": low_confidence,
             "notes": course_notes,

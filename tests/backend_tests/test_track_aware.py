@@ -244,6 +244,117 @@ class TestServerTrackValidation:
         data = resp.get_json()
         assert data["mode"] == "recommendations"
 
+    def test_recommend_includes_current_progress(self, client):
+        resp = self._post(
+            client,
+            completed_courses="BUAD 1001",
+            in_progress_courses="ACCO 1030",
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "current_progress" in data
+        assert isinstance(data["current_progress"], dict)
+        assert len(data["current_progress"]) > 0
+        any_bucket = next(iter(data["current_progress"].values()))
+        assert "completed_done" in any_bucket
+        assert "in_progress_increment" in any_bucket
+        assert "assumed_done" in any_bucket
+        assert any_bucket["assumed_done"] >= any_bucket["completed_done"]
+
+    def test_recommend_includes_current_assumption_notes(self, client):
+        resp = self._post(
+            client,
+            completed_courses="BUAD 1001, ECON 1103, MATH 1400",
+            in_progress_courses="ACCO 1031",
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "current_assumption_notes" in data
+        assert isinstance(data["current_assumption_notes"], list)
+        assert any(
+            note == "Assumed ACCO 1030 because ACCO 1031 is in progress."
+            for note in data["current_assumption_notes"]
+        )
+        assert any(
+            note.startswith("Inference scope:")
+            for note in data["current_assumption_notes"]
+        )
+
+    def test_completed_chain_assumption_note_is_present(self, client):
+        resp = self._post(
+            client,
+            completed_courses="FINA 3001",
+            in_progress_courses="",
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        matching_notes = [
+            note for note in data.get("current_assumption_notes", [])
+            if "because FINA 3001 is completed." in note
+        ]
+        assert len(matching_notes) == 1
+        assert matching_notes[0].startswith("Assumed ")
+        assert "ACCO 1031" in matching_notes[0]
+
+    def test_in_progress_prereq_is_not_recommended(self, client):
+        resp = self._post(
+            client,
+            completed_courses="BUAD 1001, ECON 1103, MATH 1400",
+            in_progress_courses="ACCO 1031, ECON 1104",
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        rec_codes = [r.get("course_code") for r in data.get("recommendations", [])]
+        assert "ACCO 1030" not in rec_codes
+
+    def test_inferred_in_progress_prereqs_count_as_completed_in_current_progress(self, client):
+        resp = self._post(
+            client,
+            completed_courses="",
+            in_progress_courses="ACCO 1031",
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        totals = data.get("current_progress", {}).values()
+        total_completed_done = sum(v.get("completed_done", 0) for v in totals)
+        assert total_completed_done > 0
+        assert any(
+            note == "Assumed ACCO 1030 because ACCO 1031 is in progress."
+            for note in data.get("current_assumption_notes", [])
+        )
+
+    def test_semester_projection_fields_present(self, client):
+        resp = self._post(client, completed_courses="BUAD 1001")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "semesters" in data
+        sem1 = data["semesters"][0]
+        assert "progress" in sem1
+        assert "timeline" in sem1
+        assert "projected_progress" in sem1
+        assert "projected_timeline" in sem1
+        assert "projection_note" in sem1
+
+    def test_existing_progress_fields_remain_compatible(self, client):
+        resp = self._post(client, completed_courses="BUAD 1001")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "progress" in data
+        assert "timeline" in data
+        assert "semesters" in data and len(data["semesters"]) > 0
+        sem1 = data["semesters"][0]
+        assert "progress" in sem1
+        assert "timeline" in sem1
+
+    def test_projection_done_count_is_non_decreasing(self, client):
+        resp = self._post(client, completed_courses="BUAD 1001, ECON 1103, MATH 1400")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        sem1 = data["semesters"][0]
+        baseline_done = sum(v.get("done_count", 0) for v in sem1["progress"].values())
+        projected_done = sum(v.get("done_count", 0) for v in sem1["projected_progress"].values())
+        assert projected_done >= baseline_done
+
     def test_declared_majors_must_be_array(self, client):
         resp = client.post("/recommend", json={
             "completed_courses": "",

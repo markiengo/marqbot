@@ -30,6 +30,55 @@ function humanCourseText(text) {
   return esc(String(text || ""));
 }
 
+function renderCurrentProgressHtml(currentProgress, assumptionNotes = [], programLabelMap = null) {
+  if (!currentProgress || !Object.keys(currentProgress).length) return "";
+
+  let html = `<div class="section-title">Current Degree Progress</div>`;
+  html += `<p class="progress-note">Current snapshot: green is completed; yellow assumes current in-progress courses are completed.</p>`;
+  if (Array.isArray(assumptionNotes) && assumptionNotes.length) {
+    html += `<ul class="assumption-notes">`;
+    assumptionNotes.forEach((note) => {
+      html += `<li>${esc(String(note || ""))}</li>`;
+    });
+    html += `</ul>`;
+  }
+  html += `<div class="progress-grid">`;
+
+  for (const [bid, prog] of Object.entries(currentProgress)) {
+    const needed = Number(prog.needed || 0);
+    const completedDone = Number(prog.completed_done || 0);
+    const assumedDone = Number(prog.assumed_done || 0);
+    const inProgressIncrement = Number(prog.in_progress_increment || 0);
+
+    const cappedCompleted = needed > 0 ? Math.max(0, Math.min(needed, completedDone)) : 0;
+    const cappedInProgress = needed > 0 ? Math.max(0, Math.min(needed - cappedCompleted, inProgressIncrement)) : 0;
+    const remainder = needed > 0 ? Math.max(0, needed - cappedCompleted - cappedInProgress) : 0;
+    const effectiveAssumed = needed > 0
+      ? Math.max(0, Math.min(needed, assumedDone))
+      : Math.max(0, assumedDone);
+
+    const completedPct = needed > 0 ? (cappedCompleted / needed) * 100 : 0;
+    const inProgressPct = needed > 0 ? (cappedInProgress / needed) * 100 : 0;
+    const remainingPct = needed > 0 ? (remainder / needed) * 100 : 100;
+
+    const label = prog.label || bucketLabel(bid, programLabelMap);
+    html += `
+      <div class="progress-card">
+        <h4>${esc(label)}</h4>
+        <div class="progress-bar-stacked" aria-label="Current progress for ${esc(label)}">
+          <span class="progress-segment-completed" style="width:${completedPct}%"></span>
+          <span class="progress-segment-in-progress" style="width:${inProgressPct}%"></span>
+          <span class="progress-segment-remaining" style="width:${remainingPct}%"></span>
+        </div>
+        <div class="progress-label">Completed ${cappedCompleted} of ${needed}</div>
+        <div class="progress-label">With current in-progress: ${effectiveAssumed} of ${needed}</div>
+      </div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
 export function renderCard(c, options = {}) {
   const programLabelMap = options.programLabelMap || null;
 
@@ -47,7 +96,7 @@ export function renderCard(c, options = {}) {
     ? `<div class="unlocks-line">Counts toward: ${bucketIds.map(bid => esc(bucketLabel(bid, programLabelMap))).join(", ")}</div>` : "";
 
   const softWarn = c.soft_tags?.length
-    ? `<div class="soft-warn">Warning: ${c.soft_tags.join(", ").replace(/_/g, " ")}</div>` : "";
+    ? `<div class="soft-warn warning-text">Warning: ${c.soft_tags.join(", ").replace(/_/g, " ")}</div>` : "";
 
   const lowConf = c.low_confidence
     ? `<div class="low-conf-warn">Note: offering schedule may vary; confirm with registrar.</div>` : "";
@@ -124,18 +173,18 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
   let html = "";
 
   if (data.not_in_catalog_warning?.length) {
-    html += `<div class="catalog-warn">Warning: Some courses not found in catalog (ignored): ${data.not_in_catalog_warning.map(esc).join(", ")}</div>`;
+    html += `<div class="catalog-warn warning-text">Warning: Some courses not found in catalog (ignored): ${data.not_in_catalog_warning.map(esc).join(", ")}</div>`;
   }
 
   if (data.blocking_warnings?.length) {
-    html += `<div class="warnings-box"><h4>Sequencing Heads-Up</h4><ul>`;
-    data.blocking_warnings.forEach(w => { html += `<li>${humanCourseText(w)}</li>`; });
+    html += `<div class="warnings-box"><h4 class="heading-gold">Sequencing Heads-Up</h4><ul>`;
+    data.blocking_warnings.forEach(w => { html += `<li class="sequencing-item">${humanCourseText(w)}</li>`; });
     html += `</ul></div>`;
   }
 
   if (data.recommendations?.length) {
     if ((data.eligible_count || 0) < requestedCount) {
-      html += `<div class="warnings-box"><h4>Recommendation Count</h4><ul><li>You requested ${requestedCount}, but only ${data.eligible_count} eligible course(s) match your completed/in-progress courses for this term.</li></ul></div>`;
+      html += `<div class="warnings-box"><h4 class="heading-gold">Recommendation Count</h4><ul><li class="warning-text">You requested ${requestedCount}, but only ${data.eligible_count} eligible course(s) match your completed/in-progress courses for this term.</li></ul></div>`;
     }
     const semesterLabel = data.target_semester || "";
     html += `<div class="section-title">Semester ${index}: Recommended for ${esc(semesterLabel)}</div>`;
@@ -143,17 +192,22 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
   }
 
   if (data.in_progress_note) {
-    html += `<p style="font-size:13px;color:var(--amber);margin-top:8px;">Warning: ${humanCourseText(data.in_progress_note)}</p>`;
+    html += `<p class="warning-text" style="font-size:13px;margin-top:8px;">Warning: ${humanCourseText(data.in_progress_note)}</p>`;
   }
 
-  if (data.progress && Object.keys(data.progress).length) {
+  const semesterProgress = data.projected_progress || data.progress;
+  const semesterTimeline = data.projected_timeline || data.timeline;
+  if (semesterProgress && Object.keys(semesterProgress).length) {
     html += `<div class="section-title">Degree Progress</div>`;
-    html += `<p style="font-size:13px;color:var(--ink-500);margin:0 0 10px;">Progress bars show completed courses applied to each requirement bucket. In-progress courses are listed separately and do not count as completed yet.</p>`;
+    if (data.projection_note) {
+      html += `<p class="progress-note projection-note">${esc(data.projection_note)}</p>`;
+    }
+    html += `<p class="progress-note">Progress bars show completed courses applied to each requirement bucket.</p>`;
     if ((data.input_completed_count || 0) > 0 && (data.applied_completed_count || 0) === 0) {
-      html += `<div class="catalog-warn">None of your completed courses currently map into tracked requirement buckets. They may still be valid prerequisites, but they do not move these specific progress bars.</div>`;
+      html += `<div class="catalog-warn warning-text">None of your completed courses currently map into tracked requirement buckets. They may still be valid prerequisites, but they do not move these specific progress bars.</div>`;
     }
     html += `<div class="progress-grid">`;
-    for (const [bid, prog] of Object.entries(data.progress)) {
+    for (const [bid, prog] of Object.entries(semesterProgress)) {
       const needed = prog.needed || 0;
       const done = prog.done_count || 0;
       const pct = needed > 0 ? Math.min(100, Math.round((done / needed) * 100)) : 0;
@@ -195,13 +249,13 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
     </p>`;
   }
 
-  if (data.timeline) {
-    const t = data.timeline;
+  if (semesterTimeline) {
+    const t = semesterTimeline;
     html += `
       <div class="timeline-box">
         <div class="timeline-stat">
           <div class="num">${t.remaining_slots_total}</div>
-          <div class="lbl">Slots remaining</div>
+          <div class="lbl">Courses required remaining</div>
         </div>
         <div class="timeline-stat">
           <div class="num">${t.estimated_min_terms}</div>
@@ -231,7 +285,15 @@ export function renderRecommendationsHtml(data, requestedCount, options = {}) {
     const majors = majorLabels.map(esc).join(", ");
     const track = selectedTrackLabel ? esc(selectedTrackLabel) : "None";
 
-    prefix += `<div class="warnings-box"><h4>Plan Context</h4><ul><li>Majors: ${majors || "None"}</li><li>Track: ${track}</li></ul></div>`;
+    prefix += `<div class="warnings-box"><h4 class="heading-gold">Plan Context</h4><ul><li>Majors: ${majors || "None"}</li><li>Track: ${track}</li></ul></div>`;
+  }
+
+  if (data.current_progress && Object.keys(data.current_progress).length) {
+    prefix += renderCurrentProgressHtml(
+      data.current_progress,
+      data.current_assumption_notes || [],
+      programLabelMap,
+    );
   }
 
   if (Array.isArray(data.semesters) && data.semesters.length) {

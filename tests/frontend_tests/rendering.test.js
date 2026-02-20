@@ -93,16 +93,28 @@ describe("renderSemesterHtml()", () => {
     input_completed_count: 2,
     applied_completed_count: 2,
     progress: {},
+    projected_progress: {},
     double_counted_courses: [],
     allocation_notes: [],
     manual_review_courses: [],
     timeline: null,
+    projected_timeline: null,
+    projection_note: "Assuming you complete these recommendations, projected progress updates are shown below.",
   };
 
   test("keeps sequencing warning course code", () => {
     const html = renderSemesterHtml(sem, 1, 3);
-    expect(html).toContain("Sequencing Heads-Up");
+    expect(html).toContain('class="heading-gold">Sequencing Heads-Up');
     expect(html).toContain("FINA 3001 ASAP");
+    expect(html).toContain('class="sequencing-item"');
+  });
+
+  test("renames timeline label to courses required remaining", () => {
+    const html = renderSemesterHtml({
+      ...sem,
+      timeline: { remaining_slots_total: 8, estimated_min_terms: 3, disclaimer: "d1" },
+    }, 1, 3);
+    expect(html).toContain("Courses required remaining");
   });
 });
 
@@ -148,6 +160,7 @@ describe("renderRecommendationsHtml()", () => {
     }, 3);
     expect(html).toContain("Majors: Finance Major");
     expect(html).toContain("Track: Commercial Banking");
+    expect(html).toContain('class="heading-gold">Plan Context');
   });
 
   test("does not render Program Warnings section", () => {
@@ -156,5 +169,62 @@ describe("renderRecommendationsHtml()", () => {
       program_warnings: ["Track is inactive"],
     }, 3);
     expect(html).not.toContain("Program Warnings");
+  });
+
+  test("renders current degree progress before semester sections", () => {
+    const html = renderRecommendationsHtml({
+      ...semData,
+      selection_context: {
+        declared_majors: ["FIN_MAJOR"],
+        declared_major_labels: ["Finance Major"],
+        selected_track_id: null,
+        selected_track_label: null,
+        selected_program_ids: ["FIN_MAJOR"],
+        selected_program_labels: ["Finance Major"],
+      },
+      current_progress: {
+        "FIN_MAJOR::CORE": {
+          label: "Finance Major: Core",
+          needed: 4,
+          completed_done: 1,
+          in_progress_increment: 1,
+          assumed_done: 2,
+          satisfied: false,
+        },
+      },
+      current_assumption_notes: [
+        "Assumed ACCO 1030 because ACCO 1031 is in progress.",
+      ],
+      semesters: [semData],
+    }, 3);
+    const planIdx = html.indexOf("Plan Context");
+    const currentIdx = html.indexOf("Current Degree Progress");
+    const semIdx = html.indexOf("Semester 1: Recommended for");
+    expect(planIdx).toBeGreaterThanOrEqual(0);
+    expect(currentIdx).toBeGreaterThan(planIdx);
+    expect(semIdx).toBeGreaterThan(currentIdx);
+    expect(html).toContain("With current in-progress: 2 of 4");
+    expect(html).toContain('class="assumption-notes"');
+    expect(html).toContain("Assumed ACCO 1030 because ACCO 1031 is in progress.");
+  });
+
+  test("does not render assumption list when notes are empty", () => {
+    const html = renderRecommendationsHtml({
+      ...semData,
+      current_progress: {
+        "FIN_MAJOR::CORE": {
+          label: "Finance Major: Core",
+          needed: 4,
+          completed_done: 1,
+          in_progress_increment: 0,
+          assumed_done: 1,
+          satisfied: false,
+        },
+      },
+      current_assumption_notes: [],
+      semesters: [semData],
+    }, 3);
+    expect(html).toContain("Current Degree Progress");
+    expect(html).not.toContain('class="assumption-notes"');
   });
 });
