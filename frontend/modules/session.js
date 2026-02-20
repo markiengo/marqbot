@@ -6,6 +6,9 @@ export const STORAGE_KEY = "marqbot_session_v1";
  * @param {{ targetSemester: Element|null, targetSemester2: Element|null, maxRecs: Element|null, canTake: Element|null }} elements
  */
 export function getSessionSnapshot(state, elements) {
+  const declaredMajors = elements.declaredMajors
+    ? Array.from(elements.declaredMajors.selectedOptions || []).map(o => o.value).filter(Boolean)
+    : [];
   return {
     completed: [...state.completed],
     inProgress: [...state.inProgress],
@@ -13,6 +16,8 @@ export function getSessionSnapshot(state, elements) {
     targetSemester2: elements.targetSemester2?.value || "",
     maxRecs: elements.maxRecs?.value || "3",
     canTake: elements.canTake?.value || "",
+    declaredMajors,
+    declaredTrack: elements.declaredTrack?.value || "",
   };
 }
 
@@ -81,5 +86,20 @@ export function restoreSession(state, elements, callbacks) {
   }
   if (elements.canTake && typeof parsed.canTake === "string") {
     elements.canTake.value = parsed.canTake;
+  }
+  if (elements.declaredMajors && Array.isArray(parsed.declaredMajors)) {
+    const selected = new Set(parsed.declaredMajors.map(String));
+    for (const option of Array.from(elements.declaredMajors.options || [])) {
+      option.selected = selected.has(String(option.value));
+    }
+  }
+  if (typeof elements.refreshProgramOptions === "function") {
+    elements.refreshProgramOptions();
+  }
+  if (elements.declaredTrack && typeof parsed.declaredTrack === "string") {
+    const ok = Array.from(elements.declaredTrack.options || []).some(
+      o => String(o.value) === String(parsed.declaredTrack),
+    );
+    if (ok) elements.declaredTrack.value = parsed.declaredTrack;
   }
 }

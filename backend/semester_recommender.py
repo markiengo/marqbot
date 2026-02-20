@@ -1,7 +1,7 @@
 import re
 import pandas as pd
 
-from requirements import DEFAULT_TRACK_ID, BLOCKING_WARNING_THRESHOLD, get_bucket_by_role, get_buckets_by_role
+from requirements import DEFAULT_TRACK_ID, BLOCKING_WARNING_THRESHOLD, get_buckets_by_role
 from allocator import allocate_courses
 from unlocks import get_direct_unlocks, get_blocking_warnings
 from timeline import estimate_timeline
@@ -129,8 +129,14 @@ def run_recommendation_semester(
             "timeline": timeline_sem,
         }
 
-    core_bucket_id = get_bucket_by_role(data["buckets_df"], track_id, "core")
-    core_remaining_sem = alloc["remaining"].get(core_bucket_id, {}).get("remaining_courses", []) if core_bucket_id else []
+    core_bucket_ids = get_buckets_by_role(data["buckets_df"], track_id, "core")
+    core_remaining_sem: list[str] = []
+    for core_bid in core_bucket_ids:
+        core_remaining_sem.extend(
+            alloc["remaining"].get(core_bid, {}).get("remaining_courses", [])
+        )
+    # Deduplicate while preserving order for deterministic warnings.
+    core_remaining_sem = list(dict.fromkeys(core_remaining_sem))
     core_prereq_blockers_sem: set[str] = set()
     for core_code in core_remaining_sem:
         core_prereq_blockers_sem |= _prereq_courses(data["prereq_map"].get(core_code, {"type": "none"}))

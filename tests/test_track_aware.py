@@ -244,6 +244,95 @@ class TestServerTrackValidation:
         data = resp.get_json()
         assert data["mode"] == "recommendations"
 
+    def test_declared_majors_must_be_array(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": "FIN_MAJOR",
+        })
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert data["error"]["error_code"] == "INVALID_INPUT"
+
+    def test_unknown_major_returns_400(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": ["UNKNOWN_MAJOR"],
+        })
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert data["error"]["error_code"] == "UNKNOWN_MAJOR"
+
+    def test_declared_major_without_track_returns_context(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": ["FIN_MAJOR"],
+            "track_id": None,
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert data["selection_context"]["declared_majors"] == ["FIN_MAJOR"]
+        assert data["selection_context"]["selected_track_id"] is None
+        assert "FIN_MAJOR::CORE" in data["progress"]
+
+    def test_declared_track_must_match_major(self, client, monkeypatch):
+        import server
+
+        patched_tracks = server._data["tracks_df"].copy()
+        patched_tracks.loc[patched_tracks["track_id"] == "CB_CONC", "parent_major_id"] = "OTHER_MAJOR"
+        monkeypatch.setitem(server._data, "tracks_df", patched_tracks)
+
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": ["FIN_MAJOR"],
+            "track_id": "CB_CONC",
+        })
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert data["error"]["error_code"] == "TRACK_MAJOR_MISMATCH"
+
+    def test_declared_major_plus_track_returns_merged_progress(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": ["FIN_MAJOR"],
+            "track_id": "CB_CONC",
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert data["selection_context"]["selected_track_id"] == "CB_CONC"
+        assert "FIN_MAJOR::CORE" in data["progress"]
+        assert "CB_CONC::CB_CORE" in data["progress"]
+        assert data.get("program_warnings")  # CB_CONC is inactive in workbook
+
+    def test_programs_endpoint_returns_expected_shape(self, client):
+        resp = client.get("/programs")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "majors" in data
+        assert "tracks" in data
+        assert data["default_track_id"] == "FIN_MAJOR"
+        assert isinstance(data["majors"], list)
+        assert isinstance(data["tracks"], list)
+
+    def test_programs_endpoint_includes_finance_catalog(self, client):
+        resp = client.get("/programs")
+        data = resp.get_json()
+
+        majors = {m["major_id"]: m for m in data["majors"]}
+        tracks = {t["track_id"]: t for t in data["tracks"]}
+
+        assert "FIN_MAJOR" in majors
+        assert "CB_CONC" in tracks
+        assert "FP_CONC" in tracks
+        assert tracks["CB_CONC"]["parent_major_id"] == "FIN_MAJOR"
+        assert tracks["FP_CONC"]["parent_major_id"] == "FIN_MAJOR"
+
     def test_empty_tracks_rejects_non_default_track(self, client, monkeypatch):
         """When tracks_df is empty, non-default tracks should be rejected."""
         import server
@@ -266,3 +355,110 @@ class TestServerTrackValidation:
         resp = self._post(client, track_id="FIN_MAJOR")
         data = resp.get_json()
         assert data["mode"] == "recommendations"
+
+
+# ── 5. End-to-end smoke test — synthetic track through /recommend ────────────
+
+class TestSyntheticTrackSmoke:
+    """Proves Phase 4 exit criteria: a new track onboarded via data only
+    produces valid recommendations through /recommend with zero code changes.
+
+    The test monkeypatches server._data to inject a synthetic track alongside
+    existing workbook data, then calls the real /recommend endpoint.
+    """
+
+    @pytest.fixture
+    def client_with_synthetic_track(self, monkeypatch):
+        import server
+
+        # Inject synthetic track into tracks_df
+        synth_track = pd.DataFrame([
+            {"track_id": "SYNTH_TEST", "track_label": "Synthetic Test Track", "active": True},
+        ])
+        patched_tracks = pd.concat(
+            [server._data["tracks_df"], synth_track], ignore_index=True,
+        )
+        monkeypatch.setitem(server._data, "tracks_df", patched_tracks)
+
+        # Inject synthetic buckets (1 core, 1 elective)
+        synth_buckets = pd.DataFrame([
+            {"track_id": "SYNTH_TEST", "bucket_id": "ST_CORE", "bucket_label": "Synth Core",
+             "priority": 1, "needed_count": 2, "needed_credits": None,
+             "min_level": None, "allow_double_count": False, "role": "core"},
+            {"track_id": "SYNTH_TEST", "bucket_id": "ST_ELEC", "bucket_label": "Synth Elective",
+             "priority": 2, "needed_count": 1, "needed_credits": None,
+             "min_level": None, "allow_double_count": True, "role": "elective"},
+        ])
+        patched_buckets = pd.concat(
+            [server._data["buckets_df"], synth_buckets], ignore_index=True,
+        )
+        monkeypatch.setitem(server._data, "buckets_df", patched_buckets)
+
+        # Map real courses (already in courses_df + prereq_map) to synthetic buckets.
+        # Include ACCO 1030 (no prereqs) so recommendations exist at zero-completed state.
+        synth_mappings = pd.DataFrame([
+            {"track_id": "SYNTH_TEST", "course_code": "ACCO 1030", "bucket_id": "ST_CORE"},
+            {"track_id": "SYNTH_TEST", "course_code": "FINA 3001", "bucket_id": "ST_CORE"},
+            {"track_id": "SYNTH_TEST", "course_code": "FINA 4001", "bucket_id": "ST_ELEC"},
+            {"track_id": "SYNTH_TEST", "course_code": "FINA 4011", "bucket_id": "ST_ELEC"},
+            {"track_id": "SYNTH_TEST", "course_code": "FINA 4020", "bucket_id": "ST_ELEC"},
+        ])
+        patched_map = pd.concat(
+            [server._data["course_bucket_map_df"], synth_mappings], ignore_index=True,
+        )
+        monkeypatch.setitem(server._data, "course_bucket_map_df", patched_map)
+
+        server.app.config["TESTING"] = True
+        with server.app.test_client() as c:
+            yield c
+
+    def test_synthetic_track_returns_recommendations(self, client_with_synthetic_track):
+        """A data-only track produces a valid recommendation response."""
+        resp = client_with_synthetic_track.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "target_semester_primary": "Fall 2026",
+            "track_id": "SYNTH_TEST",
+        })
+        data = resp.get_json()
+        assert resp.status_code == 200
+        assert data["mode"] == "recommendations"
+        assert len(data["recommendations"]) > 0
+
+    def test_synthetic_track_respects_completed(self, client_with_synthetic_track):
+        """Completing a core course reduces remaining slots for the synthetic track."""
+        resp = client_with_synthetic_track.post("/recommend", json={
+            "completed_courses": "FINA 3001",
+            "in_progress_courses": "",
+            "target_semester_primary": "Fall 2026",
+            "track_id": "SYNTH_TEST",
+        })
+        data = resp.get_json()
+        assert resp.status_code == 200
+        progress = data["progress"]
+        assert "ST_CORE" in progress
+        assert "FINA 3001" in progress["ST_CORE"]["completed_applied"]
+
+    def test_synthetic_track_has_progress_for_both_buckets(self, client_with_synthetic_track):
+        """Both synthetic buckets appear in progress output."""
+        resp = client_with_synthetic_track.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "target_semester_primary": "Fall 2026",
+            "track_id": "SYNTH_TEST",
+        })
+        data = resp.get_json()
+        assert "ST_CORE" in data["progress"]
+        assert "ST_ELEC" in data["progress"]
+
+    def test_synthetic_track_does_not_pollute_default(self, client_with_synthetic_track):
+        """Default FIN_MAJOR still works normally after synthetic injection."""
+        resp = client_with_synthetic_track.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "target_semester_primary": "Fall 2026",
+        })
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert "ST_CORE" not in data["progress"]
+        assert "CORE" in data["progress"]

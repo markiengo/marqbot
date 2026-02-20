@@ -51,15 +51,15 @@ Implication:
 - API returns a non-blocking `track_warning` field,
 - unknown tracks still hard-fail with `UNKNOWN_TRACK`.
 
-### Decision E: Multi-Track Counting Should Feel Positive
-Chosen because when one course satisfies multiple requirements, that is user value.
+### Decision E: Cross-Major Counting Should Feel Positive
+Chosen because when one course satisfies requirements across declared majors (and optional track), that is user value.
 
 Implication:
-- future Phase 5 UI should show positive credit indicators,
+- future Phase 5 UI should show positive credit indicators across majors/tracks,
 - warnings are for blocked counting cases, not successful overlap.
 
 ### Decision F: Phase 5 Is Gated on Data Readiness
-Chosen because multi-track UX without validated multi-track data introduces noise and rework.
+Chosen because multi-major UX without validated data introduces noise and rework.
 
 Implication:
 - Phase 5 starts after Phase 4 data onboarding is complete,
@@ -79,7 +79,7 @@ Implication:
 
 ### Known Remaining Gaps
 - Deprecated workbook columns still exist and can cause confusion during manual editing.
-- Runtime still contains track and bucket assumptions that block multi-track evolution.
+- Runtime still contains single-plan assumptions that block multi-major + optional-track evolution.
 - API does not yet expose full track-aware contracts.
 
 ## 4) Target Architecture (North Star)
@@ -125,7 +125,7 @@ Remove immediate schema and parsing brittleness to stabilize deterministic behav
 ### Why It Matters
 - removes accidental behavior differences caused by workbook formatting,
 - reduces transformation complexity,
-- sets groundwork for multi-track map semantics.
+- sets groundwork for multi-program map semantics.
 
 ### Done Criteria (already satisfied)
 1. Loader chooses canonical map sheet when present.
@@ -246,7 +246,7 @@ This is only triggered if `course_bucket` already exists and the non-`--clean` m
 
 ---
 
-## Phase 3: Track-Aware Backend Architecture
+## Phase 3 (Completed): Track-Aware Backend Architecture
 
 ### Goal
 Replace hardcoded single-track behavior with request-scoped track routing and role-driven bucket logic.
@@ -324,7 +324,7 @@ Why graceful fallback is chosen:
 Update tests:
 1. `tests/test_allocator.py`: explicit `track_id` path coverage.
 2. `tests/test_eligibility.py`: explicit `track_id` path coverage.
-3. `tests/test_track_aware.py` (new): multi-track isolation behavior in same workbook.
+3. `tests/test_track_aware.py` (new): multi-plan isolation behavior in same workbook.
 4. server tests for:
 - `UNKNOWN_TRACK` response shape,
 - inactive track warning behavior,
@@ -352,76 +352,127 @@ Inactive track warning on successful recommendation response:
 }
 ```
 
-### Phase 3 Exit Criteria
+### Phase 3 Exit Criteria (all satisfied)
 1. No hardcoded single-track runtime assumptions on critical recommendation path.
 2. Role-driven bucket behavior replaces hardcoded bucket IDs.
 3. Stable `track_id` error/warning contracts implemented and tested.
 4. Existing prereq behavior remains unchanged.
 
+### What Was Delivered
+- `track_id` threaded through allocator, eligibility, recommender, and server as request-scoped parameter.
+- `role` column added to buckets sheet; `get_bucket_by_role()` / `get_buckets_by_role()` replace hardcoded `"CORE"` and `"FIN_CHOOSE_2"`.
+- Server validates track_id (case-insensitive, UNKNOWN_TRACK error, inactive track warning).
+- 28 track-aware tests in `tests/test_track_aware.py` (unit + integration + synthetic smoke).
+- Deterministic tie-break in role lookup (priority asc, bucket_id asc).
+
 ---
 
-## Phase 4: Data Expansion Only (No Core Code Rewrite)
+## Phase 4 (In Progress): Data Expansion Tooling
 
 ### Goal
-Add additional majors/tracks through workbook data, not code changes.
+Prove that new tracks can be onboarded through workbook data only, with automated validation and no backend code changes.
+
+### Tooling Delivered
+1. **Publish gate validator** (`scripts/validate_track.py`): CLI + importable.
+   - Checks: track existence, bucket existence, role policy (1 core, 1+ elective), mapping existence, no orphan courses, no orphan buckets.
+   - Warnings: unmapped buckets, unsatisfiable needed_count.
+   - Usage: `python scripts/validate_track.py --track FP_CONC` or `--all`.
+2. **Validator test suite** (`tests/test_validate_track.py`): 20 tests with synthetic fixtures.
+3. **End-to-end smoke test** (`tests/test_track_aware.py::TestSyntheticTrackSmoke`): 4 tests proving a synthetic track injected via data produces valid recommendations through `/recommend`.
+4. **Program catalog normalization** (loader + `/programs` endpoint): exposes `kind` and `parent_major_id` metadata for Phase 5 selector UX.
+
+### Architecture Proof (exit criteria 1)
+The `TestSyntheticTrackSmoke` suite injects a track (`SYNTH_TEST`) with 2 buckets and 5 course mappings via monkeypatch — no backend code modified — and verifies:
+- Recommendations are returned.
+- Completed courses reduce remaining slots correctly.
+- Both buckets appear in progress output.
+- Default FIN_MAJOR is unaffected.
 
 ### Required Onboarding Workflow Per Track
-1. Add track row in `tracks` with `active=0`.
-2. Add bucket rows for the track with valid role assignments.
-3. Add normalized mapping rows in `course_bucket`.
-4. Run validator checks.
-5. Run `/recommend` smoke test with explicit `track_id`.
-6. Set `active=1` only after validation and smoke test pass.
+1. Add track row in `tracks` sheet with `active=0`.
+2. Add bucket rows in `buckets` sheet with valid role assignments (`core`, `elective`).
+3. Add normalized mapping rows in `course_bucket` sheet.
+4. Run `python scripts/validate_track.py --track <TRACK_ID>` — all checks must pass.
+5. Run `/recommend` smoke test with explicit `track_id` — verify recommendations returned.
+6. Set `active=1` in `tracks` sheet only after steps 4 and 5 pass.
 
-### Publish Gate (Locked)
+### Publish Gate Checks (automated by validator)
 A track cannot be published unless:
-1. role policy passes (1 core, at least 1 elective),
-2. map references only existing courses and buckets,
-3. recommendation smoke test succeeds.
+1. Track exists in `tracks` sheet.
+2. At least one bucket defined for the track.
+3. Exactly one `core` role bucket per track.
+4. At least one `elective` role bucket per track.
+5. All course_codes in mappings exist in `courses` sheet.
+6. All bucket_ids in mappings exist in `buckets` sheet for that track.
+7. At least one course_bucket mapping row exists.
 
-### Why This Gate Exists
-It shifts failure detection from runtime user requests to pre-publish QA, protecting reliability while enabling faster onboarding cadence.
+### Remaining Work
+- Populate real data for CB_CONC or FP_CONC (pending user-provided course lists).
+- Activate at least one non-Finance track end-to-end with real workbook data.
 
 ### Phase 4 Exit Criteria
-1. At least one non-Finance track can be onboarded without backend code edits.
-2. Publish gate process is documented and repeatable.
+1. At least one non-Finance track can be onboarded without backend code edits — **architecture proven via synthetic smoke test**.
+2. Publish gate process is documented and repeatable — **validator CLI + workflow documented above**.
 
 ---
 
-## Phase 5: Multi-Track User Declaration and UX
+## Phase 5: Multi-Major Declaration + Optional Single Track UX
 
 ### Start Condition
-Do not begin implementation until Phase 4 data for additional tracks/minors is ready.
+Do not begin implementation until Phase 4 data for additional majors/tracks is ready.
 
 ### Goal
-Allow users to declare multiple tracks and receive merged progress/recommendations with transparent conflict handling.
+Allow users to declare multiple majors and optionally one track, then receive merged progress/recommendations with transparent conflict handling.
+
+### Product Model (Locked)
+1. `declared_majors` supports multiple values.
+2. `track_id` supports zero or one value.
+3. A selected `track_id` must belong to one of the declared majors.
+4. No "multi-track" mode in MVP.
 
 ### API Evolution
-1. Add `declared_tracks: string[]` to `/recommend`.
-2. Preserve backward compatibility:
-- if `declared_tracks` absent, use single `track_id` flow.
+Additive request contract for `/recommend`:
+```json
+{
+  "declared_majors": ["FIN_MAJOR", "ACCO_MAJOR"],
+  "track_id": "CB_CONC"
+}
+```
 
-### Cross-Track Counting Rule (Locked)
-A course may count across tracks only when all involved buckets allow counting (`allow_double_count=True`).
-If any involved bucket disallows it, allocate once based on priority winner logic.
+No-track example:
+```json
+{
+  "declared_majors": ["FIN_MAJOR"],
+  "track_id": null
+}
+```
+
+Backward compatibility:
+1. If `declared_majors` is absent, keep existing single-plan behavior.
+2. Existing callers that send only `track_id` remain valid during migration.
+
+### Cross-Program Counting Rule (Locked)
+A course may count across majors/track buckets only when all involved buckets allow counting (`allow_double_count=True`).
+If any involved bucket disallows it, allocate once based on current priority winner logic.
 
 Why this rule:
 - reuses current allocator policy model,
-- avoids introducing separate cross-track exception semantics,
+- avoids introducing separate cross-program exception semantics,
 - keeps mental model consistent for QA and users.
 
 ### UX Policy (Locked)
-1. Positive badge when a course counts for multiple tracks (example: "Counts for 2 tracks").
-2. Warning only when cross-track counting is blocked.
+1. Positive badge when a course counts across multiple declared programs (example: "Counts for 2 declared programs").
+2. Warning only when cross-program counting is blocked.
 3. Recommendation cards remain concise with expandable detail.
 4. Emphasize clear "why not eligible" explanations in detail views.
 
 ### MVP Scope Recommendation
-Start with max 2 declared tracks in first release to constrain combinatorial complexity and stabilize contracts before wider expansion.
+1. Support up to 2 declared majors in initial release.
+2. Support at most 1 track in initial release.
 
 ### Phase 5 Exit Criteria
-1. Users can declare multiple tracks and get merged deterministic recommendations.
-2. Allocation explanations are transparent for both granted and blocked multi-track credit.
+1. Users can declare multiple majors and optional single track, and receive merged deterministic recommendations.
+2. Allocation explanations are transparent for both granted and blocked cross-program credit.
 3. UI communicates positive overlap clearly.
 
 ## 6) Public API and Contract Stability Matrix
@@ -434,12 +485,12 @@ Start with max 2 declared tracks in first release to constrain combinatorial com
 
 ### Warning Fields
 1. `track_warning` (Phase 3+)
-2. future course-level allocation notes for multi-track conflicts (Phase 5)
+2. future course-level allocation notes for cross-program conflicts (Phase 5)
 
 ### Compatibility Promises
 1. Existing clients remain functional without sending `track_id`.
 2. `track_id` becomes optional Phase 3 field.
-3. `declared_tracks` is additive in Phase 5 and does not break legacy callers.
+3. `declared_majors` (plus optional `track_id`) is additive in Phase 5 and does not break legacy callers.
 
 ## 7) Data Governance and Validation Requirements
 
@@ -449,6 +500,7 @@ Start with max 2 declared tracks in first release to constrain combinatorial com
 3. No orphan `bucket_id` values in map.
 4. No orphan `course_code` values in map.
 5. Non-empty mapping rows for that track.
+6. If row kind is `track`, `parent_major_id` must resolve to a known major.
 
 ### Operational Logging Requirements
 1. Log map source on load.
@@ -467,7 +519,7 @@ Start with max 2 declared tracks in first release to constrain combinatorial com
 1. `/recommend` unknown track error contract,
 2. `/recommend` inactive track warning contract,
 3. backward compatibility when `track_id` absent,
-4. multi-track declaration behavior in Phase 5.
+4. multi-major + optional-track declaration behavior in Phase 5.
 
 ### Regression Focus
 1. deterministic prereq behavior must remain unchanged,
@@ -496,7 +548,7 @@ Mitigation:
 ### Risk: Scope creep in Phase 5
 Mitigation:
 - gate Phase 5 on Phase 4 readiness,
-- start with 2-track MVP,
+- start with 2-major / 1-track MVP,
 - preserve deterministic core before adding broader combinatorics.
 
 ## 10) Implementation Order
@@ -518,8 +570,8 @@ Mitigation:
 - publish by setting `active=1`.
 
 4. Phase 5
-- add declared multi-track API and merged UX,
-- apply cross-track counting rules,
+- add declared multi-major API and merged UX,
+- apply cross-program counting rules,
 - ship with positive overlap messaging and transparent conflict reasons.
 
 ## 11) Definition of Done by Phase
@@ -538,14 +590,14 @@ Mitigation:
 2. Validation and smoke process is mandatory and repeatable.
 
 ### Phase 5 DoD
-1. Multi-track declaration supported in product flow.
-2. Cross-track allocation policy enforced and explainable.
+1. Multi-major declaration with optional single-track selection supported in product flow.
+2. Cross-program allocation policy enforced and explainable.
 3. UX clearly communicates why courses are eligible/ineligible and where overlap credit is gained.
 
 ## 12) Deferred Items (Intentional)
 
 1. Advisor export format and integration.
-2. Unlimited declared-track support in first multi-track release.
+2. Unlimited declared-major support in first multi-major release.
 3. Any changes to prereq parsing semantics.
 
 These are deferred to avoid destabilizing the reliability-first delivery path.

@@ -51,6 +51,11 @@ describe("bucketLabel()", () => {
     expect(bucketLabel("MY_CUSTOM_BUCKET")).toBe("MY CUSTOM BUCKET");
   });
 
+  test("formats namespaced bucket IDs for multi-program plans", () => {
+    expect(bucketLabel("FIN_MAJOR::CORE")).toBe("Finance Required");
+    expect(bucketLabel("CB_CONC::CB_CORE")).toBe("CB CORE");
+  });
+
   test("returns empty string for null/undefined", () => {
     expect(bucketLabel(null)).toBe("");
     expect(bucketLabel(undefined)).toBe("");

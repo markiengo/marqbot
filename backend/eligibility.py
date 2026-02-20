@@ -107,7 +107,7 @@ def get_eligible_courses(
       "credits": int,
       "primary_bucket": str,          # bucket_id of highest-priority bucket
       "primary_bucket_label": str,
-      "fills_buckets": [str, ...],    # all bucket_ids this course fills (unmet)
+      "fills_buckets": [str, ...],    # all bucket_ids this course can fill
       "multi_bucket_score": int,      # count of unmet buckets filled
       "prereq_check": str,            # human-readable prereq label
       "has_soft_requirement": bool,
@@ -210,7 +210,8 @@ def get_eligible_courses(
         if not eligible_buckets and not manual_review:
             continue  # course doesn't belong to any tracked bucket
 
-        # Multi-bucket score: count unmet buckets this course can fill
+        # Multi-bucket score still reflects unmet buckets for ranking,
+        # but fills_buckets now shows all eligible buckets for UI clarity.
         unmet_buckets = [
             b for b in eligible_buckets
             if allocator_remaining.get(b["bucket_id"], {}).get("slots_remaining", 0) > 0
@@ -240,7 +241,7 @@ def get_eligible_courses(
             "primary_bucket": primary["bucket_id"] if primary else None,
             "primary_bucket_label": primary["label"] if primary else None,
             "primary_bucket_priority": primary["priority"] if primary else 99,
-            "fills_buckets": [b["bucket_id"] for b in unmet_buckets],
+            "fills_buckets": [b["bucket_id"] for b in eligible_buckets],
             "multi_bucket_score": multi_bucket_score,
             "prereq_check": prereq_check,
             "has_soft_requirement": has_soft_requirement,

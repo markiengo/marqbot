@@ -7,6 +7,11 @@ export async function loadCourses(url = "/courses") {
   return await res.json();
 }
 
+export async function loadPrograms(url = "/programs") {
+  const res = await fetch(url);
+  return await res.json();
+}
+
 export async function postRecommend(payload, url = "/recommend") {
   const res = await fetch(url, {
     method: "POST",

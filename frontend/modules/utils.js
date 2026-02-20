@@ -11,13 +11,17 @@ export function esc(str) {
 }
 
 export function bucketLabel(bucketId) {
+  const raw = String(bucketId || "");
+  const [, localId] = raw.includes("::")
+    ? raw.split("::", 2)
+    : [null, raw];
   const labels = {
     CORE: "Finance Required",
     FIN_CHOOSE_2: "Upper Division Finance Elective (Two)",
     FIN_CHOOSE_1: "Upper Division Finance Elective (One)",
     BUS_ELEC_4: "Business Electives",
   };
-  return labels[bucketId] || String(bucketId || "").replace(/_/g, " ");
+  return labels[localId] || String(localId || "").replace(/_/g, " ");
 }
 
 export function colorizePrereq(str) {

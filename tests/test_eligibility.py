@@ -140,6 +140,32 @@ class TestGetEligibleCourses:
         priorities = [c["primary_bucket_priority"] for c in non_manual if c["primary_bucket_priority"]]
         assert priorities == sorted(priorities)
 
+    def test_fills_buckets_shows_all_eligible_not_only_unmet(
+        self, courses_df, prereq_map, course_bucket_map, buckets_df,
+    ):
+        map2 = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_CHOOSE_2",
+                "course_code": "FINA 4001",
+                "is_required": False,
+                "can_double_count": True,
+                "constraints": None,
+            }]),
+        ], ignore_index=True)
+        remaining = {
+            "CORE": {"slots_remaining": 0, "needed": 3},
+            "FIN_CHOOSE_2": {"slots_remaining": 2, "needed": 2},
+        }
+        eligible = get_eligible_courses(
+            courses_df, ["FINA 3001"], [], "Fall", prereq_map,
+            remaining, map2, buckets_df,
+        )
+        row = next(c for c in eligible if c["course_code"] == "FINA 4001")
+        assert set(row["fills_buckets"]) == {"CORE", "FIN_CHOOSE_2"}
+        assert row["multi_bucket_score"] == 1
+
 
 class TestCheckCanTake:
     def test_can_take_eligible(self, courses_df, prereq_map):

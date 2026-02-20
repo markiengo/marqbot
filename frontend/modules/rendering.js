@@ -115,7 +115,7 @@ export function renderSemesterHtml(data, index, requestedCount) {
     html += `<div class="section-title">Degree Progress</div>`;
     html += `<p style="font-size:13px;color:var(--ink-500);margin:0 0 10px;">Progress bars show completed courses applied to each requirement bucket. In-progress courses are listed separately and do not count as completed yet.</p>`;
     if ((data.input_completed_count || 0) > 0 && (data.applied_completed_count || 0) === 0) {
-      html += `<div class="catalog-warn">None of your completed courses currently map into tracked FIN major requirement buckets. They may still be valid prerequisites, but they do not move these specific progress bars.</div>`;
+      html += `<div class="catalog-warn">None of your completed courses currently map into tracked requirement buckets. They may still be valid prerequisites, but they do not move these specific progress bars.</div>`;
     }
     html += `<div class="progress-grid">`;
     for (const [bid, prog] of Object.entries(data.progress)) {
@@ -140,7 +140,7 @@ export function renderSemesterHtml(data, index, requestedCount) {
   if (data.double_counted_courses?.length) {
     html += `<div class="section-title">Double-Counted Courses</div><ul class="notes-list">`;
     data.double_counted_courses.forEach(d => {
-      html += `<li>${esc(d.course_code)} counts toward: ${d.buckets.map(esc).join(" + ")}</li>`;
+      html += `<li>${esc(d.course_code)} counts toward: ${d.buckets.map(bucketLabel).map(esc).join(" + ")}</li>`;
     });
     html += `</ul>`;
   }
@@ -178,10 +178,23 @@ export function renderSemesterHtml(data, index, requestedCount) {
 }
 
 export function renderRecommendationsHtml(data, requestedCount) {
+  let prefix = "";
+  if (data.selection_context) {
+    const majors = (data.selection_context.declared_majors || []).map(esc).join(", ");
+    const track = data.selection_context.selected_track_id
+      ? esc(data.selection_context.selected_track_id)
+      : "None";
+    prefix += `<div class="warnings-box"><h4>Plan Context</h4><ul><li>Majors: ${majors || "None"}</li><li>Track: ${track}</li></ul></div>`;
+  }
+  if (data.program_warnings?.length) {
+    prefix += `<div class="warnings-box"><h4>Program Warnings</h4><ul>`;
+    data.program_warnings.forEach(w => { prefix += `<li>${esc(w)}</li>`; });
+    prefix += `</ul></div>`;
+  }
   if (Array.isArray(data.semesters) && data.semesters.length) {
-    return data.semesters.map((sem, i) =>
+    return prefix + data.semesters.map((sem, i) =>
       `<section class="semester-block">${renderSemesterHtml(sem, i + 1, requestedCount)}</section>`
     ).join("");
   }
-  return renderSemesterHtml(data, 1, requestedCount);
+  return prefix + renderSemesterHtml(data, 1, requestedCount);
 }
