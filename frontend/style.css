@@ -635,3 +635,7 @@ select:focus,
   .topbar { flex-direction: column; gap: 8px; }
   .progress-grid { grid-template-columns: 1fr; }
 }
+
+/* Track unavailable state — shown when selected major(s) have no concentrations */
+.track-unavailable .ms-input { opacity: 0.4; cursor: not-allowed; }
+.track-unavailable .form-hint { opacity: 0.5; }

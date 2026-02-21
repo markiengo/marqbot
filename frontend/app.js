@@ -52,6 +52,7 @@ const chipsMajors = document.getElementById("chips-majors");
 const searchTrack = document.getElementById("search-track");
 const dropdownTrack = document.getElementById("dropdown-track");
 const chipsTrack = document.getElementById("chips-track");
+const trackFormGroup = document.getElementById("track-form-group");
 
 /* -- Session refs ------------------------------------------------------ */
 const sessionElements = {
@@ -242,6 +243,19 @@ function refreshProgramOptions(clear = false) {
   }
 
   rebuildHiddenTrackSelect(filteredTracks);
+
+  // Show/hide track section based on whether the selected major(s) have tracks.
+  const noTracksAvailable = state.selectedMajors.size > 0 && filteredTracks.length === 0;
+  if (searchTrack) {
+    searchTrack.disabled = noTracksAvailable;
+    searchTrack.placeholder = noTracksAvailable
+      ? "No concentrations for selected major(s)"
+      : "Search tracks...";
+  }
+  if (trackFormGroup) {
+    trackFormGroup.classList.toggle("track-unavailable", noTracksAvailable);
+  }
+
   renderMajorChips();
   renderTrackChip();
 
