@@ -5,12 +5,14 @@ MarqBot is a degree-planning app for Marquette business students. It helps you p
 ## Part A - For Students (Non-Technical)
 
 ## What MarqBot Does
+MarqBot is your semester planning assistant. It helps you turn your current classes into a practical next-step plan.
+
 MarqBot helps you:
-- pick your major(s) and optional track
+- choose your declared major(s) and optional track
 - add completed and current in-progress courses
-- get recommended courses for the next semester (optionally two semesters)
-- check "Can I take this class next term?"
-- see requirement progress by bucket
+- get recommended courses for your next term (or next two terms)
+- check a specific class with "Can I Take This?"
+- see requirement progress in a visual dashboard
 
 ## Majors and Tracks Currently Included
 Majors:
@@ -28,19 +30,38 @@ Note:
 - Business Analytics is modeled as a secondary major and must be paired with a primary major.
 
 ## How Recommendations Are Chosen (Simple Version)
-MarqBot only recommends courses you are actually eligible to take (prereqs + term offering + not already taken/in-progress).
+MarqBot first filters to classes you can realistically take:
+- prerequisites are satisfied
+- class is offered in the selected term
+- class is not already completed or in-progress
 
-Then it ranks options by:
+Then it ranks eligible courses by:
 1. Requirements first: courses in higher-priority requirement buckets are favored.
 2. Bigger progress impact: courses that fill more unmet requirement buckets are favored.
 3. Earlier sequence: lower prerequisite level is favored when ties remain.
+
+This means MarqBot prioritizes courses that move you forward in your degree, not just any open class.
+
+## How Prerequisite Assumptions Work
+You do not need to manually enter every lower-level prerequisite if you already entered a higher-level course.
+
+Example:
+- if you add an advanced class, MarqBot can infer required prerequisite chains behind it
+- inferred prerequisites are shown in notes so you can see exactly what was assumed
+
+Important:
+- required chains are inferred for supported prerequisite formats
+- OR-choice and concurrent-optional prerequisite branches are not auto-assumed
 
 ## What Degree Progress Means
 - Green: courses already completed.
 - Yellow: current in-progress courses that are assumed completed for projection.
 - White: still remaining.
 
-You will also see notes when MarqBot makes prerequisite-chain assumptions (for example, inferring required prereqs from higher-level courses already completed/in progress).
+You will also see:
+- requirement cards by bucket/sub-bucket
+- current snapshot progress and projected progress with in-progress classes
+- assumption notes that explain inferred prerequisite courses
 
 ## Core Features
 - Recommendation planning for one or two semesters
@@ -57,7 +78,7 @@ You will also see notes when MarqBot makes prerequisite-chain assumptions (for e
 5. Click **Get Recommendations**.
 6. Review progress + suggestions, then use **Can I Take This?** for specific classes.
 
-Important:
+## What MarqBot Does Not Replace
 - MarqBot is a planning aid. Final course decisions should still be confirmed with your advisor and official registration systems.
 
 ---
@@ -81,6 +102,20 @@ Frontend (vanilla JS modules):
 - `frontend/modules/multiselect.js`: searchable selectors
 - `frontend/modules/rendering.js`: HTML render helpers
 - `frontend/modules/session.js`: local session persistence
+
+## Frontend Token Migration Note
+- Canonical tokens:
+  - Spacing uses `--sp-1` to `--sp-10`.
+- Legacy aliases (temporary):
+  - `--sp-xs`, `--sp-sm`, `--sp-md`, `--sp-lg`, `--sp-xl`.
+- Allowed raw-px exceptions:
+  - border/outline widths
+  - shadow/blur values
+  - SVG stroke/ring sizes
+  - icon dimensions
+  - animation timing values
+- Removal condition:
+  - Alias tokens can be removed after spacing usage is fully canonical and visual/regression QA is green.
 
 ## API Endpoints
 - `GET /courses`
