@@ -384,7 +384,7 @@ function setupAnchorNav() {
 
   window.addEventListener("resize", () => {
     moveNavIndicator(activeNavEl);
-  };
+  });
 
   const initial = navByHref("#section-progress");
   if (initial) setActiveNav(initial);
