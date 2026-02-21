@@ -92,11 +92,17 @@ export function renderCard(c, options = {}) {
 
   const unlocksHtml = c.unlocks?.length
     ? `<div class="unlocks-line">Unlocks: ${c.unlocks.map(esc).join(", ")}</div>` : "";
-  const bucketsHtml = bucketIds.length
-    ? `<div class="unlocks-line">Counts toward: ${bucketIds.map(bid => esc(bucketLabel(bid, programLabelMap))).join(", ")}</div>` : "";
+
+  // Single-bucket: show "Counts toward: X"; multi-bucket: show overlap note instead.
+  const bucketsHtml = bucketIds.length === 1
+    ? `<div class="unlocks-line">Counts toward: ${esc(bucketLabel(bucketIds[0], programLabelMap))}</div>`
+    : "";
+  const overlapNote = bucketIds.length > 1
+    ? `<div class="overlap-note">Counts toward ${bucketIds.length} requirements: ${bucketIds.map(bid => esc(bucketLabel(bid, programLabelMap))).join(" + ")}</div>`
+    : "";
 
   const softWarn = c.soft_tags?.length
-    ? `<div class="soft-warn warning-text">Warning: ${c.soft_tags.join(", ").replace(/_/g, " ")}</div>` : "";
+    ? `<div class="soft-warn">Warning: ${c.soft_tags.join(", ").replace(/_/g, " ")}</div>` : "";
 
   const lowConf = c.low_confidence
     ? `<div class="low-conf-warn">Note: offering schedule may vary; confirm with registrar.</div>` : "";
@@ -109,7 +115,7 @@ export function renderCard(c, options = {}) {
     : "rec-card-why";
 
   const displayTitle = c.course_name
-    ? `${esc(c.course_code)} - ${esc(c.course_name)}`
+    ? `${esc(c.course_code)} — ${esc(c.course_name)}`
     : esc(c.course_code || "");
 
   return `
@@ -123,7 +129,7 @@ export function renderCard(c, options = {}) {
       </div>
       <div class="${whyClass}">${humanCourseText(c.why || "")}</div>
       <div class="prereq-line">${prereqHtml}</div>
-      ${bucketsHtml}
+      ${bucketsHtml}${overlapNote}
       ${unlocksHtml}
       ${softWarn}${lowConf}${courseNotes}
     </div>`;

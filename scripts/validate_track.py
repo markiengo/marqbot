@@ -239,40 +239,222 @@ def check_needed_count_satisfiable(
             )
 
 
+# ── V3.1 Governance checks ────────────────────────────────────────────────────
+
+def check_v2_sub_bucket_courses_required_satisfiable(
+    program_id: str,
+    v2_sub_buckets_df: pd.DataFrame,
+    course_bucket_map_df: pd.DataFrame,
+    result: ValidationResult,
+) -> None:
+    """Warn if a V2 sub-bucket's courses_required exceeds the count of mapped courses.
+
+    In V2 mode the runtime course_bucket_map_df uses sub_bucket_id as bucket_id
+    with track_id equal to the parent program_id.
+    """
+    if v2_sub_buckets_df is None or len(v2_sub_buckets_df) == 0:
+        return
+    if "courses_required" not in v2_sub_buckets_df.columns:
+        return
+
+    sb = v2_sub_buckets_df.copy()
+    sb["program_id"] = sb["program_id"].astype(str).str.strip().str.upper()
+    sb = sb[sb["program_id"] == program_id]
+    if len(sb) == 0:
+        return
+
+    cmap = course_bucket_map_df.copy()
+    cmap["track_id"] = cmap["track_id"].astype(str).str.strip().str.upper()
+    cmap["bucket_id"] = cmap["bucket_id"].astype(str).str.strip()
+    program_map = cmap[cmap["track_id"] == program_id]
+
+    for _, row in sb.iterrows():
+        sbid = str(row.get("sub_bucket_id", "")).strip()
+        cr = row.get("courses_required")
+        if pd.isna(cr) or cr is None:
+            continue
+        required = int(cr)
+        if required <= 0:
+            continue
+        mapped_count = len(program_map[program_map["bucket_id"] == sbid])
+        if mapped_count < required:
+            result.warn(
+                f"sub_bucket '{sbid}' requires {required} courses "
+                f"but only {mapped_count} are mapped in course_sub_buckets."
+            )
+
+def _canon_pair_validate(
+    type_a: str, id_a: str, type_b: str, id_b: str
+) -> tuple:
+    """Return a canonically ordered pair for duplicate-row detection."""
+    a = (str(type_a).strip().lower(), str(id_a).strip())
+    b = (str(type_b).strip().lower(), str(id_b).strip())
+    return (a, b) if a <= b else (b, a)
+
+
+def check_v2_sub_bucket_null_requirements(
+    program_id: str,
+    sub_buckets_df: pd.DataFrame,
+    result: ValidationResult,
+) -> None:
+    """Error when both courses_required and credits_required are null for a sub-bucket.
+
+    A sub-bucket with no requirement definition can never be satisfied, making the
+    program requirement structurally unsatisfiable.
+    """
+    if sub_buckets_df is None or len(sub_buckets_df) == 0:
+        return
+    if "program_id" not in sub_buckets_df.columns or "sub_bucket_id" not in sub_buckets_df.columns:
+        return
+
+    sb = sub_buckets_df.copy()
+    sb["program_id"] = sb["program_id"].astype(str).str.strip().str.upper()
+    sb = sb[sb["program_id"] == program_id]
+    if len(sb) == 0:
+        return
+
+    has_cr = "courses_required" in sb.columns
+    has_cd = "credits_required" in sb.columns
+
+    for _, row in sb.iterrows():
+        sbid = str(row.get("sub_bucket_id", "")).strip()
+        cr_null = not has_cr or pd.isna(row.get("courses_required"))
+        cd_null = not has_cd or pd.isna(row.get("credits_required"))
+        if cr_null and cd_null:
+            result.error(
+                f"sub_bucket '{sbid}' in program '{program_id}' has both "
+                "courses_required and credits_required as null. "
+                "At least one must be set for the requirement to be satisfiable."
+            )
+
+
+def check_v2_policy_duplicate_pairs(
+    program_id: str,
+    policy_df: pd.DataFrame,
+    result: ValidationResult,
+) -> None:
+    """Warn if duplicate canonical policy pairs exist after normalization.
+
+    Duplicate policy rows create ambiguity — the last row wins silently, which
+    can mask authoring mistakes.
+    """
+    if policy_df is None or len(policy_df) == 0:
+        return
+    required_cols = {"program_id", "node_type_a", "node_id_a", "node_type_b", "node_id_b"}
+    if not required_cols.issubset(set(policy_df.columns)):
+        return
+
+    pp = policy_df.copy()
+    pp["program_id"] = pp["program_id"].astype(str).str.strip().str.upper()
+    pp = pp[pp["program_id"] == program_id]
+    if len(pp) == 0:
+        return
+
+    seen: set = set()
+    duplicates: list = []
+    for _, row in pp.iterrows():
+        key = _canon_pair_validate(
+            str(row.get("node_type_a", "")),
+            str(row.get("node_id_a", "")),
+            str(row.get("node_type_b", "")),
+            str(row.get("node_id_b", "")),
+        )
+        if key in seen:
+            duplicates.append(key)
+        seen.add(key)
+
+    if duplicates:
+        unique_dups = sorted(set(str(d) for d in duplicates))
+        result.warn(
+            f"double_count_policy has {len(set(duplicates))} duplicate canonical "
+            f"pair(s) for program '{program_id}': {unique_dups}"
+        )
+
+
+def check_v2_equivalency_scope_integrity(
+    program_id: str,
+    equivalencies_df: pd.DataFrame,
+    programs_v2_df: pd.DataFrame,
+    result: ValidationResult,
+) -> None:
+    """Error if course_equivalencies references a scope_program_id that does not exist.
+
+    Program-scoped equivalencies must reference an actual program so that the
+    runtime can correctly apply the scope restriction.
+    """
+    if equivalencies_df is None or len(equivalencies_df) == 0:
+        return
+    if "scope_program_id" not in equivalencies_df.columns:
+        return  # Global-only equivalencies — scope check not applicable.
+
+    eq = equivalencies_df.copy()
+    eq["scope_program_id"] = (
+        eq["scope_program_id"].fillna("").astype(str).str.strip().str.upper()
+    )
+    scoped = eq[eq["scope_program_id"] != ""]
+    if len(scoped) == 0:
+        return
+
+    valid_ids: set = set()
+    if (
+        programs_v2_df is not None
+        and len(programs_v2_df) > 0
+        and "program_id" in programs_v2_df.columns
+    ):
+        valid_ids = set(
+            programs_v2_df["program_id"].astype(str).str.strip().str.upper().tolist()
+        )
+
+    bad = sorted(set(scoped["scope_program_id"].tolist()) - valid_ids)
+    if bad:
+        result.error(
+            f"course_equivalencies has scope_program_id value(s) not in programs: {bad}"
+        )
+
+
 def _v2_program_for_track(
     track_id: str,
     programs_df: pd.DataFrame | None,
-    track_defs_df: pd.DataFrame | None,
+    _track_defs_df_unused: pd.DataFrame | None = None,
 ) -> str | None:
-    """Resolve program_id for a given track/major id in V2 tables."""
+    """Resolve parent major program_id for a given major/track id in V2 programs."""
     if programs_df is None or len(programs_df) == 0:
         return None
+    programs = programs_df.copy()
+    if "program_id" not in programs.columns:
+        return None
+    programs["program_id"] = programs["program_id"].astype(str).str.strip().str.upper()
+    if "kind" not in programs.columns:
+        programs["kind"] = "major"
+    programs["kind"] = programs["kind"].fillna("major").astype(str).str.strip().str.lower()
+    if "parent_major_id" not in programs.columns:
+        programs["parent_major_id"] = ""
+    programs["parent_major_id"] = (
+        programs["parent_major_id"].fillna("").astype(str).str.strip().str.upper()
+    )
+
     tid = str(track_id or "").strip().upper()
-    majors = set(programs_df["program_id"].astype(str).str.strip().str.upper().tolist())
+    majors = set(programs[programs["kind"] == "major"]["program_id"].tolist())
     if tid in majors:
         return tid
-    if track_defs_df is None or len(track_defs_df) == 0:
-        return None
-    defs = track_defs_df.copy()
-    defs["track_id"] = defs["track_id"].astype(str).str.strip().str.upper()
-    defs["program_id"] = defs["program_id"].astype(str).str.strip().str.upper()
-    rows = defs[defs["track_id"] == tid]
+    tracks = programs[programs["kind"] == "track"]
+    rows = tracks[tracks["program_id"] == tid]
     if len(rows) == 0:
         return None
-    return str(rows.iloc[0]["program_id"])
+    return str(rows.iloc[0]["parent_major_id"] or "").strip().upper() or None
 
 
 def check_v2_track_required_refs(
     program_id: str,
     buckets_v2_df: pd.DataFrame,
-    track_defs_df: pd.DataFrame,
+    programs_v2_df: pd.DataFrame,
     result: ValidationResult,
 ) -> None:
-    """Every non-null buckets.track_required must exist in track_definitions."""
+    """Every non-null buckets.track_required must exist as a track under this major."""
     if buckets_v2_df is None or len(buckets_v2_df) == 0:
         return
-    if track_defs_df is None:
-        track_defs_df = pd.DataFrame()
+    if programs_v2_df is None:
+        programs_v2_df = pd.DataFrame()
 
     b = buckets_v2_df.copy()
     if "program_id" not in b.columns or "track_required" not in b.columns:
@@ -284,18 +466,23 @@ def check_v2_track_required_refs(
         return
 
     valid_track_ids = set()
-    if len(track_defs_df) > 0 and "program_id" in track_defs_df.columns and "track_id" in track_defs_df.columns:
-        td = track_defs_df.copy()
-        td["program_id"] = td["program_id"].astype(str).str.strip().str.upper()
-        td["track_id"] = td["track_id"].astype(str).str.strip().str.upper()
-        td = td[td["program_id"] == program_id]
-        valid_track_ids = set(td["track_id"].tolist())
+    if len(programs_v2_df) > 0 and "program_id" in programs_v2_df.columns:
+        p = programs_v2_df.copy()
+        if "kind" not in p.columns:
+            p["kind"] = "major"
+        if "parent_major_id" not in p.columns:
+            p["parent_major_id"] = ""
+        p["program_id"] = p["program_id"].astype(str).str.strip().str.upper()
+        p["kind"] = p["kind"].fillna("major").astype(str).str.strip().str.lower()
+        p["parent_major_id"] = p["parent_major_id"].fillna("").astype(str).str.strip().str.upper()
+        td = p[(p["kind"] == "track") & (p["parent_major_id"] == program_id)]
+        valid_track_ids = set(td["program_id"].tolist())
 
-        duplicates = td["track_id"].value_counts()
+        duplicates = td["program_id"].value_counts()
         dup_ids = duplicates[duplicates > 1].index.tolist()
         if dup_ids:
             result.error(
-                f"track_definitions has duplicate track_id(s) for program '{program_id}': {sorted(dup_ids)}"
+                f"programs has duplicate track IDs for major '{program_id}': {sorted(dup_ids)}"
             )
 
     bad = []
@@ -307,7 +494,7 @@ def check_v2_track_required_refs(
             bad.append((str(row.get("bucket_id", "")).strip(), req))
     if bad:
         result.error(
-            "buckets.track_required values not found in track_definitions: "
+            "buckets.track_required values not found in programs(kind=track): "
             + str(sorted(bad))
         )
 
@@ -396,6 +583,89 @@ def check_v2_policy_node_refs(
         )
 
 
+# ── Policy matrix printer ─────────────────────────────────────────────────────
+
+def print_policy_matrix(
+    program_id: str,
+    v2_sub_buckets_df: "pd.DataFrame | None",
+    v2_double_count_policy_df: "pd.DataFrame | None",
+    backend_dir: str,
+) -> None:
+    """Print the effective double-count policy for every sub-bucket pair.
+
+    Reuses resolver helpers from backend/requirements.py so the output always
+    reflects what the allocator will actually do at runtime.
+
+    Source labels:
+      explicit sub_bucket     -- explicit row with node_type = sub_bucket
+      explicit bucket         -- explicit row on the parent bucket pair
+      hierarchy same-parent   -- default deny (two sub-buckets share a parent)
+      hierarchy different-parent -- default allow (different parent buckets)
+    """
+    import sys as _sys
+    if backend_dir not in _sys.path:
+        _sys.path.insert(0, backend_dir)
+    from requirements import _build_policy_lookup, _canon_node_pair  # type: ignore[import]
+
+    policy_df = v2_double_count_policy_df if v2_double_count_policy_df is not None else pd.DataFrame()
+    policy_lookup = _build_policy_lookup(policy_df, program_id)
+
+    parent_map: dict[str, str] = {}
+    if v2_sub_buckets_df is not None and len(v2_sub_buckets_df) > 0:
+        sb = v2_sub_buckets_df.copy()
+        sb["program_id"] = sb["program_id"].astype(str).str.strip().str.upper()
+        sb = sb[sb["program_id"] == program_id]
+        for _, row in sb.iterrows():
+            sbid = str(row.get("sub_bucket_id", "")).strip()
+            bid = str(row.get("bucket_id", "")).strip()
+            if sbid and bid:
+                parent_map[sbid] = bid
+
+    sub_bucket_ids = sorted(parent_map.keys())
+    if not sub_bucket_ids:
+        print(f"  [INFO] No sub-buckets found for program '{program_id}'.")
+        return
+
+    n = len(sub_bucket_ids)
+    total_pairs = n * (n - 1) // 2
+    print(f"\nEffective double-count policy for {program_id} ({n} sub-buckets, {total_pairs} pairs):\n")
+
+    w1, w2, w3 = 24, 24, 8
+    print(f"  {'sub_bucket_a':<{w1}}  {'sub_bucket_b':<{w2}}  {'decision':<{w3}}  source")
+    print(f"  {'─' * w1}  {'─' * w2}  {'─' * w3}  {'─' * 45}")
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            a = sub_bucket_ids[i]
+            b = sub_bucket_ids[j]
+
+            sub_key = _canon_node_pair("sub_bucket", a, "sub_bucket", b)
+            if sub_key in policy_lookup:
+                allowed = bool(policy_lookup[sub_key])
+                source = "explicit sub_bucket"
+            else:
+                parent_a = parent_map.get(a)
+                parent_b = parent_map.get(b)
+                if parent_a and parent_b:
+                    bucket_key = _canon_node_pair("bucket", parent_a, "bucket", parent_b)
+                    if bucket_key in policy_lookup:
+                        allowed = bool(policy_lookup[bucket_key])
+                        source = "explicit bucket"
+                    elif parent_a == parent_b:
+                        allowed = False
+                        source = f"hierarchy same-parent ({parent_a})"
+                    else:
+                        allowed = True
+                        source = "hierarchy different-parent"
+                else:
+                    allowed = True
+                    source = "hierarchy different-parent"
+
+            decision = "ALLOW" if allowed else "DENY"
+            print(f"  {a:<{w1}}  {b:<{w2}}  {decision:<{w3}}  {source}")
+    print()
+
+
 # ── Main validate function ────────────────────────────────────────────────────
 
 def validate_track(
@@ -405,10 +675,11 @@ def validate_track(
     course_bucket_map_df: pd.DataFrame,
     catalog_codes: set[str],
     v2_programs_df: pd.DataFrame | None = None,
-    v2_track_definitions_df: pd.DataFrame | None = None,
+    v2_track_definitions_df: pd.DataFrame | None = None,  # kept for backward compatibility
     v2_buckets_df: pd.DataFrame | None = None,
     v2_sub_buckets_df: pd.DataFrame | None = None,
     v2_double_count_policy_df: pd.DataFrame | None = None,
+    v2_equivalencies_df: pd.DataFrame | None = None,
     strict_single_core: bool = True,
 ) -> ValidationResult:
     """Run all publish gate checks for a track. Returns a ValidationResult."""
@@ -424,10 +695,10 @@ def validate_track(
     check_all_buckets_have_mappings(track_id, course_bucket_map_df, buckets_df, result)
     check_needed_count_satisfiable(track_id, course_bucket_map_df, buckets_df, result)
 
-    # Commit 2A: optional V2 referential checks (non-breaking for legacy tests).
+    # V2 referential checks (non-breaking for legacy tests).
     program_id = _v2_program_for_track(track_id, v2_programs_df, v2_track_definitions_df)
     if program_id:
-        check_v2_track_required_refs(program_id, v2_buckets_df, v2_track_definitions_df, result)
+        check_v2_track_required_refs(program_id, v2_buckets_df, v2_programs_df, result)
         check_v2_sub_bucket_parent_refs(program_id, v2_sub_buckets_df, v2_buckets_df, result)
         check_v2_policy_node_refs(
             program_id,
@@ -435,6 +706,15 @@ def validate_track(
             v2_buckets_df,
             v2_sub_buckets_df,
             result,
+        )
+        # V3.1 governance checks.
+        check_v2_sub_bucket_null_requirements(program_id, v2_sub_buckets_df, result)
+        check_v2_sub_bucket_courses_required_satisfiable(
+            program_id, v2_sub_buckets_df, course_bucket_map_df, result
+        )
+        check_v2_policy_duplicate_pairs(program_id, v2_double_count_policy_df, result)
+        check_v2_equivalency_scope_integrity(
+            program_id, v2_equivalencies_df, v2_programs_df, result
         )
 
     return result
@@ -453,6 +733,10 @@ def main(args=None):
         default=os.path.join(os.path.dirname(__file__), "..", "marquette_courses_full.xlsx"),
         help="Path to the workbook file.",
     )
+    parser.add_argument(
+        "--policy-matrix", action="store_true",
+        help="Print effective double-count policy for every sub-bucket pair.",
+    )
     opts = parser.parse_args(args)
 
     if not opts.track and not opts.all:
@@ -460,22 +744,25 @@ def main(args=None):
 
     # Import data_loader (add backend/ to path)
     backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "backend")
+    backend_dir = os.path.normpath(backend_dir)
     sys.path.insert(0, backend_dir)
     from data_loader import load_data
 
     data = load_data(opts.path)
 
-    v2_program_ids = []
+    v2_major_ids: list[str] = []
     if data.get("v2_programs_df") is not None and len(data.get("v2_programs_df")) > 0:
-        v2_program_ids = (
-            data["v2_programs_df"]["program_id"]
-            .astype(str).str.strip().str.upper().tolist()
-        )
+        progs = data["v2_programs_df"].copy()
+        if "kind" not in progs.columns:
+            progs["kind"] = "major"
+        progs["kind"] = progs["kind"].fillna("major").astype(str).str.strip().str.lower()
+        progs["program_id"] = progs["program_id"].astype(str).str.strip().str.upper()
+        v2_major_ids = progs[progs["kind"] == "major"]["program_id"].tolist()
 
     if opts.all:
-        if data.get("v2_detected") and v2_program_ids:
+        if data.get("v2_detected") and v2_major_ids:
             # Strict V2: validate each major program scope once.
-            track_ids = list(dict.fromkeys(v2_program_ids))
+            track_ids = list(dict.fromkeys(v2_major_ids))
         else:
             track_ids = data["tracks_df"]["track_id"].tolist() if len(data["tracks_df"]) > 0 else []
         if not track_ids:
@@ -483,7 +770,7 @@ def main(args=None):
             return 0
     else:
         requested = opts.track.strip().upper()
-        if data.get("v2_detected") and v2_program_ids:
+        if data.get("v2_detected") and v2_major_ids:
             mapped_program = _v2_program_for_track(
                 requested,
                 data.get("v2_programs_df"),
@@ -495,7 +782,7 @@ def main(args=None):
 
     all_passed = True
     for tid in track_ids:
-        use_relaxed_core_policy = bool(data.get("v2_detected")) and tid in set(v2_program_ids)
+        use_relaxed_core_policy = bool(data.get("v2_detected")) and tid in set(v2_major_ids)
         result = validate_track(
             tid,
             data["tracks_df"],
@@ -507,11 +794,21 @@ def main(args=None):
             v2_buckets_df=data.get("v2_buckets_df"),
             v2_sub_buckets_df=data.get("v2_sub_buckets_df"),
             v2_double_count_policy_df=data.get("v2_double_count_policy_df"),
+            v2_equivalencies_df=data.get("equivalencies_df"),
             strict_single_core=not use_relaxed_core_policy,
         )
         print(result.summary())
         if not result.passed:
             all_passed = False
+
+    if opts.policy_matrix:
+        for tid in track_ids:
+            print_policy_matrix(
+                tid,
+                data.get("v2_sub_buckets_df"),
+                data.get("v2_double_count_policy_df"),
+                backend_dir,
+            )
 
     return 0 if all_passed else 1
 

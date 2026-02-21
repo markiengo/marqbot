@@ -20,9 +20,9 @@ describe("renderCard()", () => {
     notes: null,
   };
 
-  test("shows course code and name in title", () => {
+  test("shows course code and name in title with em dash", () => {
     const html = renderCard(baseCard);
-    expect(html).toContain("FINA 3001 - Financial Management");
+    expect(html).toContain("FINA 3001 — Financial Management");
   });
 
   test("renders prereq line with course code", () => {
@@ -42,6 +42,25 @@ describe("renderCard()", () => {
       { programLabelMap: new Map([["CB_CONC", "Commercial Banking"]]) },
     );
     expect(html).toContain("Commercial Banking: CB Core");
+  });
+
+  test("soft_tags use amber soft-warn class, not red warning-text", () => {
+    const html = renderCard({ ...baseCard, soft_tags: ["schedule_uncertain"] });
+    expect(html).toContain('class="soft-warn"');
+    // soft warnings must NOT carry the red warning-text class
+    expect(html).not.toContain("soft-warn warning-text");
+  });
+
+  test("overlap note appears when course fills multiple buckets", () => {
+    const html = renderCard({ ...baseCard, fills_buckets: ["CORE", "ELEC"] });
+    expect(html).toContain('class="overlap-note"');
+    expect(html).toContain("Counts toward 2 requirements");
+  });
+
+  test("no overlap note for single-bucket course", () => {
+    const html = renderCard(baseCard); // fills_buckets: ["CORE"]
+    expect(html).not.toContain("overlap-note");
+    expect(html).toContain("Counts toward:");
   });
 });
 

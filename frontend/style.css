@@ -488,6 +488,7 @@ select:focus,
 
 .unlocks-line { color: #b0c2e6; }
 .soft-warn { color: var(--warn); margin-top: 6px; }
+.overlap-note { color: #ffd96a; font-size: 12px; margin-top: 4px; font-weight: 600; }
 .low-conf-warn { color: var(--ink-500); margin-top: 3px; }
 
 .error-banner,

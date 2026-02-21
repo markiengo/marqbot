@@ -320,3 +320,265 @@ class TestMultiTrackIsolation:
 
         result_a = validate_track("TRACK_A", tracks, buckets, mappings, catalog)
         assert not result_a.passed  # Missing core role is an error
+
+
+# ── V3.1 Governance checks ────────────────────────────────────────────────────
+
+def _v2_base(program_id: str = "FIN_MAJOR"):
+    """Return minimal V2 data that passes legacy checks so governance tests run cleanly."""
+    tracks = pd.DataFrame([{
+        "track_id": program_id, "track_label": "Finance", "active": True,
+        "kind": "major", "parent_major_id": "",
+    }])
+    buckets_legacy = pd.DataFrame([{
+        "track_id": program_id, "bucket_id": "SB1", "bucket_label": "SB1",
+        "priority": 1, "needed_count": 1, "needed_credits": None,
+        "min_level": None, "allow_double_count": False, "role": "core",
+    }])
+    mappings = pd.DataFrame([{
+        "track_id": program_id, "course_code": "FINA 3001", "bucket_id": "SB1",
+    }])
+    catalog = {"FINA 3001"}
+    programs = pd.DataFrame([{
+        "program_id": program_id, "program_label": "Finance",
+        "kind": "major", "parent_major_id": "", "active": True,
+    }])
+    v2_buckets = pd.DataFrame([{
+        "program_id": program_id, "bucket_id": "FIN_REQ",
+        "bucket_label": "Finance Req", "priority": 1, "track_required": "", "active": True,
+    }])
+    v2_sub_buckets = pd.DataFrame([{
+        "program_id": program_id, "bucket_id": "FIN_REQ",
+        "sub_bucket_id": "SB1", "sub_bucket_label": "SB1",
+        "courses_required": 1, "credits_required": None,
+        "priority": 1, "role": "core",
+    }])
+    return tracks, buckets_legacy, mappings, catalog, programs, v2_buckets, v2_sub_buckets
+
+
+def _run_v2(program_id, v2_sub_buckets=None, policy_df=None, equiv_df=None):
+    """Run validate_track with V2 mode enabled for governance check testing."""
+    tracks, buckets_legacy, mappings, catalog, programs, v2_buckets, default_sub = _v2_base(program_id)
+    if v2_sub_buckets is None:
+        v2_sub_buckets = default_sub
+    return validate_track(
+        program_id, tracks, buckets_legacy, mappings, catalog,
+        v2_programs_df=programs,
+        v2_buckets_df=v2_buckets,
+        v2_sub_buckets_df=v2_sub_buckets,
+        v2_double_count_policy_df=policy_df,
+        v2_equivalencies_df=equiv_df,
+        strict_single_core=False,
+    )
+
+
+class TestV2SubBucketNullRequirements:
+    """Governance check 2: both courses_required and credits_required null => error."""
+
+    def test_null_both_requirements_is_error(self):
+        v2_sub = pd.DataFrame([{
+            "program_id": "FIN_MAJOR", "bucket_id": "FIN_REQ",
+            "sub_bucket_id": "SB1", "sub_bucket_label": "SB1",
+            "courses_required": None, "credits_required": None,
+            "priority": 1, "role": "core",
+        }])
+        result = _run_v2("FIN_MAJOR", v2_sub_buckets=v2_sub)
+        assert not result.passed
+        assert any("SB1" in e and "null" in e for e in result.errors)
+
+    def test_courses_required_set_passes(self):
+        v2_sub = pd.DataFrame([{
+            "program_id": "FIN_MAJOR", "bucket_id": "FIN_REQ",
+            "sub_bucket_id": "SB1", "sub_bucket_label": "SB1",
+            "courses_required": 3, "credits_required": None,
+            "priority": 1, "role": "core",
+        }])
+        result = _run_v2("FIN_MAJOR", v2_sub_buckets=v2_sub)
+        assert not any("null" in e for e in result.errors)
+
+    def test_credits_required_set_passes(self):
+        v2_sub = pd.DataFrame([{
+            "program_id": "FIN_MAJOR", "bucket_id": "FIN_REQ",
+            "sub_bucket_id": "SB1", "sub_bucket_label": "SB1",
+            "courses_required": None, "credits_required": 9,
+            "priority": 1, "role": "core",
+        }])
+        result = _run_v2("FIN_MAJOR", v2_sub_buckets=v2_sub)
+        assert not any("null" in e for e in result.errors)
+
+    def test_multiple_sub_buckets_all_null_each_error(self):
+        v2_sub = pd.DataFrame([
+            {"program_id": "FIN_MAJOR", "bucket_id": "FIN_REQ", "sub_bucket_id": "SB1",
+             "sub_bucket_label": "SB1", "courses_required": None, "credits_required": None,
+             "priority": 1, "role": "core"},
+            {"program_id": "FIN_MAJOR", "bucket_id": "FIN_REQ", "sub_bucket_id": "SB2",
+             "sub_bucket_label": "SB2", "courses_required": None, "credits_required": None,
+             "priority": 2, "role": "elective"},
+        ])
+        result = _run_v2("FIN_MAJOR", v2_sub_buckets=v2_sub)
+        # Both buckets should appear in errors
+        assert any("SB1" in e for e in result.errors)
+        assert any("SB2" in e for e in result.errors)
+
+    def test_no_sub_buckets_for_program_skips_check(self):
+        empty_sub = pd.DataFrame(columns=[
+            "program_id", "bucket_id", "sub_bucket_id", "sub_bucket_label",
+            "courses_required", "credits_required", "priority", "role",
+        ])
+        result = _run_v2("FIN_MAJOR", v2_sub_buckets=empty_sub)
+        assert not any("null" in e for e in result.errors)
+
+
+class TestV2PolicyDuplicatePairs:
+    """Governance check 4: duplicate canonical policy pairs => warning."""
+
+    def _policy(self, rows):
+        return pd.DataFrame(rows)
+
+    def test_duplicate_pair_warns(self):
+        policy = self._policy([
+            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "A",
+             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": True},
+            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "A",
+             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": False},
+        ])
+        result = _run_v2("FIN_MAJOR", policy_df=policy)
+        assert any("duplicate" in w.lower() for w in result.warnings)
+
+    def test_canonical_order_duplicate_warns(self):
+        """(A, B) and (B, A) are the same canonical pair and should warn."""
+        policy = self._policy([
+            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "A",
+             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": True},
+            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "B",
+             "node_type_b": "sub_bucket", "node_id_b": "A", "allow_double_count": True},
+        ])
+        result = _run_v2("FIN_MAJOR", policy_df=policy)
+        assert any("duplicate" in w.lower() for w in result.warnings)
+
+    def test_no_duplicates_is_clean(self):
+        policy = self._policy([
+            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "A",
+             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": True},
+            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "A",
+             "node_type_b": "sub_bucket", "node_id_b": "C", "allow_double_count": False},
+        ])
+        result = _run_v2("FIN_MAJOR", policy_df=policy)
+        assert not any("duplicate" in w.lower() for w in result.warnings)
+
+    def test_empty_policy_skips(self):
+        result = _run_v2("FIN_MAJOR", policy_df=pd.DataFrame())
+        assert not any("duplicate" in w.lower() for w in result.warnings)
+
+    def test_different_program_rows_not_flagged(self):
+        """Duplicates in a different program do not affect the target program."""
+        policy = self._policy([
+            {"program_id": "OTHER", "node_type_a": "sub_bucket", "node_id_a": "A",
+             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": True},
+            {"program_id": "OTHER", "node_type_a": "sub_bucket", "node_id_a": "A",
+             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": False},
+        ])
+        result = _run_v2("FIN_MAJOR", policy_df=policy)
+        assert not any("duplicate" in w.lower() for w in result.warnings)
+
+
+class TestV2EquivalencyScopeIntegrity:
+    """Governance check 5: scope_program_id in course_equivalencies must reference valid programs."""
+
+    def _equiv(self, rows):
+        return pd.DataFrame(rows)
+
+    def test_no_scope_column_skips(self):
+        equiv = self._equiv([
+            {"equiv_group_id": "EQ1", "course_code": "FINA 3001", "label": ""},
+        ])
+        result = _run_v2("FIN_MAJOR", equiv_df=equiv)
+        assert not any("scope" in e.lower() for e in result.errors)
+
+    def test_valid_scope_program_passes(self):
+        equiv = self._equiv([
+            {"equiv_group_id": "EQ1", "course_code": "FINA 3001",
+             "label": "", "scope_program_id": "FIN_MAJOR"},
+        ])
+        result = _run_v2("FIN_MAJOR", equiv_df=equiv)
+        assert not any("scope_program_id" in e for e in result.errors)
+
+    def test_invalid_scope_program_errors(self):
+        equiv = self._equiv([
+            {"equiv_group_id": "EQ1", "course_code": "FINA 3001",
+             "label": "", "scope_program_id": "UNKNOWN_PROG"},
+        ])
+        result = _run_v2("FIN_MAJOR", equiv_df=equiv)
+        assert not result.passed
+        assert any("UNKNOWN_PROG" in e for e in result.errors)
+
+    def test_empty_scope_program_id_skips(self):
+        """Rows with empty scope_program_id are global and should not be validated."""
+        equiv = self._equiv([
+            {"equiv_group_id": "EQ1", "course_code": "FINA 3001",
+             "label": "", "scope_program_id": ""},
+        ])
+        result = _run_v2("FIN_MAJOR", equiv_df=equiv)
+        assert not any("scope_program_id" in e for e in result.errors)
+
+    def test_null_scope_treated_as_global(self):
+        equiv = self._equiv([
+            {"equiv_group_id": "EQ1", "course_code": "FINA 3001",
+             "label": "", "scope_program_id": None},
+        ])
+        result = _run_v2("FIN_MAJOR", equiv_df=equiv)
+        assert not any("scope_program_id" in e for e in result.errors)
+
+    def test_mixed_valid_and_invalid_scopes_errors(self):
+        equiv = self._equiv([
+            {"equiv_group_id": "EQ1", "course_code": "FINA 3001",
+             "label": "", "scope_program_id": "FIN_MAJOR"},
+            {"equiv_group_id": "EQ2", "course_code": "FINA 4001",
+             "label": "", "scope_program_id": "BAD_PROG"},
+        ])
+        result = _run_v2("FIN_MAJOR", equiv_df=equiv)
+        assert not result.passed
+        assert any("BAD_PROG" in e for e in result.errors)
+
+
+class TestV2SubBucketCoursesRequiredSatisfiable:
+    """V3.1 governance: warn when courses_required > mapped course count."""
+
+    def _sub_bucket(self, sbid, courses_required, bucket_id="FIN_REQ"):
+        return {
+            "program_id": "FIN_MAJOR", "bucket_id": bucket_id,
+            "sub_bucket_id": sbid, "sub_bucket_label": sbid,
+            "courses_required": courses_required, "credits_required": None,
+            "priority": 1, "role": "core",
+        }
+
+    def test_satisfied_sub_bucket_no_warn(self):
+        """Enough courses mapped — no warning."""
+        v2_sub = pd.DataFrame([self._sub_bucket("SB1", 1)])
+        # _v2_base maps one course to SB1 by default (bucket_id == sub_bucket_id in runtime map)
+        result = _run_v2("FIN_MAJOR", v2_sub_buckets=v2_sub)
+        assert not any("SB1" in w and "requires" in w for w in result.warnings)
+
+    def test_undersupplied_sub_bucket_warns(self):
+        """courses_required exceeds mapped count — expect warning."""
+        v2_sub = pd.DataFrame([self._sub_bucket("SB1", 5)])
+        # Only 1 course mapped to SB1 in _v2_base
+        result = _run_v2("FIN_MAJOR", v2_sub_buckets=v2_sub)
+        assert any("SB1" in w and "requires" in w for w in result.warnings)
+
+    def test_credits_only_sub_bucket_skipped(self):
+        """Sub-buckets with no courses_required are not checked."""
+        v2_sub = pd.DataFrame([{
+            "program_id": "FIN_MAJOR", "bucket_id": "FIN_REQ",
+            "sub_bucket_id": "SB1", "sub_bucket_label": "SB1",
+            "courses_required": None, "credits_required": 9,
+            "priority": 1, "role": "core",
+        }])
+        result = _run_v2("FIN_MAJOR", v2_sub_buckets=v2_sub)
+        assert not any("SB1" in w and "requires" in w for w in result.warnings)
+
+    def test_zero_courses_required_skipped(self):
+        """courses_required=0 is not a real requirement — no warning."""
+        v2_sub = pd.DataFrame([self._sub_bucket("SB1", 0)])
+        result = _run_v2("FIN_MAJOR", v2_sub_buckets=v2_sub)
+        assert not any("SB1" in w and "requires" in w for w in result.warnings)
