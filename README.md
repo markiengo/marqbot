@@ -18,16 +18,23 @@ MarqBot helps you:
 Majors:
 - Finance Major
 - Accounting Major
+- Human Resources Major
 - Business Analytics Major
 - Operations and Supply Chain Major
 - Information Systems Major
+- AIM Major
 
-Finance tracks:
+Tracks and concentrations:
 - Corporate Banking (CB)
 - Financial Planning (FP)
+- Business Leadership (HURE)
+- AIM CFA: Investments
+- AIM Applied FinTech
+- AIM Private Capital & Investment Banking
 
 Note:
 - Business Analytics is modeled as a secondary major and must be paired with a primary major.
+- AIM is modeled as a secondary major and must be paired with a primary major.
 
 ## How Recommendations Are Chosen (Simple Version)
 MarqBot first filters to classes you can realistically take:
@@ -64,7 +71,7 @@ You will also see:
 - assumption notes that explain inferred prerequisite courses
 
 ## Core Features
-- Recommendation planning for one or two semesters
+- Recommendation planning for up to three semesters
 - Inline "Can I Take This?" checker
 - Current vs projected progress visualization
 - Double-count transparency notes when a course applies to multiple requirement buckets
@@ -74,7 +81,7 @@ You will also see:
 1. Select your major(s), then optional track if applicable.
 2. Add completed courses.
 3. Add courses you are taking now.
-4. Set target semester and recommendation count.
+4. Set target semester(s) and recommendation count.
 5. Click **Get Recommendations**.
 6. Review progress + suggestions, then use **Can I Take This?** for specific classes.
 
@@ -141,6 +148,10 @@ Canonical V2 sheets:
 Notes:
 - Runtime is strict V2.
 - `courses_all_buckets` is canonical. Legacy `course_sub_buckets` is compatibility-read only.
+- Major display labels are canonicalized from `program_id`:
+  - Rule: `<CODE>_MAJOR -> <DISPLAY_CODE> Major`
+  - Current code aliases: `FIN -> FINA`, `INSY -> IS`
+  - For future injections, use stable `program_id` codes; UI labels are derived by this rule.
 
 ## Local Setup
 1. Python environment:

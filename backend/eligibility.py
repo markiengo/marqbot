@@ -235,11 +235,14 @@ def get_eligible_courses(
         if manual_review:
             prereq_check = "Manual review required"
 
+        min_standing = int(row.get("prereq_level", 0)) if not pd.isna(row.get("prereq_level", 0)) else 0
+
         results.append({
             "course_code": code,
             "course_name": str(row.get("course_name", "")),
             "credits": int(row.get("credits", 3)) if not pd.isna(row.get("credits", 3)) else 3,
-            "prereq_level": int(row.get("prereq_level", 0)) if not pd.isna(row.get("prereq_level", 0)) else 0,
+            "prereq_level": min_standing,
+            "min_standing": min_standing,
             "primary_bucket": primary["bucket_id"] if primary else None,
             "primary_bucket_label": primary["label"] if primary else None,
             "primary_bucket_priority": primary["priority"] if primary else 99,

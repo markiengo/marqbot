@@ -63,6 +63,7 @@ const majorFormGroup = document.getElementById("major-form-group");
 const sessionElements = {
   get targetSemester() { return document.getElementById("target-semester"); },
   get targetSemester2() { return document.getElementById("target-semester-2"); },
+  get targetSemester3() { return document.getElementById("target-semester-3"); },
   get maxRecs() { return document.getElementById("max-recs"); },
   get canTake() { return canTakeInput; },
   get declaredMajors() { return declaredMajorsSelect; },
@@ -167,8 +168,12 @@ function filterProgramOptions(query, options, excludeIds = new Set()) {
     .filter(o => !excludeIds.has(o.id) && (
       !q || o.id.toLowerCase().includes(q) || o.label.toLowerCase().includes(q)
     ))
-    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  return filtered.slice(0, q ? 12 : 2);
+    .sort((a, b) => {
+      const byId = String(a.id).localeCompare(String(b.id), undefined, { numeric: true, sensitivity: "base" });
+      if (byId !== 0) return byId;
+      return String(a.label).localeCompare(String(b.label), undefined, { sensitivity: "base" });
+    });
+  return filtered;
 }
 
 function syncStateFromHiddenSelectors() {
@@ -314,55 +319,75 @@ function updateStepIndicator() {
 
 /* -- Anchor navigation ------------------------------------------------- */
 function setupAnchorNav() {
-  const anchors = document.querySelectorAll(".anchor-link");
-  const setActiveAnchor = (anchorHref) => {
-    anchors.forEach(a => a.classList.toggle("anchor-active", a.getAttribute("href") === anchorHref));
+  const navItems = Array.from(document.querySelectorAll(".anchor-link"));
+  const navIndicator = document.getElementById("nav-pill-indicator");
+  const panelCenter = document.getElementById("panel-center");
+  const navOrder = ["#section-progress", "#section-recommendations"];
+  let currentInternalHref = "#section-progress";
+  let activeNavEl = null;
+
+  const playPanelSwipe = (fromHref, toHref) => {
+    if (!panelCenter) return;
+    const fromIdx = navOrder.indexOf(fromHref);
+    const toIdx = navOrder.indexOf(toHref);
+    if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+
+    const cls = toIdx > fromIdx ? "panel-swipe-forward" : "panel-swipe-backward";
+    panelCenter.classList.remove("panel-swipe-forward", "panel-swipe-backward");
+    // Restart animation cleanly on repeated clicks.
+    void panelCenter.offsetWidth;
+    panelCenter.classList.add(cls);
+      panelCenter.addEventListener("animationend", () => {
+        panelCenter.classList.remove("panel-swipe-forward", "panel-swipe-backward");
+      }, { once: true });
   };
 
-  anchors.forEach(link => {
-    link.addEventListener("click", e => {
-      e.preventDefault();
-      const targetId = link.getAttribute("href")?.slice(1);
-      const target = targetId ? document.getElementById(targetId) : null;
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveAnchor(link.getAttribute("href"));
+  const moveNavIndicator = (el) => {
+    if (!navIndicator) return;
+    if (!el) {
+      navIndicator.style.opacity = "0";
+      navIndicator.style.width = "0px";
+      return;
+    }
+    navIndicator.style.opacity = "1";
+    navIndicator.style.width = `${el.offsetWidth}px`;
+    navIndicator.style.transform = `translateX(${el.offsetLeft}px)`;
+  };
+
+  const setActiveNav = (el) => {
+    activeNavEl = el || null;
+    navItems.forEach((item) => item.classList.toggle("anchor-active", item === activeNavEl));
+    moveNavIndicator(activeNavEl);
+  };
+
+  const navByHref = (href) =>
+    navItems.find((item) => item.tagName === "A" && item.getAttribute("href") === href) || null;
+
+  navItems.forEach(item => {
+    item.addEventListener("click", e => {
+      const href = item.tagName === "A" ? (item.getAttribute("href") || "") : "";
+      const isInternal = href.startsWith("#");
+
+      // Persistent active state: keep clicked nav item highlighted until another nav click.
+      setActiveNav(item);
+
+      if (isInternal) {
+        e.preventDefault();
+        playPanelSwipe(currentInternalHref, href);
+        const targetId = href.slice(1);
+        const target = targetId ? document.getElementById(targetId) : null;
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+        currentInternalHref = href;
+      }
     });
   });
 
-  if (!("IntersectionObserver" in window)) return;
+  window.addEventListener("resize", () => {
+    moveNavIndicator(activeNavEl);
+  };
 
-  // Observe center-panel sections only; left input section is sticky and would
-  // otherwise dominate active-nav state.
-  const sectionProgress = document.getElementById("section-progress");
-  const sectionRecs = document.getElementById("section-recommendations");
-  const sections = [sectionProgress, sectionRecs].filter(Boolean);
-  if (!sections.length) return;
-  const visible = new Set();
-  const topbarHeight = parseInt(
-    getComputedStyle(document.documentElement).getPropertyValue("--topbar-height"),
-    10,
-  ) || 52;
-
-  const observer = new IntersectionObserver(
-    entries => {
-      entries.forEach(entry => {
-        const id = entry.target.id;
-        if (entry.isIntersecting) visible.add(id);
-        else visible.delete(id);
-      });
-
-      if (visible.has("section-recommendations")) {
-        setActiveAnchor("#section-recommendations");
-      } else if (visible.has("section-progress")) {
-        setActiveAnchor("#section-progress");
-      } else {
-        setActiveAnchor("#section-input");
-      }
-    },
-    { rootMargin: `-${topbarHeight}px 0px -50% 0px`, threshold: 0.05 },
-  );
-
-  sections.forEach(s => observer.observe(s));
+  const initial = navByHref("#section-progress");
+  if (initial) setActiveNav(initial);
 }
 
 /* -- Progress dashboard ------------------------------------------------ */
@@ -379,13 +404,16 @@ function populateProgressDashboard(data) {
     totalNeeded += Number(prog.needed || 0);
   }
   const totalRemaining = Math.max(0, totalNeeded - totalDone - totalInProg);
-  const pct = totalNeeded > 0 ? Math.min(100, Math.round((totalDone / totalNeeded) * 100)) : 0;
+  const totalUnits = totalDone + totalInProg + totalRemaining;
+  const donePct = totalUnits > 0 ? Math.min(100, (totalDone / totalUnits) * 100) : 0;
+  const inProgressPct = totalUnits > 0 ? Math.min(100, (totalInProg / totalUnits) * 100) : 0;
+  const overallPct = totalUnits > 0 ? Math.min(100, ((totalDone + totalInProg) / totalUnits) * 100) : 0;
 
   const dashEl = document.getElementById("progress-dashboard");
   const ringWrap = document.getElementById("progress-ring-wrap");
   const kpiRow = document.getElementById("kpi-row");
 
-  if (ringWrap) ringWrap.innerHTML = renderProgressRing(pct, 100, 10);
+  if (ringWrap) ringWrap.innerHTML = renderProgressRing(donePct, 100, 10, inProgressPct, overallPct);
   if (kpiRow) kpiRow.innerHTML = renderKpiCardsHtml(totalDone, totalRemaining, totalInProg);
   if (dashEl) dashEl.classList.remove("hidden");
 
@@ -662,6 +690,7 @@ form.addEventListener("submit", async e => {
     target_semester: sessionElements.targetSemester.value,
     target_semester_primary: sessionElements.targetSemester.value,
     target_semester_secondary: sessionElements.targetSemester2.value || null,
+    target_semester_tertiary: sessionElements.targetSemester3.value || null,
     requested_course: canTakeInput.value.trim() || null,
     max_recommendations: parseInt(sessionElements.maxRecs.value, 10),
   };
@@ -791,6 +820,7 @@ async function init() {
 
   sessionElements.targetSemester?.addEventListener("change", onSave);
   sessionElements.targetSemester2?.addEventListener("change", onSave);
+  sessionElements.targetSemester3?.addEventListener("change", onSave);
   sessionElements.maxRecs?.addEventListener("change", onSave);
   canTakeInput?.addEventListener("input", onSave);
   window.addEventListener("beforeunload", onSave);

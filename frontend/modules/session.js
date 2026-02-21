@@ -3,7 +3,7 @@ export const STORAGE_KEY = "marqbot_session_v1";
 /**
  * Build a plain snapshot of current session state for serialization.
  * @param {{ completed: Set<string>, inProgress: Set<string> }} state
- * @param {{ targetSemester: Element|null, targetSemester2: Element|null, maxRecs: Element|null, canTake: Element|null }} elements
+ * @param {{ targetSemester: Element|null, targetSemester2: Element|null, targetSemester3: Element|null, maxRecs: Element|null, canTake: Element|null }} elements
  */
 export function getSessionSnapshot(state, elements) {
   const declaredMajors = elements.declaredMajors
@@ -14,6 +14,7 @@ export function getSessionSnapshot(state, elements) {
     inProgress: [...state.inProgress],
     targetSemester: elements.targetSemester?.value || "",
     targetSemester2: elements.targetSemester2?.value || "",
+    targetSemester3: elements.targetSemester3?.value || "",
     maxRecs: elements.maxRecs?.value || "3",
     canTake: elements.canTake?.value || "",
     declaredMajors,
@@ -35,7 +36,7 @@ export function saveSession(state, elements) {
 /**
  * Restore a previously saved session from localStorage.
  * @param {{ completed: Set<string>, inProgress: Set<string>, courses: Array }} state
- * @param {{ targetSemester: Element|null, targetSemester2: Element|null, maxRecs: Element|null, canTake: Element|null }} elements
+ * @param {{ targetSemester: Element|null, targetSemester2: Element|null, targetSemester3: Element|null, maxRecs: Element|null, canTake: Element|null }} elements
  * @param {{ renderChipsCompleted: Function, renderChipsIp: Function }} callbacks
  */
 export function restoreSession(state, elements, callbacks) {
@@ -79,6 +80,10 @@ export function restoreSession(state, elements, callbacks) {
   if (elements.targetSemester2 && parsed.targetSemester2 !== undefined) {
     const ok = Array.from(elements.targetSemester2.options).some(o => o.value === parsed.targetSemester2);
     if (ok) elements.targetSemester2.value = parsed.targetSemester2;
+  }
+  if (elements.targetSemester3 && parsed.targetSemester3 !== undefined) {
+    const ok = Array.from(elements.targetSemester3.options).some(o => o.value === parsed.targetSemester3);
+    if (ok) elements.targetSemester3.value = parsed.targetSemester3;
   }
   if (elements.maxRecs && parsed.maxRecs) {
     const ok = Array.from(elements.maxRecs.options).some(o => o.value === String(parsed.maxRecs));

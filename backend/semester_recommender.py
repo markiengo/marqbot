@@ -67,6 +67,25 @@ def _soft_tag_demote_penalty(candidate: dict) -> int:
     return 1
 
 
+def _local_bucket_id(bucket_id: str) -> str:
+    raw = str(bucket_id or "").strip()
+    if "::" in raw:
+        return raw.split("::", 1)[1]
+    return raw
+
+
+def _bucket_hierarchy_tier(candidate: dict) -> int:
+    """
+    Recommendation hierarchy override:
+    1) BCC_REQUIRED first
+    2) All other buckets in the same tier (BCC child sub-buckets and major requirements)
+    """
+    local_id = _local_bucket_id(candidate.get("primary_bucket"))
+    if local_id == "BCC_REQUIRED":
+        return 0
+    return 1
+
+
 def build_progress_output(allocation: dict, course_bucket_map_df: pd.DataFrame) -> dict:
     progress = {}
     for bid, applied in allocation["applied_by_bucket"].items():
@@ -96,9 +115,28 @@ def _build_projected_outputs(
     data: dict,
     track_id: str,
 ) -> tuple[dict, dict]:
-    projected_completed = _dedupe_codes(completed + in_progress + selected_codes)
-    projected_alloc = allocate_courses(
-        projected_completed,
+    # Progress view keeps planned semester courses as in-progress (yellow segment),
+    # while timeline keeps completion-assumption semantics.
+    projected_completed_for_progress = _dedupe_codes(completed)
+    projected_in_progress_for_progress = _dedupe_codes(in_progress + selected_codes)
+    projected_alloc_for_progress = allocate_courses(
+        projected_completed_for_progress,
+        projected_in_progress_for_progress,
+        data["buckets_df"],
+        data["course_bucket_map_df"],
+        data["courses_df"],
+        data["equivalencies_df"],
+        track_id=track_id,
+        double_count_policy_df=data.get("v2_double_count_policy_df"),
+    )
+    projected_progress = build_progress_output(
+        projected_alloc_for_progress,
+        data["course_bucket_map_df"],
+    )
+
+    projected_completed_for_timeline = _dedupe_codes(completed + in_progress + selected_codes)
+    projected_alloc_for_timeline = allocate_courses(
+        projected_completed_for_timeline,
         [],
         data["buckets_df"],
         data["course_bucket_map_df"],
@@ -107,8 +145,7 @@ def _build_projected_outputs(
         track_id=track_id,
         double_count_policy_df=data.get("v2_double_count_policy_df"),
     )
-    projected_progress = build_progress_output(projected_alloc, data["course_bucket_map_df"])
-    projected_timeline = estimate_timeline(projected_alloc["remaining"])
+    projected_timeline = estimate_timeline(projected_alloc_for_timeline["remaining"])
     if isinstance(projected_timeline, dict):
         projected_timeline["disclaimer"] = (
             "Major-only estimate, assuming ~3 major courses per term and typical availability."
@@ -131,6 +168,7 @@ def _build_deterministic_recommendations(candidates: list[dict], max_recommendat
             "course_name": cand.get("course_name", ""),
             "why": why,
             "prereq_check": cand.get("prereq_check", ""),
+            "min_standing": cand.get("min_standing"),
             "requirement_bucket": cand.get("primary_bucket_label", ""),
             "fills_buckets": cand.get("fills_buckets", []),
             "unlocks": cand.get("unlocks", []),
@@ -231,7 +269,7 @@ def run_recommendation_semester(
         key=lambda c: (
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
             _soft_tag_demote_penalty(c),
-            c.get("primary_bucket_priority", 99),
+            _bucket_hierarchy_tier(c),
             -c.get("multi_bucket_score", 0),
             c.get("prereq_level", 0),
             c["course_code"],

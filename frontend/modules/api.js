@@ -3,12 +3,12 @@
  */
 
 export async function loadCourses(url = "/courses") {
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store" });
   return await res.json();
 }
 
 export async function loadPrograms(url = "/programs") {
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store" });
   return await res.json();
 }
 

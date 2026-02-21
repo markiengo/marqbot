@@ -30,11 +30,98 @@ function humanCourseText(text) {
   return esc(String(text || ""));
 }
 
+function minStandingWarning(minStanding) {
+  const n = Number(minStanding);
+  if (!Number.isFinite(n)) return "standing requirement";
+  switch (n) {
+    case 0:
+      return "";
+    case 1:
+      return "freshman/enrolled standing required";
+    case 2:
+      return "sophomore standing required";
+    case 3:
+      return "junior standing required";
+    case 4:
+      return "senior standing required";
+    default:
+      return "standing requirement (see catalog)";
+  }
+}
+
+function humanizeSoftWarningTag(tag, course = null) {
+  const key = String(tag || "").trim().toLowerCase();
+  if (!key) return "";
+  if (key === "standing_requirement") {
+    return minStandingWarning(course?.min_standing);
+  }
+  const mapped = {
+    major_restriction: "major restriction",
+    admitted_program: "admitted program required",
+    instructor_consent: "instructor consent required",
+    enrollment_requirement: "enrollment requirement",
+    placement_required: "placement requirement",
+    minimum_grade: "minimum grade requirement",
+    minimum_gpa: "minimum GPA requirement",
+  }[key];
+  if (mapped) return mapped;
+  return key.replace(/_/g, " ");
+}
+
+function localBucketId(bucketId) {
+  const raw = String(bucketId || "").trim();
+  if (!raw) return "";
+  if (raw.includes("::")) {
+    return raw.split("::", 2)[1];
+  }
+  return raw;
+}
+
+function sortProgressEntries(progressObj) {
+  const entries = Object.entries(progressObj || {});
+  const indexed = entries.map((entry, idx) => ({ entry, idx }));
+  indexed.sort((a, b) => {
+    const aLocal = localBucketId(a.entry[0]);
+    const bLocal = localBucketId(b.entry[0]);
+    const aRank = aLocal === "BCC_REQUIRED" ? 0 : 1;
+    const bRank = bLocal === "BCC_REQUIRED" ? 0 : 1;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.idx - b.idx;
+  });
+  return indexed.map(x => x.entry);
+}
+
+function compactKpiBucketLabel(label) {
+  const raw = String(label || "");
+  if (!raw) return "";
+  return raw
+    .replace(/Information Systems Major/gi, "IS Major")
+    .replace(/Business Analytics Major/gi, "BUAN Major")
+    .replace(/Operations and Supply Chain Major/gi, "OSCM Major")
+    .replace(/Accounting Major/gi, "ACCO Major")
+    .replace(/Finance Major/gi, "FINA Major")
+    .replace(/Operations and Supply Chain/gi, "OSCM")
+    .replace(/Information Systems/gi, "IS")
+    .replace(/Business Analytics/gi, "BUAN")
+    .replace(/Accounting/gi, "ACCO")
+    .replace(/Finance/gi, "FINA")
+    .replace(/Supply Chain/gi, "OSCM")
+    .replace(/\bOscm\b/g, "OSCM")
+    .replace(/\bBuan\b/g, "BUAN")
+    .replace(/\bInsy\b/g, "INSY")
+    .replace(/\bFina\b/g, "FINA")
+    .replace(/\bAcco\b/g, "ACCO")
+    .replace(/\bAim\b/g, "AIM")
+    .replace(/\bReq\b/g, "REQ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function renderCurrentProgressHtml(currentProgress, assumptionNotes = [], programLabelMap = null) {
   if (!currentProgress || !Object.keys(currentProgress).length) return "";
 
-  let html = `<div class="section-title">Current Degree Progress</div>`;
-  html += `<p class="progress-note">Current snapshot: green = completed; yellow = in-progress assumed completed.</p>`;
+  let html = `<div class="section-title section-title-compact">Current Degree Progress</div>`;
+  html += `<p class="progress-note"><strong class="progress-note-strong">Current snapshot:</strong> green = completed; yellow = in-progress assumed completed.</p>`;
   if (Array.isArray(assumptionNotes) && assumptionNotes.length) {
     html += `<ul class="assumption-notes">`;
     assumptionNotes.forEach((note) => {
@@ -42,9 +129,9 @@ function renderCurrentProgressHtml(currentProgress, assumptionNotes = [], progra
     });
     html += `</ul>`;
   }
-  html += `<div class="progress-grid">`;
+  html += `<div class="progress-table" role="table" aria-label="Current degree progress by requirement bucket">`;
 
-  for (const [bid, prog] of Object.entries(currentProgress)) {
+  for (const [bid, prog] of sortProgressEntries(currentProgress)) {
     const needed = Number(prog.needed || 0);
     const completedDone = Number(prog.completed_done || 0);
     const assumedDone = Number(prog.assumed_done || 0);
@@ -61,17 +148,26 @@ function renderCurrentProgressHtml(currentProgress, assumptionNotes = [], progra
     const inProgressPct = needed > 0 ? (cappedInProgress / needed) * 100 : 0;
     const remainingPct = needed > 0 ? (remainder / needed) * 100 : 100;
 
-    const label = prog.label || bucketLabel(bid, programLabelMap);
+    const label = compactKpiBucketLabel(prog.label || bucketLabel(bid, programLabelMap));
+    const fracText = needed > 0 ? `${effectiveAssumed}/${needed}` : `${effectiveAssumed}/0`;
+    const detailText = `With current in-progress: ${effectiveAssumed} of ${needed}`;
+    const detailSubText = inProgressIncrement > 0
+      ? `${cappedCompleted} completed + ${cappedInProgress} in progress`
+      : `${cappedCompleted} completed`;
+
     html += `
-      <div class="progress-card">
-        <h4>${esc(label)}</h4>
-        <div class="progress-bar-stacked" aria-label="Current progress for ${esc(label)}">
-          <span class="progress-segment-completed" style="width:${completedPct}%"></span>
-          <span class="progress-segment-in-progress" style="width:${inProgressPct}%"></span>
-          <span class="progress-segment-remaining" style="width:${remainingPct}%"></span>
+      <div class="progress-row${prog.satisfied ? " is-done" : ""}" role="row">
+        <div class="progress-row-head">
+          <span class="progress-row-label">${esc(label)}</span>
+          <span class="progress-row-frac">${esc(fracText)}</span>
         </div>
-        <div class="progress-label">Completed ${cappedCompleted} of ${needed}</div>
-        <div class="progress-label">With current in-progress: ${effectiveAssumed} of ${needed}</div>
+        <div class="progress-row-track" aria-label="Current progress for ${esc(label)}">
+          <span class="progress-row-fill-done" style="width:${completedPct}%"></span>
+          <span class="progress-row-fill-ip" style="width:${inProgressPct}%"></span>
+          <span class="progress-row-fill-rem" style="width:${remainingPct}%"></span>
+        </div>
+        <div class="progress-row-sub">${esc(detailText)}</div>
+        <div class="progress-row-sub">${esc(detailSubText)}</div>
       </div>`;
   }
 
@@ -93,23 +189,16 @@ export function renderCard(c, options = {}) {
   const unlocksHtml = c.unlocks?.length
     ? `<div class="unlocks-line">Unlocks: ${c.unlocks.map(esc).join(", ")}</div>` : "";
 
-  // Single-bucket: show "Counts toward: X"; multi-bucket: show overlap note instead.
-  const bucketsHtml = bucketIds.length === 1
-    ? `<div class="unlocks-line">Counts toward: ${esc(bucketLabel(bucketIds[0], programLabelMap))}</div>`
-    : "";
-  const overlapNote = bucketIds.length > 1
-    ? `<div class="overlap-note">Counts toward ${bucketIds.length} requirements: ${bucketIds.map(bid => esc(bucketLabel(bid, programLabelMap))).join(" + ")}</div>`
-    : "";
-
-  const warningParts = [];
-  if (c.soft_tags?.length) {
-    warningParts.push(`Schedule note: ${c.soft_tags.join(", ").replace(/_/g, " ")}`);
+  const warningMessages = [];
+  if (Array.isArray(c.soft_tags) && c.soft_tags.length) {
+    const normalized = [...new Set(c.soft_tags.map(tag => humanizeSoftWarningTag(tag, c)).filter(Boolean))];
+    warningMessages.push(...normalized);
   }
   if (c.low_confidence) {
-    warningParts.push("Offering schedule may vary; confirm with registrar.");
+    warningMessages.push("offering schedule may vary; confirm with registrar");
   }
-  const warningStrip = warningParts.length
-    ? `<div class="warning-strip" role="alert">\u26a0 ${warningParts.map(esc).join(" \u00b7 ")}</div>`
+  const warningStrip = warningMessages.length
+    ? `<div class="warning-strip" role="alert">\u26a0 Warning: ${warningMessages.map(esc).join(" \u00b7 ")}</div>`
     : "";
 
   const courseNotes = c.notes
@@ -119,9 +208,10 @@ export function renderCard(c, options = {}) {
     ? "rec-card-why rec-card-why-gold"
     : "rec-card-why";
 
+  const codePart = `<span class="course-code">${esc(c.course_code || "")}</span>`;
   const displayTitle = c.course_name
-    ? `${esc(c.course_code)} \u2014 ${esc(c.course_name)}`
-    : esc(c.course_code || "");
+    ? `${codePart}<span class="title-sep">\u2014</span><span class="course-name">${esc(c.course_name)}</span>`
+    : codePart;
 
   return `
     <div class="rec-card">
@@ -134,7 +224,6 @@ export function renderCard(c, options = {}) {
       </div>
       <div class="${whyClass}">${humanCourseText(c.why || "")}</div>
       <div class="prereq-line">${prereqHtml}</div>
-      ${bucketsHtml}${overlapNote}
       ${unlocksHtml}
       ${warningStrip}${courseNotes}
     </div>`;
@@ -192,7 +281,7 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
       html += `<div class="warnings-box"><h4 class="heading-gold">Recommendation Count</h4><ul><li class="warning-text">You requested ${requestedCount}, but only ${data.eligible_count} eligible course(s) match your completed/in-progress courses for this term.</li></ul></div>`;
     }
     const semesterLabel = data.target_semester || "";
-    html += `<div class="section-title">Semester ${index}: Recommended for ${esc(semesterLabel)}</div>`;
+    html += `<div class="section-title section-title-semester">Semester ${index}: Recommended for ${esc(semesterLabel)}</div>`;
     html += `<div class="rec-cards">` + data.recommendations.map(c => renderCard(c, options)).join("") + `</div>`;
   }
 
@@ -211,22 +300,35 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
     if ((data.input_completed_count || 0) > 0 && (data.applied_completed_count || 0) === 0) {
       html += `<div class="catalog-warn warning-text">None of your completed courses currently map into tracked requirement buckets. They may still be valid prerequisites, but they do not move these specific progress bars.</div>`;
     }
-    html += `<div class="progress-grid">`;
-    for (const [bid, prog] of Object.entries(semesterProgress)) {
+    html += `<div class="progress-table" role="table" aria-label="Projected degree progress by requirement bucket">`;
+    for (const [bid, prog] of sortProgressEntries(semesterProgress)) {
       const needed = prog.needed || 0;
       const done = prog.done_count || 0;
-      const pct = needed > 0 ? Math.min(100, Math.round((done / needed) * 100)) : 0;
-      const doneClass = prog.satisfied ? "done" : "";
+      const inProgressCount = Array.isArray(prog.in_progress_applied)
+        ? prog.in_progress_applied.length
+        : 0;
+      const cappedDone = needed > 0 ? Math.max(0, Math.min(needed, done)) : 0;
+      const cappedInProgress = needed > 0 ? Math.max(0, Math.min(needed - cappedDone, inProgressCount)) : 0;
+      const remainder = needed > 0 ? Math.max(0, needed - cappedDone - cappedInProgress) : 0;
+      const donePct = needed > 0 ? (cappedDone / needed) * 100 : 0;
+      const inProgressPct = needed > 0 ? (cappedInProgress / needed) * 100 : 0;
+      const remainingPct = needed > 0 ? (remainder / needed) * 100 : 100;
+      const doneClass = prog.satisfied ? " is-done" : "";
       const ipCodes = prog.in_progress_applied || [];
-      const progressLabel = prog.label || bucketLabel(bid, programLabelMap);
+      const progressLabel = compactKpiBucketLabel(prog.label || bucketLabel(bid, programLabelMap));
+      const fracText = needed > 0 ? `${cappedDone}${cappedInProgress ? `+${cappedInProgress}` : ""}/${needed}` : `${cappedDone}/0`;
       html += `
-        <div class="progress-card">
-          <h4>${esc(progressLabel)}</h4>
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill ${doneClass}" style="width:${pct}%"></div>
+        <div class="progress-row${doneClass}" role="row">
+          <div class="progress-row-head">
+            <span class="progress-row-label">${esc(progressLabel)}</span>
+            <span class="progress-row-frac">${esc(fracText)}${prog.satisfied ? " (Done)" : ""}</span>
           </div>
-          <div class="progress-label">Completed ${done} of ${needed}${prog.satisfied ? " (Done)" : ""}</div>
-          ${ipCodes.length ? `<div class="in-progress-badge">+ ${ipCodes.map(esc).join(", ")} in progress</div>` : ""}
+          <div class="progress-row-track">
+            <span class="progress-row-fill-done" style="width:${donePct}%"></span>
+            <span class="progress-row-fill-ip" style="width:${inProgressPct}%"></span>
+            <span class="progress-row-fill-rem" style="width:${remainingPct}%"></span>
+          </div>
+          ${ipCodes.length ? `<div class="progress-row-sub">+ ${ipCodes.map(esc).join(", ")} in progress</div>` : ""}
         </div>`;
     }
     html += `</div>`;
@@ -312,22 +414,33 @@ export function renderRecommendationsHtml(data, requestedCount, options = {}) {
 
 /**
  * Renders an SVG progress ring.
- * @param {number} pct - Percentage 0–100
+ * @param {number} pct - Completed percentage 0-100
  * @param {number} [size=100] - Diameter in px
  * @param {number} [stroke=10] - Stroke width in px
+ * @param {number} [inProgressPct=0] - In-progress percentage 0-100
+ * @param {number|null} [displayPct=null] - Optional center text percentage.
  */
-export function renderProgressRing(pct, size = 100, stroke = 10) {
+export function renderProgressRing(pct, size = 100, stroke = 10, inProgressPct = 0, displayPct = null) {
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
-  const clamped = Math.min(100, Math.max(0, pct));
-  const offset = circ * (1 - clamped / 100);
+  const donePct = Math.min(100, Math.max(0, Number(pct) || 0));
+  const ipPctRaw = Math.min(100, Math.max(0, Number(inProgressPct) || 0));
+  const ipPct = Math.max(0, Math.min(100 - donePct, ipPctRaw));
+  const centerPctRaw = displayPct == null ? donePct : Number(displayPct);
+  const centerPct = Math.min(100, Math.max(0, Number.isFinite(centerPctRaw) ? centerPctRaw : donePct));
+  const doneOffset = circ * (1 - donePct / 100);
+  const ipOffset = circ * (1 - ipPct / 100);
+  const ipRotation = -90 + (donePct * 3.6);
   const cx = size / 2;
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="progress-ring" aria-label="${Math.round(clamped)}% complete" role="img">
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="progress-ring" aria-label="${Math.round(centerPct)}% progress${ipPct ? ` (${Math.round(donePct)}% complete, ${Math.round(ipPct)}% in progress)` : ""}" role="img">
   <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${stroke}"/>
-  <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--mu-gold)" stroke-width="${stroke}"
-    stroke-dasharray="${circ.toFixed(3)}" stroke-dashoffset="${offset.toFixed(3)}"
+  <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--ok)" stroke-width="${stroke}"
+    stroke-dasharray="${circ.toFixed(3)}" stroke-dashoffset="${doneOffset.toFixed(3)}"
     stroke-linecap="round" transform="rotate(-90 ${cx} ${cx})"/>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="ring-pct">${Math.round(clamped)}%</text>
+  ${ipPct > 0 ? `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--mu-gold)" stroke-width="${stroke}"
+    stroke-dasharray="${circ.toFixed(3)}" stroke-dashoffset="${ipOffset.toFixed(3)}"
+    stroke-linecap="round" transform="rotate(${ipRotation.toFixed(3)} ${cx} ${cx})"/>` : ""}
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="ring-pct">${Math.round(centerPct)}%</text>
 </svg>`;
 }
 
@@ -351,11 +464,11 @@ export function renderKpiCardsHtml(done, remaining, inProgress) {
 export function renderDegreeSummaryHtml(currentProgress, programLabelMap = null) {
   if (!currentProgress || !Object.keys(currentProgress).length) return "";
   let html = `<div class="degree-summary">`;
-  for (const [bid, prog] of Object.entries(currentProgress)) {
+  for (const [bid, prog] of sortProgressEntries(currentProgress)) {
     const needed = Number(prog.needed || 0);
     const done = Number(prog.completed_done || 0);
     const inProg = Number(prog.in_progress_increment || 0);
-    const label = prog.label || bucketLabel(bid, programLabelMap);
+    const label = compactKpiBucketLabel(prog.label || bucketLabel(bid, programLabelMap));
     const satisfied = prog.satisfied || (needed > 0 && done >= needed);
     html += `<div class="summary-bucket${satisfied ? " summary-bucket--done" : ""}">
   <span class="summary-label">${esc(label)}</span>

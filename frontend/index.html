@@ -21,15 +21,20 @@
       <span class="topbar-title">MarqBot</span>
     </div>
     <nav class="anchor-nav" aria-label="Page sections">
-      <a href="#section-input" class="anchor-link">Courses</a>
+      <span id="nav-pill-indicator" class="nav-pill-indicator" aria-hidden="true"></span>
+      <a
+        href="https://bulletin.marquette.edu/class-search/"
+        class="anchor-link"
+        target="_blank"
+        rel="noopener noreferrer"
+      >Courses</a>
       <a href="#section-progress" class="anchor-link">Progress</a>
       <a href="#section-recommendations" class="anchor-link">Plan</a>
+      <button type="button" class="anchor-link anchor-link-ai" id="nav-ai-advisor" aria-label="AI Advisor">
+        <span class="topbar-ai-icon" aria-hidden="true">&#x1F58C;</span>
+        AI Advisor
+      </button>
     </nav>
-    <ol id="step-indicator" class="step-indicator" aria-label="Setup steps">
-      <li class="step" data-step="1">Major</li>
-      <li class="step" data-step="2">Courses</li>
-      <li class="step" data-step="3">Plan</li>
-    </ol>
   </div>
 
   <!-- 3-panel app shell -->
@@ -40,7 +45,7 @@
       <section id="section-input" data-nav-section="section-input">
         <form id="advisor-form">
           <div class="left-panel-header">
-            <p class="eyebrow">Finance Advisor</p>
+            <p class="eyebrow">Academic Advisor</p>
             <h2 class="panel-heading">Build Your Plan</h2>
           </div>
 
@@ -106,7 +111,7 @@
       <section id="section-hero">
         <header class="center-header">
           <p class="eyebrow">Marquette University</p>
-          <h1>Finance Dashboard</h1>
+          <h1>Academic Dashboard</h1>
         </header>
       </section>
 
@@ -158,12 +163,28 @@
         </div>
 
         <div class="form-group">
+          <label for="target-semester-3">Semester (3) <span class="label-note">(optional)</span></label>
+          <p class="form-hint">Leave blank to auto-pick after Semester (2).</p>
+          <select id="target-semester-3" form="advisor-form">
+            <option value="" selected>Auto</option>
+            <option value="__NONE__">None (Do not generate)</option>
+            <option>Spring 2026</option>
+            <option>Summer 2026</option>
+            <option>Fall 2026</option>
+            <option>Spring 2027</option>
+            <option>Summer 2027</option>
+            <option>Fall 2027</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label for="max-recs">Recommendations</label>
           <p class="form-hint">Max courses to show.</p>
           <select id="max-recs" form="advisor-form">
             <option value="2">2</option>
             <option value="3" selected>3</option>
             <option value="4">4</option>
+            <option value="5">5</option>
           </select>
         </div>
       </section>
@@ -174,8 +195,8 @@
       </section>
 
       <section id="can-take-section">
-        <h3 class="panel-section-title">Can I Take This?</h3>
-        <p class="form-hint">Enter a course code and press Enter to check eligibility.</p>
+        <h3 class="panel-section-title">Can I Take This Next Semester?</h3>
+        <p class="form-hint">Enter a course code and press Enter to check next-semester eligibility.</p>
         <div class="multiselect" id="ms-can-take">
           <input type="text" class="ms-input" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
           <div class="ms-dropdown" id="dropdown-can-take"></div>

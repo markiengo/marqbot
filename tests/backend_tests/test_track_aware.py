@@ -364,6 +364,21 @@ class TestServerTrackValidation:
         projected_done = sum(v.get("done_count", 0) for v in sem1["projected_progress"].values())
         assert projected_done >= baseline_done
 
+    def test_optional_third_semester_is_generated(self, client):
+        resp = self._post(
+            client,
+            completed_courses="BUAD 1001, ECON 1103, MATH 1400",
+            target_semester_primary="Fall 2026",
+            target_semester_secondary="Spring 2027",
+            target_semester_tertiary="Fall 2027",
+            max_recommendations=5,
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert len(data.get("semesters", [])) == 3
+        assert all(len(sem.get("recommendations", [])) <= 5 for sem in data["semesters"])
+
     def test_declared_majors_must_be_array(self, client):
         resp = client.post("/recommend", json={
             "completed_courses": "",
@@ -498,6 +513,18 @@ class TestServerTrackValidation:
         assert "FP" in tracks
         assert tracks["CB"]["parent_major_id"] == "FIN_MAJOR"
         assert tracks["FP"]["parent_major_id"] == "FIN_MAJOR"
+
+    def test_programs_endpoint_major_labels_use_canonical_major_codes(self, client):
+        resp = client.get("/programs")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        majors = {m["major_id"]: m["label"] for m in data["majors"]}
+
+        assert majors["ACCO_MAJOR"] == "ACCO Major"
+        assert majors["BUAN_MAJOR"] == "BUAN Major"
+        assert majors["FIN_MAJOR"] == "FINA Major"
+        assert majors["INSY_MAJOR"] == "IS Major"
+        assert majors["OSCM_MAJOR"] == "OSCM Major"
 
     def test_courses_endpoint_levels_are_json_safe(self, client):
         resp = client.get("/courses")

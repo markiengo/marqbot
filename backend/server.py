@@ -1,5 +1,6 @@
 ﻿import os
 import sys
+import threading
 
 # Ensure backend/ is on sys.path so sibling imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -38,10 +39,20 @@ DATA_PATH = os.environ.get(
     "DATA_PATH",
     os.path.join(PROJECT_ROOT, "marquette_courses_full.xlsx"),
 )
+_data_lock = threading.Lock()
+_data_mtime = None
+
+
+def _data_file_mtime(path: str):
+    try:
+        return os.path.getmtime(path)
+    except OSError:
+        return None
 
 # â”€â”€ Startup data load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 try:
     _data = load_data(DATA_PATH)
+    _data_mtime = _data_file_mtime(DATA_PATH)
     print(f"[OK] Loaded {len(_data['catalog_codes'])} courses from {DATA_PATH}")
 except FileNotFoundError:
     print(f"[FATAL] Data file not found: {DATA_PATH}", file=sys.stderr)
@@ -53,6 +64,53 @@ except Exception as exc:
 _reverse_map = build_reverse_prereq_map(_data["courses_df"], _data["prereq_map"])
 
 
+def _reload_data_if_changed(force: bool = False) -> bool:
+    """
+    Hot-reload workbook-backed runtime data when DATA_PATH changes on disk.
+
+    Returns True when a reload occurred, else False.
+    """
+    global _data, _reverse_map, _data_mtime
+
+    candidate_mtime = _data_file_mtime(DATA_PATH)
+    if not force:
+        if candidate_mtime is None:
+            return False
+        if _data_mtime is not None and candidate_mtime <= _data_mtime:
+            return False
+
+    with _data_lock:
+        latest_mtime = _data_file_mtime(DATA_PATH)
+        if not force:
+            if latest_mtime is None:
+                return False
+            if _data_mtime is not None and latest_mtime <= _data_mtime:
+                return False
+
+        try:
+            new_data = load_data(DATA_PATH)
+            new_reverse_map = build_reverse_prereq_map(
+                new_data["courses_df"],
+                new_data["prereq_map"],
+            )
+        except Exception as exc:
+            print(f"[WARN] Data reload failed; keeping previous dataset: {exc}", file=sys.stderr)
+            return False
+
+        _data = new_data
+        _reverse_map = new_reverse_map
+        _data_mtime = latest_mtime if latest_mtime is not None else candidate_mtime
+        print(f"[OK] Reloaded {len(new_data['catalog_codes'])} courses from {DATA_PATH}")
+        return True
+
+
+def _refresh_data_if_needed() -> None:
+    try:
+        _reload_data_if_changed()
+    except Exception as exc:
+        print(f"[WARN] Data reload check failed: {exc}", file=sys.stderr)
+
+
 # â”€â”€ Input validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def _validate_recommend_body(body):
     """Returns (error_code, message) on invalid input, (None, None) on success."""
@@ -61,11 +119,11 @@ def _validate_recommend_body(body):
     max_recs_raw = body.get("max_recommendations", 3)
     try:
         max_recs = int(max_recs_raw)
-        if not (1 <= max_recs <= 4):
+        if not (1 <= max_recs <= 5):
             raise ValueError
     except (TypeError, ValueError):
-        return "INVALID_INPUT", "max_recommendations must be an integer between 1 and 4."
-    for field in ("target_semester_primary", "target_semester", "target_semester_secondary"):
+        return "INVALID_INPUT", "max_recommendations must be an integer between 1 and 5."
+    for field in ("target_semester_primary", "target_semester", "target_semester_secondary", "target_semester_tertiary"):
         val = body.get(field)
         if val and val not in ("", "__NONE__") and not SEM_RE.match(str(val).strip()):
             return "INVALID_INPUT", f"'{field}' value '{val}' is not a valid semester (e.g. 'Spring 2026')."
@@ -73,6 +131,38 @@ def _validate_recommend_body(body):
 
 
 PHASE5_PLAN_TRACK_ID = "__DECLARED_PLAN__"
+_MAJOR_CODE_LABEL_OVERRIDES = {
+    "FIN": "FINA",
+    "INSY": "IS",
+}
+
+
+def _major_code_from_program_id(program_id: str) -> str:
+    program = str(program_id or "").strip().upper()
+    if not program:
+        return ""
+    if program.endswith("_MAJOR"):
+        program = program[:-6]
+    return program.split("_", 1)[0]
+
+
+def _canonical_major_label(program_id: str) -> str:
+    code = _major_code_from_program_id(program_id)
+    if not code:
+        return str(program_id or "").strip().upper()
+    display_code = _MAJOR_CODE_LABEL_OVERRIDES.get(code, code)
+    return f"{display_code} Major"
+
+
+def _canonical_program_label(program_id: str, kind: str, fallback_label: str | None = None) -> str:
+    normalized_kind = str(kind or "").strip().lower()
+    if normalized_kind == "major":
+        return _canonical_major_label(program_id)
+
+    fallback = str(fallback_label or "").strip()
+    if fallback:
+        return fallback
+    return str(program_id or "").strip().upper()
 
 
 def _normalize_program_catalog(tracks_df):
@@ -134,6 +224,14 @@ def _normalize_program_catalog(tracks_df):
         missing_parent = (df["kind"] == "track") & (df["parent_major_id"] == "")
         df.loc[missing_parent, "parent_major_id"] = lone_major
     df.loc[df["kind"] == "major", "parent_major_id"] = ""
+    df["track_label"] = df.apply(
+        lambda row: _canonical_program_label(
+            row.get("track_id", ""),
+            row.get("kind", ""),
+            row.get("track_label", ""),
+        ),
+        axis=1,
+    )
 
     return df[
         [
@@ -163,10 +261,11 @@ def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
             parent_major_id = str(row.get("parent_major_id", "") or "").strip().upper()
             if kind == "major":
                 parent_major_id = ""
+            raw_label = str(row.get("program_label", program_id) or program_id).strip()
             rows.append(
                 {
                     "track_id": program_id,
-                    "track_label": str(row.get("program_label", program_id) or program_id).strip(),
+                    "track_label": _canonical_program_label(program_id, kind, raw_label),
                     "active": bool(row.get("active", True)),
                     "kind": kind,
                     "parent_major_id": parent_major_id,
@@ -835,6 +934,7 @@ def frontend_files(filename):
 
 @app.route("/courses", methods=["GET"])
 def get_courses():
+    _refresh_data_if_needed()
     if not _data:
         return jsonify({"error": "Data not loaded"}), 500
     cols = ["course_code", "course_name", "credits", "level", "prereq_level"]
@@ -859,6 +959,7 @@ def get_courses():
 @app.route("/programs", methods=["GET"])
 def get_programs():
     """Return published program catalog for Phase 5 selector UX."""
+    _refresh_data_if_needed()
     if not _data:
         return jsonify({"error": "Data not loaded"}), 500
 
@@ -901,6 +1002,7 @@ def get_programs():
 
 @app.route("/recommend", methods=["POST"])
 def recommend():
+    _refresh_data_if_needed()
     if not _data:
         return jsonify({"mode": "error", "error": {"error_code": "SERVER_ERROR", "message": "Data not loaded."}}), 500
 
@@ -930,8 +1032,8 @@ def recommend():
     )
     target_semester_primary = normalize_semester_label(target_semester_primary)
 
-    target_semester_secondary = body.get("target_semester_secondary")
-    target_semester_secondary = str(target_semester_secondary).strip() if target_semester_secondary is not None else None
+    target_semester_secondary_raw = body.get("target_semester_secondary")
+    target_semester_secondary = str(target_semester_secondary_raw).strip() if target_semester_secondary_raw is not None else None
     if target_semester_secondary == "__NONE__":
         target_semester_secondary = "__NONE__"
     else:
@@ -940,9 +1042,19 @@ def recommend():
             if target_semester_secondary
             else None
         )
+    target_semester_tertiary_raw = body.get("target_semester_tertiary")
+    target_semester_tertiary = str(target_semester_tertiary_raw).strip() if target_semester_tertiary_raw is not None else None
+    if target_semester_tertiary == "__NONE__":
+        target_semester_tertiary = "__NONE__"
+    else:
+        target_semester_tertiary = (
+            normalize_semester_label(target_semester_tertiary)
+            if target_semester_tertiary
+            else None
+        )
 
     requested_course_raw = body.get("requested_course") or None
-    max_recs = max(1, min(4, int(body.get("max_recommendations", 3) or 3)))
+    max_recs = max(1, min(5, int(body.get("max_recommendations", 3) or 3)))
 
     catalog_codes = effective_data["catalog_codes"]
 
@@ -1041,6 +1153,7 @@ def recommend():
         track_id=effective_track_id,
     )
     semesters_payload = [sem1]
+    second_label = None
     if target_semester_secondary != "__NONE__":
         second_label = target_semester_secondary or default_followup_semester(target_semester_primary)
         completed_for_sem2 = list(dict.fromkeys(
@@ -1052,6 +1165,18 @@ def recommend():
             track_id=effective_track_id,
         )
         semesters_payload.append(sem2)
+
+        if target_semester_tertiary != "__NONE__":
+            third_label = target_semester_tertiary or default_followup_semester(second_label)
+            completed_for_sem3 = list(dict.fromkeys(
+                completed_for_sem2 + [r["course_code"] for r in sem2["recommendations"] if r.get("course_code")]
+            ))
+            sem3 = run_recommendation_semester(
+                completed_for_sem3, [], third_label,
+                effective_data, max_recs, _reverse_map,
+                track_id=effective_track_id,
+            )
+            semesters_payload.append(sem3)
 
     response = {
         "mode": "recommendations",
@@ -1080,6 +1205,7 @@ def recommend():
 @app.route("/can-take", methods=["POST"])
 def can_take_endpoint():
     """Standalone eligibility check for a single course. Does not run recommendations."""
+    _refresh_data_if_needed()
     if not _data:
         return jsonify({"mode": "can_take", "error": "Data not loaded."}), 500
 
@@ -1127,15 +1253,24 @@ def can_take_endpoint():
     completed, _ = expand_completed_with_prereqs_with_provenance(
         completed, effective_data["prereq_map"]
     )
-    in_progress, _ = expand_in_progress_with_prereqs(
+    in_progress, assumption_rows = expand_in_progress_with_prereqs(
         in_progress, completed, effective_data["prereq_map"]
     )
+    completed, in_progress = _promote_inferred_in_progress_prereqs_to_completed(
+        completed,
+        in_progress,
+        assumption_rows,
+    )
+
+    # "Can I Take This Next Semester?" semantics:
+    # treat currently in-progress courses as completed by next term.
+    completed_for_next_term = _dedupe_codes(completed + in_progress)
 
     result = check_can_take(
         requested_course,
         effective_data["courses_df"],
-        completed,
-        in_progress,
+        completed_for_next_term,
+        [],
         target_term,
         effective_data["prereq_map"],
     )

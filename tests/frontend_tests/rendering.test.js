@@ -26,7 +26,8 @@ describe("renderCard()", () => {
 
   test("shows course code and name in title with em dash", () => {
     const html = renderCard(baseCard);
-    expect(html).toContain("FINA 3001 — Financial Management");
+    expect(html).toContain('class="course-code">FINA 3001');
+    expect(html).toContain('class="course-name">Financial Management');
   });
 
   test("renders prereq line with course code", () => {
@@ -69,16 +70,16 @@ describe("renderCard()", () => {
     expect(html).toContain('role="alert"');
   });
 
-  test("overlap note appears when course fills multiple buckets", () => {
+  test("multi-bucket course renders multiple bucket tags", () => {
     const html = renderCard({ ...baseCard, fills_buckets: ["CORE", "ELEC"] });
-    expect(html).toContain('class="overlap-note"');
-    expect(html).toContain("Counts toward 2 requirements");
+    expect(html).toContain("Finance Required");
+    expect(html).toContain("Elec");
   });
 
-  test("no overlap note for single-bucket course", () => {
+  test("does not render counts-toward line for single-bucket course", () => {
     const html = renderCard(baseCard); // fills_buckets: ["CORE"]
     expect(html).not.toContain("overlap-note");
-    expect(html).toContain("Counts toward:");
+    expect(html).not.toContain("Counts toward");
   });
 });
 
@@ -268,19 +269,19 @@ describe("renderRecommendationsHtml()", () => {
 describe("renderProgressRing()", () => {
   test("clamps percentage below 0 to 0", () => {
     const html = renderProgressRing(-10);
-    expect(html).toContain('aria-label="0% complete"');
+    expect(html).toContain('aria-label="0% progress"');
     expect(html).toContain("0%");
   });
 
   test("clamps percentage above 100 to 100", () => {
     const html = renderProgressRing(150);
-    expect(html).toContain('aria-label="100% complete"');
+    expect(html).toContain('aria-label="100% progress"');
     expect(html).toContain("100%");
   });
 
   test("includes aria-label with rounded percentage", () => {
     const html = renderProgressRing(50);
-    expect(html).toContain('aria-label="50% complete"');
+    expect(html).toContain('aria-label="50% progress"');
   });
 
   test("renders an SVG element", () => {
@@ -341,7 +342,7 @@ describe("renderDegreeSummaryHtml()", () => {
       },
     };
     const html = renderDegreeSummaryHtml(progress);
-    expect(html).toContain("Finance Required");
+    expect(html).toContain("FINA Required");
     expect(html).toContain("1");
     expect(html).toContain("3");
   });
@@ -406,3 +407,4 @@ describe("renderCanTakeInlineHtml()", () => {
     expect(renderCanTakeInlineHtml({})).toBe("");
   });
 });
+

@@ -24,7 +24,8 @@ function makeElements(overrides = {}) {
   return {
     targetSemester: mockSelect("Spring 2026", ["Spring 2026", "Fall 2026"]),
     targetSemester2: mockSelect("Fall 2026", ["", "__NONE__", "Spring 2026", "Fall 2026"]),
-    maxRecs: mockSelect("3", ["2", "3", "4"]),
+    targetSemester3: mockSelect("", ["", "__NONE__", "Spring 2026", "Fall 2026"]),
+    maxRecs: mockSelect("3", ["2", "3", "4", "5"]),
     canTake: { value: "FINA 4001" },
     ...overrides,
   };
@@ -39,13 +40,14 @@ describe("getSessionSnapshot()", () => {
     expect(snap.completed).toContain("FINA 3001");
     expect(snap.inProgress).toContain("ECON 1103");
     expect(snap.targetSemester).toBe("Spring 2026");
+    expect(snap.targetSemester3).toBe("");
     expect(snap.maxRecs).toBe("3");
     expect(snap.canTake).toBe("FINA 4001");
   });
 
   test("handles null elements gracefully", () => {
     const state = makeState();
-    const elements = { targetSemester: null, targetSemester2: null, maxRecs: null, canTake: null };
+    const elements = { targetSemester: null, targetSemester2: null, targetSemester3: null, maxRecs: null, canTake: null };
     const snap = getSessionSnapshot(state, elements);
     expect(snap.targetSemester).toBe("");
     expect(snap.maxRecs).toBe("3");
@@ -93,7 +95,7 @@ describe("restoreSession()", () => {
   });
 
   test("restores completed and in-progress sets from storage", () => {
-    const snap = { completed: ["FINA 3001"], inProgress: ["ECON 1103"], targetSemester: "Spring 2026", targetSemester2: "", maxRecs: "3", canTake: "" };
+    const snap = { completed: ["FINA 3001"], inProgress: ["ECON 1103"], targetSemester: "Spring 2026", targetSemester2: "", targetSemester3: "", maxRecs: "3", canTake: "" };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
 
     const state = makeState([], [], courses);
@@ -105,7 +107,7 @@ describe("restoreSession()", () => {
   });
 
   test("calls render callbacks after restoring", () => {
-    const snap = { completed: ["FINA 3001"], inProgress: ["ECON 1103"], targetSemester: "Spring 2026", targetSemester2: "", maxRecs: "3", canTake: "" };
+    const snap = { completed: ["FINA 3001"], inProgress: ["ECON 1103"], targetSemester: "Spring 2026", targetSemester2: "", targetSemester3: "", maxRecs: "3", canTake: "" };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
 
     const state = makeState([], [], courses);
@@ -119,7 +121,7 @@ describe("restoreSession()", () => {
   });
 
   test("filters out codes not in catalog", () => {
-    const snap = { completed: ["FINA 3001", "FAKE 9999"], inProgress: [], targetSemester: "", targetSemester2: "", maxRecs: "3", canTake: "" };
+    const snap = { completed: ["FINA 3001", "FAKE 9999"], inProgress: [], targetSemester: "", targetSemester2: "", targetSemester3: "", maxRecs: "3", canTake: "" };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
 
     const state = makeState([], [], courses);
@@ -142,7 +144,7 @@ describe("restoreSession()", () => {
 
   test("does not add a completed course to inProgress", () => {
     // ECON 1103 is both in completed and inProgress in saved data — completed wins
-    const snap = { completed: ["ECON 1103"], inProgress: ["ECON 1103"], targetSemester: "", targetSemester2: "", maxRecs: "3", canTake: "" };
+    const snap = { completed: ["ECON 1103"], inProgress: ["ECON 1103"], targetSemester: "", targetSemester2: "", targetSemester3: "", maxRecs: "3", canTake: "" };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
 
     const state = makeState([], [], courses);

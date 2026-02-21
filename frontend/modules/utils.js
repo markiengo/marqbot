@@ -17,11 +17,29 @@ function mapLookup(store, key) {
 function prettifyIdentifier(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
+  const upperTokens = new Set([
+    "ACCO",
+    "AIM",
+    "BCC",
+    "BUAN",
+    "BUS",
+    "CB",
+    "FIN",
+    "FINA",
+    "FP",
+    "INSY",
+    "IS",
+    "OSCM",
+    "REQ",
+    "GPA",
+  ]);
   return raw
     .split("_")
     .filter(Boolean)
     .map(part => {
-      if (/^[A-Z0-9]{2,3}$/.test(part)) return part;
+      const up = part.toUpperCase();
+      if (upperTokens.has(up)) return up;
+      if (/^[A-Z0-9]{2,3}$/.test(part)) return up;
       const lower = part.toLowerCase();
       return `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`;
     })
@@ -60,6 +78,8 @@ export function bucketLabel(bucketId, programLabelMap = null) {
     FIN_CHOOSE_2: "Upper Division Finance Elective (Two)",
     FIN_CHOOSE_1: "Upper Division Finance Elective (One)",
     BUS_ELEC_4: "Business Electives",
+    BUAN_BUS_ELEC_5: "Business Electives",
+    INSY_BUS_ELEC_4: "Business Electives",
   };
 
   const localLabel = labels[localId] || prettifyIdentifier(localId);

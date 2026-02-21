@@ -129,6 +129,17 @@ class TestCanTakeEligibility:
         })
         assert isinstance(data["not_offered_this_term"], bool)
 
+    def test_in_progress_prereqs_count_as_completed_for_next_semester(self, client):
+        """Can-take endpoint checks next-semester eligibility, so in-progress prereqs count."""
+        _, data = post_can_take(client, {
+            "requested_course": "FINA 3001",
+            "completed_courses": "ECON 1103",
+            "in_progress_courses": "ACCO 1031, BUAD 1560",
+            "target_semester": "Fall 2026",
+        })
+        assert data["can_take"] is True
+        assert data["missing_prereqs"] == []
+
 
 # ── Program context ──────────────────────────────────────────────────────────
 
