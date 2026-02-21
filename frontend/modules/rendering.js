@@ -223,8 +223,8 @@ export function renderCard(c, options = {}) {
           <div class="rec-card-title">${displayTitle}</div>
           <div class="rec-card-sub">${c.credits || 3} credits</div>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">${bucketTags}</div>
       </div>
+      <div class="rec-card-tags">${bucketTags}</div>
       <div class="${whyClass}">${humanCourseText(c.why || "")}</div>
       <div class="prereq-line">${prereqHtml}</div>
       ${unlocksHtml}

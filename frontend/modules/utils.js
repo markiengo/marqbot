@@ -84,7 +84,9 @@ export function bucketLabel(bucketId, programLabelMap = null) {
     AIM_NO_CONC_ELECTIVE_1: "AIM Elective (No Concentration)",
   };
 
-  const localLabel = labels[localId] || prettifyIdentifier(localId);
+  const businessElectivePattern = /^[A-Z]+_BUS_ELEC_\d+$/;
+  const localLabel = labels[localId]
+    || (businessElectivePattern.test(localId) ? "Business Electives" : prettifyIdentifier(localId));
   if (!programId) return localLabel;
 
   const programLabel = mapLookup(programLabelMap, programId);

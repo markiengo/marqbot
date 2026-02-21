@@ -528,9 +528,10 @@ select:focus,
 
 .rec-card-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--sp-3);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: flex-start;
 }
 
 .rec-card-title { font-size: 1.02rem; font-weight: 800; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
@@ -541,13 +542,26 @@ select:focus,
 .rec-card-why { margin: var(--sp-2) 0 var(--sp-3); line-height: 1.6; color: #273a57; font-size: 0.85rem; }
 .rec-card-why-gold { color: var(--mu-gold); font-weight: 700; }
 
+.rec-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: var(--sp-2);
+}
+
 .tag {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   border-radius: 999px;
-  font-size: 0.74rem;
-  padding: 3px 8px;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  min-height: 30px;
+  padding: 5px 11px;
   font-weight: 800;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .tag-bucket { background: #dde9ff; color: #274a7e; }
