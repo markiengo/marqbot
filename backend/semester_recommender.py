@@ -160,9 +160,15 @@ def _build_deterministic_recommendations(candidates: list[dict], max_recommendat
     for cand in candidates[:target_count]:
         buckets = cand.get("fills_buckets", [])
         if buckets:
-            why = f"This course advances your Finance major path and counts toward {len(buckets)} unmet requirement bucket(s)."
+            why = (
+                "This course advances your declared degree path and "
+                f"counts toward {len(buckets)} unmet requirement bucket(s)."
+            )
         else:
-            why = "This course advances your Finance major path based on prerequisite order and remaining requirements."
+            why = (
+                "This course advances your declared degree path based on "
+                "prerequisite order and remaining requirements."
+            )
         recs.append({
             "course_code": cand["course_code"],
             "course_name": cand.get("course_name", ""),

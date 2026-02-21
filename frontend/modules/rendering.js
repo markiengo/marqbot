@@ -207,7 +207,7 @@ export function renderCard(c, options = {}) {
   const courseNotes = c.notes
     ? `<div class="low-conf-warn">${formatCourseNotes(c.notes)}</div>` : "";
 
-  const whyClass = (c.why || "").startsWith("This course advances your Finance major path")
+  const whyClass = (c.why || "").startsWith("This course advances your")
     ? "rec-card-why rec-card-why-gold"
     : "rec-card-why";
 
