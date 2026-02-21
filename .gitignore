@@ -14,3 +14,8 @@ node_modules/
 Thumbs.db
 *.log
 .tmp_pytest/
+*.bak
+*.old
+*.orig
+*.rej
+*.tmp
