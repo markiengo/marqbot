@@ -46,16 +46,7 @@ What it does:
 Why it matters:
 - Quick check for “Can I take X next semester?”
 
-## 5. Fast Local Mode + Optional OpenAI Explanations
-
-What it does:
-- Default mode (`USE_OPENAI_EXPLANATIONS=0`) runs fully deterministic and local.
-- Optional mode (`USE_OPENAI_EXPLANATIONS=1`) uses OpenAI to improve recommendation wording/ranking over already-eligible candidates.
-
-Why it matters:
-- You can optimize for speed/cost or richer explanations.
-
-## 6. Session Persistence in Browser
+## 5. Session Persistence in Browser
 
 What it does:
 - Saves selected courses and controls in browser storage.
@@ -68,7 +59,6 @@ Why it matters:
 
 - Backend: Python, Flask, pandas, openpyxl
 - Frontend: HTML/CSS, vanilla JavaScript (modular ES modules)
-- AI (optional): OpenAI Chat Completions API
 - Data: Excel workbook (`marquette_courses_full.xlsx`)
 - Frontend unit tests: Jest + jsdom
 
@@ -77,8 +67,7 @@ Why it matters:
 Backend:
 - `backend/server.py`: API routes and request orchestration
 - `backend/data_loader.py`: workbook load/validation/compatibility mapping
-- `backend/semester_recommender.py`: semester pipeline and ranking flow
-- `backend/llm_recommender.py`: OpenAI call wrapper + deterministic fallback
+- `backend/semester_recommender.py`: semester pipeline, ranking, and recommendation output
 - `backend/eligibility.py`, `backend/allocator.py`, `backend/unlocks.py`: core logic
 
 Frontend:
@@ -119,15 +108,7 @@ git clone https://github.com/markiengo/marqbot.git
 cd marqbot
 ```
 
-3. Create `.env` in project root:
-
-```env
-OPENAI_API_KEY=sk-your-key
-OPENAI_MODEL=gpt-4o-mini
-USE_OPENAI_EXPLANATIONS=0
-```
-
-4. Install deps:
+3. Install deps:
 
 ```powershell
 python -m venv .venv
@@ -135,7 +116,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-5. Run:
+4. Run:
 
 ```powershell
 .\.venv\Scripts\python.exe backend/server.py

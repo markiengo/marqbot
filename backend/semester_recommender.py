@@ -6,7 +6,6 @@ from allocator import allocate_courses
 from unlocks import get_direct_unlocks, get_blocking_warnings
 from timeline import estimate_timeline
 from eligibility import get_eligible_courses, parse_term
-from llm_recommender import call_openai, build_deterministic_recommendations
 
 
 SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
@@ -117,6 +116,32 @@ def _build_projected_outputs(
     return projected_progress, projected_timeline
 
 
+def _build_deterministic_recommendations(candidates: list[dict], max_recommendations: int) -> list[dict]:
+    """Build recommendation output from pre-ranked candidates. No LLM call."""
+    target_count = min(max_recommendations, len(candidates))
+    recs = []
+    for cand in candidates[:target_count]:
+        buckets = cand.get("fills_buckets", [])
+        if buckets:
+            why = f"This course advances your Finance major path and counts toward {len(buckets)} unmet requirement bucket(s)."
+        else:
+            why = "This course advances your Finance major path based on prerequisite order and remaining requirements."
+        recs.append({
+            "course_code": cand["course_code"],
+            "course_name": cand.get("course_name", ""),
+            "why": why,
+            "prereq_check": cand.get("prereq_check", ""),
+            "requirement_bucket": cand.get("primary_bucket_label", ""),
+            "fills_buckets": cand.get("fills_buckets", []),
+            "unlocks": cand.get("unlocks", []),
+            "has_soft_requirement": cand.get("has_soft_requirement", False),
+            "soft_tags": cand.get("soft_tags", []),
+            "low_confidence": cand.get("low_confidence", False),
+            "notes": cand.get("notes"),
+        })
+    return recs
+
+
 def run_recommendation_semester(
     completed: list[str],
     in_progress: list[str],
@@ -124,7 +149,6 @@ def run_recommendation_semester(
     data: dict,
     max_recs: int,
     reverse_map: dict,
-    use_openai: bool,
     track_id: str = DEFAULT_TRACK_ID,
 ) -> dict:
     """Run the full recommendation pipeline for a single semester."""
@@ -217,16 +241,7 @@ def run_recommendation_semester(
     for cand in selected_sem:
         cand["unlocks"] = get_direct_unlocks(cand["course_code"], reverse_map, limit=3)
 
-    if use_openai:
-        recommendations_sem = call_openai(
-            selected_sem,
-            completed,
-            in_progress,
-            target_semester_label,
-            len(selected_sem),
-        )
-    else:
-        recommendations_sem = build_deterministic_recommendations(selected_sem, len(selected_sem))
+    recommendations_sem = _build_deterministic_recommendations(selected_sem, len(selected_sem))
 
     elective_bucket_ids = get_buckets_by_role(data["buckets_df"], track_id, "elective")
     if elective_bucket_ids:

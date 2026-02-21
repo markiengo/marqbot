@@ -116,41 +116,16 @@ def load_data(data_path: str) -> dict:
             columns=["track_id", "track_label", "active", "kind", "parent_major_id"]
         )
 
-    # ── Bucket map: 4-level fallback chain ─────────────────────────────────
+    # ── Bucket map: require course_bucket sheet ──────────────────────────────
     if "course_bucket" in sheet_names:
         course_bucket_map_df = xl.parse("course_bucket")
-        _map_source = "course_bucket"
-    elif "bucket_course_map" in sheet_names:
-        course_bucket_map_df = xl.parse("bucket_course_map")
-        _map_source = "bucket_course_map"
-    elif any("bucket" in s.lower() and "map" in s.lower() for s in sheet_names):
-        sheet = next(s for s in sheet_names if "bucket" in s.lower() and "map" in s.lower())
-        course_bucket_map_df = xl.parse(sheet)
-        _map_source = sheet
+    elif "course_sub_buckets" in sheet_names:
+        course_bucket_map_df = xl.parse("course_sub_buckets")
     else:
-        # Last resort: derive normalized rows from courses.bucket1..bucket4.
-        # Use already-loaded tracks_df to resolve active track.
-        default_track = "FIN_MAJOR"
-        if len(tracks_df) > 0 and "active" in tracks_df.columns:
-            active_rows = tracks_df[tracks_df["active"] == True]
-            if len(active_rows) > 0:
-                default_track = str(active_rows.iloc[0]["track_id"])
-        rows = []
-        for _, row in courses_df.iterrows():
-            for col in ["bucket1", "bucket2", "bucket3", "bucket4"]:
-                val = row.get(col)
-                if pd.notna(val) and str(val).strip():
-                    rows.append({
-                        "track_id": default_track,
-                        "course_code": row["course_code"],
-                        "bucket_id": str(val).strip(),
-                    })
-        course_bucket_map_df = pd.DataFrame(rows) if rows else pd.DataFrame(
-            columns=["track_id", "course_code", "bucket_id"]
+        raise ValueError(
+            "Workbook must contain a 'course_bucket' (or 'course_sub_buckets') sheet. "
+            "No bucket mapping found."
         )
-        _map_source = f"derived:bucket1..bucket4 (track={default_track})"
-
-    print(f"[INFO] Bucket map source: {_map_source}")
 
     # Backward/forward compatibility for workbook schema naming.
     if "track_id" not in buckets_df.columns and "program_id" in buckets_df.columns:

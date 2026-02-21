@@ -156,7 +156,7 @@ These remain track-agnostic and should not be changed in Phase 3:
 
 ---
 
-## Phase 2: Workbook Cleanup (`migrate_schema.py --clean`)
+## Phase 2 (Completed): Workbook Cleanup (`migrate_schema.py --clean`)
 
 ### Goal
 Safely remove deprecated `bucket1..bucket4` columns once canonical mapping is verified healthy.
@@ -190,7 +190,7 @@ Command behavior:
 2. `find_deprecated_bucket_cols(courses_ws) -> list[int]`
 - Return present **1-based openpyxl column indexes** (not 0-based) among `bucket1..bucket4`.
 - Return empty list when none are present.
-- `remove_columns` depends on these being 1-based — keep consistent.
+- `remove_columns` depends on these being 1-based ï¿½ keep consistent.
 
 3. `backup_workbook(path: str) -> str`
 - Copy workbook to `<path>.bak` before destructive change (use `shutil.copy2`).
@@ -231,7 +231,7 @@ Cleanup aborts with clear error and non-zero exit when:
 ### Known Pre-existing Bug (out of scope but noted)
 `write_course_bucket_sheet` line 121 in `scripts/migrate_schema.py`:
 ```python
-# BUG: max_row returns int — len() on int raises TypeError
+# BUG: max_row returns int ï¿½ len() on int raises TypeError
 print(f"[INFO] Replacing existing 'course_bucket' sheet ({len(wb['course_bucket'].max_row - 1)} existing rows).")
 # Fix when touching this function: remove the len() wrapper ? use (wb['course_bucket'].max_row - 1) directly
 ```
@@ -304,7 +304,7 @@ Backend contracts:
 
 ### Phase 3.3: Replace Hardcoded Bucket IDs with Role Lookup
 
-Required helpers (place in `backend/requirements.py` — already the shared-config module, imported by all callers):
+Required helpers (place in `backend/requirements.py` ï¿½ already the shared-config module, imported by all callers):
 1. `_get_bucket_by_role(buckets_df, track_id, role) -> str | None`
 2. `_get_buckets_by_role(buckets_df, track_id, role) -> list[str]`
 
@@ -382,7 +382,7 @@ Prove that new tracks can be onboarded through workbook data only, with automate
 4. **Program catalog normalization** (loader + `/programs` endpoint): exposes `kind` and `parent_major_id` metadata for Phase 5 selector UX.
 
 ### Architecture Proof (exit criteria 1)
-The `TestSyntheticTrackSmoke` suite injects a track (`SYNTH_TEST`) with 2 buckets and 5 course mappings via monkeypatch — no backend code modified — and verifies:
+The `TestSyntheticTrackSmoke` suite injects a track (`SYNTH_TEST`) with 2 buckets and 5 course mappings via monkeypatch ï¿½ no backend code modified ï¿½ and verifies:
 - Recommendations are returned.
 - Completed courses reduce remaining slots correctly.
 - Both buckets appear in progress output.
@@ -392,8 +392,8 @@ The `TestSyntheticTrackSmoke` suite injects a track (`SYNTH_TEST`) with 2 bucket
 1. Add track row in `tracks` sheet with `active=0`.
 2. Add bucket rows in `buckets` sheet with valid role assignments (`core`, `elective`).
 3. Add normalized mapping rows in `course_bucket` sheet.
-4. Run `python scripts/validate_track.py --track <TRACK_ID>` — all checks must pass.
-5. Run `/recommend` smoke test with explicit `track_id` — verify recommendations returned.
+4. Run `python scripts/validate_track.py --track <TRACK_ID>` ï¿½ all checks must pass.
+5. Run `/recommend` smoke test with explicit `track_id` ï¿½ verify recommendations returned.
 6. Set `active=1` in `tracks` sheet only after steps 4 and 5 pass.
 
 ### Publish Gate Checks (automated by validator)
@@ -411,8 +411,8 @@ A track cannot be published unless:
 - Activate at least one non-Finance track end-to-end with real workbook data.
 
 ### Phase 4 Exit Criteria
-1. At least one non-Finance track can be onboarded without backend code edits — **architecture proven via synthetic smoke test**.
-2. Publish gate process is documented and repeatable — **validator CLI + workflow documented above**.
+1. At least one non-Finance track can be onboarded without backend code edits ï¿½ **architecture proven via synthetic smoke test**.
+2. Publish gate process is documented and repeatable ï¿½ **validator CLI + workflow documented above**.
 
 ---
 

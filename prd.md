@@ -9,7 +9,7 @@ Status: Implemented + Iterating
 ## 1. Product Summary
 
 MarqBot is a Finance-major course planning assistant for Marquette students.  
-It recommends realistic next courses by combining deterministic prerequisite checks, requirement-bucket progress, and optional AI explanation text.
+It recommends realistic next courses by combining deterministic prerequisite checks and requirement-bucket progress.
 
 Primary outcome:
 - Students quickly know what they can take next and why.
@@ -73,20 +73,7 @@ How it works:
 Why this exists:
 - Enables quick registration-readiness checks.
 
-## 2.5 Optional OpenAI Explanation Layer
-
-Feature:
-- Toggle between deterministic-only output and LLM-enhanced explanations.
-
-How it works:
-- `USE_OPENAI_EXPLANATIONS=0`: deterministic recommendation text.
-- `USE_OPENAI_EXPLANATIONS=1`: OpenAI ranks/explains pre-filtered candidates.
-- Eligibility remains deterministic in both modes.
-
-Why this exists:
-- Balance speed/cost with explanation quality.
-
-## 2.6 Session Persistence
+## 2.5 Session Persistence
 
 Feature:
 - Frontend stores user session state in browser storage.
@@ -158,7 +145,7 @@ Expected sheets:
 - `equivalencies`
 - `tracks`
 - `buckets`
-- `bucket_course_map`
+- `course_bucket`
 
 Compatibility:
 - If workbook uses `program_id`, backend maps to `track_id`.
@@ -174,8 +161,7 @@ Prereq fields:
 Backend modules:
 - `server.py`: API endpoints + orchestration
 - `data_loader.py`: workbook ingestion + integrity warnings
-- `semester_recommender.py`: per-semester pipeline
-- `llm_recommender.py`: OpenAI wrapper + deterministic fallback
+- `semester_recommender.py`: per-semester pipeline + recommendation output
 - `eligibility.py`, `allocator.py`, `unlocks.py`, `timeline.py`
 
 Frontend modules:
@@ -191,16 +177,13 @@ Frontend modules:
 ## 7. Non-Functional Requirements
 
 Performance:
-- Deterministic mode should respond substantially faster than LLM mode.
+- All recommendations are fully deterministic and local — no external API calls.
 
 Reliability:
 - Recommendations must never bypass deterministic hard-prereq checks.
 
 Maintainability:
 - Logic split into domain modules (loader/recommender/render/session).
-
-Cost:
-- LLM calls are optional and controlled by env flag.
 
 ---
 

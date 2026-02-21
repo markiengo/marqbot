@@ -29,7 +29,6 @@ from semester_recommender import (
 load_dotenv()
 
 app = Flask(__name__)
-USE_OPENAI_EXPLANATIONS = os.environ.get("USE_OPENAI_EXPLANATIONS", "0") == "1"
 
 # â”€â”€ Paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -680,7 +679,7 @@ def recommend():
 
     sem1 = run_recommendation_semester(
         completed, in_progress, target_semester_primary,
-        effective_data, max_recs, _reverse_map, USE_OPENAI_EXPLANATIONS,
+        effective_data, max_recs, _reverse_map,
         track_id=effective_track_id,
     )
     semesters_payload = [sem1]
@@ -691,7 +690,7 @@ def recommend():
         ))
         sem2 = run_recommendation_semester(
             completed_for_sem2, [], second_label,
-            effective_data, max_recs, _reverse_map, USE_OPENAI_EXPLANATIONS,
+            effective_data, max_recs, _reverse_map,
             track_id=effective_track_id,
         )
         semesters_payload.append(sem2)

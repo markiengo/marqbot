@@ -118,7 +118,6 @@ def test_soft_tags_demoted_except_concurrent_only():
         data=data,
         max_recs=5,
         reverse_map={},
-        use_openai=False,
         track_id="FIN_MAJOR",
     )
 
@@ -170,7 +169,6 @@ def test_soft_demoted_courses_still_return_as_fallback():
         data=data,
         max_recs=1,
         reverse_map={},
-        use_openai=False,
         track_id="FIN_MAJOR",
     )
 

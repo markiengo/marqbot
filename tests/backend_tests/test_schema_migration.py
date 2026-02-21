@@ -4,7 +4,7 @@ Regression tests for the schema normalization (Phase 1).
 Covers:
   1. _safe_bool_col() — all input variants
   2. allocate_courses() — double-count works without row-level can_double_count column
-  3. data_loader fallback chain — loader selects correct sheet and warns appropriately
+  3. data_loader strict mode — loader requires course_bucket sheet
 """
 
 import io
@@ -161,7 +161,7 @@ class TestDoubleCountWithoutRowLevelFlag:
         )
 
 
-# ── 3. Loader fallback chain ───────────────────────────────────────────────────
+# ── 3. Loader strict mode ─────────────────────────────────────────────────────
 
 def _make_minimal_xlsx(sheet_data: dict) -> str:
     """
@@ -195,15 +195,11 @@ def _base_sheets():
     return courses, buckets, tracks
 
 
-class TestLoaderFallbackChain:
+class TestLoaderStrictMode:
     def test_uses_course_bucket_sheet_when_present(self, tmp_path):
         courses, buckets, tracks = _base_sheets()
         course_bucket = pd.DataFrame([{
             "track_id": "FIN_MAJOR", "course_code": "FINA 3001", "bucket_id": "CORE",
-        }])
-        # Also include old bucket_course_map — loader should prefer course_bucket
-        bucket_course_map = pd.DataFrame([{
-            "track_id": "FIN_MAJOR", "course_code": "FINA 3001", "bucket_id": "WRONG",
         }])
         path = str(tmp_path / "test.xlsx")
         with pd.ExcelWriter(path, engine="openpyxl") as w:
@@ -211,16 +207,15 @@ class TestLoaderFallbackChain:
             buckets.to_excel(w, sheet_name="buckets", index=False)
             tracks.to_excel(w, sheet_name="tracks", index=False)
             course_bucket.to_excel(w, sheet_name="course_bucket", index=False)
-            bucket_course_map.to_excel(w, sheet_name="bucket_course_map", index=False)
 
         data = load_data(path)
         map_df = data["course_bucket_map_df"]
-        assert "WRONG" not in map_df["bucket_id"].values, "Should use course_bucket, not bucket_course_map"
         assert "CORE" in map_df["bucket_id"].values
 
-    def test_falls_back_to_bucket_course_map(self, tmp_path):
+    def test_accepts_course_sub_buckets_sheet(self, tmp_path):
+        """V2 workbooks use course_sub_buckets — loader should accept it."""
         courses, buckets, tracks = _base_sheets()
-        bucket_course_map = pd.DataFrame([{
+        course_sub_buckets = pd.DataFrame([{
             "track_id": "FIN_MAJOR", "course_code": "FINA 3001", "bucket_id": "CORE",
         }])
         path = str(tmp_path / "test.xlsx")
@@ -228,53 +223,23 @@ class TestLoaderFallbackChain:
             courses.to_excel(w, sheet_name="courses", index=False)
             buckets.to_excel(w, sheet_name="buckets", index=False)
             tracks.to_excel(w, sheet_name="tracks", index=False)
-            bucket_course_map.to_excel(w, sheet_name="bucket_course_map", index=False)
+            course_sub_buckets.to_excel(w, sheet_name="course_sub_buckets", index=False)
 
         data = load_data(path)
-        assert "CORE" in data["course_bucket_map_df"]["bucket_id"].values
+        map_df = data["course_bucket_map_df"]
+        assert "CORE" in map_df["bucket_id"].values
 
-    def test_derives_from_wide_columns_when_no_map_sheet(self, tmp_path):
+    def test_raises_when_no_bucket_map_sheet(self, tmp_path):
+        """Loader must raise ValueError when neither course_bucket nor course_sub_buckets exists."""
         courses, buckets, tracks = _base_sheets()
-        courses["bucket1"] = "CORE"  # wide-format column
         path = str(tmp_path / "test.xlsx")
         with pd.ExcelWriter(path, engine="openpyxl") as w:
             courses.to_excel(w, sheet_name="courses", index=False)
             buckets.to_excel(w, sheet_name="buckets", index=False)
             tracks.to_excel(w, sheet_name="tracks", index=False)
 
-        data = load_data(path)
-        map_df = data["course_bucket_map_df"]
-        assert len(map_df) == 1
-        assert map_df.iloc[0]["bucket_id"] == "CORE"
-        assert map_df.iloc[0]["course_code"] == "FINA 3001"
-
-    def test_active_track_read_from_tracks_sheet(self, tmp_path):
-        """Derived map should use the active track from tracks sheet, not hardcoded FIN_MAJOR."""
-        courses = pd.DataFrame([{
-            "course_code": "ACCT 1001", "course_name": "Accounting", "credits": 3,
-            "offered_fall": 1, "offered_spring": 1, "offered_summer": 0,
-            "prereq_hard": "none", "prereq_level": 0, "bucket1": "CORE",
-        }])
-        buckets = pd.DataFrame([{
-            "track_id": "BUS_MAJOR", "bucket_id": "CORE", "bucket_label": "Core",
-            "priority": 1, "needed_count": 3, "needed_credits": None,
-            "min_level": None, "allow_double_count": 0,
-        }])
-        tracks = pd.DataFrame([
-            {"track_id": "FIN_MAJOR", "active": 0},
-            {"track_id": "BUS_MAJOR", "active": 1},
-        ])
-        path = str(tmp_path / "test.xlsx")
-        with pd.ExcelWriter(path, engine="openpyxl") as w:
-            courses.to_excel(w, sheet_name="courses", index=False)
-            buckets.to_excel(w, sheet_name="buckets", index=False)
-            tracks.to_excel(w, sheet_name="tracks", index=False)
-
-        data = load_data(path)
-        map_df = data["course_bucket_map_df"]
-        assert map_df.iloc[0]["track_id"] == "BUS_MAJOR", (
-            "Derived map should use active track from tracks sheet"
-        )
+        with pytest.raises(ValueError, match="course_bucket"):
+            load_data(path)
 
     def test_bool_coercion_on_loaded_data(self, tmp_path):
         """offered_fall stored as 1/0 in Excel should load as True/False."""
