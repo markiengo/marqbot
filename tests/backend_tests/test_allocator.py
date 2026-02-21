@@ -8,10 +8,10 @@ from allocator import allocate_courses
 @pytest.fixture
 def simple_buckets():
     return pd.DataFrame([
-        {"track_id": "FIN_MAJOR", "bucket_id": "CORE",        "bucket_label": "Core Required",        "priority": 1, "needed_count": 3, "needed_credits": None, "min_level": None, "allow_double_count": False},
-        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2","bucket_label": "Choose Two Finance",    "priority": 2, "needed_count": 2, "needed_credits": None, "min_level": 3000,  "allow_double_count": True},
-        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_1","bucket_label": "Choose One Finance",    "priority": 3, "needed_count": 1, "needed_credits": None, "min_level": 3000,  "allow_double_count": True},
-        {"track_id": "FIN_MAJOR", "bucket_id": "BUS_ELEC_4",  "bucket_label": "Business Electives",   "priority": 4, "needed_count": 4, "needed_credits": None, "min_level": None,  "allow_double_count": True},
+        {"track_id": "FIN_MAJOR", "bucket_id": "CORE",        "bucket_label": "Core Required",        "priority": 1, "needed_count": 3, "needed_credits": None, "min_level": None, "allow_double_count": False, "parent_bucket_id": "FIN_REQ"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2","bucket_label": "Choose Two Finance",    "priority": 2, "needed_count": 2, "needed_credits": None, "min_level": 3000,  "allow_double_count": True,  "parent_bucket_id": "FIN_REQ"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_1","bucket_label": "Choose One Finance",    "priority": 3, "needed_count": 1, "needed_credits": None, "min_level": 3000,  "allow_double_count": True,  "parent_bucket_id": "FIN_REQ"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BUS_ELEC_4",  "bucket_label": "Business Electives",   "priority": 4, "needed_count": 4, "needed_credits": None, "min_level": None,  "allow_double_count": True,  "parent_bucket_id": "BCC"},
     ])
 
 
@@ -186,11 +186,11 @@ class TestPolicyDrivenDoubleCount:
         assert dc[0]["course_code"] == "X100"
         assert dc[0]["buckets"] == ["A", "B", "C"]
 
-    def test_policy_default_deny_blocks_unspecified_pairs(self):
+    def test_same_family_default_deny_blocks_unspecified_pairs(self):
         buckets = pd.DataFrame([
-            {"track_id": "P1", "bucket_id": "A", "bucket_label": "A", "priority": 1, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True},
-            {"track_id": "P1", "bucket_id": "B", "bucket_label": "B", "priority": 2, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True},
-            {"track_id": "P1", "bucket_id": "C", "bucket_label": "C", "priority": 3, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True},
+            {"track_id": "P1", "bucket_id": "A", "bucket_label": "A", "priority": 1, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True, "parent_bucket_id": "PARENT"},
+            {"track_id": "P1", "bucket_id": "B", "bucket_label": "B", "priority": 2, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True, "parent_bucket_id": "PARENT"},
+            {"track_id": "P1", "bucket_id": "C", "bucket_label": "C", "priority": 3, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True, "parent_bucket_id": "PARENT"},
         ])
         course_map = pd.DataFrame([
             {"track_id": "P1", "bucket_id": "A", "course_code": "X100"},
@@ -244,20 +244,18 @@ class TestPolicyDrivenDoubleCount:
         assert "X100" in result["applied_by_bucket"]["S1"]["completed_applied"]
         assert "X100" not in result["applied_by_bucket"]["S2"]["completed_applied"]
 
-    def test_no_matching_policy_rows_denies_by_default(self):
-        """Policy-only mode: no matching pair rules means no double-counting."""
+    def test_no_matching_policy_rows_uses_family_default(self):
+        """No policy rows: same family denies, different families allow."""
         buckets = pd.DataFrame([
-            {"track_id": "P1", "bucket_id": "A", "bucket_label": "A", "priority": 1, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True},
-            {"track_id": "P1", "bucket_id": "B", "bucket_label": "B", "priority": 2, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True},
+            {"track_id": "P1", "bucket_id": "A", "bucket_label": "A", "priority": 1, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True, "parent_bucket_id": "PARENT_1"},
+            {"track_id": "P1", "bucket_id": "B", "bucket_label": "B", "priority": 2, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True, "parent_bucket_id": "PARENT_2"},
         ])
         course_map = pd.DataFrame([
             {"track_id": "P1", "bucket_id": "A", "course_code": "X100"},
             {"track_id": "P1", "bucket_id": "B", "course_code": "X100"},
         ])
-        policy = pd.DataFrame([
-            # Unrelated node IDs: no applicable pair rule for A/B.
-            {"program_id": "P1", "node_type_a": "sub_bucket", "node_id_a": "S1", "node_type_b": "sub_bucket", "node_id_b": "S2", "allow_double_count": False},
-        ])
+        policy = pd.DataFrame()
 
         result = run_with_policy(["X100"], [], buckets, course_map, self._base_courses(), policy)
-        assert result["double_counted_courses"] == []
+        assert len(result["double_counted_courses"]) == 1
+        assert result["double_counted_courses"][0]["buckets"] == ["A", "B"]

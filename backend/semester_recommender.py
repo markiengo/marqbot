@@ -12,7 +12,7 @@ SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
 
 _CONCURRENT_ONLY_TAG = "may_be_concurrent"
 _PROJECTION_NOTE = (
-    "Assuming you complete these recommendations, projected progress updates are shown below."
+    "Projected progress below assumes you complete these recommendations."
 )
 
 
@@ -111,8 +111,7 @@ def _build_projected_outputs(
     projected_timeline = estimate_timeline(projected_alloc["remaining"])
     if isinstance(projected_timeline, dict):
         projected_timeline["disclaimer"] = (
-            "Estimated time to complete Finance major requirements only. "
-            "Assumes about 3 major courses per term and typical course availability."
+            "Major-only estimate, assuming ~3 major courses per term and typical availability."
         )
     return projected_progress, projected_timeline
 
@@ -185,8 +184,7 @@ def run_recommendation_semester(
     timeline_sem = estimate_timeline(alloc["remaining"])
     if isinstance(timeline_sem, dict):
         timeline_sem["disclaimer"] = (
-            "Estimated time to complete Finance major requirements only. "
-            "Assumes about 3 major courses per term and typical course availability."
+            "Major-only estimate, assuming ~3 major courses per term and typical availability."
         )
 
     if not non_manual_sem:
@@ -233,9 +231,9 @@ def run_recommendation_semester(
         key=lambda c: (
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
             _soft_tag_demote_penalty(c),
-            c.get("prereq_level", 0),
             c.get("primary_bucket_priority", 99),
             -c.get("multi_bucket_score", 0),
+            c.get("prereq_level", 0),
             c["course_code"],
         ),
     )

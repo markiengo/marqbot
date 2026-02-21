@@ -96,6 +96,7 @@ def get_eligible_courses(
     Returns eligible courses for the target term, sorted by:
       1. Primary bucket priority (ascending = most important first)
       2. Multi-bucket score (descending = more unmet buckets filled = better)
+      3. Prerequisite level (ascending = earlier classes first)
 
     Eligible = offered in term AND not yet taken AND prereqs satisfied
              AND not a manual_review course
@@ -254,13 +255,14 @@ def get_eligible_courses(
             "unlocks": [],  # populated by server.py
         })
 
-    # Sort: prerequisite depth ASC (bottom-up), then bucket priority ASC,
-    # then multi_bucket_score DESC, then code.
+    # Sort: bucket priority ASC (higher-priority requirements first),
+    # then multi_bucket_score DESC (fills more unmet buckets),
+    # then prerequisite depth ASC, then code.
     results.sort(
         key=lambda c: (
-            c["prereq_level"],
             c["primary_bucket_priority"],
             -c["multi_bucket_score"],
+            c["prereq_level"],
             c["course_code"],
         )
     )

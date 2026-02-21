@@ -1,10 +1,14 @@
 ﻿import { esc } from "./modules/utils.js";
 import { saveSession, restoreSession } from "./modules/session.js";
-import { loadCourses, loadPrograms, postRecommend } from "./modules/api.js";
+import { loadCourses, loadPrograms, postRecommend, postCanTake } from "./modules/api.js";
 import {
   renderErrorHtml,
   renderCanTakeHtml,
   renderRecommendationsHtml,
+  renderProgressRing,
+  renderKpiCardsHtml,
+  renderDegreeSummaryHtml,
+  renderCanTakeInlineHtml,
 } from "./modules/rendering.js";
 import {
   renderChips,
@@ -53,6 +57,7 @@ const searchTrack = document.getElementById("search-track");
 const dropdownTrack = document.getElementById("dropdown-track");
 const chipsTrack = document.getElementById("chips-track");
 const trackFormGroup = document.getElementById("track-form-group");
+const majorFormGroup = document.getElementById("major-form-group");
 
 /* -- Session refs ------------------------------------------------------ */
 const sessionElements = {
@@ -70,12 +75,14 @@ function renderCompletedChips() {
   renderChips(chipsCompleted, state.completed, code =>
     removeChip(code, state.completed, chipsCompleted, renderCompletedChips, onSave),
   );
+  updateStepIndicator();
 }
 
 function renderIpChips() {
   renderChips(chipsIp, state.inProgress, code =>
     removeChip(code, state.inProgress, chipsIp, renderIpChips, onSave),
   );
+  updateStepIndicator();
 }
 
 function onSave() {
@@ -85,6 +92,22 @@ function onSave() {
 function clearResults() {
   resultsEl.innerHTML = "";
   resultsEl.classList.add("hidden");
+  // Also reset progress dashboard and right-panel summary
+  const progressDash = document.getElementById("progress-dashboard");
+  if (progressDash) progressDash.classList.add("hidden");
+  const ringWrap = document.getElementById("progress-ring-wrap");
+  if (ringWrap) ringWrap.innerHTML = "";
+  const kpiRow = document.getElementById("kpi-row");
+  if (kpiRow) kpiRow.innerHTML = "";
+  const rightSummary = document.getElementById("right-summary");
+  if (rightSummary) rightSummary.classList.add("hidden");
+  const rightSummaryContent = document.getElementById("right-summary-content");
+  if (rightSummaryContent) rightSummaryContent.innerHTML = "";
+  const canTakeResult = document.getElementById("can-take-result");
+  if (canTakeResult) {
+    canTakeResult.innerHTML = "";
+    canTakeResult.classList.add("hidden");
+  }
 }
 
 /* -- Program selector helpers ----------------------------------------- */
@@ -140,12 +163,12 @@ function renderProgramDropdown(dropdownEl, items, onSelect, activeIndex = 0) {
 
 function filterProgramOptions(query, options, excludeIds = new Set()) {
   const q = String(query || "").trim().toLowerCase();
-  if (!q) return [];
-  return options
+  const filtered = options
     .filter(o => !excludeIds.has(o.id) && (
-      o.id.toLowerCase().includes(q) || o.label.toLowerCase().includes(q)
+      !q || o.id.toLowerCase().includes(q) || o.label.toLowerCase().includes(q)
     ))
-    .slice(0, 12);
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  return filtered.slice(0, q ? 12 : 2);
 }
 
 function syncStateFromHiddenSelectors() {
@@ -244,6 +267,18 @@ function refreshProgramOptions(clear = false) {
 
   rebuildHiddenTrackSelect(filteredTracks);
 
+  // Enforce double-major limit: disable major input when 2 are already selected.
+  const majorLimitReached = state.selectedMajors.size >= 2;
+  if (searchMajors) {
+    searchMajors.disabled = majorLimitReached;
+    searchMajors.placeholder = majorLimitReached
+      ? "Double major limit reached"
+      : "Search majors...";
+  }
+  if (majorFormGroup) {
+    majorFormGroup.classList.toggle("major-limit-reached", majorLimitReached);
+  }
+
   // Show/hide track section based on whether the selected major(s) have tracks.
   const noTracksAvailable = state.selectedMajors.size > 0 && filteredTracks.length === 0;
   if (searchTrack) {
@@ -258,8 +293,149 @@ function refreshProgramOptions(clear = false) {
 
   renderMajorChips();
   renderTrackChip();
+  updateStepIndicator();
 
   if (clear) clearResults();
+}
+
+/* -- Step indicator --------------------------------------------------- */
+function updateStepIndicator() {
+  const step1Done = state.selectedMajors.size > 0;
+  const step2Done = state.completed.size > 0 || state.inProgress.size > 0;
+  const step3Done = resultsEl && !resultsEl.classList.contains("hidden") && resultsEl.innerHTML.trim() !== "";
+
+  const steps = [step1Done, step2Done, step3Done];
+  const indicators = document.querySelectorAll("#step-indicator .step");
+  indicators.forEach((el, idx) => {
+    el.classList.toggle("step--done", steps[idx]);
+    el.classList.toggle("step--pending", !steps[idx]);
+  });
+}
+
+/* -- Anchor navigation ------------------------------------------------- */
+function setupAnchorNav() {
+  const anchors = document.querySelectorAll(".anchor-link");
+  const setActiveAnchor = (anchorHref) => {
+    anchors.forEach(a => a.classList.toggle("anchor-active", a.getAttribute("href") === anchorHref));
+  };
+
+  anchors.forEach(link => {
+    link.addEventListener("click", e => {
+      e.preventDefault();
+      const targetId = link.getAttribute("href")?.slice(1);
+      const target = targetId ? document.getElementById(targetId) : null;
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      setActiveAnchor(link.getAttribute("href"));
+    });
+  });
+
+  if (!("IntersectionObserver" in window)) return;
+
+  // Observe center-panel sections only; left input section is sticky and would
+  // otherwise dominate active-nav state.
+  const sectionProgress = document.getElementById("section-progress");
+  const sectionRecs = document.getElementById("section-recommendations");
+  const sections = [sectionProgress, sectionRecs].filter(Boolean);
+  if (!sections.length) return;
+  const visible = new Set();
+  const topbarHeight = parseInt(
+    getComputedStyle(document.documentElement).getPropertyValue("--topbar-height"),
+    10,
+  ) || 52;
+
+  const observer = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
+        const id = entry.target.id;
+        if (entry.isIntersecting) visible.add(id);
+        else visible.delete(id);
+      });
+
+      if (visible.has("section-recommendations")) {
+        setActiveAnchor("#section-recommendations");
+      } else if (visible.has("section-progress")) {
+        setActiveAnchor("#section-progress");
+      } else {
+        setActiveAnchor("#section-input");
+      }
+    },
+    { rootMargin: `-${topbarHeight}px 0px -50% 0px`, threshold: 0.05 },
+  );
+
+  sections.forEach(s => observer.observe(s));
+}
+
+/* -- Progress dashboard ------------------------------------------------ */
+function populateProgressDashboard(data) {
+  if (!data.current_progress) return;
+
+  // Aggregate totals
+  let totalDone = 0;
+  let totalInProg = 0;
+  let totalNeeded = 0;
+  for (const prog of Object.values(data.current_progress)) {
+    totalDone += Number(prog.completed_done || 0);
+    totalInProg += Number(prog.in_progress_increment || 0);
+    totalNeeded += Number(prog.needed || 0);
+  }
+  const totalRemaining = Math.max(0, totalNeeded - totalDone - totalInProg);
+  const pct = totalNeeded > 0 ? Math.min(100, Math.round((totalDone / totalNeeded) * 100)) : 0;
+
+  const dashEl = document.getElementById("progress-dashboard");
+  const ringWrap = document.getElementById("progress-ring-wrap");
+  const kpiRow = document.getElementById("kpi-row");
+
+  if (ringWrap) ringWrap.innerHTML = renderProgressRing(pct, 100, 10);
+  if (kpiRow) kpiRow.innerHTML = renderKpiCardsHtml(totalDone, totalRemaining, totalInProg);
+  if (dashEl) dashEl.classList.remove("hidden");
+
+  // Right-panel summary
+  const rightSummary = document.getElementById("right-summary");
+  const rightSummaryContent = document.getElementById("right-summary-content");
+  if (rightSummaryContent) {
+    rightSummaryContent.innerHTML = renderDegreeSummaryHtml(data.current_progress);
+  }
+  if (rightSummary) rightSummary.classList.remove("hidden");
+}
+
+/* -- Standalone can-take handler --------------------------------------- */
+function setupCanTakeStandalone() {
+  const canTakeInputEl = document.getElementById("can-take-input");
+  const canTakeResultEl = document.getElementById("can-take-result");
+  if (!canTakeInputEl || !canTakeResultEl) return;
+
+  canTakeInputEl.addEventListener("keydown", async e => {
+    if (e.key !== "Enter") return;
+    // Prevent full form submission
+    e.preventDefault();
+    e.stopPropagation();
+
+    const requestedCourse = canTakeInputEl.value.trim();
+    if (!requestedCourse) return;
+
+    canTakeResultEl.innerHTML = `<div style="color:var(--ink-500);font-size:var(--text-xs);padding:4px 0;">Checking…</div>`;
+    canTakeResultEl.classList.remove("hidden");
+
+    const payload = {
+      completed_courses: [...state.completed].join(", "),
+      in_progress_courses: [...state.inProgress].join(", "),
+      target_semester: document.getElementById("target-semester")?.value || "Spring 2026",
+      requested_course: requestedCourse,
+      declared_majors: [...state.selectedMajors],
+      track_id: state.selectedTrack || null,
+    };
+
+    try {
+      const data = await postCanTake(payload);
+      canTakeResultEl.innerHTML = renderCanTakeInlineHtml(data);
+    } catch (err) {
+      canTakeResultEl.innerHTML = `<div class="can-take-inline can-take-inline--no" role="alert">
+        <span class="ct-pill ct-pill--no">Error</span>
+        <span class="ct-msg">Network error: ${esc(err.message)}</span>
+      </div>`;
+    }
+    canTakeResultEl.classList.remove("hidden");
+  });
 }
 
 function populateProgramSelectors(data) {
@@ -276,20 +452,6 @@ function populateProgramSelectors(data) {
       opt.value = major.major_id;
       opt.textContent = majorLabel(major.major_id);
       declaredMajorsSelect.appendChild(opt);
-    }
-  }
-
-  const hasMajorSelected = Array.from(declaredMajorsSelect?.selectedOptions || []).length > 0;
-  if (!hasMajorSelected && (state.programs.majors || []).length > 0) {
-    const defaultMajorId =
-      state.programs.majors.find(m => m.major_id === state.programs.defaultTrackId)?.major_id
-      || state.programs.majors.find(m => m.active !== false)?.major_id
-      || state.programs.majors[0]?.major_id
-      || "";
-    if (defaultMajorId) {
-      for (const opt of Array.from(declaredMajorsSelect.options)) {
-        opt.selected = opt.value === defaultMajorId;
-      }
     }
   }
 
@@ -338,16 +500,18 @@ function setupProgramSelectors() {
     searchTrack.focus();
   };
 
-  searchMajors?.addEventListener("input", () => {
-    const options = (state.programs.majors || []).map(m => ({
-      id: String(m.major_id),
-      label: majorLabel(m.major_id),
-    }));
-    majorMatches = filterProgramOptions(searchMajors.value, options, state.selectedMajors);
-    if (String(searchMajors.value || "").trim().length < 1) {
-      closeProgramDropdowns();
-      return;
-    }
+  const majorOptions = () => (state.programs.majors || []).map(m => ({
+    id: String(m.major_id),
+    label: majorLabel(m.major_id),
+  }));
+
+  const trackOptions = () => getFilteredTracks().map(t => ({
+    id: String(t.track_id),
+    label: trackLabel(t.track_id),
+  }));
+
+  const renderMajorMatches = query => {
+    majorMatches = filterProgramOptions(query, majorOptions(), state.selectedMajors);
     majorActiveIndex = majorMatches.length ? 0 : -1;
     renderProgramDropdown(dropdownMajors, majorMatches, item => {
       if (!state.selectedMajors.has(item.id) && state.selectedMajors.size >= 2) {
@@ -361,19 +525,11 @@ function setupProgramSelectors() {
       closeProgramDropdowns();
       searchMajors.focus();
     }, majorActiveIndex);
-  });
+  };
 
-  searchTrack?.addEventListener("input", () => {
-    const options = getFilteredTracks().map(t => ({
-      id: String(t.track_id),
-      label: trackLabel(t.track_id),
-    }));
+  const renderTrackMatches = query => {
     const exclude = state.selectedTrack ? new Set([state.selectedTrack]) : new Set();
-    trackMatches = filterProgramOptions(searchTrack.value, options, exclude);
-    if (String(searchTrack.value || "").trim().length < 1) {
-      closeProgramDropdowns();
-      return;
-    }
+    trackMatches = filterProgramOptions(query, trackOptions(), exclude);
     trackActiveIndex = trackMatches.length ? 0 : -1;
     renderProgramDropdown(dropdownTrack, trackMatches, item => {
       state.selectedTrack = item.id;
@@ -385,6 +541,24 @@ function setupProgramSelectors() {
       closeProgramDropdowns();
       searchTrack.focus();
     }, trackActiveIndex);
+  };
+
+  searchMajors?.addEventListener("input", () => {
+    renderMajorMatches(searchMajors.value);
+  });
+
+  searchMajors?.addEventListener("focus", () => {
+    if (searchMajors.disabled) return;
+    renderMajorMatches("");
+  });
+
+  searchTrack?.addEventListener("input", () => {
+    renderTrackMatches(searchTrack.value);
+  });
+
+  searchTrack?.addEventListener("focus", () => {
+    if (searchTrack.disabled) return;
+    renderTrackMatches("");
   });
 
   searchMajors?.addEventListener("blur", () => setTimeout(closeProgramDropdowns, 150));
@@ -449,15 +623,24 @@ function renderResults(data) {
 
   if (data.mode === "error") {
     resultsEl.innerHTML = renderErrorHtml(data.error?.message || "An error occurred.", data.error);
+    updateStepIndicator();
     return;
   }
   if (data.mode === "can_take") {
     resultsEl.innerHTML = renderCanTakeHtml(data);
+    updateStepIndicator();
     return;
   }
   if (data.mode === "recommendations") {
     const requested = parseInt(sessionElements.maxRecs?.value || "3", 10);
     resultsEl.innerHTML = renderRecommendationsHtml(data, requested);
+    populateProgressDashboard(data);
+    updateStepIndicator();
+    // Auto-scroll to progress dashboard after render
+    requestAnimationFrame(() => {
+      const progressEl = document.getElementById("section-progress");
+      if (progressEl) progressEl.scrollIntoView({ behavior: "smooth" });
+    });
   }
 }
 
@@ -596,12 +779,15 @@ async function init() {
   );
 
   setupProgramSelectors();
+  setupAnchorNav();
+  setupCanTakeStandalone();
 
   restoreSession(state, sessionElements, {
     renderChipsCompleted: renderCompletedChips,
     renderChipsIp: renderIpChips,
   });
   refreshProgramOptions(false);
+  updateStepIndicator();
 
   sessionElements.targetSemester?.addEventListener("change", onSave);
   sessionElements.targetSemester2?.addEventListener("change", onSave);
@@ -611,5 +797,3 @@ async function init() {
 }
 
 init();
-
-

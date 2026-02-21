@@ -78,7 +78,16 @@ PHASE5_PLAN_TRACK_ID = "__DECLARED_PLAN__"
 def _normalize_program_catalog(tracks_df):
     """Return normalized program catalog dataframe used by /programs and /recommend."""
     if tracks_df is None or len(tracks_df) == 0:
-        return pd.DataFrame(columns=["track_id", "track_label", "active", "kind", "parent_major_id"])
+        return pd.DataFrame(
+            columns=[
+                "track_id",
+                "track_label",
+                "active",
+                "kind",
+                "parent_major_id",
+                "requires_primary_major",
+            ]
+        )
 
     df = tracks_df.copy()
     if "track_id" not in df.columns and "program_id" in df.columns:
@@ -96,11 +105,14 @@ def _normalize_program_catalog(tracks_df):
         df["track_label"] = df.get("track_id", "")
     if "active" not in df.columns:
         df["active"] = True
+    if "requires_primary_major" not in df.columns:
+        df["requires_primary_major"] = False
 
     df["track_id"] = df["track_id"].astype(str).str.strip().str.upper()
     df["track_label"] = df["track_label"].fillna("").astype(str).str.strip()
     df["parent_major_id"] = df["parent_major_id"].fillna("").astype(str).str.strip().str.upper()
     df["active"] = df["active"].apply(bool)
+    df["requires_primary_major"] = df["requires_primary_major"].apply(bool)
 
     def _normalize_kind(row):
         kind = str(row.get("kind", "") or "").strip().lower()
@@ -123,13 +135,21 @@ def _normalize_program_catalog(tracks_df):
         df.loc[missing_parent, "parent_major_id"] = lone_major
     df.loc[df["kind"] == "major", "parent_major_id"] = ""
 
-    return df[["track_id", "track_label", "active", "kind", "parent_major_id"]]
+    return df[
+        [
+            "track_id",
+            "track_label",
+            "active",
+            "kind",
+            "parent_major_id",
+            "requires_primary_major",
+        ]
+    ]
 
 
 def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
-    """Build normalized catalog from V2 programs + track_definitions sheets."""
+    """Build normalized catalog from V2 programs sheet (majors + tracks)."""
     programs = data.get("v2_programs_df")
-    track_defs = data.get("v2_track_definitions_df")
     rows = []
 
     if programs is not None and len(programs) > 0:
@@ -137,34 +157,34 @@ def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
             program_id = str(row.get("program_id", "") or "").strip().upper()
             if not program_id:
                 continue
+            kind = str(row.get("kind", "major") or "major").strip().lower()
+            if kind not in {"major", "track"}:
+                kind = "major"
+            parent_major_id = str(row.get("parent_major_id", "") or "").strip().upper()
+            if kind == "major":
+                parent_major_id = ""
             rows.append(
                 {
                     "track_id": program_id,
                     "track_label": str(row.get("program_label", program_id) or program_id).strip(),
                     "active": bool(row.get("active", True)),
-                    "kind": "major",
-                    "parent_major_id": "",
-                }
-            )
-
-    if track_defs is not None and len(track_defs) > 0:
-        for _, row in track_defs.iterrows():
-            track_id = str(row.get("track_id", "") or "").strip().upper()
-            program_id = str(row.get("program_id", "") or "").strip().upper()
-            if not track_id:
-                continue
-            rows.append(
-                {
-                    "track_id": track_id,
-                    "track_label": str(row.get("track_label", track_id) or track_id).strip(),
-                    "active": bool(row.get("active", True)),
-                    "kind": "track",
-                    "parent_major_id": program_id,
+                    "kind": kind,
+                    "parent_major_id": parent_major_id,
+                    "requires_primary_major": bool(row.get("requires_primary_major", False)),
                 }
             )
 
     if not rows:
-        return pd.DataFrame(columns=["track_id", "track_label", "active", "kind", "parent_major_id"])
+        return pd.DataFrame(
+            columns=[
+                "track_id",
+                "track_label",
+                "active",
+                "kind",
+                "parent_major_id",
+                "requires_primary_major",
+            ]
+        )
     return pd.DataFrame(rows)
 
 
@@ -173,7 +193,7 @@ def _is_v2_program_model_enabled(data: dict) -> bool:
         return False
     programs = data.get("v2_programs_df")
     sub_buckets = data.get("v2_sub_buckets_df")
-    mappings = data.get("v2_course_sub_buckets_df")
+    mappings = data.get("v2_courses_all_buckets_df", data.get("v2_course_sub_buckets_df"))
     return (
         programs is not None and len(programs) > 0
         and sub_buckets is not None and len(sub_buckets) > 0
@@ -228,7 +248,7 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
 
     v2_buckets = data.get("v2_buckets_df", pd.DataFrame()).copy()
     v2_sub = data.get("v2_sub_buckets_df", pd.DataFrame()).copy()
-    v2_map = data.get("v2_course_sub_buckets_df", pd.DataFrame()).copy()
+    v2_map = data.get("v2_courses_all_buckets_df", data.get("v2_course_sub_buckets_df", pd.DataFrame())).copy()
 
     if len(v2_buckets) == 0 or len(v2_sub) == 0 or len(v2_map) == 0:
         return dict(data)
@@ -263,7 +283,6 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
             "bucket_label": sub.get("sub_bucket_label", sub["sub_bucket_id"]),
             "priority": sub.get("priority", 99),
             "needed_count": sub.get("courses_required"),
-            "needed_credits": sub.get("credits_required"),
             "min_level": sub.get("min_level"),
             "allow_double_count": False,
             "role": sub.get("role", "").fillna(""),
@@ -285,7 +304,6 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
             "track_id": major_id,
             "course_code": mappings["course_code"],
             "bucket_id": mappings["sub_bucket_id"],
-            "constraints": mappings.get("constraints"),
             "notes": mappings.get("notes"),
         }
     )
@@ -320,15 +338,40 @@ def _build_declared_plan_data_v2(
 
         buckets["source_program_id"] = major_id
         buckets["source_bucket_id"] = buckets["bucket_id"].astype(str)
-        buckets["bucket_id"] = major_id + "::" + buckets["source_bucket_id"].astype(str)
-        buckets["bucket_label"] = (
-            f"{label_map.get(major_id, major_id)}: " + buckets["bucket_label"].astype(str)
+        buckets["source_parent_bucket_id"] = (
+            buckets.get("parent_bucket_id", "").fillna("").astype(str).str.strip().str.upper()
+        )
+        is_bcc_bucket = buckets["source_parent_bucket_id"] == "BCC"
+        buckets.loc[is_bcc_bucket, "bucket_id"] = (
+            "BCC::" + buckets.loc[is_bcc_bucket, "source_bucket_id"].astype(str)
+        )
+        buckets.loc[~is_bcc_bucket, "bucket_id"] = (
+            major_id + "::" + buckets.loc[~is_bcc_bucket, "source_bucket_id"].astype(str)
+        )
+        buckets.loc[~is_bcc_bucket, "bucket_label"] = (
+            f"{label_map.get(major_id, major_id)}: "
+            + buckets.loc[~is_bcc_bucket, "bucket_label"].astype(str)
         )
         buckets["track_id"] = PHASE5_PLAN_TRACK_ID
 
         course_map["source_program_id"] = major_id
         course_map["source_bucket_id"] = course_map["bucket_id"].astype(str)
-        course_map["bucket_id"] = major_id + "::" + course_map["source_bucket_id"].astype(str)
+        parent_map = (
+            buckets[["source_bucket_id", "source_parent_bucket_id"]]
+            .drop_duplicates()
+            .set_index("source_bucket_id")["source_parent_bucket_id"]
+            .to_dict()
+        )
+        course_map["source_parent_bucket_id"] = (
+            course_map["source_bucket_id"].map(parent_map).fillna("").astype(str).str.upper()
+        )
+        is_bcc_map = course_map["source_parent_bucket_id"] == "BCC"
+        course_map.loc[is_bcc_map, "bucket_id"] = (
+            "BCC::" + course_map.loc[is_bcc_map, "source_bucket_id"].astype(str)
+        )
+        course_map.loc[~is_bcc_map, "bucket_id"] = (
+            major_id + "::" + course_map.loc[~is_bcc_map, "source_bucket_id"].astype(str)
+        )
         course_map["track_id"] = PHASE5_PLAN_TRACK_ID
 
         all_buckets.append(buckets)
@@ -336,11 +379,16 @@ def _build_declared_plan_data_v2(
 
     merged = dict(data)
     if all_buckets:
-        merged["buckets_df"] = pd.concat(all_buckets, ignore_index=True)
+        merged_buckets = pd.concat(all_buckets, ignore_index=True)
+        merged["buckets_df"] = merged_buckets.drop_duplicates(subset=["bucket_id"], keep="first")
     else:
         merged["buckets_df"] = pd.DataFrame(columns=data["buckets_df"].columns)
     if all_maps:
-        merged["course_bucket_map_df"] = pd.concat(all_maps, ignore_index=True)
+        merged_map = pd.concat(all_maps, ignore_index=True)
+        merged["course_bucket_map_df"] = merged_map.drop_duplicates(
+            subset=["bucket_id", "course_code"],
+            keep="first",
+        )
     else:
         merged["course_bucket_map_df"] = pd.DataFrame(columns=data["course_bucket_map_df"].columns)
     return merged
@@ -510,15 +558,30 @@ def _resolve_program_selection(body, data: dict):
         return None, (_build_unknown_major_error(declared_majors[0]), 400)
 
     warnings = []
+    major_requires_primary = {}
     for major_id in declared_majors:
         row = catalog_df[catalog_df["track_id"] == major_id]
         if len(row) == 0 or row.iloc[0]["kind"] != "major":
             return None, (_build_unknown_major_error(major_id), 400)
+        major_requires_primary[major_id] = bool(row.iloc[0].get("requires_primary_major", False))
         if not row.iloc[0].get("active", True):
             warnings.append(
                 f"Major '{_program_label(major_id)}' is not yet published (active=0). "
                 "Results may be incomplete."
             )
+
+    secondary_only_selected = [mid for mid in declared_majors if major_requires_primary.get(mid, False)]
+    if secondary_only_selected:
+        has_primary = any(not major_requires_primary.get(mid, False) for mid in declared_majors)
+        if not has_primary:
+            labels = ", ".join([_program_label(mid) for mid in secondary_only_selected])
+            return None, ({
+                "mode": "error",
+                "error": {
+                    "error_code": "PRIMARY_MAJOR_REQUIRED",
+                    "message": f"{labels} must be paired with a primary major.",
+                },
+            }, 400)
 
     selected_track_id = None
     raw_track = body.get("track_id", None)
@@ -724,8 +787,8 @@ def _build_current_assumption_notes(
 
     if notes:
         notes.append(
-            "Inference scope: required prerequisite chains only (single/and). "
-            "OR and concurrent-optional prerequisites are not auto-assumed."
+            "Inference scope: required chains only (single/and). "
+            "OR and concurrent-optional prereqs are not auto-assumed."
         )
     return notes
 
@@ -774,12 +837,17 @@ def frontend_files(filename):
 def get_courses():
     if not _data:
         return jsonify({"error": "Data not loaded"}), 500
-    cols = ["course_code", "course_name", "credits", "prereq_level"]
+    cols = ["course_code", "course_name", "credits", "level", "prereq_level"]
     df = _data["courses_df"].copy()
     for col in cols:
         if col not in df.columns:
             df[col] = None
     df = df[cols].dropna(subset=["course_code"])
+    # Ensure JSON-safe numeric class level for frontend search ranking.
+    df["level"] = pd.to_numeric(df["level"], errors="coerce")
+    df["level"] = df["level"].apply(
+        lambda v: int(v) if pd.notna(v) else None
+    )
     # Ensure JSON-safe numeric ordering field for frontend search ranking.
     df["prereq_level"] = pd.to_numeric(df["prereq_level"], errors="coerce")
     df["prereq_level"] = df["prereq_level"].apply(
@@ -810,6 +878,7 @@ def get_programs():
             "major_id": str(row["track_id"]),
             "label": str(row.get("track_label", row["track_id"])),
             "active": bool(row.get("active", True)),
+            "requires_primary_major": bool(row.get("requires_primary_major", False)),
         }
         for _, row in majors.iterrows()
     ]
@@ -1007,6 +1076,81 @@ def recommend():
     if track_warning:
         response["track_warning"] = track_warning
     return jsonify(response)
+
+@app.route("/can-take", methods=["POST"])
+def can_take_endpoint():
+    """Standalone eligibility check for a single course. Does not run recommendations."""
+    if not _data:
+        return jsonify({"mode": "can_take", "error": "Data not loaded."}), 500
+
+    body = request.get_json(force=True, silent=True)
+    if not body:
+        return jsonify({"mode": "can_take", "error": "Invalid JSON body."}), 400
+
+    requested_course_raw = str(body.get("requested_course") or "").strip()
+    if not requested_course_raw:
+        return jsonify({"mode": "can_take", "error": "requested_course is required."}), 400
+
+    requested_course = normalize_code(requested_course_raw)
+    if not requested_course or requested_course not in _data["catalog_codes"]:
+        return jsonify({
+            "mode": "can_take",
+            "requested_course": requested_course or requested_course_raw,
+            "can_take": False,
+            "why_not": f"{requested_course or requested_course_raw} is not in the course catalog.",
+            "missing_prereqs": [],
+            "not_offered_this_term": False,
+            "unsupported_prereq_format": False,
+            "next_best_alternatives": [],
+        })
+
+    # Normalize completed / in-progress course lists (same logic as /recommend)
+    catalog_codes = _data["catalog_codes"]
+    comp_result = normalize_input(str(body.get("completed_courses", "") or ""), catalog_codes)
+    ip_result = normalize_input(str(body.get("in_progress_courses", "") or ""), catalog_codes)
+    completed = comp_result["valid"]
+    in_progress = ip_result["valid"]
+
+    # Resolve target term
+    target_semester_raw = str(body.get("target_semester") or "Spring 2026").strip()
+    try:
+        target_semester_norm = normalize_semester_label(target_semester_raw)
+        target_term = parse_term(target_semester_norm)
+    except (ValueError, AttributeError):
+        target_term = "Fall"
+
+    # Optional program context (ignored if malformed)
+    selection, selection_error = _resolve_program_selection(body, _data)
+    effective_data = _data if selection_error else selection["effective_data"]
+
+    # Expand prereq chains (mirrors /recommend pipeline)
+    completed, _ = expand_completed_with_prereqs_with_provenance(
+        completed, effective_data["prereq_map"]
+    )
+    in_progress, _ = expand_in_progress_with_prereqs(
+        in_progress, completed, effective_data["prereq_map"]
+    )
+
+    result = check_can_take(
+        requested_course,
+        effective_data["courses_df"],
+        completed,
+        in_progress,
+        target_term,
+        effective_data["prereq_map"],
+    )
+
+    return jsonify({
+        "mode": "can_take",
+        "requested_course": requested_course,
+        "can_take": result["can_take"],
+        "why_not": result["why_not"],
+        "missing_prereqs": result["missing_prereqs"],
+        "not_offered_this_term": result["not_offered_this_term"],
+        "unsupported_prereq_format": result["unsupported_prereq_format"],
+        "next_best_alternatives": [],
+    })
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

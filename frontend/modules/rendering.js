@@ -9,7 +9,7 @@ import {
  * Rendering functions - all return HTML strings, never touch the DOM directly.
  */
 
-function getProgramLabelMap(selectionContext) {
+export function getProgramLabelMap(selectionContext) {
   const map = new Map();
   if (!selectionContext) return map;
   const ids = Array.isArray(selectionContext.selected_program_ids)
@@ -34,7 +34,7 @@ function renderCurrentProgressHtml(currentProgress, assumptionNotes = [], progra
   if (!currentProgress || !Object.keys(currentProgress).length) return "";
 
   let html = `<div class="section-title">Current Degree Progress</div>`;
-  html += `<p class="progress-note">Current snapshot: green is completed; yellow assumes current in-progress courses are completed.</p>`;
+  html += `<p class="progress-note">Current snapshot: green = completed; yellow = in-progress assumed completed.</p>`;
   if (Array.isArray(assumptionNotes) && assumptionNotes.length) {
     html += `<ul class="assumption-notes">`;
     assumptionNotes.forEach((note) => {
@@ -101,11 +101,16 @@ export function renderCard(c, options = {}) {
     ? `<div class="overlap-note">Counts toward ${bucketIds.length} requirements: ${bucketIds.map(bid => esc(bucketLabel(bid, programLabelMap))).join(" + ")}</div>`
     : "";
 
-  const softWarn = c.soft_tags?.length
-    ? `<div class="soft-warn">Warning: ${c.soft_tags.join(", ").replace(/_/g, " ")}</div>` : "";
-
-  const lowConf = c.low_confidence
-    ? `<div class="low-conf-warn">Note: offering schedule may vary; confirm with registrar.</div>` : "";
+  const warningParts = [];
+  if (c.soft_tags?.length) {
+    warningParts.push(`Schedule note: ${c.soft_tags.join(", ").replace(/_/g, " ")}`);
+  }
+  if (c.low_confidence) {
+    warningParts.push("Offering schedule may vary; confirm with registrar.");
+  }
+  const warningStrip = warningParts.length
+    ? `<div class="warning-strip" role="alert">\u26a0 ${warningParts.map(esc).join(" \u00b7 ")}</div>`
+    : "";
 
   const courseNotes = c.notes
     ? `<div class="low-conf-warn">${formatCourseNotes(c.notes)}</div>` : "";
@@ -115,7 +120,7 @@ export function renderCard(c, options = {}) {
     : "rec-card-why";
 
   const displayTitle = c.course_name
-    ? `${esc(c.course_code)} — ${esc(c.course_name)}`
+    ? `${esc(c.course_code)} \u2014 ${esc(c.course_name)}`
     : esc(c.course_code || "");
 
   return `
@@ -131,7 +136,7 @@ export function renderCard(c, options = {}) {
       <div class="prereq-line">${prereqHtml}</div>
       ${bucketsHtml}${overlapNote}
       ${unlocksHtml}
-      ${softWarn}${lowConf}${courseNotes}
+      ${warningStrip}${courseNotes}
     </div>`;
 }
 
@@ -180,12 +185,6 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
 
   if (data.not_in_catalog_warning?.length) {
     html += `<div class="catalog-warn warning-text">Warning: Some courses not found in catalog (ignored): ${data.not_in_catalog_warning.map(esc).join(", ")}</div>`;
-  }
-
-  if (data.blocking_warnings?.length) {
-    html += `<div class="warnings-box"><h4 class="heading-gold">Sequencing Heads-Up</h4><ul>`;
-    data.blocking_warnings.forEach(w => { html += `<li class="sequencing-item">${humanCourseText(w)}</li>`; });
-    html += `</ul></div>`;
   }
 
   if (data.recommendations?.length) {
@@ -309,4 +308,92 @@ export function renderRecommendationsHtml(data, requestedCount, options = {}) {
   }
 
   return prefix + renderSemesterHtml(data, 1, requestedCount, renderOptions);
+}
+
+/**
+ * Renders an SVG progress ring.
+ * @param {number} pct - Percentage 0–100
+ * @param {number} [size=100] - Diameter in px
+ * @param {number} [stroke=10] - Stroke width in px
+ */
+export function renderProgressRing(pct, size = 100, stroke = 10) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const clamped = Math.min(100, Math.max(0, pct));
+  const offset = circ * (1 - clamped / 100);
+  const cx = size / 2;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="progress-ring" aria-label="${Math.round(clamped)}% complete" role="img">
+  <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${stroke}"/>
+  <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--mu-gold)" stroke-width="${stroke}"
+    stroke-dasharray="${circ.toFixed(3)}" stroke-dashoffset="${offset.toFixed(3)}"
+    stroke-linecap="round" transform="rotate(-90 ${cx} ${cx})"/>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="ring-pct">${Math.round(clamped)}%</text>
+</svg>`;
+}
+
+/**
+ * Renders a row of KPI summary cards.
+ */
+export function renderKpiCardsHtml(done, remaining, inProgress) {
+  return `<div class="kpi-cards">
+  <div class="kpi-card kpi-done"><span class="kpi-value">${done}</span><span class="kpi-label">Completed</span></div>
+  <div class="kpi-card kpi-ip"><span class="kpi-value">${inProgress}</span><span class="kpi-label">In Progress</span></div>
+  <div class="kpi-card kpi-rem"><span class="kpi-value">${remaining}</span><span class="kpi-label">Remaining</span></div>
+</div>`;
+}
+
+/**
+ * Renders a compact degree summary for the right panel.
+ * Shows each bucket label with done/needed fraction.
+ * @param {Object} currentProgress - currentProgress map from /recommend response
+ * @param {Map} [programLabelMap] - optional program label map
+ */
+export function renderDegreeSummaryHtml(currentProgress, programLabelMap = null) {
+  if (!currentProgress || !Object.keys(currentProgress).length) return "";
+  let html = `<div class="degree-summary">`;
+  for (const [bid, prog] of Object.entries(currentProgress)) {
+    const needed = Number(prog.needed || 0);
+    const done = Number(prog.completed_done || 0);
+    const inProg = Number(prog.in_progress_increment || 0);
+    const label = prog.label || bucketLabel(bid, programLabelMap);
+    const satisfied = prog.satisfied || (needed > 0 && done >= needed);
+    html += `<div class="summary-bucket${satisfied ? " summary-bucket--done" : ""}">
+  <span class="summary-label">${esc(label)}</span>
+  <span class="summary-frac">${done}${inProg ? `+${inProg}` : ""}/${needed}</span>
+</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+/**
+ * Renders a compact inline can-take result for the right panel.
+ * Simpler than renderCanTakeHtml — no full page element, right-panel sized.
+ */
+export function renderCanTakeInlineHtml(data) {
+  if (!data || !data.requested_course) return "";
+  const course = esc(String(data.requested_course));
+  if (data.can_take === true) {
+    return `<div class="can-take-inline can-take-inline--yes" role="status">
+  <span class="ct-pill ct-pill--yes">Yes</span>
+  <span class="ct-msg">You can take <strong>${course}</strong> next semester.</span>
+</div>`;
+  }
+  if (data.can_take === false) {
+    const whyNot = data.why_not ? `<p class="ct-reason">${esc(data.why_not)}</p>` : "";
+    const missing = data.missing_prereqs?.length
+      ? `<p class="ct-prereqs">Missing: ${data.missing_prereqs.map(esc).join(", ")}</p>`
+      : "";
+    return `<div class="can-take-inline can-take-inline--no" role="status">
+  <span class="ct-pill ct-pill--no">Not yet</span>
+  <span class="ct-msg"><strong>${course}</strong></span>
+  ${whyNot}${missing}
+</div>`;
+  }
+  // can_take === null (manual review)
+  return `<div class="can-take-inline can-take-inline--review" role="status">
+  <span class="ct-pill ct-pill--review">Review</span>
+  <span class="ct-msg">Manual review required for <strong>${course}</strong>.</span>
+  ${data.why_not ? `<p class="ct-reason">${esc(data.why_not)}</p>` : ""}
+</div>`;
 }

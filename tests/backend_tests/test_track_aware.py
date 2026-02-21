@@ -218,10 +218,13 @@ class TestServerTrackValidation:
     def test_inactive_track_returns_warning(self, client):
         import server
 
-        patched_defs = server._data["v2_track_definitions_df"].copy()
-        patched_defs.loc[patched_defs["track_id"] == "CB", "active"] = False
+        patched_programs = server._data["v2_programs_df"].copy()
+        mask = (
+            patched_programs["program_id"].astype(str).str.strip().str.upper() == "CB"
+        )
+        patched_programs.loc[mask, "active"] = False
         with pytest.MonkeyPatch.context() as mp:
-            mp.setitem(server._data, "v2_track_definitions_df", patched_defs)
+            mp.setitem(server._data, "v2_programs_df", patched_programs)
             resp = self._post(client, track_id="CB")
         data = resp.get_json()
         assert data["mode"] == "recommendations"
@@ -381,6 +384,27 @@ class TestServerTrackValidation:
         data = resp.get_json()
         assert data["error"]["error_code"] == "UNKNOWN_MAJOR"
 
+    def test_secondary_major_requires_primary_major(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": ["BUAN_MAJOR"],
+        })
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert data["error"]["error_code"] == "PRIMARY_MAJOR_REQUIRED"
+
+    def test_secondary_major_with_primary_major_passes(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": ["FIN_MAJOR", "BUAN_MAJOR"],
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert data["selection_context"]["declared_majors"] == ["FIN_MAJOR", "BUAN_MAJOR"]
+
     def test_declared_major_without_track_returns_context(self, client):
         resp = client.post("/recommend", json={
             "completed_courses": "",
@@ -398,9 +422,12 @@ class TestServerTrackValidation:
     def test_declared_track_must_match_major(self, client, monkeypatch):
         import server
 
-        patched_defs = server._data["v2_track_definitions_df"].copy()
-        patched_defs.loc[patched_defs["track_id"] == "CB", "program_id"] = "OTHER_MAJOR"
-        monkeypatch.setitem(server._data, "v2_track_definitions_df", patched_defs)
+        patched_programs = server._data["v2_programs_df"].copy()
+        mask = (
+            patched_programs["program_id"].astype(str).str.strip().str.upper() == "CB"
+        )
+        patched_programs.loc[mask, "parent_major_id"] = "OTHER_MAJOR"
+        monkeypatch.setitem(server._data, "v2_programs_df", patched_programs)
 
         resp = client.post("/recommend", json={
             "completed_courses": "",
@@ -426,6 +453,29 @@ class TestServerTrackValidation:
         assert "FIN_MAJOR::FIN_CORE" in data["progress"]
         assert "FIN_MAJOR::CB_CORE" in data["progress"]
 
+    def test_double_major_shares_bcc_once(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "BUAD 1001, ECON 1103, MATH 1400",
+            "in_progress_courses": "",
+            "declared_majors": ["FIN_MAJOR", "ACCO_MAJOR"],
+            "track_id": None,
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        progress_keys = set(data.get("progress", {}).keys())
+
+        # Shared BCC buckets should appear once (no duplicated per-major prefixes).
+        assert "BCC::BCC_REQUIRED" in progress_keys
+        assert "BCC::BCC_ETHICS" in progress_keys
+        assert "BCC::BCC_ENHANCE" in progress_keys
+        assert "BCC::BCC_ANALYTICS" in progress_keys
+        assert "FIN_MAJOR::BCC_REQUIRED" not in progress_keys
+        assert "ACCO_MAJOR::BCC_REQUIRED" not in progress_keys
+
+        # Major-specific requirement buckets still remain separated.
+        assert "FIN_MAJOR::FIN_CORE" in progress_keys
+        assert "ACCO_MAJOR::ACCO_CORE_REQ" in progress_keys
+
     def test_programs_endpoint_returns_expected_shape(self, client):
         resp = client.get("/programs")
         assert resp.status_code == 200
@@ -449,7 +499,7 @@ class TestServerTrackValidation:
         assert tracks["CB"]["parent_major_id"] == "FIN_MAJOR"
         assert tracks["FP"]["parent_major_id"] == "FIN_MAJOR"
 
-    def test_courses_endpoint_prereq_level_is_json_safe(self, client):
+    def test_courses_endpoint_levels_are_json_safe(self, client):
         resp = client.get("/courses")
         assert resp.status_code == 200
         raw = resp.get_data(as_text=True)
@@ -457,7 +507,9 @@ class TestServerTrackValidation:
 
         data = resp.get_json()
         for row in data.get("courses", []):
+            course_level = row.get("level")
             level = row.get("prereq_level")
+            assert course_level is None or isinstance(course_level, int)
             assert level is None or isinstance(level, int)
 
     def test_empty_tracks_rejects_non_default_track(self, client, monkeypatch):
@@ -482,6 +534,28 @@ class TestServerTrackValidation:
         resp = self._post(client, track_id="FIN_MAJOR")
         data = resp.get_json()
         assert data["mode"] == "recommendations"
+
+    def test_track_conc_alias_resolves_to_canonical(self, client):
+        """'CB_CONC' should resolve to canonical 'CB' via _track_alias_map."""
+        resp = self._post(client, track_id="CB_CONC")
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert data.get("track_warning") is None or "not yet published" not in str(
+            data.get("track_warning", "")
+        )
+
+    def test_track_track_alias_resolves_to_canonical(self, client):
+        """'CB_TRACK' should resolve to canonical 'CB' via _track_alias_map."""
+        resp = self._post(client, track_id="CB_TRACK")
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+
+    def test_unknown_alias_returns_400(self, client):
+        """An unrecognized alias that does not map to any track should return 400."""
+        resp = self._post(client, track_id="NONEXISTENT_CONC")
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert data["error"]["error_code"] == "UNKNOWN_TRACK"
 
 
 # ── 5. End-to-end smoke test — synthetic track through /recommend ────────────

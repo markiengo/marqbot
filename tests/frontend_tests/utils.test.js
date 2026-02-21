@@ -81,11 +81,11 @@ describe("replaceCourseCodesInText()", () => {
 
 describe("filterCourses()", () => {
   const courses = [
-    { course_code: "FINA 3001", course_name: "Financial Management", prereq_level: 3 },
-    { course_code: "FINA 4001", course_name: "Advanced Finance", prereq_level: 4 },
-    { course_code: "ECON 1103", course_name: "Microeconomics", prereq_level: 1 },
-    { course_code: "ECON 4040", course_name: "International Economics", prereq_level: 4 },
-    { course_code: "ECON 3004", course_name: "Intermediate Macroeconomic Analysis", prereq_level: 3 },
+    { course_code: "FINA 3001", course_name: "Financial Management", level: 3000 },
+    { course_code: "FINA 4001", course_name: "Advanced Finance", level: 4000 },
+    { course_code: "ECON 1103", course_name: "Microeconomics", level: 1000 },
+    { course_code: "ECON 4040", course_name: "International Economics", level: 4000 },
+    { course_code: "ECON 3004", course_name: "Intermediate Macroeconomic Analysis", level: 3000 },
   ];
 
   test("matches by course code only", () => {
@@ -99,7 +99,7 @@ describe("filterCourses()", () => {
     expect(out.map(c => c.course_code)).toEqual(["FINA 4001"]);
   });
 
-  test("orders matches by prereq_level ascending", () => {
+  test("orders matches by course level ascending", () => {
     const out = filterCourses("econ", new Set(), courses);
     expect(out.map(c => c.course_code)).toEqual(["ECON 1103", "ECON 3004", "ECON 4040"]);
   });

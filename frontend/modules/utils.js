@@ -107,7 +107,7 @@ export function formatCourseNotes(note, courseNameByCode = null) {
  * Filter courses by query string, excluding already-selected codes.
  * @param {string} query
  * @param {Set<string>} excludeSet
- * @param {Array<{course_code: string, course_name: string, prereq_level?: number|string|null}>} courses
+ * @param {Array<{course_code: string, course_name: string, level?: number|string|null}>} courses
  * @returns {Array}
  */
 export function filterCourses(query, excludeSet, courses) {
@@ -117,8 +117,8 @@ export function filterCourses(query, excludeSet, courses) {
     .filter(c => !excludeSet.has(c.course_code) &&
       c.course_code.toLowerCase().includes(q))
     .sort((a, b) => {
-      const aLevel = Number(a?.prereq_level);
-      const bLevel = Number(b?.prereq_level);
+      const aLevel = Number(a?.level);
+      const bLevel = Number(b?.level);
       const aRank = Number.isFinite(aLevel) ? aLevel : Number.POSITIVE_INFINITY;
       const bRank = Number.isFinite(bLevel) ? bLevel : Number.POSITIVE_INFINITY;
       if (aRank !== bRank) return aRank - bRank;

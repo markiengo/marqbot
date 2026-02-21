@@ -280,7 +280,7 @@ def check_v2_sub_bucket_courses_required_satisfiable(
         if mapped_count < required:
             result.warn(
                 f"sub_bucket '{sbid}' requires {required} courses "
-                f"but only {mapped_count} are mapped in course_sub_buckets."
+                f"but only {mapped_count} are mapped in courses_all_buckets."
             )
 
 def _canon_pair_validate(

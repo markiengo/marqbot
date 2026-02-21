@@ -4,6 +4,10 @@ import {
   renderCanTakeHtml,
   renderSemesterHtml,
   renderRecommendationsHtml,
+  renderProgressRing,
+  renderKpiCardsHtml,
+  renderDegreeSummaryHtml,
+  renderCanTakeInlineHtml,
 } from "../../frontend/modules/rendering.js";
 
 describe("renderCard()", () => {
@@ -44,11 +48,25 @@ describe("renderCard()", () => {
     expect(html).toContain("Commercial Banking: CB Core");
   });
 
-  test("soft_tags use amber soft-warn class, not red warning-text", () => {
+  test("soft_tags render as warning-strip, not soft-warn", () => {
     const html = renderCard({ ...baseCard, soft_tags: ["schedule_uncertain"] });
-    expect(html).toContain('class="soft-warn"');
-    // soft warnings must NOT carry the red warning-text class
-    expect(html).not.toContain("soft-warn warning-text");
+    expect(html).toContain('class="warning-strip"');
+    expect(html).toContain("schedule uncertain");
+    // Must NOT use the old transient soft-warn class
+    expect(html).not.toContain('class="soft-warn"');
+    // Must NOT carry the red warning-text class
+    expect(html).not.toContain("warning-text");
+  });
+
+  test("low_confidence renders as warning-strip", () => {
+    const html = renderCard({ ...baseCard, low_confidence: true });
+    expect(html).toContain('class="warning-strip"');
+    expect(html).toContain("confirm with registrar");
+  });
+
+  test("warning-strip has role=alert", () => {
+    const html = renderCard({ ...baseCard, soft_tags: ["schedule_uncertain"] });
+    expect(html).toContain('role="alert"');
   });
 
   test("overlap note appears when course fills multiple buckets", () => {
@@ -121,11 +139,10 @@ describe("renderSemesterHtml()", () => {
     projection_note: "Assuming you complete these recommendations, projected progress updates are shown below.",
   };
 
-  test("keeps sequencing warning course code", () => {
+  test("does not render sequencing heads-up section", () => {
     const html = renderSemesterHtml(sem, 1, 3);
-    expect(html).toContain('class="heading-gold">Sequencing Heads-Up');
-    expect(html).toContain("FINA 3001 ASAP");
-    expect(html).toContain('class="sequencing-item"');
+    expect(html).not.toContain("Sequencing Heads-Up");
+    expect(html).not.toContain("sequencing-item");
   });
 
   test("renames timeline label to courses required remaining", () => {
@@ -245,5 +262,147 @@ describe("renderRecommendationsHtml()", () => {
     }, 3);
     expect(html).toContain("Current Degree Progress");
     expect(html).not.toContain('class="assumption-notes"');
+  });
+});
+
+describe("renderProgressRing()", () => {
+  test("clamps percentage below 0 to 0", () => {
+    const html = renderProgressRing(-10);
+    expect(html).toContain('aria-label="0% complete"');
+    expect(html).toContain("0%");
+  });
+
+  test("clamps percentage above 100 to 100", () => {
+    const html = renderProgressRing(150);
+    expect(html).toContain('aria-label="100% complete"');
+    expect(html).toContain("100%");
+  });
+
+  test("includes aria-label with rounded percentage", () => {
+    const html = renderProgressRing(50);
+    expect(html).toContain('aria-label="50% complete"');
+  });
+
+  test("renders an SVG element", () => {
+    const html = renderProgressRing(75);
+    expect(html).toContain("<svg");
+    expect(html).toContain("</svg>");
+  });
+
+  test("stroke-dashoffset is smaller at higher percentages", () => {
+    const low = renderProgressRing(10);
+    const high = renderProgressRing(90);
+    const extractOffset = s => {
+      const m = s.match(/stroke-dashoffset="([\d.]+)"/);
+      return m ? parseFloat(m[1]) : null;
+    };
+    expect(extractOffset(low)).toBeGreaterThan(extractOffset(high));
+  });
+
+  test("respects custom size parameter", () => {
+    const html = renderProgressRing(50, 200, 12);
+    expect(html).toContain('width="200"');
+    expect(html).toContain('height="200"');
+  });
+});
+
+describe("renderKpiCardsHtml()", () => {
+  test("contains completed value", () => {
+    const html = renderKpiCardsHtml(5, 10, 2);
+    expect(html).toContain(">5<");
+  });
+
+  test("contains remaining value", () => {
+    const html = renderKpiCardsHtml(5, 10, 2);
+    expect(html).toContain(">10<");
+  });
+
+  test("contains in-progress value", () => {
+    const html = renderKpiCardsHtml(5, 10, 2);
+    expect(html).toContain(">2<");
+  });
+
+  test("uses kpi-cards wrapper class", () => {
+    const html = renderKpiCardsHtml(0, 0, 0);
+    expect(html).toContain('class="kpi-cards"');
+  });
+});
+
+describe("renderDegreeSummaryHtml()", () => {
+  test("renders bucket label and fraction", () => {
+    const progress = {
+      CORE: {
+        label: "Finance Required",
+        needed: 3,
+        completed_done: 1,
+        in_progress_increment: 0,
+        assumed_done: 1,
+        satisfied: false,
+      },
+    };
+    const html = renderDegreeSummaryHtml(progress);
+    expect(html).toContain("Finance Required");
+    expect(html).toContain("1");
+    expect(html).toContain("3");
+  });
+
+  test("returns empty string for null input", () => {
+    expect(renderDegreeSummaryHtml(null)).toBe("");
+    expect(renderDegreeSummaryHtml({})).toBe("");
+  });
+
+  test("satisfied bucket gets done modifier class", () => {
+    const progress = {
+      CORE: {
+        label: "Core",
+        needed: 2,
+        completed_done: 2,
+        in_progress_increment: 0,
+        assumed_done: 2,
+        satisfied: true,
+      },
+    };
+    const html = renderDegreeSummaryHtml(progress);
+    expect(html).toContain("summary-bucket--done");
+  });
+});
+
+describe("renderCanTakeInlineHtml()", () => {
+  test("can_take true renders yes pill", () => {
+    const html = renderCanTakeInlineHtml({
+      requested_course: "FINA 4081",
+      can_take: true,
+      why_not: null,
+      missing_prereqs: [],
+    });
+    expect(html).toContain("ct-pill--yes");
+    expect(html).toContain("FINA 4081");
+  });
+
+  test("can_take false renders no pill and missing prereqs", () => {
+    const html = renderCanTakeInlineHtml({
+      requested_course: "FINA 4081",
+      can_take: false,
+      why_not: "Missing prerequisites.",
+      missing_prereqs: ["FINA 3001"],
+    });
+    expect(html).toContain("ct-pill--no");
+    expect(html).toContain("FINA 3001");
+  });
+
+  test("can_take null renders review pill", () => {
+    const html = renderCanTakeInlineHtml({
+      requested_course: "FINA 4081",
+      can_take: null,
+      why_not: "Complex prereq structure.",
+      missing_prereqs: [],
+    });
+    expect(html).toContain("ct-pill--review");
+    expect(html).toContain("Manual review required");
+  });
+
+  test("returns empty string for null/missing data", () => {
+    expect(renderCanTakeInlineHtml(null)).toBe("");
+    expect(renderCanTakeInlineHtml({})).toBe("");
   });
 });

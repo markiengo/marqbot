@@ -20,3 +20,12 @@ export async function postRecommend(payload, url = "/recommend") {
   });
   return await res.json();
 }
+
+export async function postCanTake(payload, url = "/can-take") {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return await res.json();
+}

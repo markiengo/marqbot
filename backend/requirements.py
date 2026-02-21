@@ -3,9 +3,6 @@ import pandas as pd
 # Default track identifier used as parameter default for backward compatibility.
 DEFAULT_TRACK_ID = "FIN_MAJOR"
 
-# Maximum number of requirement buckets a single course can fill.
-MAX_BUCKETS_PER_COURSE = 6
-
 # prereq_soft tags that surface as warnings but do NOT block eligibility.
 SOFT_WARNING_TAGS = {
     "instructor_consent",
@@ -115,7 +112,9 @@ def _policy_pair_allowed(
     Resolution precedence:
       1) sub_bucket <-> sub_bucket
       2) bucket <-> bucket (using parent_bucket_id)
-      3) no rule => DENY
+      3) no rule => hierarchy default:
+         - same parent bucket => DENY
+         - different parent bucket (or unknown parent) => ALLOW
     """
     sub_key = _canon_node_pair("sub_bucket", bucket_a, "sub_bucket", bucket_b)
     if sub_key in policy_lookup:
@@ -127,8 +126,13 @@ def _policy_pair_allowed(
         bucket_key = _canon_node_pair("bucket", parent_a, "bucket", parent_b)
         if bucket_key in policy_lookup:
             return bool(policy_lookup[bucket_key])
+        # Same family (same parent bucket) is denied by default.
+        if parent_a == parent_b:
+            return False
 
-    return False
+    # Different families are allowed by default to keep overlap flexible.
+    # This also applies when parent metadata is missing.
+    return True
 
 
 def get_allowed_double_count_pairs(
@@ -139,9 +143,12 @@ def get_allowed_double_count_pairs(
     """
     Return allowed bucket pairs for the current runtime track/program.
 
-    Policy-only behavior:
-    - Use policy resolution (sub-bucket rule > bucket rule > deny).
-    - If no applicable policy rows are present, all pairs are denied.
+    Default behavior:
+    - same parent bucket => denied
+    - different parent buckets => allowed
+
+    Policy overrides:
+    - sub-bucket rule > parent bucket rule > hierarchy default
     """
     if buckets_df is None or len(buckets_df) == 0:
         return set()
@@ -163,12 +170,9 @@ def get_allowed_double_count_pairs(
     if len(track_buckets) == 0 or "bucket_id" not in track_buckets.columns:
         return set()
 
-    if not inferred_track_id or double_count_policy_df is None or len(double_count_policy_df) == 0:
-        return set()
-
-    policy_lookup = _build_policy_lookup(double_count_policy_df, inferred_track_id)
-    if len(policy_lookup) == 0:
-        return set()
+    policy_lookup: dict[tuple[str, str, str, str], bool] = {}
+    if inferred_track_id and double_count_policy_df is not None and len(double_count_policy_df) > 0:
+        policy_lookup = _build_policy_lookup(double_count_policy_df, inferred_track_id)
 
     parent_map = _build_parent_bucket_map(track_buckets)
     bucket_ids = sorted(

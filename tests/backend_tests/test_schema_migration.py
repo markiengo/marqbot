@@ -109,6 +109,7 @@ def buckets_dc():
             "needed_count": 2,
             "needed_credits": None,
             "min_level": 3000,
+            "parent_bucket_id": "FIN_REQ",
         },
         {
             "track_id": "FIN_MAJOR",
@@ -118,6 +119,7 @@ def buckets_dc():
             "needed_count": 1,
             "needed_credits": None,
             "min_level": 3000,
+            "parent_bucket_id": "FIN_REQ",
         },
     ])
 
@@ -195,12 +197,14 @@ def _base_v2_sheets():
     programs = pd.DataFrame([{
         "program_id": "FIN_MAJOR",
         "program_label": "Finance Major",
+        "kind": "major",
+        "parent_major_id": "",
         "active": 1,
-    }])
-    track_definitions = pd.DataFrame([{
-        "program_id": "FIN_MAJOR",
-        "track_id": "CB",
-        "track_label": "Corporate Banking",
+    }, {
+        "program_id": "CB",
+        "program_label": "Corporate Banking",
+        "kind": "track",
+        "parent_major_id": "FIN_MAJOR",
         "active": 1,
     }])
     buckets = pd.DataFrame([{
@@ -240,7 +244,6 @@ def _base_v2_sheets():
     return (
         courses,
         programs,
-        track_definitions,
         buckets,
         sub_buckets,
         course_sub_buckets,
@@ -253,7 +256,6 @@ class TestLoaderStrictMode:
         (
             courses,
             programs,
-            track_definitions,
             buckets,
             sub_buckets,
             course_sub_buckets,
@@ -263,7 +265,6 @@ class TestLoaderStrictMode:
         with pd.ExcelWriter(path, engine="openpyxl") as w:
             courses.to_excel(w, sheet_name="courses", index=False)
             programs.to_excel(w, sheet_name="programs", index=False)
-            track_definitions.to_excel(w, sheet_name="track_definitions", index=False)
             buckets.to_excel(w, sheet_name="buckets", index=False)
             sub_buckets.to_excel(w, sheet_name="sub_buckets", index=False)
             course_sub_buckets.to_excel(w, sheet_name="course_sub_buckets", index=False)
@@ -276,7 +277,6 @@ class TestLoaderStrictMode:
         (
             courses,
             programs,
-            track_definitions,
             buckets,
             sub_buckets,
             _course_sub_buckets,
@@ -286,7 +286,6 @@ class TestLoaderStrictMode:
         with pd.ExcelWriter(path, engine="openpyxl") as w:
             courses.to_excel(w, sheet_name="courses", index=False)
             programs.to_excel(w, sheet_name="programs", index=False)
-            track_definitions.to_excel(w, sheet_name="track_definitions", index=False)
             buckets.to_excel(w, sheet_name="buckets", index=False)
             sub_buckets.to_excel(w, sheet_name="sub_buckets", index=False)
             double_count_policy.to_excel(w, sheet_name="double_count_policy", index=False)
@@ -298,7 +297,6 @@ class TestLoaderStrictMode:
         (
             courses,
             programs,
-            track_definitions,
             buckets,
             sub_buckets,
             course_sub_buckets,
@@ -308,7 +306,6 @@ class TestLoaderStrictMode:
         with pd.ExcelWriter(path, engine="openpyxl") as w:
             courses.to_excel(w, sheet_name="courses", index=False)
             programs.to_excel(w, sheet_name="programs", index=False)
-            track_definitions.to_excel(w, sheet_name="track_definitions", index=False)
             buckets.to_excel(w, sheet_name="buckets", index=False)
             sub_buckets.to_excel(w, sheet_name="sub_buckets", index=False)
             course_sub_buckets.to_excel(w, sheet_name="course_sub_buckets", index=False)
@@ -319,6 +316,105 @@ class TestLoaderStrictMode:
         assert row["offered_fall"] == True
         assert row["offered_summer"] == False
         assert type(row["offered_fall"]) in (bool, __import__("numpy").bool_)
+
+    def test_runtime_uses_priority_when_present(self, tmp_path):
+        (
+            courses,
+            programs,
+            buckets,
+            sub_buckets,
+            course_sub_buckets,
+            double_count_policy,
+        ) = _base_v2_sheets()
+        sub_buckets.loc[:, "priority"] = 7
+        path = str(tmp_path / "test.xlsx")
+        with pd.ExcelWriter(path, engine="openpyxl") as w:
+            courses.to_excel(w, sheet_name="courses", index=False)
+            programs.to_excel(w, sheet_name="programs", index=False)
+            buckets.to_excel(w, sheet_name="buckets", index=False)
+            sub_buckets.to_excel(w, sheet_name="sub_buckets", index=False)
+            course_sub_buckets.to_excel(w, sheet_name="course_sub_buckets", index=False)
+            double_count_policy.to_excel(w, sheet_name="double_count_policy", index=False)
+
+        data = load_data(path)
+        row = data["buckets_df"][data["buckets_df"]["bucket_id"] == "CORE"].iloc[0]
+        assert int(row["priority"]) == 7
+
+    def test_runtime_derives_priority_when_sub_bucket_priority_missing(self, tmp_path):
+        courses = pd.DataFrame([{
+            "course_code": "FINA 3001",
+            "course_name": "Intro Finance",
+            "credits": 3,
+            "offered_fall": 1,
+            "offered_spring": 1,
+            "offered_summer": 0,
+            "prereq_hard": "none",
+            "prereq_level": 0,
+        }])
+        programs = pd.DataFrame([{
+            "program_id": "FIN_MAJOR",
+            "program_label": "Finance Major",
+            "kind": "major",
+            "active": 1,
+        }])
+        buckets = pd.DataFrame([{
+            "program_id": "FIN_MAJOR",
+            "bucket_id": "FIN_REQ",
+            "bucket_label": "Finance Requirements",
+            "priority": 2,
+            "track_required": "",
+            "active": 1,
+        }])
+        sub_buckets = pd.DataFrame([
+            {
+                "program_id": "FIN_MAJOR",
+                "bucket_id": "FIN_REQ",
+                "sub_bucket_id": "CORE_A",
+                "sub_bucket_label": "Core A",
+                "courses_required": 1,
+                "credits_required": None,
+                "min_level": None,
+                "role": "core",
+            },
+            {
+                "program_id": "FIN_MAJOR",
+                "bucket_id": "FIN_REQ",
+                "sub_bucket_id": "ELEC_A",
+                "sub_bucket_label": "Elec A",
+                "courses_required": 1,
+                "credits_required": None,
+                "min_level": 3000,
+                "role": "elective",
+            },
+        ])
+        course_sub_buckets = pd.DataFrame([
+            {"program_id": "FIN_MAJOR", "sub_bucket_id": "CORE_A", "course_code": "FINA 3001"},
+            {"program_id": "FIN_MAJOR", "sub_bucket_id": "ELEC_A", "course_code": "FINA 3001"},
+        ])
+        double_count_policy = pd.DataFrame(columns=[
+            "program_id",
+            "node_type_a",
+            "node_id_a",
+            "node_type_b",
+            "node_id_b",
+            "allow_double_count",
+        ])
+        path = str(tmp_path / "test.xlsx")
+        with pd.ExcelWriter(path, engine="openpyxl") as w:
+            courses.to_excel(w, sheet_name="courses", index=False)
+            programs.to_excel(w, sheet_name="programs", index=False)
+            buckets.to_excel(w, sheet_name="buckets", index=False)
+            sub_buckets.to_excel(w, sheet_name="sub_buckets", index=False)
+            course_sub_buckets.to_excel(w, sheet_name="course_sub_buckets", index=False)
+            double_count_policy.to_excel(w, sheet_name="double_count_policy", index=False)
+
+        data = load_data(path)
+        runtime = data["buckets_df"].set_index("bucket_id")
+        core_p = int(runtime.loc["CORE_A", "priority"])
+        elec_p = int(runtime.loc["ELEC_A", "priority"])
+        assert core_p >= 200
+        assert elec_p >= 200
+        assert core_p < elec_p
 
 
 # -----------------------------------------------------------------------------

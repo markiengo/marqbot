@@ -2,7 +2,6 @@ import pandas as pd
 
 from requirements import (
     DEFAULT_TRACK_ID,
-    MAX_BUCKETS_PER_COURSE,
     get_allowed_double_count_pairs,
 )
 
@@ -19,35 +18,83 @@ def _safe_int(val, default=None):
 def _expand_map_with_equivalencies(
     track_map: pd.DataFrame,
     equivalencies_df: pd.DataFrame,
+    track_id: str,
 ) -> pd.DataFrame:
     """
     Expand course-bucket mappings via equivalency groups.
 
-    If a row has constraints='equiv_group:<ID>', all members of that group are
-    mapped to the same bucket.
+    If a mapped course belongs to an equivalency group, all members of that
+    group are mapped to the same bucket. Optional scope is respected:
+    - global rows (empty scope) apply to all programs
+    - scoped rows apply only to matching program_id / track_id
     """
     if equivalencies_df is None or len(equivalencies_df) == 0 or len(track_map) == 0:
         return track_map
+    if "equiv_group_id" not in equivalencies_df.columns or "course_code" not in equivalencies_df.columns:
+        return track_map
 
-    equiv_groups: dict[str, list[str]] = {}
-    for _, row in equivalencies_df.iterrows():
-        gid = str(row.get("equiv_group_id", "") or "").strip()
-        code = str(row.get("course_code", "") or "").strip()
-        if gid and code:
-            equiv_groups.setdefault(gid, []).append(code)
+    eq = equivalencies_df.copy()
+    eq["equiv_group_id"] = eq["equiv_group_id"].fillna("").astype(str).str.strip()
+    eq["course_code"] = eq["course_code"].fillna("").astype(str).str.strip()
+    if "scope_program_id" in eq.columns:
+        eq["scope_program_id"] = eq["scope_program_id"].fillna("").astype(str).str.strip().str.upper()
+    elif "program_scope" in eq.columns:
+        eq["scope_program_id"] = eq["program_scope"].fillna("").astype(str).str.strip().str.upper()
+    else:
+        eq["scope_program_id"] = ""
+    eq = eq[(eq["equiv_group_id"] != "") & (eq["course_code"] != "")]
+    if len(eq) == 0:
+        return track_map
 
+    track_key = str(track_id or "").strip().upper()
+    group_members: dict[str, list[str]] = {}
+    group_scopes: dict[str, set[str]] = {}
+    course_to_groups: dict[str, set[str]] = {}
+    for gid, grp in eq.groupby("equiv_group_id"):
+        members = sorted({str(c).strip() for c in grp["course_code"].tolist() if str(c).strip()})
+        scopes = {
+            str(s).strip().upper()
+            for s in grp["scope_program_id"].tolist()
+            if str(s).strip()
+        }
+        if not members:
+            continue
+        group_members[gid] = members
+        group_scopes[gid] = scopes
+        for member in members:
+            course_to_groups.setdefault(member, set()).add(gid)
+
+    existing_keys = {
+        (
+            str(r.get("track_id", "")).strip().upper(),
+            str(r.get("bucket_id", "")).strip(),
+            str(r.get("course_code", "")).strip(),
+        )
+        for _, r in track_map.iterrows()
+    }
     extra_rows = []
     for _, row in track_map.iterrows():
-        constraints = str(row.get("constraints", "") or "")
-        if "equiv_group:" not in constraints:
+        base_code = str(row.get("course_code", "") or "").strip()
+        if not base_code:
             continue
-        gid = constraints.split("equiv_group:")[1].strip()
-        members = equiv_groups.get(gid, [])
-        for member in members:
-            if member != row["course_code"]:
+        for gid in course_to_groups.get(base_code, set()):
+            scopes = group_scopes.get(gid, set())
+            if scopes and track_key not in scopes:
+                continue
+            for member in group_members.get(gid, []):
+                if member == base_code:
+                    continue
+                key = (
+                    str(row.get("track_id", "")).strip().upper(),
+                    str(row.get("bucket_id", "")).strip(),
+                    member,
+                )
+                if key in existing_keys:
+                    continue
                 new_row = row.copy()
                 new_row["course_code"] = member
                 extra_rows.append(new_row)
+                existing_keys.add(key)
 
     if not extra_rows:
         return track_map
@@ -92,7 +139,7 @@ def allocate_courses(
     track_map = course_bucket_map_df[
         course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
     ].copy()
-    track_map = _expand_map_with_equivalencies(track_map, equivalencies_df)
+    track_map = _expand_map_with_equivalencies(track_map, equivalencies_df, track_key)
 
     # Allowed double-count pairs from policy engine (or legacy fallback).
     allowed_pairs = get_allowed_double_count_pairs(
@@ -233,9 +280,6 @@ def allocate_courses(
         # N-way assignment: each additional bucket must be pairwise-compatible
         # with all already-assigned buckets.
         for bucket_info in eligible_buckets:
-            if len(assigned_to) >= MAX_BUCKETS_PER_COURSE:
-                break
-
             bid = bucket_info["bucket_id"]
             if bid in assigned_to:
                 continue
@@ -269,7 +313,7 @@ def allocate_courses(
     # Step 3: in-progress display only.
     for course_code in in_progress:
         eligible_buckets = get_eligible_buckets_for_course(course_code)
-        for bucket_info in eligible_buckets[:MAX_BUCKETS_PER_COURSE]:
+        for bucket_info in eligible_buckets:
             bid = bucket_info["bucket_id"]
             if course_code not in applied[bid]["in_progress_applied"]:
                 applied[bid]["in_progress_applied"].append(course_code)

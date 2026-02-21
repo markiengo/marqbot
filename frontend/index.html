@@ -14,146 +14,176 @@
   <div class="bg-orb bg-orb-b"></div>
   <div class="bg-grid"></div>
 
-  <div class="app-shell">
-    <aside class="app-sidebar">
-      <div class="brand">
-        <img src="marquette-logo.jpg" alt="Marquette logo" class="brand-logo" />
-        <div>
-          <div class="brand-title">MarqBot</div>
-          <div class="brand-sub">Finance Advisor</div>
-        </div>
-      </div>
+  <!-- Sticky top navigation bar -->
+  <div id="topbar">
+    <div class="topbar-brand">
+      <img src="marquette-logo.jpg" alt="Marquette logo" class="topbar-logo" />
+      <span class="topbar-title">MarqBot</span>
+    </div>
+    <nav class="anchor-nav" aria-label="Page sections">
+      <a href="#section-input" class="anchor-link">Courses</a>
+      <a href="#section-progress" class="anchor-link">Progress</a>
+      <a href="#section-recommendations" class="anchor-link">Plan</a>
+    </nav>
+    <ol id="step-indicator" class="step-indicator" aria-label="Setup steps">
+      <li class="step" data-step="1">Major</li>
+      <li class="step" data-step="2">Courses</li>
+      <li class="step" data-step="3">Plan</li>
+    </ol>
+  </div>
 
-      <nav class="side-nav">
-        <button type="button" class="side-item side-item-active">Advisor</button>
-        <button type="button" class="side-item">Planner</button>
-        <button type="button" class="side-item">Progress</button>
-        <button type="button" class="side-item">Catalog</button>
-      </nav>
+  <!-- 3-panel app shell -->
+  <div id="app-shell">
 
-      <div class="sidebar-note">
-        Smart recommendations with deterministic prerequisite checks.
-      </div>
-    </aside>
-
-    <main class="app-main">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Welcome back</p>
-          <h1>Finance Dashboard</h1>
-        </div>
-        <div class="topbar-badge">Marquette University</div>
-      </header>
-
-      <section class="panel">
+    <!-- LEFT PANEL: Guided input -->
+    <aside id="panel-left">
+      <section id="section-input" data-nav-section="section-input">
         <form id="advisor-form">
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="declared-majors">Declared Major(s)</label>
-              <p class="form-hint">Select up to 2 majors for merged planning.</p>
-              <select id="declared-majors" multiple class="hidden"></select>
-              <div class="multiselect" id="ms-majors">
-                <div class="ms-chips" id="chips-majors"></div>
-                <input type="text" class="ms-input" id="search-majors" placeholder="Search majors..." autocomplete="off" />
-                <div class="ms-dropdown" id="dropdown-majors"></div>
-              </div>
-            </div>
+          <div class="left-panel-header">
+            <p class="eyebrow">Finance Advisor</p>
+            <h2 class="panel-heading">Build Your Plan</h2>
+          </div>
 
-            <div class="form-group" id="track-form-group">
-              <label for="declared-track">Track <span class="label-note">(optional)</span></label>
-              <p class="form-hint">Select one track that belongs to one chosen major.</p>
-              <select id="declared-track" class="hidden"></select>
-              <div class="multiselect" id="ms-track">
-                <div class="ms-chips" id="chips-track"></div>
-                <input type="text" class="ms-input" id="search-track" placeholder="Search tracks..." autocomplete="off" />
-                <div class="ms-dropdown" id="dropdown-track"></div>
-              </div>
+          <div class="form-group" id="major-form-group">
+            <label for="declared-majors">Declared Major(s)</label>
+            <p class="form-hint">Select up to 2 majors.</p>
+            <select id="declared-majors" multiple class="hidden"></select>
+            <div class="multiselect" id="ms-majors">
+              <div class="ms-chips" id="chips-majors"></div>
+              <input type="text" class="ms-input" id="search-majors" placeholder="Search majors..." autocomplete="off" />
+              <div class="ms-dropdown" id="dropdown-majors"></div>
             </div>
+          </div>
 
-            <div class="form-group form-group-full">
-              <label>Completed Courses</label>
-              <p class="form-hint">Type to search and click to add. Please search for course codes rather than course titles. Or <button type="button" class="link-btn" id="toggle-paste-completed">paste codes</button>.</p>
-              <p class="form-hint">You don't need to include courses that are prerequisites of another course that you already took. For example: If you input "FINA 3001", the system will assume that you already took MATH 1400 or MATH 1450, and BUAD 1560 - which are FINA 3001's prerequisites. Note that this doesn't apply for courses that can be taken concurrently</p>
-              <div class="multiselect" id="ms-completed">
-                <div class="ms-chips" id="chips-completed"></div>
-                <input type="text" class="ms-input" id="search-completed" placeholder="Search courses..." autocomplete="off" />
-                <div class="ms-dropdown" id="dropdown-completed"></div>
-              </div>
-              <textarea class="paste-area hidden" id="paste-completed" placeholder="Paste comma-separated codes, e.g. FINA 3001, ECON 1103"></textarea>
-              <button type="button" class="link-btn hidden" id="apply-paste-completed">Apply</button>
-              <div class="paste-errors hidden" id="paste-errors-completed"></div>
+          <div class="form-group" id="track-form-group">
+            <label for="declared-track">Track <span class="label-note">(optional)</span></label>
+            <p class="form-hint">Select one track for a selected major.</p>
+            <select id="declared-track" class="hidden"></select>
+            <div class="multiselect" id="ms-track">
+              <div class="ms-chips" id="chips-track"></div>
+              <input type="text" class="ms-input" id="search-track" placeholder="Search tracks..." autocomplete="off" />
+              <div class="ms-dropdown" id="dropdown-track"></div>
             </div>
+          </div>
 
-            <div class="form-group form-group-full">
-              <label>Currently In-Progress Courses <span class="label-note">(this semester)</span></label>
-              <p class="form-hint">Type to search and click to add. Please search for course codes rather than course titles. Or <button type="button" class="link-btn" id="toggle-paste-ip">paste codes</button>.</p>
-              <div class="multiselect" id="ms-ip">
-                <div class="ms-chips" id="chips-ip"></div>
-                <input type="text" class="ms-input" id="search-ip" placeholder="Search courses..." autocomplete="off" />
-                <div class="ms-dropdown" id="dropdown-ip"></div>
-              </div>
-              <textarea class="paste-area hidden" id="paste-ip" placeholder="Paste comma-separated codes, e.g. FINA 4001"></textarea>
-              <button type="button" class="link-btn hidden" id="apply-paste-ip">Apply</button>
-              <div class="paste-errors hidden" id="paste-errors-ip"></div>
+          <div class="form-group">
+            <label>Completed Courses</label>
+            <p class="form-hint">Search by course code and add. Or <button type="button" class="link-btn" id="toggle-paste-completed">paste codes</button>.</p>
+            <p class="form-hint">You can enter higher-level completed courses only. Required prereq chains are auto-assumed; OR-choice and concurrent prereqs are not.</p>
+            <div class="multiselect" id="ms-completed">
+              <div class="ms-chips" id="chips-completed"></div>
+              <input type="text" class="ms-input" id="search-completed" placeholder="Search courses..." autocomplete="off" />
+              <div class="ms-dropdown" id="dropdown-completed"></div>
             </div>
+            <textarea class="paste-area hidden" id="paste-completed" placeholder="Paste comma-separated codes, e.g. FINA 3001, ECON 1103"></textarea>
+            <button type="button" class="link-btn hidden" id="apply-paste-completed">Apply</button>
+            <div class="paste-errors hidden" id="paste-errors-completed"></div>
+          </div>
 
-            <div class="form-group">
-              <label for="target-semester">Target Semester (1)</label>
-              <p class="form-hint">Pick first upcoming semester.</p>
-              <select id="target-semester">
-                <option selected>Spring 2026</option>
-                <option>Summer 2026</option>
-                <option>Fall 2026</option>
-                <option>Spring 2027</option>
-                <option>Summer 2027</option>
-                <option>Fall 2027</option>
-              </select>
+          <div class="form-group">
+            <label>Currently In-Progress Courses <span class="label-note">(this semester)</span></label>
+            <p class="form-hint">Search by course code and add. Or <button type="button" class="link-btn" id="toggle-paste-ip">paste codes</button>.</p>
+            <div class="multiselect" id="ms-ip">
+              <div class="ms-chips" id="chips-ip"></div>
+              <input type="text" class="ms-input" id="search-ip" placeholder="Search courses..." autocomplete="off" />
+              <div class="ms-dropdown" id="dropdown-ip"></div>
             </div>
-
-            <div class="form-group">
-              <label for="max-recs">Recommendations</label>
-              <p class="form-hint">Maximum shown if enough courses are eligible this term.</p>
-              <select id="max-recs">
-                <option value="2">2</option>
-                <option value="3" selected>3</option>
-                <option value="4">4</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="target-semester-2">Target Semester (2) <span class="label-note">(optional)</span></label>
-              <p class="form-hint">Leave blank to auto-pick next term (Spring goes to Fall).</p>
-              <select id="target-semester-2">
-                <option value="" selected>Auto</option>
-                <option value="__NONE__">None (Do not generate)</option>
-                <option>Spring 2026</option>
-                <option>Summer 2026</option>
-                <option>Fall 2026</option>
-                <option>Spring 2027</option>
-                <option>Summer 2027</option>
-                <option>Fall 2027</option>
-              </select>
-            </div>
-
-            <div class="form-group form-group-full">
-              <label for="can-take-input">Can I take this next semester? <span class="label-note">(optional)</span></label>
-              <p class="form-hint">Enter a course code to check next-semester eligibility based on courses you've already taken.</p>
-              <div class="multiselect" id="ms-can-take">
-                <input type="text" class="ms-input" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
-                <div class="ms-dropdown" id="dropdown-can-take"></div>
-              </div>
-            </div>
+            <textarea class="paste-area hidden" id="paste-ip" placeholder="Paste comma-separated codes, e.g. FINA 4001"></textarea>
+            <button type="button" class="link-btn hidden" id="apply-paste-ip">Apply</button>
+            <div class="paste-errors hidden" id="paste-errors-ip"></div>
           </div>
 
           <button type="submit" class="btn-primary" id="submit-btn">
             Get Recommendations
           </button>
-          <p class="form-hint submit-hint">Press if you want to refresh.</p>
+          <p class="form-hint submit-hint">Press to refresh results.</p>
         </form>
       </section>
+    </aside>
 
-      <section id="results" class="panel hidden"></section>
+    <!-- CENTER PANEL: Progress and results -->
+    <main id="panel-center">
+      <section id="section-hero">
+        <header class="center-header">
+          <p class="eyebrow">Marquette University</p>
+          <h1>Finance Dashboard</h1>
+        </header>
+      </section>
+
+      <section id="section-progress" data-nav-section="section-progress">
+        <div id="progress-dashboard" class="hidden">
+          <div class="section-title">Degree Progress</div>
+          <div id="progress-ring-wrap"></div>
+          <div id="kpi-row"></div>
+        </div>
+      </section>
+
+      <section id="section-recommendations" data-nav-section="section-recommendations">
+        <div id="results" class="hidden"></div>
+      </section>
     </main>
+
+    <!-- RIGHT PANEL: Settings, summary, can-take -->
+    <aside id="panel-right">
+
+      <section id="quick-settings">
+        <h3 class="panel-section-title">Settings</h3>
+
+        <div class="form-group">
+          <label for="target-semester">Target Semester (1)</label>
+          <p class="form-hint">Choose the first target term.</p>
+          <select id="target-semester" form="advisor-form">
+            <option selected>Spring 2026</option>
+            <option>Summer 2026</option>
+            <option>Fall 2026</option>
+            <option>Spring 2027</option>
+            <option>Summer 2027</option>
+            <option>Fall 2027</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="target-semester-2">Semester (2) <span class="label-note">(optional)</span></label>
+          <p class="form-hint">Leave blank to auto-pick next term.</p>
+          <select id="target-semester-2" form="advisor-form">
+            <option value="" selected>Auto</option>
+            <option value="__NONE__">None (Do not generate)</option>
+            <option>Spring 2026</option>
+            <option>Summer 2026</option>
+            <option>Fall 2026</option>
+            <option>Spring 2027</option>
+            <option>Summer 2027</option>
+            <option>Fall 2027</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="max-recs">Recommendations</label>
+          <p class="form-hint">Max courses to show.</p>
+          <select id="max-recs" form="advisor-form">
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+          </select>
+        </div>
+      </section>
+
+      <section id="right-summary" class="hidden">
+        <h3 class="panel-section-title">Degree Summary</h3>
+        <div id="right-summary-content"></div>
+      </section>
+
+      <section id="can-take-section">
+        <h3 class="panel-section-title">Can I Take This?</h3>
+        <p class="form-hint">Enter a course code and press Enter to check eligibility.</p>
+        <div class="multiselect" id="ms-can-take">
+          <input type="text" class="ms-input" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
+          <div class="ms-dropdown" id="dropdown-can-take"></div>
+        </div>
+        <div id="can-take-result" class="hidden"></div>
+      </section>
+
+    </aside>
   </div>
 
   <script type="module" src="app.js"></script>
