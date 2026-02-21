@@ -28,27 +28,6 @@ CONCURRENT_TAGS = {"may_be_concurrent"}
 BLOCKING_WARNING_THRESHOLD = 2
 
 
-def _legacy_allowed_double_count_pairs(buckets_df: pd.DataFrame) -> set[frozenset[str]]:
-    """
-    Legacy behavior:
-    any two buckets where both have allow_double_count=True can double-count.
-    """
-    if buckets_df is None or len(buckets_df) == 0:
-        return set()
-    if "allow_double_count" not in buckets_df.columns or "bucket_id" not in buckets_df.columns:
-        return set()
-
-    eligible = set(
-        buckets_df.loc[buckets_df["allow_double_count"] == True, "bucket_id"].tolist()
-    )
-    eligible_list = sorted(str(b).strip() for b in eligible if str(b).strip())
-    pairs: set[frozenset[str]] = set()
-    for i in range(len(eligible_list)):
-        for j in range(i + 1, len(eligible_list)):
-            pairs.add(frozenset([eligible_list[i], eligible_list[j]]))
-    return pairs
-
-
 def _build_parent_bucket_map(track_buckets_df: pd.DataFrame) -> dict[str, str]:
     """
     Map runtime bucket_id -> parent bucket_id when available.
@@ -160,10 +139,9 @@ def get_allowed_double_count_pairs(
     """
     Return allowed bucket pairs for the current runtime track/program.
 
-    Behavior:
-    - If policy rows exist for track_id, use policy resolution
-      (sub-bucket rule > bucket rule > deny).
-    - Otherwise, fallback to legacy allow_double_count behavior.
+    Policy-only behavior:
+    - Use policy resolution (sub-bucket rule > bucket rule > deny).
+    - If no applicable policy rows are present, all pairs are denied.
     """
     if buckets_df is None or len(buckets_df) == 0:
         return set()
@@ -185,48 +163,29 @@ def get_allowed_double_count_pairs(
     if len(track_buckets) == 0 or "bucket_id" not in track_buckets.columns:
         return set()
 
-    if inferred_track_id and double_count_policy_df is not None and len(double_count_policy_df) > 0:
-        policy_lookup = _build_policy_lookup(double_count_policy_df, inferred_track_id)
-        if len(policy_lookup) > 0:
-            parent_map = _build_parent_bucket_map(track_buckets)
-            bucket_ids = sorted(
-                {
-                    str(b).strip()
-                    for b in track_buckets["bucket_id"].tolist()
-                    if str(b).strip()
-                }
-            )
+    if not inferred_track_id or double_count_policy_df is None or len(double_count_policy_df) == 0:
+        return set()
 
-            # If policy rows exist but do not reference any runtime nodes for this
-            # track/program (common during dual-read migration), treat policy as
-            # not applicable and fall back to legacy behavior.
-            policy_sub_nodes = {
-                key[1] for key in policy_lookup.keys() if key[0] == "sub_bucket"
-            } | {
-                key[3] for key in policy_lookup.keys() if key[2] == "sub_bucket"
-            }
-            policy_bucket_nodes = {
-                key[1] for key in policy_lookup.keys() if key[0] == "bucket"
-            } | {
-                key[3] for key in policy_lookup.keys() if key[2] == "bucket"
-            }
-            has_sub_match = any(bid in policy_sub_nodes for bid in bucket_ids)
-            has_parent_match = any(
-                parent in policy_bucket_nodes for parent in parent_map.values()
-            )
-            if not has_sub_match and not has_parent_match:
-                return _legacy_allowed_double_count_pairs(track_buckets)
+    policy_lookup = _build_policy_lookup(double_count_policy_df, inferred_track_id)
+    if len(policy_lookup) == 0:
+        return set()
 
-            allowed_pairs: set[frozenset[str]] = set()
-            for i in range(len(bucket_ids)):
-                for j in range(i + 1, len(bucket_ids)):
-                    a = bucket_ids[i]
-                    b = bucket_ids[j]
-                    if _policy_pair_allowed(a, b, parent_map, policy_lookup):
-                        allowed_pairs.add(frozenset([a, b]))
-            return allowed_pairs
-
-    return _legacy_allowed_double_count_pairs(track_buckets)
+    parent_map = _build_parent_bucket_map(track_buckets)
+    bucket_ids = sorted(
+        {
+            str(b).strip()
+            for b in track_buckets["bucket_id"].tolist()
+            if str(b).strip()
+        }
+    )
+    allowed_pairs: set[frozenset[str]] = set()
+    for i in range(len(bucket_ids)):
+        for j in range(i + 1, len(bucket_ids)):
+            a = bucket_ids[i]
+            b = bucket_ids[j]
+            if _policy_pair_allowed(a, b, parent_map, policy_lookup):
+                allowed_pairs.add(frozenset([a, b]))
+    return allowed_pairs
 
 
 def get_bucket_by_role(buckets_df: pd.DataFrame, track_id: str, role: str) -> str | None:

@@ -36,16 +36,12 @@ def _sheet_headers(ws) -> list[str]:
 
 def preflight_clean(wb: openpyxl.Workbook) -> None:
     """Abort unless cleanup preconditions are satisfied."""
-    map_sheet = None
-    for candidate in ("course_sub_buckets", "course_bucket", "course_bucket_legacy"):
-        if candidate in wb.sheetnames:
-            map_sheet = candidate
-            break
-    if map_sheet is None:
+    if "course_sub_buckets" not in wb.sheetnames:
         sys.exit(
             "[ERROR] No canonical mapping sheet found. "
-            "Expected one of: course_sub_buckets, course_bucket, course_bucket_legacy."
+            "Expected: course_sub_buckets."
         )
+    map_sheet = "course_sub_buckets"
     if "courses" not in wb.sheetnames:
         sys.exit("[ERROR] No 'courses' sheet found in workbook.")
 

@@ -45,6 +45,19 @@ def simple_courses():
         {"course_code": "BUAD 1001", "course_name": "Business Day 1",  "credits": 3, "level": 1000},
     ])
 
+@pytest.fixture
+def simple_policy():
+    return pd.DataFrame([
+        {
+            "program_id": "FIN_MAJOR",
+            "node_type_a": "sub_bucket",
+            "node_id_a": "FIN_CHOOSE_1",
+            "node_type_b": "sub_bucket",
+            "node_id_b": "FIN_CHOOSE_2",
+            "allow_double_count": True,
+        },
+    ])
+
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
 
@@ -88,9 +101,9 @@ class TestBasicAllocation:
 
 
 class TestDoubleCount:
-    def test_double_count_happy_path(self, simple_buckets, simple_map, simple_courses):
+    def test_double_count_happy_path(self, simple_buckets, simple_map, simple_courses, simple_policy):
         """Finance course fills both FIN_CHOOSE_2 and FIN_CHOOSE_1."""
-        result = run(["FINA 4020"], [], simple_buckets, simple_map, simple_courses)
+        result = run_with_policy(["FINA 4020"], [], simple_buckets, simple_map, simple_courses, simple_policy)
         dc = result["double_counted_courses"]
         assert any(d["course_code"] == "FINA 4020" for d in dc)
         entry = next(d for d in dc if d["course_code"] == "FINA 4020")
@@ -104,11 +117,13 @@ class TestDoubleCount:
         # FINA 3001 only maps to CORE so shouldn't double-count
         assert not any(d["course_code"] == "FINA 3001" for d in dc)
 
-    def test_double_count_bucket_already_full(self, simple_buckets, simple_map, simple_courses):
+    def test_double_count_bucket_already_full(self, simple_buckets, simple_map, simple_courses, simple_policy):
         """If secondary bucket is already full, note is generated."""
         # Fill FIN_CHOOSE_1 first with FINA 4020
         # Then FINA 4050 should note that FIN_CHOOSE_1 is full
-        result = run(["FINA 4020", "FINA 4050"], [], simple_buckets, simple_map, simple_courses)
+        result = run_with_policy(
+            ["FINA 4020", "FINA 4050"], [], simple_buckets, simple_map, simple_courses, simple_policy
+        )
         # FINA 4020 fills FIN_CHOOSE_2 (slot 1) + FIN_CHOOSE_1 (slot 1, satisfying it)
         # FINA 4050 fills FIN_CHOOSE_2 (slot 2) — FIN_CHOOSE_1 now full
         assert result["applied_by_bucket"]["FIN_CHOOSE_1"]["satisfied"] is True
@@ -229,12 +244,8 @@ class TestPolicyDrivenDoubleCount:
         assert "X100" in result["applied_by_bucket"]["S1"]["completed_applied"]
         assert "X100" not in result["applied_by_bucket"]["S2"]["completed_applied"]
 
-    def test_mismatched_policy_falls_back_to_legacy_flags(self):
-        """
-        During dual-read migration, policy rows may use different node IDs than
-        the active runtime buckets. In that case allocator should preserve legacy
-        allow_double_count behavior.
-        """
+    def test_no_matching_policy_rows_denies_by_default(self):
+        """Policy-only mode: no matching pair rules means no double-counting."""
         buckets = pd.DataFrame([
             {"track_id": "P1", "bucket_id": "A", "bucket_label": "A", "priority": 1, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True},
             {"track_id": "P1", "bucket_id": "B", "bucket_label": "B", "priority": 2, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": True},
@@ -244,11 +255,9 @@ class TestPolicyDrivenDoubleCount:
             {"track_id": "P1", "bucket_id": "B", "course_code": "X100"},
         ])
         policy = pd.DataFrame([
-            # Unrelated node IDs; should be ignored for this runtime bucket set.
+            # Unrelated node IDs: no applicable pair rule for A/B.
             {"program_id": "P1", "node_type_a": "sub_bucket", "node_id_a": "S1", "node_type_b": "sub_bucket", "node_id_b": "S2", "allow_double_count": False},
         ])
 
         result = run_with_policy(["X100"], [], buckets, course_map, self._base_courses(), policy)
-        dc = result["double_counted_courses"]
-        assert len(dc) == 1
-        assert dc[0]["buckets"] == ["A", "B"]
+        assert result["double_counted_courses"] == []

@@ -117,8 +117,18 @@ def check_buckets_exist(track_id: str, buckets_df: pd.DataFrame, result: Validat
         result.error(f"No buckets defined for track '{track_id}' in buckets sheet.")
 
 
-def check_role_policy(track_id: str, buckets_df: pd.DataFrame, result: ValidationResult) -> None:
-    """Exactly one core bucket and at least one elective bucket required."""
+def check_role_policy(
+    track_id: str,
+    buckets_df: pd.DataFrame,
+    result: ValidationResult,
+    *,
+    strict_single_core: bool = True,
+) -> None:
+    """Role policy checks.
+
+    Legacy track validation expects exactly one core.
+    V2 program-level validation allows multiple core sub-buckets.
+    """
     if "role" not in buckets_df.columns:
         result.error("Buckets sheet has no 'role' column.")
         return
@@ -131,10 +141,14 @@ def check_role_policy(track_id: str, buckets_df: pd.DataFrame, result: Validatio
 
     if core_count == 0:
         result.error(f"No bucket with role='core' for track '{track_id}'.")
-    elif core_count > 1:
+    elif strict_single_core and core_count > 1:
         result.error(
             f"Expected exactly 1 core bucket for track '{track_id}', found {core_count}: "
             f"{track_buckets[track_buckets['role'] == 'core']['bucket_id'].tolist()}"
+        )
+    elif not strict_single_core and core_count > 1:
+        result.warn(
+            f"Track '{track_id}' has {core_count} core buckets (allowed in V2 program-level validation)."
         )
     if elective_count == 0:
         result.warn(f"No bucket with role='elective' for track '{track_id}'. Blocking-warning feature will be disabled.")
@@ -395,6 +409,7 @@ def validate_track(
     v2_buckets_df: pd.DataFrame | None = None,
     v2_sub_buckets_df: pd.DataFrame | None = None,
     v2_double_count_policy_df: pd.DataFrame | None = None,
+    strict_single_core: bool = True,
 ) -> ValidationResult:
     """Run all publish gate checks for a track. Returns a ValidationResult."""
     result = ValidationResult(track_id)
@@ -402,7 +417,7 @@ def validate_track(
     check_track_exists(track_id, tracks_df, result)
     check_track_parent_major_link(track_id, tracks_df, result)
     check_buckets_exist(track_id, buckets_df, result)
-    check_role_policy(track_id, buckets_df, result)
+    check_role_policy(track_id, buckets_df, result, strict_single_core=strict_single_core)
     check_mappings_exist(track_id, course_bucket_map_df, result)
     check_no_orphan_courses(track_id, course_bucket_map_df, catalog_codes, result)
     check_no_orphan_buckets(track_id, course_bucket_map_df, buckets_df, result)
@@ -450,16 +465,37 @@ def main(args=None):
 
     data = load_data(opts.path)
 
+    v2_program_ids = []
+    if data.get("v2_programs_df") is not None and len(data.get("v2_programs_df")) > 0:
+        v2_program_ids = (
+            data["v2_programs_df"]["program_id"]
+            .astype(str).str.strip().str.upper().tolist()
+        )
+
     if opts.all:
-        track_ids = data["tracks_df"]["track_id"].tolist() if len(data["tracks_df"]) > 0 else []
+        if data.get("v2_detected") and v2_program_ids:
+            # Strict V2: validate each major program scope once.
+            track_ids = list(dict.fromkeys(v2_program_ids))
+        else:
+            track_ids = data["tracks_df"]["track_id"].tolist() if len(data["tracks_df"]) > 0 else []
         if not track_ids:
             print("[INFO] No tracks found in workbook.")
             return 0
     else:
-        track_ids = [opts.track.strip().upper()]
+        requested = opts.track.strip().upper()
+        if data.get("v2_detected") and v2_program_ids:
+            mapped_program = _v2_program_for_track(
+                requested,
+                data.get("v2_programs_df"),
+                data.get("v2_track_definitions_df"),
+            )
+            track_ids = [mapped_program or requested]
+        else:
+            track_ids = [requested]
 
     all_passed = True
     for tid in track_ids:
+        use_relaxed_core_policy = bool(data.get("v2_detected")) and tid in set(v2_program_ids)
         result = validate_track(
             tid,
             data["tracks_df"],
@@ -471,6 +507,7 @@ def main(args=None):
             v2_buckets_df=data.get("v2_buckets_df"),
             v2_sub_buckets_df=data.get("v2_sub_buckets_df"),
             v2_double_count_policy_df=data.get("v2_double_count_policy_df"),
+            strict_single_core=not use_relaxed_core_policy,
         )
         print(result.summary())
         if not result.passed:

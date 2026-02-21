@@ -1,30 +1,31 @@
 """
-Regression tests for the schema normalization (Phase 1).
+Regression tests for schema normalization and strict V2 loading.
 
 Covers:
-  1. _safe_bool_col() — all input variants
-  2. allocate_courses() — double-count works without row-level can_double_count column
-  3. data_loader strict mode — loader requires course_bucket sheet
+  1. _safe_bool_col() coercion behavior
+  2. allocate_courses() policy-based double-count behavior
+  3. data_loader strict V2 mode requirements
+  4. migrate_schema --clean mode
 """
 
-import io
-import sys
 import os
-import pytest
-import pandas as pd
-import openpyxl
 
-# conftest.py already adds backend/ and scripts/ to sys.path
-from data_loader import _safe_bool_col, load_data
+import openpyxl
+import pandas as pd
+import pytest
+
+# conftest.py adds backend/ and scripts/ to sys.path.
 from allocator import allocate_courses
+from data_loader import _safe_bool_col, load_data
 from migrate_schema import main as migrate_main
 
 
-# ── 1. Boolean coercion ────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# 1) Boolean coercion
+# -----------------------------------------------------------------------------
 
 class TestSafeBoolCol:
     def _apply(self, values):
-        """Apply _safe_bool_col to a single-column DataFrame and return the list."""
         df = pd.DataFrame({"col": values})
         df = _safe_bool_col(df, "col")
         return df["col"].tolist()
@@ -53,7 +54,7 @@ class TestSafeBoolCol:
     def test_string_true_lowercase(self):
         assert self._apply(["true"]) == [True]
 
-    def test_string_False(self):
+    def test_string_FALSE(self):
         assert self._apply(["FALSE"]) == [False]
 
     def test_string_false_lowercase(self):
@@ -88,28 +89,41 @@ class TestSafeBoolCol:
         assert result == [True, False, True, False, True, False]
 
     def test_missing_column_is_noop(self):
-        """_safe_bool_col should silently skip columns that don't exist."""
         df = pd.DataFrame({"other": [1, 2]})
         df2 = _safe_bool_col(df, "nonexistent")
         assert list(df2.columns) == ["other"]
 
 
-# ── 2. Double-count without row-level can_double_count column ─────────────────
+# -----------------------------------------------------------------------------
+# 2) Policy-driven double-count behavior
+# -----------------------------------------------------------------------------
 
 @pytest.fixture
 def buckets_dc():
-    """Two buckets that both allow double-counting."""
     return pd.DataFrame([
-        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "bucket_label": "Choose Two",
-         "priority": 2, "needed_count": 2, "needed_credits": None, "min_level": 3000, "allow_double_count": True},
-        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_1", "bucket_label": "Choose One",
-         "priority": 3, "needed_count": 1, "needed_credits": None, "min_level": 3000, "allow_double_count": True},
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_CHOOSE_2",
+            "bucket_label": "Choose Two",
+            "priority": 2,
+            "needed_count": 2,
+            "needed_credits": None,
+            "min_level": 3000,
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_CHOOSE_1",
+            "bucket_label": "Choose One",
+            "priority": 3,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": 3000,
+        },
     ])
 
 
 @pytest.fixture
 def map_no_can_double_count():
-    """Map with NO can_double_count column — simulates new normalized schema."""
     return pd.DataFrame([
         {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "course_code": "FINA 4020"},
         {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_1", "course_code": "FINA 4020"},
@@ -123,170 +137,215 @@ def courses_dc():
     ])
 
 
-class TestDoubleCountWithoutRowLevelFlag:
-    def test_double_count_works_with_no_can_double_count_column(
+class TestPolicyDoubleCount:
+    def test_double_count_works_with_policy_pair(
         self, buckets_dc, map_no_can_double_count, courses_dc
     ):
-        """
-        When the map has no can_double_count column, double-count should be
-        gated solely by bucket-level allow_double_count (both True here).
-        Course should appear in double_counted_courses.
-        """
+        policy = pd.DataFrame([
+            {
+                "program_id": "FIN_MAJOR",
+                "node_type_a": "sub_bucket",
+                "node_id_a": "FIN_CHOOSE_1",
+                "node_type_b": "sub_bucket",
+                "node_id_b": "FIN_CHOOSE_2",
+                "allow_double_count": True,
+            }
+        ])
         result = allocate_courses(
-            ["FINA 4020"], [], buckets_dc, map_no_can_double_count, courses_dc
+            ["FINA 4020"],
+            [],
+            buckets_dc,
+            map_no_can_double_count,
+            courses_dc,
+            double_count_policy_df=policy,
         )
         dc = result["double_counted_courses"]
-        assert any(d["course_code"] == "FINA 4020" for d in dc), (
-            "FINA 4020 should double-count when both buckets allow it"
-        )
+        assert any(d["course_code"] == "FINA 4020" for d in dc)
         entry = next(d for d in dc if d["course_code"] == "FINA 4020")
         assert "FIN_CHOOSE_2" in entry["buckets"]
         assert "FIN_CHOOSE_1" in entry["buckets"]
 
-    def test_double_count_blocked_when_bucket_disallows(self, courses_dc):
-        """When bucket allow_double_count=False, course should NOT double-count."""
-        buckets_no_dc = pd.DataFrame([
-            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "bucket_label": "Choose Two",
-             "priority": 2, "needed_count": 2, "needed_credits": None, "min_level": None, "allow_double_count": False},
-            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_1", "bucket_label": "Choose One",
-             "priority": 3, "needed_count": 1, "needed_credits": None, "min_level": None, "allow_double_count": False},
-        ])
-        map_no_dc = pd.DataFrame([
-            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "course_code": "FINA 4020"},
-            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_1", "course_code": "FINA 4020"},
-        ])
-        result = allocate_courses(["FINA 4020"], [], buckets_no_dc, map_no_dc, courses_dc)
-        assert result["double_counted_courses"] == [], (
-            "No double-count when bucket disallows it"
+    def test_double_count_blocked_without_policy_pair(self, buckets_dc, map_no_can_double_count, courses_dc):
+        result = allocate_courses(
+            ["FINA 4020"],
+            [],
+            buckets_dc,
+            map_no_can_double_count,
+            courses_dc,
+            double_count_policy_df=pd.DataFrame(),
         )
+        assert result["double_counted_courses"] == []
 
 
-# ── 3. Loader strict mode ─────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# 3) Strict V2 data loader
+# -----------------------------------------------------------------------------
 
-def _make_minimal_xlsx(sheet_data: dict) -> str:
-    """
-    Write a minimal .xlsx to a temp file with the given sheets.
-    sheet_data: {sheet_name: pd.DataFrame}
-    Returns the file path.
-    """
-    import tempfile
-    path = tempfile.mktemp(suffix=".xlsx")
-    with pd.ExcelWriter(path, engine="openpyxl") as writer:
-        for name, df in sheet_data.items():
-            df.to_excel(writer, sheet_name=name, index=False)
-    return path
-
-
-def _base_sheets():
-    """Minimal valid sheets every loader test needs."""
+def _base_v2_sheets():
     courses = pd.DataFrame([{
-        "course_code": "FINA 3001", "course_name": "Intro Finance", "credits": 3,
-        "offered_fall": 1, "offered_spring": 1, "offered_summer": 0,
-        "prereq_hard": "none", "prereq_level": 0,
+        "course_code": "FINA 3001",
+        "course_name": "Intro Finance",
+        "credits": 3,
+        "offered_fall": 1,
+        "offered_spring": 1,
+        "offered_summer": 0,
+        "prereq_hard": "none",
+        "prereq_level": 0,
+    }])
+    programs = pd.DataFrame([{
+        "program_id": "FIN_MAJOR",
+        "program_label": "Finance Major",
+        "active": 1,
+    }])
+    track_definitions = pd.DataFrame([{
+        "program_id": "FIN_MAJOR",
+        "track_id": "CB",
+        "track_label": "Corporate Banking",
+        "active": 1,
     }])
     buckets = pd.DataFrame([{
-        "track_id": "FIN_MAJOR", "bucket_id": "CORE", "bucket_label": "Core",
-        "priority": 1, "needed_count": 3, "needed_credits": None,
-        "min_level": None, "allow_double_count": 0,
+        "program_id": "FIN_MAJOR",
+        "bucket_id": "FIN_REQ",
+        "bucket_label": "Finance Requirements",
+        "priority": 1,
+        "track_required": "",
+        "active": 1,
     }])
-    tracks = pd.DataFrame([{
-        "track_id": "FIN_MAJOR", "active": 1,
+    sub_buckets = pd.DataFrame([{
+        "program_id": "FIN_MAJOR",
+        "bucket_id": "FIN_REQ",
+        "sub_bucket_id": "CORE",
+        "sub_bucket_label": "Core",
+        "courses_required": 1,
+        "credits_required": None,
+        "min_level": None,
+        "role": "core",
+        "priority": 1,
     }])
-    return courses, buckets, tracks
+    course_sub_buckets = pd.DataFrame([{
+        "program_id": "FIN_MAJOR",
+        "sub_bucket_id": "CORE",
+        "course_code": "FINA 3001",
+        "constraints": "",
+        "notes": "",
+    }])
+    double_count_policy = pd.DataFrame(columns=[
+        "program_id",
+        "node_type_a",
+        "node_id_a",
+        "node_type_b",
+        "node_id_b",
+        "allow_double_count",
+    ])
+    return (
+        courses,
+        programs,
+        track_definitions,
+        buckets,
+        sub_buckets,
+        course_sub_buckets,
+        double_count_policy,
+    )
 
 
 class TestLoaderStrictMode:
-    def test_uses_course_bucket_sheet_when_present(self, tmp_path):
-        courses, buckets, tracks = _base_sheets()
-        course_bucket = pd.DataFrame([{
-            "track_id": "FIN_MAJOR", "course_code": "FINA 3001", "bucket_id": "CORE",
-        }])
+    def test_loads_when_required_v2_sheets_present(self, tmp_path):
+        (
+            courses,
+            programs,
+            track_definitions,
+            buckets,
+            sub_buckets,
+            course_sub_buckets,
+            double_count_policy,
+        ) = _base_v2_sheets()
         path = str(tmp_path / "test.xlsx")
         with pd.ExcelWriter(path, engine="openpyxl") as w:
             courses.to_excel(w, sheet_name="courses", index=False)
+            programs.to_excel(w, sheet_name="programs", index=False)
+            track_definitions.to_excel(w, sheet_name="track_definitions", index=False)
             buckets.to_excel(w, sheet_name="buckets", index=False)
-            tracks.to_excel(w, sheet_name="tracks", index=False)
-            course_bucket.to_excel(w, sheet_name="course_bucket", index=False)
-
-        data = load_data(path)
-        map_df = data["course_bucket_map_df"]
-        assert "CORE" in map_df["bucket_id"].values
-
-    def test_accepts_course_sub_buckets_sheet(self, tmp_path):
-        """V2 workbooks use course_sub_buckets — loader should accept it."""
-        courses, buckets, tracks = _base_sheets()
-        course_sub_buckets = pd.DataFrame([{
-            "track_id": "FIN_MAJOR", "course_code": "FINA 3001", "bucket_id": "CORE",
-        }])
-        path = str(tmp_path / "test.xlsx")
-        with pd.ExcelWriter(path, engine="openpyxl") as w:
-            courses.to_excel(w, sheet_name="courses", index=False)
-            buckets.to_excel(w, sheet_name="buckets", index=False)
-            tracks.to_excel(w, sheet_name="tracks", index=False)
+            sub_buckets.to_excel(w, sheet_name="sub_buckets", index=False)
             course_sub_buckets.to_excel(w, sheet_name="course_sub_buckets", index=False)
+            double_count_policy.to_excel(w, sheet_name="double_count_policy", index=False)
 
         data = load_data(path)
-        map_df = data["course_bucket_map_df"]
-        assert "CORE" in map_df["bucket_id"].values
+        assert "CORE" in data["course_bucket_map_df"]["bucket_id"].values
 
-    def test_raises_when_no_bucket_map_sheet(self, tmp_path):
-        """Loader must raise ValueError when neither course_bucket nor course_sub_buckets exists."""
-        courses, buckets, tracks = _base_sheets()
+    def test_raises_when_required_v2_sheet_missing(self, tmp_path):
+        (
+            courses,
+            programs,
+            track_definitions,
+            buckets,
+            sub_buckets,
+            _course_sub_buckets,
+            double_count_policy,
+        ) = _base_v2_sheets()
         path = str(tmp_path / "test.xlsx")
         with pd.ExcelWriter(path, engine="openpyxl") as w:
             courses.to_excel(w, sheet_name="courses", index=False)
+            programs.to_excel(w, sheet_name="programs", index=False)
+            track_definitions.to_excel(w, sheet_name="track_definitions", index=False)
             buckets.to_excel(w, sheet_name="buckets", index=False)
-            tracks.to_excel(w, sheet_name="tracks", index=False)
+            sub_buckets.to_excel(w, sheet_name="sub_buckets", index=False)
+            double_count_policy.to_excel(w, sheet_name="double_count_policy", index=False)
 
-        with pytest.raises(ValueError, match="course_bucket"):
+        with pytest.raises(ValueError, match="required V2 sheet"):
             load_data(path)
 
     def test_bool_coercion_on_loaded_data(self, tmp_path):
-        """offered_fall stored as 1/0 in Excel should load as True/False."""
-        courses, buckets, tracks = _base_sheets()
-        course_bucket = pd.DataFrame([{
-            "track_id": "FIN_MAJOR", "course_code": "FINA 3001", "bucket_id": "CORE",
-        }])
+        (
+            courses,
+            programs,
+            track_definitions,
+            buckets,
+            sub_buckets,
+            course_sub_buckets,
+            double_count_policy,
+        ) = _base_v2_sheets()
         path = str(tmp_path / "test.xlsx")
         with pd.ExcelWriter(path, engine="openpyxl") as w:
             courses.to_excel(w, sheet_name="courses", index=False)
+            programs.to_excel(w, sheet_name="programs", index=False)
+            track_definitions.to_excel(w, sheet_name="track_definitions", index=False)
             buckets.to_excel(w, sheet_name="buckets", index=False)
-            tracks.to_excel(w, sheet_name="tracks", index=False)
-            course_bucket.to_excel(w, sheet_name="course_bucket", index=False)
+            sub_buckets.to_excel(w, sheet_name="sub_buckets", index=False)
+            course_sub_buckets.to_excel(w, sheet_name="course_sub_buckets", index=False)
+            double_count_policy.to_excel(w, sheet_name="double_count_policy", index=False)
 
         data = load_data(path)
-        course_row = data["courses_df"].iloc[0]
-        # Use == not `is` — pandas may return np.bool_ which is equal to but not identical to Python bool
-        assert course_row["offered_fall"] == True, "offered_fall=1 should load as True"
-        assert course_row["offered_summer"] == False, "offered_summer=0 should load as False"
-        assert type(course_row["offered_fall"]) in (bool, __import__("numpy").bool_), \
-            "offered_fall should be a bool type, not raw int"
+        row = data["courses_df"].iloc[0]
+        assert row["offered_fall"] == True
+        assert row["offered_summer"] == False
+        assert type(row["offered_fall"]) in (bool, __import__("numpy").bool_)
 
 
-# ── 4. --clean mode ───────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# 4) --clean mode
+# -----------------------------------------------------------------------------
 
 def _make_clean_workbook(
     tmp_path,
     *,
     course_headers=("course_code", "bucket1", "bucket2", "extra_col"),
     course_row=("FINA 3001", "CORE", "ELECTIVE", "something"),
-    include_course_bucket=True,
-    course_bucket_has_data=True,
+    include_course_sub_buckets=True,
+    course_sub_buckets_has_data=True,
     filename="test.xlsx",
 ):
-    """Build a minimal .xlsx for --clean mode tests using openpyxl directly."""
     wb = openpyxl.Workbook()
-    del wb[wb.sheetnames[0]]  # remove default "Sheet"
+    del wb[wb.sheetnames[0]]
 
     ws_c = wb.create_sheet("courses")
     ws_c.append(list(course_headers))
     ws_c.append(list(course_row))
 
-    if include_course_bucket:
-        ws_cb = wb.create_sheet("course_bucket")
-        ws_cb.append(["track_id", "course_code", "bucket_id"])
-        if course_bucket_has_data:
-            ws_cb.append(["FIN_MAJOR", "FINA 3001", "CORE"])
+    if include_course_sub_buckets:
+        ws_map = wb.create_sheet("course_sub_buckets")
+        ws_map.append(["program_id", "sub_bucket_id", "course_code"])
+        if course_sub_buckets_has_data:
+            ws_map.append(["FIN_MAJOR", "CORE", "FINA 3001"])
 
     path = str(tmp_path / filename)
     wb.save(path)
@@ -294,8 +353,6 @@ def _make_clean_workbook(
 
 
 def _courses_headers(path):
-    """Return the courses sheet header row from a saved workbook.
-    Uses a binary file object so openpyxl works regardless of file extension (.bak etc.)."""
     with open(path, "rb") as f:
         wb = openpyxl.load_workbook(f)
     ws = wb["courses"]
@@ -303,15 +360,15 @@ def _courses_headers(path):
 
 
 class TestCleanMode:
-    def test_clean_aborts_when_course_bucket_missing(self, tmp_path):
-        path = _make_clean_workbook(tmp_path, include_course_bucket=False)
+    def test_clean_aborts_when_course_sub_buckets_missing(self, tmp_path):
+        path = _make_clean_workbook(tmp_path, include_course_sub_buckets=False)
         headers_before = _courses_headers(path)
         with pytest.raises(SystemExit):
             migrate_main(["--clean", "--path", path])
         assert _courses_headers(path) == headers_before
 
-    def test_clean_aborts_when_course_bucket_empty(self, tmp_path):
-        path = _make_clean_workbook(tmp_path, course_bucket_has_data=False)
+    def test_clean_aborts_when_course_sub_buckets_empty(self, tmp_path):
+        path = _make_clean_workbook(tmp_path, course_sub_buckets_has_data=False)
         headers_before = _courses_headers(path)
         with pytest.raises(SystemExit):
             migrate_main(["--clean", "--path", path])
@@ -321,10 +378,10 @@ class TestCleanMode:
         path = _make_clean_workbook(tmp_path)
         migrate_main(["--clean", "--path", path])
         backup = path + ".bak"
-        assert os.path.exists(backup), ".bak must exist after --clean"
-        assert "bucket1" in _courses_headers(backup), "backup must retain deprecated cols"
-        assert "bucket1" not in _courses_headers(path), "cleaned workbook must not have bucket1"
-        assert "bucket2" not in _courses_headers(path), "cleaned workbook must not have bucket2"
+        assert os.path.exists(backup)
+        assert "bucket1" in _courses_headers(backup)
+        assert "bucket1" not in _courses_headers(path)
+        assert "bucket2" not in _courses_headers(path)
 
     def test_clean_noop_when_no_bucket_columns(self, tmp_path, capsys):
         path = _make_clean_workbook(
@@ -333,16 +390,16 @@ class TestCleanMode:
             course_row=("FINA 3001", "something"),
         )
         headers_before = _courses_headers(path)
-        migrate_main(["--clean", "--path", path])  # must not raise
+        migrate_main(["--clean", "--path", path])
         assert _courses_headers(path) == headers_before
-        assert not os.path.exists(path + ".bak"), "no backup when nothing to remove"
+        assert not os.path.exists(path + ".bak")
         assert "[INFO] No deprecated columns found. Nothing to remove." in capsys.readouterr().out
 
     def test_clean_dry_run_no_writes(self, tmp_path):
         path = _make_clean_workbook(tmp_path)
         migrate_main(["--clean", "--dry-run", "--path", path])
-        assert not os.path.exists(path + ".bak"), "dry-run must not write .bak"
-        assert "bucket1" in _courses_headers(path), "dry-run must not modify workbook"
+        assert not os.path.exists(path + ".bak")
+        assert "bucket1" in _courses_headers(path)
 
     def test_clean_preserves_nondeprecated_columns_order(self, tmp_path):
         path = _make_clean_workbook(
@@ -354,6 +411,4 @@ class TestCleanMode:
         headers = _courses_headers(path)
         assert "bucket1" not in headers
         assert "bucket2" not in headers
-        assert headers == ["course_code", "extra_col"], (
-            f"expected ['course_code', 'extra_col'], got {headers}"
-        )
+        assert headers == ["course_code", "extra_col"]

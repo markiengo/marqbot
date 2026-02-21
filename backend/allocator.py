@@ -7,14 +7,6 @@ from requirements import (
 )
 
 
-def _safe_bool(val) -> bool:
-    if isinstance(val, bool):
-        return val
-    if isinstance(val, str):
-        return val.strip().upper() == "TRUE"
-    return bool(val)
-
-
 def _safe_int(val, default=None):
     try:
         if pd.isna(val):
@@ -126,14 +118,12 @@ def allocate_courses(
         needed_count = _safe_int(row.get("needed_count"))
         needed_credits = _safe_int(row.get("needed_credits"))
         min_level = _safe_int(row.get("min_level"))
-        allow_dc = _safe_bool(row.get("allow_double_count", False))
         bucket_meta[bid] = {
             "label": str(row.get("bucket_label", bid)),
             "priority": _safe_int(row.get("priority"), 99),
             "needed_count": needed_count,
             "needed_credits": needed_credits,
             "min_level": min_level,
-            "allow_double_count": allow_dc,
             "parent_bucket_id": str(row.get("parent_bucket_id", "") or "").strip(),
             # mutable tracking:
             "slots_used": 0,
