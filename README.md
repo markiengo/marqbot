@@ -8,7 +8,6 @@
 ![pandas](https://img.shields.io/badge/pandas-150458?style=flat-square&logo=pandas&logoColor=white)
 ![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white)
 ![Jest](https://img.shields.io/badge/Jest-C21325?style=flat-square&logo=jest&logoColor=white)
-![Claude Sonnet 4.6](https://img.shields.io/badge/Claude_Sonnet_4.6-D4AF37?style=flat-square&logo=anthropic&logoColor=white)
 ![Claude Opus 4.6](https://img.shields.io/badge/Claude_Opus_4.6-7B68EE?style=flat-square&logo=anthropic&logoColor=white)
 
 MarqBot is a degree-planning app for Marquette business students. It helps you plan what to take next, check if you can take a specific class, and see how close you are to finishing your requirements.
