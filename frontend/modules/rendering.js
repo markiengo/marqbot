@@ -37,7 +37,7 @@ function minStandingWarning(minStanding) {
     case 0:
       return "";
     case 1:
-      return "freshman/enrolled standing required";
+      return "enrolled standing required";
     case 2:
       return "sophomore standing required";
     case 3:
@@ -95,6 +95,9 @@ function compactKpiBucketLabel(label) {
   const raw = String(label || "");
   if (!raw) return "";
   return raw
+    .replace(/AIM No Concentration Core/gi, "AIM Core (No Concentration)")
+    .replace(/AIM No Concentration Elective\s*\(1\)/gi, "AIM Elective (No Concentration)")
+    .replace(/\bNo Conc\b/gi, "No Concentration")
     .replace(/Information Systems Major/gi, "IS Major")
     .replace(/Business Analytics Major/gi, "BUAN Major")
     .replace(/Operations and Supply Chain Major/gi, "OSCM Major")
