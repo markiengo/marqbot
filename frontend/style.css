@@ -408,6 +408,7 @@ select:focus,
 
 .opt-code { font-weight: 800; color: #dbe9ff; }
 .opt-name { color: var(--ink-500); margin-left: 8px; font-size: 0.86rem; }
+.opt-name-only { color: #dbe9ff; font-size: 0.96rem; font-weight: 700; }
 .ms-option-empty { color: var(--ink-500); font-size: 0.86rem; }
 
 .paste-area {

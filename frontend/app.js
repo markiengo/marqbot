@@ -118,6 +118,20 @@ function majorLabel(majorId) {
   return row.label;
 }
 
+function majorDropdownLabel(majorId, fallbackLabel = "") {
+  const id = String(majorId || "").trim().toUpperCase();
+  const mapped = {
+    ACCO_MAJOR: "Accounting Major",
+    AIM_MAJOR: "Accelerating Ingenuity in Markets Major",
+    BUAN_MAJOR: "Business Analytics Major",
+    FIN_MAJOR: "Finance Major",
+    HURE_MAJOR: "Human Resources Major",
+    INSY_MAJOR: "Information Systems Major",
+    OSCM_MAJOR: "Operations and Supply Chain Major",
+  }[id];
+  return mapped || String(fallbackLabel || majorId || "").trim();
+}
+
 function trackLabel(trackId) {
   const row = (state.programs.tracks || []).find(t => t.track_id === trackId);
   if (!row) return trackId;
@@ -151,7 +165,11 @@ function renderProgramDropdown(dropdownEl, items, onSelect, activeIndex = 0) {
   items.forEach((item, idx) => {
     const div = document.createElement("div");
     div.className = `ms-option${idx === safeActive ? " active" : ""}`;
-    div.innerHTML = `<span><span class="opt-code">${esc(item.id)}</span><span class="opt-name">${esc(item.label)}</span></span>`;
+    if (item.hideCode) {
+      div.innerHTML = `<span class="opt-name-only">${esc(item.label)}</span>`;
+    } else {
+      div.innerHTML = `<span><span class="opt-code">${esc(item.id)}</span><span class="opt-name">${esc(item.label)}</span></span>`;
+    }
     div.addEventListener("mousedown", e => {
       e.preventDefault();
       onSelect(item);
@@ -530,7 +548,8 @@ function setupProgramSelectors() {
 
   const majorOptions = () => (state.programs.majors || []).map(m => ({
     id: String(m.major_id),
-    label: majorLabel(m.major_id),
+    label: majorDropdownLabel(m.major_id, majorLabel(m.major_id)),
+    hideCode: true,
   }));
 
   const trackOptions = () => getFilteredTracks().map(t => ({
