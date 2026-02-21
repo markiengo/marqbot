@@ -1,145 +1,153 @@
-# MarqBot - Marquette Finance Course Advisor
+# MarqBot
 
-MarqBot is a student-facing planning app for Marquette Finance majors.  
-It recommends what to take next based on completed courses, in-progress courses, term availability, and prerequisite readiness.
+MarqBot is a degree-planning app for Marquette business students. It helps you plan what to take next, check if you can take a specific class, and see how close you are to finishing your requirements.
 
-## Key Features
+## Part A - For Students (Non-Technical)
 
-## 1. Deterministic Prerequisite Eligibility
+## What MarqBot Does
+MarqBot helps you:
+- pick your major(s) and optional track
+- add completed and current in-progress courses
+- get recommended courses for the next semester (optionally two semesters)
+- check "Can I take this class next term?"
+- see requirement progress by bucket
 
-What it does:
-- Validates and normalizes course input (`fina3001` -> `FINA 3001`)
-- Checks hard prerequisites from catalog data
-- Filters by term offering (`Fall`, `Spring`, `Summer`)
-- Excludes already completed or in-progress courses
+## Majors and Tracks Currently Included
+Majors:
+- Finance Major
+- Accounting Major
+- Business Analytics Major
+- Operations and Supply Chain Major
+- Information Systems Major
 
-Why it matters:
-- Prevents recommending courses the student cannot actually take.
+Finance tracks:
+- Corporate Banking (CB)
+- Financial Planning (FP)
 
-## 2. One- or Two-Semester Planning
+Note:
+- Business Analytics is modeled as a secondary major and must be paired with a primary major.
 
-What it does:
-- Returns Semester 1 recommendations for the selected target term.
-- Optionally returns Semester 2 recommendations.
-- Semester 2 is built on Semester 1 picks (assumed completed).
-- Supports `Auto` follow-up semester and `None (Do not generate)`.
+## How Recommendations Are Chosen (Simple Version)
+MarqBot only recommends courses you are actually eligible to take (prereqs + term offering + not already taken/in-progress).
 
-Why it matters:
-- Gives a short roadmap, not just a single next-course suggestion.
+Then it ranks options by:
+1. Requirements first: courses in higher-priority requirement buckets are favored.
+2. Bigger progress impact: courses that fill more unmet requirement buckets are favored.
+3. Earlier sequence: lower prerequisite level is favored when ties remain.
 
-## 3. Requirement Bucket Progress
+## What Degree Progress Means
+- Green: courses already completed.
+- Yellow: current in-progress courses that are assumed completed for projection.
+- White: still remaining.
 
-What it does:
-- Allocates completed/in-progress courses into Finance requirement buckets.
-- Shows per-bucket progress bars, remaining slots, and applied courses.
-- Supports multi-bucket course mappings (double count behavior from data flags).
+You will also see notes when MarqBot makes prerequisite-chain assumptions (for example, inferring required prereqs from higher-level courses already completed/in progress).
 
-Why it matters:
-- Students see how each course choice moves degree completion.
+## Core Features
+- Recommendation planning for one or two semesters
+- Inline "Can I Take This?" checker
+- Current vs projected progress visualization
+- Double-count transparency notes when a course applies to multiple requirement buckets
+- Keyboard-friendly searchable selectors
 
-## 4. Can-Take Mode
+## How To Use
+1. Select your major(s), then optional track if applicable.
+2. Add completed courses.
+3. Add courses you are taking now.
+4. Set target semester and recommendation count.
+5. Click **Get Recommendations**.
+6. Review progress + suggestions, then use **Can I Take This?** for specific classes.
 
-What it does:
-- If `requested_course` is provided, evaluates that single course.
-- Returns `can_take` + missing prerequisites + not-offered flags.
+Important:
+- MarqBot is a planning aid. Final course decisions should still be confirmed with your advisor and official registration systems.
 
-Why it matters:
-- Quick check for “Can I take X next semester?”
+---
 
-## 5. Session Persistence in Browser
+## Part B - For Developers (Technical)
 
-What it does:
-- Saves selected courses and controls in browser storage.
-- Restores state on refresh.
+## Architecture Overview
+Backend (Flask + pandas):
+- `backend/server.py`: API orchestration and response assembly
+- `backend/data_loader.py`: strict workbook loading + runtime normalization
+- `backend/eligibility.py`: eligibility filtering and ranking
+- `backend/allocator.py`: requirement allocation and overlap handling
+- `backend/requirements.py`: policy resolution for double/triple/N-way counting
+- `backend/semester_recommender.py`: semester recommendation pipeline
 
-Why it matters:
-- Students do not need to re-enter everything after reload.
+Frontend (vanilla JS modules):
+- `frontend/index.html`: UI structure
+- `frontend/style.css`: tokens and component styling
+- `frontend/app.js`: state, events, orchestration
+- `frontend/modules/api.js`: fetch wrappers
+- `frontend/modules/multiselect.js`: searchable selectors
+- `frontend/modules/rendering.js`: HTML render helpers
+- `frontend/modules/session.js`: local session persistence
 
-## Tech Stack
+## API Endpoints
+- `GET /courses`
+- `GET /programs`
+- `POST /recommend`
+- `POST /can-take` (standalone inline eligibility check)
 
-- Backend: Python, Flask, pandas, openpyxl
-- Frontend: HTML/CSS, vanilla JavaScript (modular ES modules)
-- Data: Excel workbook (`marquette_courses_full.xlsx`)
-- Frontend unit tests: Jest + jsdom
+## Data Model (Workbook)
+Primary workbook: `marquette_courses_full.xlsx`
 
-## Architecture
+Canonical V2 sheets:
+- `programs`
+- `buckets`
+- `sub_buckets`
+- `courses`
+- `course_prereqs`
+- `course_offerings`
+- `courses_all_buckets` (course-to-sub-bucket mappings)
+- `course_equivalencies`
+- `double_count_policy`
+- `README`
 
-Backend:
-- `backend/server.py`: API routes and request orchestration
-- `backend/data_loader.py`: workbook load/validation/compatibility mapping
-- `backend/semester_recommender.py`: semester pipeline, ranking, and recommendation output
-- `backend/eligibility.py`, `backend/allocator.py`, `backend/unlocks.py`: core logic
+Notes:
+- Runtime is strict V2.
+- `courses_all_buckets` is canonical. Legacy `course_sub_buckets` is compatibility-read only.
 
-Frontend:
-- `frontend/app.js`: UI orchestration
-- `frontend/modules/api.js`: HTTP calls
-- `frontend/modules/multiselect.js`: course picker behavior
-- `frontend/modules/rendering.js`: result rendering
-- `frontend/modules/session.js`: localStorage persistence
-- `frontend/modules/utils.js`: shared helpers
-
-## API Overview
-
-`GET /courses`
-- Returns catalog for frontend pickers.
-
-`POST /recommend`
-- Recommendation mode: returns `mode=recommendations` with `semesters` array.
-- Can-take mode: if `requested_course` is set, returns `mode=can_take`.
-
-Important request fields:
-- `completed_courses`
-- `in_progress_courses`
-- `target_semester_primary` (`Spring 2026` format)
-- `target_semester_secondary` (`Auto`/explicit/`__NONE__`)
-- `max_recommendations` (1-4)
-- `requested_course` (optional)
-
-## Setup (Windows, beginner-friendly)
-
-1. Install tools:
-- Git: https://git-scm.com/download/win
-- Python 3.10+ (check “Add Python to PATH”): https://www.python.org/downloads/windows/
-
-2. Clone:
-
-```powershell
-git clone https://github.com/markiengo/marqbot.git
-cd marqbot
-```
-
-3. Install deps:
-
+## Local Setup
+1. Python environment:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-4. Run:
+2. Frontend test dependencies:
+```powershell
+npm install
+```
 
+## Run
 ```powershell
 .\.venv\Scripts\python.exe backend/server.py
 ```
-
 Open: `http://localhost:5000`
 
-## Testing
-
+## Test and Validation Commands
 Backend tests:
-
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests/backend_tests -v
+.\.venv\Scripts\python.exe -m pytest tests/backend_tests -q
 ```
 
-Frontend unit tests:
-
+Frontend tests:
 ```powershell
-npm install
-npm test
+cmd /c npm test --silent
 ```
 
-## Notes
+Data validator:
+```powershell
+.\.venv\Scripts\python.exe scripts/validate_track.py --all
+```
 
-MarqBot is not official academic advising.  
-Students should confirm final course decisions with advisors and registrar systems.
+## Contribution Guidance
+- Keep API changes additive whenever possible.
+- Preserve frontend IDs used by `app.js`.
+- Prefer deterministic behavior over hidden heuristics.
+- Update tests with every behavior change.
+- Treat workbook contract changes as migration-level changes, not incidental edits.
+
+## Canonical Project Narrative
+See `PROJECT_HISTORY.md` for the consolidated phase-by-phase history.
