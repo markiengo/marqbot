@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 from prereq_parser import prereqs_satisfied, build_prereq_check_string
 from requirements import SOFT_WARNING_TAGS, COMPLEX_PREREQ_TAG, CONCURRENT_TAGS, DEFAULT_TRACK_ID
@@ -236,6 +237,23 @@ def get_eligible_courses(
             prereq_check = "Manual review required"
 
         min_standing = int(row.get("prereq_level", 0)) if not pd.isna(row.get("prereq_level", 0)) else 0
+
+        # Reconcile standing_requirement tag with min_standing level.
+        # Case A: tag is set but level is 0 — infer level from the course number
+        #         (e.g. 3001 → 3xxx → sophomore = 2).
+        if "standing_requirement" in soft_tags and min_standing == 0:
+            m = re.search(r"\d+", code or "")
+            if m:
+                level_digit = int(m.group()) // 1000
+                if level_digit >= 2:
+                    min_standing = max(1, level_digit - 1)
+        # Case B: level is set but tag is missing — synthesize the tag so it surfaces.
+        if min_standing > 0 and "standing_requirement" not in soft_tags:
+            soft_tags = list(soft_tags) + ["standing_requirement"]
+
+        # Recompute warning_tags after reconciliation.
+        warning_tags = [t for t in soft_tags if t in SOFT_WARNING_TAGS]
+        has_soft_requirement = bool(warning_tags)
 
         results.append({
             "course_code": code,

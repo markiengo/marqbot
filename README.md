@@ -1,6 +1,19 @@
 # MarqBot
 
+![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=flat-square&logo=python&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=flat-square&logo=flask&logoColor=white)
+![pandas](https://img.shields.io/badge/pandas-150458?style=flat-square&logo=pandas&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-C21325?style=flat-square&logo=jest&logoColor=white)
+![Claude Sonnet 4.6](https://img.shields.io/badge/Claude_Sonnet_4.6-D4AF37?style=flat-square&logo=anthropic&logoColor=white)
+![Claude Opus 4.6](https://img.shields.io/badge/Claude_Opus_4.6-7B68EE?style=flat-square&logo=anthropic&logoColor=white)
+
 MarqBot is a degree-planning app for Marquette business students. It helps you plan what to take next, check if you can take a specific class, and see how close you are to finishing your requirements.
+
+---
 
 ## Part A - For Students (Non-Technical)
 
@@ -130,28 +143,215 @@ Frontend (vanilla JS modules):
 - `POST /recommend`
 - `POST /can-take` (standalone inline eligibility check)
 
+---
+
 ## Data Model (Workbook)
+
 Primary workbook: `marquette_courses_full.xlsx`
 
-Canonical V2 sheets:
-- `programs`
-- `buckets`
-- `sub_buckets`
-- `courses`
-- `course_prereqs`
-- `course_offerings`
-- `courses_all_buckets` (course-to-sub-bucket mappings)
-- `course_equivalencies`
-- `double_count_policy`
-- `README`
+The workbook uses a **V2 schema** — a two-level hierarchy of `buckets` → `sub_buckets` that the runtime derives into a flat requirement list. The loader in `backend/data_loader.py` enforces strict V2 on startup; missing required sheets raise an error immediately.
 
-Notes:
-- Runtime is strict V2.
-- `courses_all_buckets` is canonical. Legacy `course_sub_buckets` is compatibility-read only.
-- Major display labels are canonicalized from `program_id`:
-  - Rule: `<CODE>_MAJOR -> <DISPLAY_CODE> Major`
-  - Current code aliases: `FIN -> FINA`, `INSY -> IS`
-  - For future injections, use stable `program_id` codes; UI labels are derived by this rule.
+### Sheet Reference
+
+| Sheet | Purpose |
+|---|---|
+| `courses` | Master catalog of all course codes, credits, names, and scheduling flags |
+| `programs` | Top-level programs (majors) and sub-programs (tracks/concentrations) |
+| `buckets` | Requirement groups scoped to a program (e.g. "Finance Core") |
+| `sub_buckets` | Specific requirement slots within a bucket (e.g. "FINA 3310 or equivalent") |
+| `courses_all_buckets` | Many-to-many mapping of courses to sub_bucket slots, per program |
+| `course_prereqs` | Prerequisite expressions per course (hard, soft/warning, concurrent) |
+| `course_offerings` | One row per term per course; drives offered_fall/spring/summer derivation |
+| `course_equivalencies` | Groups of interchangeable courses (e.g. FINA 3310 ↔ BUAD 3310) |
+| `double_count_policy` | Explicit allow/deny rules for a course counting toward multiple buckets |
+| `README` | Authoring guide embedded directly in the workbook |
+
+---
+
+### `courses` sheet
+
+The master course catalog. One row per course code.
+
+| Column | Type | Notes |
+|---|---|---|
+| `course_code` | string | Primary key. Example: `FINA 3310`. |
+| `course_name` | string | Display name shown in UI. |
+| `credits` | int | Credit hours. |
+| `offered_fall` | bool | Whether the course has ever been offered in fall. Derived at load time from `course_offerings`. |
+| `offered_spring` | bool | Same, for spring. |
+| `offered_summer` | bool | Same, for summer. |
+| `offering_confidence` | string | `confirmed`, `likely`, `unknown`, etc. Pulled from the latest term in `course_offerings`. |
+| `last_four_terms` | string | Comma-joined human-readable term labels for the four most recent offering rows. |
+| `prereq_hard` | string | Parsed prerequisite expression. Overlaid from `course_prereqs` at load time. |
+| `prereq_soft` | string | Warning-level prerequisite note (not blocking). |
+| `prereq_concurrent` | string | Courses that may or must be taken concurrently. |
+| `prereq_level` | string | Minimum standing (e.g. `sophomore`, `junior`). |
+
+---
+
+### `programs` sheet
+
+Defines all programs — both standalone majors and track/concentration sub-programs.
+
+| Column | Type | Notes |
+|---|---|---|
+| `program_id` | string | Primary key. Uppercase. Example: `FIN_MAJOR`, `CB`, `FP`. |
+| `program_label` | string | Human-readable display name. |
+| `kind` | string | `major` or `track`. |
+| `parent_major_id` | string | For tracks: the `program_id` of the owning major. Empty for majors. |
+| `active` | bool | Whether the program appears in the UI dropdown. |
+| `requires_primary_major` | bool | If true, this program must be paired with a separate primary major (used by secondary majors like AIM and BUSA). |
+
+Display label derivation rule: `<CODE>_MAJOR` → `<DISPLAY_CODE> Major`. Code aliases applied at runtime: `FIN → FINA`, `INSY → IS`. Use stable `program_id` values in the workbook; UI labels are always derived.
+
+---
+
+### `buckets` sheet
+
+Requirement groups owned by a program. Think of these as the top-level sections of a degree checklist.
+
+| Column | Type | Notes |
+|---|---|---|
+| `program_id` | string | FK → `programs.program_id`. |
+| `bucket_id` | string | Unique within a program. Example: `fin_core`. |
+| `bucket_label` | string | Display name. Example: `Finance Core`. |
+| `priority` | int | Lower number = higher recommendation priority. Default 99 if omitted. |
+| `track_required` | string | If set, this bucket only activates when the student is enrolled in the specified track. |
+| `active` | bool | Inactive buckets are ignored by the runtime. |
+
+---
+
+### `sub_buckets` sheet
+
+Specific requirement slots within a bucket. One sub-bucket = one requirement that must be satisfied.
+
+| Column | Type | Notes |
+|---|---|---|
+| `program_id` | string | FK → `programs.program_id`. |
+| `bucket_id` | string | FK → `buckets.bucket_id`. |
+| `sub_bucket_id` | string | Unique within a program+bucket. |
+| `sub_bucket_label` | string | Display name shown on progress cards. |
+| `role` | string | `core` or `elective`. Drives recommendation priority weighting when explicit `priority` is omitted. |
+| `priority` | int or null | Explicit override. If null, derived from parent bucket priority + role weight + position index. |
+| `courses_required` | int or null | Minimum courses that must satisfy this slot. If null and `credits_required` is also null, validator raises an error. |
+| `credits_required` | int or null | Minimum credits that must satisfy this slot (alternative to `courses_required`). |
+| `min_level` | int or null | Minimum course level (e.g. `3000`). |
+
+Priority derivation formula (when `priority` is null):
+```
+effective_priority = (parent_bucket_priority × 100) + (role_weight × 10) + within_parent_index
+```
+where `role_weight` is 0 for `core`, 5 for `elective`, 9 for anything else.
+
+---
+
+### `courses_all_buckets` sheet
+
+The many-to-many mapping between courses and sub-bucket slots, scoped per program.
+
+| Column | Type | Notes |
+|---|---|---|
+| `program_id` | string | FK → `programs.program_id`. |
+| `sub_bucket_id` | string | FK → `sub_buckets.sub_bucket_id`. |
+| `course_code` | string | FK → `courses.course_code`. |
+| `notes` | string | Optional annotation shown in the UI (e.g. "counts as elective only"). |
+
+A single course can appear in multiple rows with different `sub_bucket_id` values — this is how double-counting is modeled. The `double_count_policy` sheet controls whether those overlapping assignments are allowed at runtime.
+
+Legacy alias: the sheet was previously named `course_sub_buckets`. The loader checks for `courses_all_buckets` first and falls back to the legacy name for compatibility-read only.
+
+---
+
+### `course_prereqs` sheet
+
+Prerequisite data separated from the main courses catalog for easier maintenance.
+
+| Column | Type | Notes |
+|---|---|---|
+| `course_code` | string | FK → `courses.course_code`. |
+| `prerequisites` | string | Hard prerequisite expression. Supports AND/OR logic and parentheses. Example: `FINA 3310 AND (FINA 3320 OR BUAD 3320)`. |
+| `prereq_warnings` | string | Soft/recommended prerequisite, not blocking. |
+| `concurrent_with` | string | Courses allowed or required concurrently. |
+| `min_standing` | string | Minimum academic standing required. |
+
+At load time, these columns are overlaid onto the `courses` dataframe as `prereq_hard`, `prereq_soft`, `prereq_concurrent`, and `prereq_level`.
+
+---
+
+### `course_offerings` sheet
+
+One row per term per course. Drives offered-by-season flags derived at load time.
+
+| Column | Type | Notes |
+|---|---|---|
+| `course_code` | string | FK → `courses.course_code`. |
+| `term_code` | string | Format: `YYYYSS` where SS is `FA`, `SP`, or `SU`. Example: `2024FA`. |
+| `offered` | bool | Whether the course was/is offered in that term. |
+| `confidence` | string | Data quality note. The most recent non-empty confidence value is propagated to `courses.offering_confidence`. |
+
+The loader groups rows by course, sorts descending by term, and derives `offered_fall`, `offered_spring`, `offered_summer` as OR across all matching rows. The four most recent term codes become `last_four_terms`.
+
+---
+
+### `course_equivalencies` sheet
+
+Groups of interchangeable courses. A student completing any one course in a group satisfies requirements that list any other member.
+
+| Column | Type | Notes |
+|---|---|---|
+| `equiv_group_id` | string | Groups courses together. Example: `eq_fina3310`. |
+| `course_code` | string | Member of this equivalency group. |
+| `restriction_note` | string | (or `notes`) Optional display annotation. |
+| `program_scope` | string | If set, this equivalency is only active for the specified `program_id`. Normalized internally to `scope_program_id`. |
+
+---
+
+### `double_count_policy` sheet
+
+Explicit rules controlling whether a course may count toward multiple requirement buckets simultaneously.
+
+| Column | Type | Notes |
+|---|---|---|
+| `program_id` | string | Program this policy applies to. |
+| `node_type_a` | string | Type of the first node: `bucket` or `sub_bucket`. |
+| `node_id_a` | string | ID of the first node. |
+| `node_type_b` | string | Type of the second node. |
+| `node_id_b` | string | ID of the second node. |
+| `allow_double_count` | bool | Whether overlap between these two nodes is allowed. |
+| `reason` | string | Authoring note explaining the policy decision. |
+
+Pairs are canonical (A, B) = (B, A). The validator warns on duplicate canonical pairs.
+
+---
+
+### Runtime Derivation
+
+The loader performs these transformations before returning data to the server:
+
+1. **`programs` → `tracks_df`**: Flattens programs into a unified track list used by the eligibility and recommendation engines. Orphan tracks with no `parent_major_id` are auto-parented if exactly one major exists.
+2. **`buckets` + `sub_buckets` + `courses_all_buckets` → `buckets_df` + `course_bucket_map_df`**: Builds the flat runtime requirement list and course-to-bucket mapping used by the allocator.
+3. **`course_prereqs` overlay**: Merges prereq columns onto `courses_df` by course code.
+4. **`course_offerings` overlay**: Derives offered-by-season flags and confidence metadata from row-per-term data.
+
+The runtime never reads raw V2 sheets directly — all consumption goes through these derived dataframes.
+
+---
+
+### Validation
+
+Run the workbook validator before any release:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/validate_track.py --all
+```
+
+The validator enforces:
+- All required sheets present
+- No sub-buckets where both `courses_required` and `credits_required` are null
+- No duplicate canonical pairs in `double_count_policy`
+- No `scope_program_id` values in `course_equivalencies` that reference non-existent programs
+
+---
 
 ## Local Setup
 1. Python environment:
@@ -194,6 +394,43 @@ Data validator:
 - Prefer deterministic behavior over hidden heuristics.
 - Update tests with every behavior change.
 - Treat workbook contract changes as migration-level changes, not incidental edits.
+
+---
+
+## Upcoming Work (In Progress)
+
+### Marquette Common Core (MCC)
+Add support for the university-wide Marquette Common Core requirement set, which applies to all undergraduate students regardless of major.
+
+Planned scope:
+- New `MCC` program entry in the `programs` sheet (`kind=major`, but scoped as a universal overlay).
+- Buckets and sub-buckets covering all MCC categories (e.g. Diverse Perspectives, Rhetoric, Theology, Ethics, etc.).
+- Course mappings from the existing catalog to MCC sub-buckets where applicable.
+- UI: MCC progress displayed alongside major progress in the dashboard, with separate progress ring or KPI card.
+- Double-count policy entries where MCC requirements overlap with major/track requirements (e.g. BUAD writing courses satisfying both MCC Rhetoric and a major elective).
+- Validator extended with MCC-specific integrity checks.
+
+Design considerations:
+- MCC should display independently from major selection — all students need it.
+- MCC mappings must be maintained separately from major mappings so changes to one do not break the other.
+- Overlapping courses (MCC + major) need explicit policy entries to avoid silent double-count suppression.
+
+### AI Features
+Integrate AI-powered assistance to help students navigate planning decisions that go beyond rule-based recommendations.
+
+Planned scope:
+- **Natural-language course search**: let students describe what they are looking for ("a finance elective I can take next semester without prereqs") and surface matching courses using embedding similarity or an LLM prompt over the course catalog.
+- **Personalized explanation**: generate plain-English explanations of why a course was or was not recommended, referencing the student's specific situation (missing prereqs, scheduling conflict, already satisfies requirement, etc.).
+- **What-if advisor**: allow students to ask "what if I add X?" and see projected requirement impact before committing to a selection.
+- **Advisor summary export**: generate a structured summary of the student's plan suitable for sharing with an academic advisor, including completed courses, in-progress courses, planned courses, and remaining gaps.
+
+Design considerations:
+- AI features must degrade gracefully — if the LLM is unavailable, the rule-based engine continues to function normally.
+- All AI output is advisory only and must be labeled as such in the UI.
+- No student data should be sent to external APIs without explicit opt-in.
+- Prefer a local/offline-capable model option where feasible for privacy.
+
+---
 
 ## Canonical Project Narrative
 See `PROJECT_HISTORY.md` for the consolidated phase-by-phase history.
