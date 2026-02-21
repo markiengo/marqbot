@@ -1,5 +1,10 @@
 import pandas as pd
-from requirements import DEFAULT_TRACK_ID, MAX_BUCKETS_PER_COURSE, get_allowed_double_count_pairs
+
+from requirements import (
+    DEFAULT_TRACK_ID,
+    MAX_BUCKETS_PER_COURSE,
+    get_allowed_double_count_pairs,
+)
 
 
 def _safe_bool(val) -> bool:
@@ -24,18 +29,20 @@ def _expand_map_with_equivalencies(
     equivalencies_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Expand course_bucket_map: if a row has constraints='equiv_group:EQUIV_FINA_4001',
-    add extra rows for all other members of that equivalency group so they
-    also map to the same bucket.
+    Expand course-bucket mappings via equivalency groups.
+
+    If a row has constraints='equiv_group:<ID>', all members of that group are
+    mapped to the same bucket.
     """
-    if equivalencies_df is None or len(equivalencies_df) == 0:
+    if equivalencies_df is None or len(equivalencies_df) == 0 or len(track_map) == 0:
         return track_map
 
     equiv_groups: dict[str, list[str]] = {}
     for _, row in equivalencies_df.iterrows():
-        gid = str(row["equiv_group_id"])
-        code = str(row["course_code"])
-        equiv_groups.setdefault(gid, []).append(code)
+        gid = str(row.get("equiv_group_id", "") or "").strip()
+        code = str(row.get("course_code", "") or "").strip()
+        if gid and code:
+            equiv_groups.setdefault(gid, []).append(code)
 
     extra_rows = []
     for _, row in track_map.iterrows():
@@ -50,78 +57,76 @@ def _expand_map_with_equivalencies(
                 new_row["course_code"] = member
                 extra_rows.append(new_row)
 
-    if extra_rows:
-        expanded = pd.concat([track_map, pd.DataFrame(extra_rows)], ignore_index=True)
-        expanded = expanded.drop_duplicates(subset=["track_id", "bucket_id", "course_code"])
-        return expanded
-    return track_map
+    if not extra_rows:
+        return track_map
+
+    expanded = pd.concat([track_map, pd.DataFrame(extra_rows)], ignore_index=True)
+    dedupe_cols = [c for c in ["track_id", "bucket_id", "course_code"] if c in expanded.columns]
+    if dedupe_cols:
+        expanded = expanded.drop_duplicates(subset=dedupe_cols)
+    return expanded
 
 
 def allocate_courses(
-    completed: list,
-    in_progress: list,
+    completed: list[str],
+    in_progress: list[str],
     buckets_df: pd.DataFrame,
     course_bucket_map_df: pd.DataFrame,
     courses_df: pd.DataFrame,
     equivalencies_df: pd.DataFrame = None,
     track_id: str = DEFAULT_TRACK_ID,
+    double_count_policy_df: pd.DataFrame | None = None,
 ) -> dict:
     """
-    Deterministically allocates completed courses to requirement buckets.
+    Deterministically allocate completed courses to requirement buckets.
 
-    Only `completed` courses count toward bucket satisfaction.
-    `in_progress` courses are tracked but do NOT fill buckets.
-
-    Returns:
-    {
-      "applied_by_bucket": {
-        "CORE": {
-          "completed_applied": ["FINA 3001"],
-          "in_progress_applied": ["FINA 4001"],
-          "credits_applied": 3,
-          "satisfied": False,
-          "label": "Core Required",
-          "needed": 3,
-        }, ...
-      },
-      "double_counted_courses": [
-        {"course_code": "FINA 4020", "buckets": ["FIN_CHOOSE_2", "FIN_CHOOSE_1"]}
-      ],
-      "remaining": {
-        "CORE": {
-          "needed": 3,
-          "slots_remaining": 2,
-          "remaining_courses": ["FINA 4001", "FINA 4011"],
-          "label": "Core Required",
-          "is_credit_based": False,
-        }, ...
-      },
-      "notes": [...],
-      "bucket_order": ["CORE", "FIN_CHOOSE_2", ...],
-    }
+    completed courses count toward satisfaction.
+    in_progress courses are display-only and do not fill buckets.
     """
-    # Filter to requested track
-    track_buckets = buckets_df[buckets_df["track_id"] == track_id].copy()
-    track_map = course_bucket_map_df[course_bucket_map_df["track_id"] == track_id].copy()
+    if buckets_df is None or len(buckets_df) == 0:
+        return {
+            "applied_by_bucket": {},
+            "double_counted_courses": [],
+            "remaining": {},
+            "notes": [],
+            "bucket_order": [],
+        }
+
+    # Filter to requested track/program.
+    track_key = str(track_id).strip().upper()
+    track_buckets = buckets_df[
+        buckets_df["track_id"].astype(str).str.strip().str.upper() == track_key
+    ].copy()
+    track_map = course_bucket_map_df[
+        course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
+    ].copy()
     track_map = _expand_map_with_equivalencies(track_map, equivalencies_df)
 
-    # Build allowed double-count pairs from bucket data
-    allowed_pairs = get_allowed_double_count_pairs(track_buckets)
-
-    # bucket_order: sorted by priority ascending (priority 1 = highest)
-    bucket_order = (
-        track_buckets.sort_values("priority")["bucket_id"].tolist()
+    # Allowed double-count pairs from policy engine (or legacy fallback).
+    allowed_pairs = get_allowed_double_count_pairs(
+        track_buckets,
+        track_id=track_key,
+        double_count_policy_df=double_count_policy_df,
     )
 
-    # Build bucket metadata
+    # Priority order: smaller value first.
+    if "priority" in track_buckets.columns:
+        sort_priority = pd.to_numeric(track_buckets["priority"], errors="coerce").fillna(99)
+        track_buckets = track_buckets.assign(_priority_sort=sort_priority).sort_values(
+            ["_priority_sort", "bucket_id"], kind="stable"
+        )
+    else:
+        track_buckets = track_buckets.sort_values("bucket_id", kind="stable")
+    bucket_order = track_buckets["bucket_id"].astype(str).tolist()
+
+    # Bucket metadata.
     bucket_meta: dict[str, dict] = {}
     for _, row in track_buckets.iterrows():
-        bid = row["bucket_id"]
+        bid = str(row["bucket_id"])
         needed_count = _safe_int(row.get("needed_count"))
         needed_credits = _safe_int(row.get("needed_credits"))
         min_level = _safe_int(row.get("min_level"))
         allow_dc = _safe_bool(row.get("allow_double_count", False))
-
         bucket_meta[bid] = {
             "label": str(row.get("bucket_label", bid)),
             "priority": _safe_int(row.get("priority"), 99),
@@ -129,12 +134,12 @@ def allocate_courses(
             "needed_credits": needed_credits,
             "min_level": min_level,
             "allow_double_count": allow_dc,
-            # mutable tracking fields:
+            "parent_bucket_id": str(row.get("parent_bucket_id", "") or "").strip(),
+            # mutable tracking:
             "slots_used": 0,
             "credits_used": 0,
         }
 
-    # course-level lookup helpers
     def get_course_row(course_code: str):
         rows = courses_df[courses_df["course_code"] == course_code]
         return rows.iloc[0] if len(rows) > 0 else None
@@ -152,26 +157,19 @@ def allocate_courses(
         return None
 
     def get_eligible_buckets_for_course(course_code: str) -> list[dict]:
-        """Returns list of {bucket_id} dicts for a course, filtered by min_level.
-
-        Double-count eligibility is gated solely by bucket-level allow_double_count
-        (via allowed_pairs). There is no row-level can_double_count field.
-        """
         rows = track_map[track_map["course_code"] == course_code]
         result = []
         course_level = get_course_level(course_code)
 
         for _, row in rows.iterrows():
-            bid = row["bucket_id"]
+            bid = str(row.get("bucket_id", ""))
             if bid not in bucket_meta:
                 continue
-            # Enforce min_level constraint
             min_lvl = bucket_meta[bid].get("min_level")
             if min_lvl is not None and course_level is not None and course_level < min_lvl:
                 continue
             result.append({"bucket_id": bid})
 
-        # Sort by priority ascending
         result.sort(key=lambda b: bucket_meta.get(b["bucket_id"], {}).get("priority", 99))
         return result
 
@@ -186,7 +184,6 @@ def allocate_courses(
     def is_full(bid: str) -> bool:
         return slots_remaining(bid) <= 0
 
-    # Initialize applied tracking
     applied: dict[str, dict] = {
         bid: {
             "completed_applied": [],
@@ -199,93 +196,87 @@ def allocate_courses(
     double_counted: list[dict] = []
     notes: list[str] = []
 
-    # ── Step 1: sort completed by number of eligible buckets ascending ──────────
+    def update_satisfied(bid: str):
+        meta = bucket_meta[bid]
+        if meta["needed_count"] is not None:
+            applied[bid]["satisfied"] = (
+                len(applied[bid]["completed_applied"]) >= meta["needed_count"]
+            )
+        elif meta["needed_credits"] is not None:
+            applied[bid]["satisfied"] = (
+                applied[bid]["credits_applied"] >= meta["needed_credits"]
+            )
+
+    def assign_completed_to_bucket(course_code: str, bid: str, credits: int):
+        applied[bid]["completed_applied"].append(course_code)
+        applied[bid]["credits_applied"] += credits
+        bucket_meta[bid]["slots_used"] += 1
+        bucket_meta[bid]["credits_used"] += credits
+        update_satisfied(bid)
+
+    # Step 1: sort by constrained courses first.
     completed_with_buckets = []
     for code in completed:
         eligible_buckets = get_eligible_buckets_for_course(code)
         completed_with_buckets.append((code, eligible_buckets))
-
     completed_with_buckets.sort(key=lambda x: len(x[1]))
 
-    # ── Step 2: assign completed courses ────────────────────────────────────────
+    # Step 2: assign completed courses.
     for course_code, eligible_buckets in completed_with_buckets:
         if not eligible_buckets:
             continue
-
         credits = get_course_credits(course_code)
         assigned_to: list[str] = []
 
-        # Primary assignment: first non-full bucket
+        # Primary assignment: first eligible non-full bucket.
         for bucket_info in eligible_buckets:
             bid = bucket_info["bucket_id"]
             if is_full(bid):
                 continue
-            # Assign
-            applied[bid]["completed_applied"].append(course_code)
-            applied[bid]["credits_applied"] += credits
-            bucket_meta[bid]["slots_used"] += 1
-            bucket_meta[bid]["credits_used"] += credits
+            assign_completed_to_bucket(course_code, bid, credits)
             assigned_to.append(bid)
             break
 
         if not assigned_to:
             continue
 
-        primary_bid = assigned_to[0]
-
-        # Check if primary bucket is now satisfied
-        meta = bucket_meta[primary_bid]
-        if meta["needed_count"] is not None:
-            applied[primary_bid]["satisfied"] = (
-                len(applied[primary_bid]["completed_applied"]) >= meta["needed_count"]
-            )
-        elif meta["needed_credits"] is not None:
-            applied[primary_bid]["satisfied"] = (
-                applied[primary_bid]["credits_applied"] >= meta["needed_credits"]
-            )
-
-        # Secondary assignment (double-count)
-        # Gated solely by bucket-level allowed_pairs (allow_double_count on buckets sheet).
-        if len(assigned_to) < MAX_BUCKETS_PER_COURSE:
-            for bucket_info in eligible_buckets:
-                bid = bucket_info["bucket_id"]
-                if bid in assigned_to:
-                    continue
-                pair = frozenset([primary_bid, bid])
-                if pair not in allowed_pairs:
-                    continue
-                if is_full(bid):
-                    notes.append(
-                        f"{course_code} could also count toward "
-                        f"{bucket_meta[bid]['label']} but that bucket is already satisfied."
-                    )
-                    continue
-                # Assign secondary
-                applied[bid]["completed_applied"].append(course_code)
-                applied[bid]["credits_applied"] += credits
-                bucket_meta[bid]["slots_used"] += 1
-                bucket_meta[bid]["credits_used"] += credits
-                assigned_to.append(bid)
-
-                # Check if secondary bucket is now satisfied
-                meta2 = bucket_meta[bid]
-                if meta2["needed_count"] is not None:
-                    applied[bid]["satisfied"] = (
-                        len(applied[bid]["completed_applied"]) >= meta2["needed_count"]
-                    )
-                elif meta2["needed_credits"] is not None:
-                    applied[bid]["satisfied"] = (
-                        applied[bid]["credits_applied"] >= meta2["needed_credits"]
-                    )
+        # N-way assignment: each additional bucket must be pairwise-compatible
+        # with all already-assigned buckets.
+        for bucket_info in eligible_buckets:
+            if len(assigned_to) >= MAX_BUCKETS_PER_COURSE:
                 break
 
-        if len(assigned_to) > 1:
-            double_counted.append({
-                "course_code": course_code,
-                "buckets": assigned_to,
-            })
+            bid = bucket_info["bucket_id"]
+            if bid in assigned_to:
+                continue
 
-    # ── Step 3: track in-progress (display only, does not fill buckets) ─────────
+            pairwise_ok = True
+            for existing in assigned_to:
+                if frozenset([existing, bid]) not in allowed_pairs:
+                    pairwise_ok = False
+                    break
+            if not pairwise_ok:
+                continue
+
+            if is_full(bid):
+                notes.append(
+                    f"{course_code} could also count toward "
+                    f"{bucket_meta[bid]['label']} but that bucket is already satisfied."
+                )
+                continue
+
+            assign_completed_to_bucket(course_code, bid, credits)
+            assigned_to.append(bid)
+
+        if len(assigned_to) > 1:
+            double_counted.append(
+                {
+                    "course_code": course_code,
+                    "buckets": assigned_to,
+                }
+            )
+
+    # Step 3: in-progress display only.
     for course_code in in_progress:
         eligible_buckets = get_eligible_buckets_for_course(course_code)
         for bucket_info in eligible_buckets[:MAX_BUCKETS_PER_COURSE]:
@@ -293,26 +284,20 @@ def allocate_courses(
             if course_code not in applied[bid]["in_progress_applied"]:
                 applied[bid]["in_progress_applied"].append(course_code)
 
-    # ── Step 4: build `remaining` output ────────────────────────────────────────
+    # Step 4: remaining view.
     completed_set = set(completed)
     in_progress_set = set(in_progress)
-
     remaining: dict[str, dict] = {}
     for bid in bucket_order:
         if bid not in bucket_meta:
             continue
         meta = bucket_meta[bid]
         slots = slots_remaining(bid)
-
-        needed_val = meta["needed_count"] if meta["needed_count"] is not None else meta["needed_credits"]
-
-        # Remaining courses: in map but not completed/in_progress
+        needed_val = (
+            meta["needed_count"] if meta["needed_count"] is not None else meta["needed_credits"]
+        )
         bucket_courses = track_map[track_map["bucket_id"] == bid]["course_code"].tolist()
-        remaining_courses = [
-            c for c in bucket_courses
-            if c not in completed_set and c not in in_progress_set
-        ]
-
+        remaining_courses = [c for c in bucket_courses if c not in completed_set and c not in in_progress_set]
         remaining[bid] = {
             "needed": needed_val,
             "slots_remaining": slots,
@@ -321,13 +306,15 @@ def allocate_courses(
             "is_credit_based": meta["needed_count"] is None,
         }
 
-    # ── Step 5: finalize applied_by_bucket ──────────────────────────────────────
+    # Step 5: finalized applied output.
     applied_by_bucket: dict[str, dict] = {}
     for bid in bucket_order:
         if bid not in applied:
             continue
         meta = bucket_meta[bid]
-        needed_val = meta["needed_count"] if meta["needed_count"] is not None else meta["needed_credits"]
+        needed_val = (
+            meta["needed_count"] if meta["needed_count"] is not None else meta["needed_credits"]
+        )
         applied_by_bucket[bid] = {
             **applied[bid],
             "label": meta["label"],

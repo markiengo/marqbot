@@ -225,6 +225,163 @@ def check_needed_count_satisfiable(
             )
 
 
+def _v2_program_for_track(
+    track_id: str,
+    programs_df: pd.DataFrame | None,
+    track_defs_df: pd.DataFrame | None,
+) -> str | None:
+    """Resolve program_id for a given track/major id in V2 tables."""
+    if programs_df is None or len(programs_df) == 0:
+        return None
+    tid = str(track_id or "").strip().upper()
+    majors = set(programs_df["program_id"].astype(str).str.strip().str.upper().tolist())
+    if tid in majors:
+        return tid
+    if track_defs_df is None or len(track_defs_df) == 0:
+        return None
+    defs = track_defs_df.copy()
+    defs["track_id"] = defs["track_id"].astype(str).str.strip().str.upper()
+    defs["program_id"] = defs["program_id"].astype(str).str.strip().str.upper()
+    rows = defs[defs["track_id"] == tid]
+    if len(rows) == 0:
+        return None
+    return str(rows.iloc[0]["program_id"])
+
+
+def check_v2_track_required_refs(
+    program_id: str,
+    buckets_v2_df: pd.DataFrame,
+    track_defs_df: pd.DataFrame,
+    result: ValidationResult,
+) -> None:
+    """Every non-null buckets.track_required must exist in track_definitions."""
+    if buckets_v2_df is None or len(buckets_v2_df) == 0:
+        return
+    if track_defs_df is None:
+        track_defs_df = pd.DataFrame()
+
+    b = buckets_v2_df.copy()
+    if "program_id" not in b.columns or "track_required" not in b.columns:
+        return
+    b["program_id"] = b["program_id"].astype(str).str.strip().str.upper()
+    b["track_required"] = b["track_required"].fillna("").astype(str).str.strip().str.upper()
+    b_prog = b[b["program_id"] == program_id]
+    if len(b_prog) == 0:
+        return
+
+    valid_track_ids = set()
+    if len(track_defs_df) > 0 and "program_id" in track_defs_df.columns and "track_id" in track_defs_df.columns:
+        td = track_defs_df.copy()
+        td["program_id"] = td["program_id"].astype(str).str.strip().str.upper()
+        td["track_id"] = td["track_id"].astype(str).str.strip().str.upper()
+        td = td[td["program_id"] == program_id]
+        valid_track_ids = set(td["track_id"].tolist())
+
+        duplicates = td["track_id"].value_counts()
+        dup_ids = duplicates[duplicates > 1].index.tolist()
+        if dup_ids:
+            result.error(
+                f"track_definitions has duplicate track_id(s) for program '{program_id}': {sorted(dup_ids)}"
+            )
+
+    bad = []
+    for _, row in b_prog.iterrows():
+        req = str(row.get("track_required", "")).strip().upper()
+        if not req:
+            continue
+        if req not in valid_track_ids:
+            bad.append((str(row.get("bucket_id", "")).strip(), req))
+    if bad:
+        result.error(
+            "buckets.track_required values not found in track_definitions: "
+            + str(sorted(bad))
+        )
+
+
+def check_v2_sub_bucket_parent_refs(
+    program_id: str,
+    sub_buckets_df: pd.DataFrame,
+    buckets_v2_df: pd.DataFrame,
+    result: ValidationResult,
+) -> None:
+    """Every sub_bucket must reference an existing parent bucket in same program."""
+    if sub_buckets_df is None or len(sub_buckets_df) == 0:
+        return
+    if buckets_v2_df is None or len(buckets_v2_df) == 0:
+        return
+    if "program_id" not in sub_buckets_df.columns or "bucket_id" not in sub_buckets_df.columns:
+        return
+    if "program_id" not in buckets_v2_df.columns or "bucket_id" not in buckets_v2_df.columns:
+        return
+
+    sb = sub_buckets_df.copy()
+    sb["program_id"] = sb["program_id"].astype(str).str.strip().str.upper()
+    sb["bucket_id"] = sb["bucket_id"].astype(str).str.strip()
+    sb = sb[sb["program_id"] == program_id]
+
+    b = buckets_v2_df.copy()
+    b["program_id"] = b["program_id"].astype(str).str.strip().str.upper()
+    b["bucket_id"] = b["bucket_id"].astype(str).str.strip()
+    valid = set(b[b["program_id"] == program_id]["bucket_id"].tolist())
+
+    missing = sorted(set(sb["bucket_id"].tolist()) - valid)
+    if missing:
+        result.error(
+            f"sub_buckets references unknown bucket_id(s) for program '{program_id}': {missing}"
+        )
+
+
+def check_v2_policy_node_refs(
+    program_id: str,
+    policy_df: pd.DataFrame,
+    buckets_v2_df: pd.DataFrame,
+    sub_buckets_df: pd.DataFrame,
+    result: ValidationResult,
+) -> None:
+    """Policy node IDs must reference valid bucket/sub_bucket IDs in same program."""
+    if policy_df is None or len(policy_df) == 0:
+        return
+    required_cols = {"program_id", "node_type_a", "node_id_a", "node_type_b", "node_id_b"}
+    if not required_cols.issubset(set(policy_df.columns)):
+        return
+
+    b_valid = set()
+    sb_valid = set()
+    if buckets_v2_df is not None and len(buckets_v2_df) > 0 and {"program_id", "bucket_id"}.issubset(set(buckets_v2_df.columns)):
+        bb = buckets_v2_df.copy()
+        bb["program_id"] = bb["program_id"].astype(str).str.strip().str.upper()
+        bb["bucket_id"] = bb["bucket_id"].astype(str).str.strip()
+        b_valid = set(bb[bb["program_id"] == program_id]["bucket_id"].tolist())
+    if sub_buckets_df is not None and len(sub_buckets_df) > 0 and {"program_id", "sub_bucket_id"}.issubset(set(sub_buckets_df.columns)):
+        ss = sub_buckets_df.copy()
+        ss["program_id"] = ss["program_id"].astype(str).str.strip().str.upper()
+        ss["sub_bucket_id"] = ss["sub_bucket_id"].astype(str).str.strip()
+        sb_valid = set(ss[ss["program_id"] == program_id]["sub_bucket_id"].tolist())
+
+    pp = policy_df.copy()
+    pp["program_id"] = pp["program_id"].astype(str).str.strip().str.upper()
+    pp = pp[pp["program_id"] == program_id]
+
+    bad_refs = []
+    for _, row in pp.iterrows():
+        for side in ("a", "b"):
+            ntype = str(row.get(f"node_type_{side}", "")).strip().lower()
+            nid = str(row.get(f"node_id_{side}", "")).strip()
+            if not ntype or not nid:
+                continue
+            if ntype == "bucket" and nid not in b_valid:
+                bad_refs.append((ntype, nid))
+            if ntype == "sub_bucket" and nid not in sb_valid:
+                bad_refs.append((ntype, nid))
+            if ntype not in {"bucket", "sub_bucket"}:
+                bad_refs.append((ntype, nid))
+
+    if bad_refs:
+        result.error(
+            f"double_count_policy has invalid node reference(s) for program '{program_id}': {sorted(set(bad_refs))}"
+        )
+
+
 # ── Main validate function ────────────────────────────────────────────────────
 
 def validate_track(
@@ -233,6 +390,11 @@ def validate_track(
     buckets_df: pd.DataFrame,
     course_bucket_map_df: pd.DataFrame,
     catalog_codes: set[str],
+    v2_programs_df: pd.DataFrame | None = None,
+    v2_track_definitions_df: pd.DataFrame | None = None,
+    v2_buckets_df: pd.DataFrame | None = None,
+    v2_sub_buckets_df: pd.DataFrame | None = None,
+    v2_double_count_policy_df: pd.DataFrame | None = None,
 ) -> ValidationResult:
     """Run all publish gate checks for a track. Returns a ValidationResult."""
     result = ValidationResult(track_id)
@@ -246,6 +408,19 @@ def validate_track(
     check_no_orphan_buckets(track_id, course_bucket_map_df, buckets_df, result)
     check_all_buckets_have_mappings(track_id, course_bucket_map_df, buckets_df, result)
     check_needed_count_satisfiable(track_id, course_bucket_map_df, buckets_df, result)
+
+    # Commit 2A: optional V2 referential checks (non-breaking for legacy tests).
+    program_id = _v2_program_for_track(track_id, v2_programs_df, v2_track_definitions_df)
+    if program_id:
+        check_v2_track_required_refs(program_id, v2_buckets_df, v2_track_definitions_df, result)
+        check_v2_sub_bucket_parent_refs(program_id, v2_sub_buckets_df, v2_buckets_df, result)
+        check_v2_policy_node_refs(
+            program_id,
+            v2_double_count_policy_df,
+            v2_buckets_df,
+            v2_sub_buckets_df,
+            result,
+        )
 
     return result
 
@@ -291,6 +466,11 @@ def main(args=None):
             data["buckets_df"],
             data["course_bucket_map_df"],
             data["catalog_codes"],
+            v2_programs_df=data.get("v2_programs_df"),
+            v2_track_definitions_df=data.get("v2_track_definitions_df"),
+            v2_buckets_df=data.get("v2_buckets_df"),
+            v2_sub_buckets_df=data.get("v2_sub_buckets_df"),
+            v2_double_count_policy_df=data.get("v2_double_count_policy_df"),
         )
         print(result.summary())
         if not result.passed:

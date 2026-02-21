@@ -105,6 +105,7 @@ def _build_projected_outputs(
         data["courses_df"],
         data["equivalencies_df"],
         track_id=track_id,
+        double_count_policy_df=data.get("v2_double_count_policy_df"),
     )
     projected_progress = build_progress_output(projected_alloc, data["course_bucket_map_df"])
     projected_timeline = estimate_timeline(projected_alloc["remaining"])
@@ -161,6 +162,7 @@ def run_recommendation_semester(
         data["courses_df"],
         data["equivalencies_df"],
         track_id=track_id,
+        double_count_policy_df=data.get("v2_double_count_policy_df"),
     )
 
     eligible_sem = get_eligible_courses(

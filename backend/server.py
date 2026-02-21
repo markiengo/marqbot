@@ -126,6 +126,226 @@ def _normalize_program_catalog(tracks_df):
     return df[["track_id", "track_label", "active", "kind", "parent_major_id"]]
 
 
+def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
+    """Build normalized catalog from V2 programs + track_definitions sheets."""
+    programs = data.get("v2_programs_df")
+    track_defs = data.get("v2_track_definitions_df")
+    rows = []
+
+    if programs is not None and len(programs) > 0:
+        for _, row in programs.iterrows():
+            program_id = str(row.get("program_id", "") or "").strip().upper()
+            if not program_id:
+                continue
+            rows.append(
+                {
+                    "track_id": program_id,
+                    "track_label": str(row.get("program_label", program_id) or program_id).strip(),
+                    "active": bool(row.get("active", True)),
+                    "kind": "major",
+                    "parent_major_id": "",
+                }
+            )
+
+    if track_defs is not None and len(track_defs) > 0:
+        for _, row in track_defs.iterrows():
+            track_id = str(row.get("track_id", "") or "").strip().upper()
+            program_id = str(row.get("program_id", "") or "").strip().upper()
+            if not track_id:
+                continue
+            rows.append(
+                {
+                    "track_id": track_id,
+                    "track_label": str(row.get("track_label", track_id) or track_id).strip(),
+                    "active": bool(row.get("active", True)),
+                    "kind": "track",
+                    "parent_major_id": program_id,
+                }
+            )
+
+    if not rows:
+        return pd.DataFrame(columns=["track_id", "track_label", "active", "kind", "parent_major_id"])
+    return pd.DataFrame(rows)
+
+
+def _is_v2_program_model_enabled(data: dict) -> bool:
+    if not data.get("v2_detected"):
+        return False
+    programs = data.get("v2_programs_df")
+    sub_buckets = data.get("v2_sub_buckets_df")
+    mappings = data.get("v2_course_sub_buckets_df")
+    return (
+        programs is not None and len(programs) > 0
+        and sub_buckets is not None and len(sub_buckets) > 0
+        and mappings is not None and len(mappings) > 0
+    )
+
+
+def _get_program_catalog(data: dict) -> tuple[pd.DataFrame, pd.DataFrame, bool]:
+    """
+    Return (catalog_df, legacy_catalog_df, using_v2_catalog).
+    """
+    legacy_catalog = _normalize_program_catalog(data.get("tracks_df"))
+    if _is_v2_program_model_enabled(data):
+        v2_catalog = _normalize_program_catalog_v2(data)
+        if len(v2_catalog) > 0:
+            return v2_catalog, legacy_catalog, True
+    return legacy_catalog, legacy_catalog, False
+
+
+def _track_alias_map(catalog_df: pd.DataFrame) -> dict[str, str]:
+    """
+    Map accepted aliases -> canonical track IDs.
+
+    Keeps backward compatibility for legacy *_CONC / *_TRACK inputs.
+    """
+    alias_map: dict[str, str] = {}
+    if catalog_df is None or len(catalog_df) == 0:
+        return alias_map
+    tracks = catalog_df[catalog_df["kind"] == "track"]
+    for _, row in tracks.iterrows():
+        tid = str(row["track_id"]).strip().upper()
+        if not tid:
+            continue
+        alias_map[tid] = tid
+        if not tid.endswith("_CONC"):
+            alias_map[f"{tid}_CONC"] = tid
+        if not tid.endswith("_TRACK"):
+            alias_map[f"{tid}_TRACK"] = tid
+    return alias_map
+
+
+def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: str | None) -> dict:
+    """
+    Build runtime-compatible data slice for one major from V2 sheets.
+
+    selected_track_id applies conditional buckets:
+      - always include buckets with empty track_required
+      - include track_required==selected_track_id when a track is selected
+    """
+    major_id = str(major_id or "").strip().upper()
+    selected_track = str(selected_track_id or "").strip().upper()
+
+    v2_buckets = data.get("v2_buckets_df", pd.DataFrame()).copy()
+    v2_sub = data.get("v2_sub_buckets_df", pd.DataFrame()).copy()
+    v2_map = data.get("v2_course_sub_buckets_df", pd.DataFrame()).copy()
+
+    if len(v2_buckets) == 0 or len(v2_sub) == 0 or len(v2_map) == 0:
+        return dict(data)
+
+    buckets = v2_buckets.copy()
+    buckets["program_id"] = buckets["program_id"].astype(str).str.strip().str.upper()
+    buckets["bucket_id"] = buckets["bucket_id"].astype(str).str.strip()
+    buckets["track_required"] = buckets.get("track_required", "").fillna("").astype(str).str.strip().str.upper()
+    buckets["active"] = buckets.get("active", True).apply(bool)
+    buckets = buckets[(buckets["program_id"] == major_id) & (buckets["active"] == True)].copy()
+
+    if selected_track:
+        buckets = buckets[(buckets["track_required"] == "") | (buckets["track_required"] == selected_track)].copy()
+    else:
+        buckets = buckets[buckets["track_required"] == ""].copy()
+
+    allowed_parent_ids = set(buckets["bucket_id"].tolist())
+
+    sub = v2_sub.copy()
+    sub["program_id"] = sub["program_id"].astype(str).str.strip().str.upper()
+    sub["bucket_id"] = sub["bucket_id"].astype(str).str.strip()
+    sub["sub_bucket_id"] = sub["sub_bucket_id"].astype(str).str.strip()
+    sub = sub[(sub["program_id"] == major_id) & (sub["bucket_id"].isin(allowed_parent_ids))].copy()
+
+    bucket_labels = buckets.set_index("bucket_id")["bucket_label"].to_dict()
+    bucket_track_required = buckets.set_index("bucket_id")["track_required"].to_dict()
+
+    runtime_buckets = pd.DataFrame(
+        {
+            "track_id": major_id,
+            "bucket_id": sub["sub_bucket_id"],
+            "bucket_label": sub.get("sub_bucket_label", sub["sub_bucket_id"]),
+            "priority": sub.get("priority", 99),
+            "needed_count": sub.get("courses_required"),
+            "needed_credits": sub.get("credits_required"),
+            "min_level": sub.get("min_level"),
+            "allow_double_count": False,
+            "role": sub.get("role", "").fillna(""),
+            "parent_bucket_id": sub["bucket_id"],
+            "parent_bucket_label": sub["bucket_id"].map(bucket_labels).fillna(sub["bucket_id"]),
+            "track_required": sub["bucket_id"].map(bucket_track_required).fillna(""),
+        }
+    )
+
+    sub_ids = set(runtime_buckets["bucket_id"].tolist())
+    mappings = v2_map.copy()
+    mappings["program_id"] = mappings["program_id"].astype(str).str.strip().str.upper()
+    mappings["sub_bucket_id"] = mappings["sub_bucket_id"].astype(str).str.strip()
+    mappings["course_code"] = mappings["course_code"].astype(str).str.strip()
+    mappings = mappings[(mappings["program_id"] == major_id) & (mappings["sub_bucket_id"].isin(sub_ids))].copy()
+
+    runtime_map = pd.DataFrame(
+        {
+            "track_id": major_id,
+            "course_code": mappings["course_code"],
+            "bucket_id": mappings["sub_bucket_id"],
+            "constraints": mappings.get("constraints"),
+            "notes": mappings.get("notes"),
+        }
+    )
+
+    merged = dict(data)
+    merged["buckets_df"] = runtime_buckets
+    merged["course_bucket_map_df"] = runtime_map
+    return merged
+
+
+def _build_declared_plan_data_v2(
+    data: dict,
+    declared_majors: list[str],
+    selected_track_id: str | None,
+    catalog_df: pd.DataFrame,
+) -> dict:
+    """Build synthetic merged runtime view from V2 model for declared majors."""
+    label_map = {str(r["track_id"]): str(r["track_label"] or r["track_id"]) for _, r in catalog_df.iterrows()}
+    track_parent = {
+        str(r["track_id"]): str(r.get("parent_major_id", "") or "").strip().upper()
+        for _, r in catalog_df[catalog_df["kind"] == "track"].iterrows()
+    }
+
+    all_buckets = []
+    all_maps = []
+
+    for major_id in declared_majors:
+        major_track = selected_track_id if track_parent.get(selected_track_id or "", "") == major_id else None
+        major_data = _build_single_major_data_v2(data, major_id, major_track)
+        buckets = major_data["buckets_df"].copy()
+        course_map = major_data["course_bucket_map_df"].copy()
+
+        buckets["source_program_id"] = major_id
+        buckets["source_bucket_id"] = buckets["bucket_id"].astype(str)
+        buckets["bucket_id"] = major_id + "::" + buckets["source_bucket_id"].astype(str)
+        buckets["bucket_label"] = (
+            f"{label_map.get(major_id, major_id)}: " + buckets["bucket_label"].astype(str)
+        )
+        buckets["track_id"] = PHASE5_PLAN_TRACK_ID
+
+        course_map["source_program_id"] = major_id
+        course_map["source_bucket_id"] = course_map["bucket_id"].astype(str)
+        course_map["bucket_id"] = major_id + "::" + course_map["source_bucket_id"].astype(str)
+        course_map["track_id"] = PHASE5_PLAN_TRACK_ID
+
+        all_buckets.append(buckets)
+        all_maps.append(course_map)
+
+    merged = dict(data)
+    if all_buckets:
+        merged["buckets_df"] = pd.concat(all_buckets, ignore_index=True)
+    else:
+        merged["buckets_df"] = pd.DataFrame(columns=data["buckets_df"].columns)
+    if all_maps:
+        merged["course_bucket_map_df"] = pd.concat(all_maps, ignore_index=True)
+    else:
+        merged["course_bucket_map_df"] = pd.DataFrame(columns=data["course_bucket_map_df"].columns)
+    return merged
+
+
 def _build_unknown_track_error(track_id: str):
     return {
         "mode": "error",
@@ -173,7 +393,7 @@ def _normalize_declared_majors(raw_value):
     return majors, None
 
 
-def _resolve_program_selection(body, tracks_df):
+def _resolve_program_selection(body, data: dict):
     """
     Resolve request-scoped plan selection.
 
@@ -181,7 +401,8 @@ def _resolve_program_selection(body, tracks_df):
       selection dict, None               on success
       None, (payload_dict, status_code)  on error
     """
-    catalog_df = _normalize_program_catalog(tracks_df)
+    catalog_df, legacy_catalog_df, using_v2_catalog = _get_program_catalog(data)
+    alias_map = _track_alias_map(catalog_df)
     label_map = {
         str(r["track_id"]): str(r["track_label"] or r["track_id"])
         for _, r in catalog_df.iterrows()
@@ -198,10 +419,66 @@ def _resolve_program_selection(body, tracks_df):
             "error": {"error_code": code, "message": msg},
         }, 400)
 
-    # Legacy single-program path (backward compatibility).
+    # Single-program path (backward compatibility input shape).
     if declared_majors is None:
-        track_id = str(body.get("track_id", DEFAULT_TRACK_ID) or DEFAULT_TRACK_ID).strip().upper()
+        raw_track_id = str(body.get("track_id", DEFAULT_TRACK_ID) or DEFAULT_TRACK_ID).strip().upper()
         track_warning = None
+        # V2 mode: body.track_id is optional track selection, not major ID.
+        if using_v2_catalog:
+            major_id = DEFAULT_TRACK_ID
+            selected_track_id = None
+
+            # Backward compatibility: explicit default major means "no track".
+            if raw_track_id not in ("", "__NONE__", major_id):
+                selected_track_id = alias_map.get(raw_track_id, raw_track_id)
+                track_row = catalog_df[catalog_df["track_id"] == selected_track_id]
+
+                # If V2 does not know this track but legacy does, allow legacy fallback.
+                if len(track_row) == 0 and len(legacy_catalog_df) > 0:
+                    legacy_row = legacy_catalog_df[legacy_catalog_df["track_id"] == raw_track_id]
+                    if len(legacy_row) > 0:
+                        return {
+                            "mode": "legacy",
+                            "declared_majors": None,
+                            "declared_major_labels": None,
+                            "selected_track_id": raw_track_id,
+                            "selected_track_label": str(legacy_row.iloc[0].get("track_label", raw_track_id)),
+                            "selected_program_ids": [raw_track_id],
+                            "selected_program_labels": [str(legacy_row.iloc[0].get("track_label", raw_track_id))],
+                            "program_warnings": [],
+                            "track_warning": None,
+                            "effective_track_id": raw_track_id,
+                            "effective_data": data,
+                        }, None
+
+                if len(track_row) == 0:
+                    return None, (_build_unknown_track_error(raw_track_id), 400)
+                track_row = track_row.iloc[0]
+                if track_row["kind"] != "track":
+                    return None, (_build_unknown_track_error(raw_track_id), 400)
+                if not track_row.get("active", True):
+                    track_warning = (
+                        f"Track '{_program_label(selected_track_id)}' is not yet published (active=0). "
+                        "Results may be incomplete."
+                    )
+
+            effective_data = _build_single_major_data_v2(data, major_id, selected_track_id)
+            return {
+                "mode": "legacy",
+                "declared_majors": None,
+                "declared_major_labels": None,
+                "selected_track_id": selected_track_id,
+                "selected_track_label": _program_label(selected_track_id) if selected_track_id else None,
+                "selected_program_ids": [major_id] + ([selected_track_id] if selected_track_id else []),
+                "selected_program_labels": [_program_label(major_id)] + ([_program_label(selected_track_id)] if selected_track_id else []),
+                "program_warnings": [],
+                "track_warning": track_warning,
+                "effective_track_id": major_id,
+                "effective_data": effective_data,
+            }, None
+
+        # Legacy catalog path.
+        track_id = raw_track_id
         if len(catalog_df) > 0:
             row = catalog_df[catalog_df["track_id"] == track_id]
             if len(row) == 0:
@@ -225,10 +502,10 @@ def _resolve_program_selection(body, tracks_df):
             "program_warnings": [],
             "track_warning": track_warning,
             "effective_track_id": track_id,
-            "effective_data": _data,
+            "effective_data": data,
         }, None
 
-    # Phase 5 path: multiple majors + optional single track.
+    # Declared majors path.
     if len(catalog_df) == 0:
         return None, (_build_unknown_major_error(declared_majors[0]), 400)
 
@@ -247,9 +524,11 @@ def _resolve_program_selection(body, tracks_df):
     raw_track = body.get("track_id", None)
     if raw_track not in (None, "", "__NONE__"):
         selected_track_id = str(raw_track).strip().upper()
+        if using_v2_catalog:
+            selected_track_id = alias_map.get(selected_track_id, selected_track_id)
         track_row = catalog_df[catalog_df["track_id"] == selected_track_id]
         if len(track_row) == 0:
-            return None, (_build_unknown_track_error(selected_track_id), 400)
+            return None, (_build_unknown_track_error(str(raw_track).strip()), 400)
         track_row = track_row.iloc[0]
         if track_row["kind"] != "track":
             return None, ({
@@ -280,7 +559,15 @@ def _resolve_program_selection(body, tracks_df):
     selected_program_ids = list(dict.fromkeys(
         declared_majors + ([selected_track_id] if selected_track_id else [])
     ))
-    effective_data = _build_declared_plan_data(_data, selected_program_ids, catalog_df)
+    if using_v2_catalog:
+        effective_data = _build_declared_plan_data_v2(
+            data,
+            declared_majors,
+            selected_track_id,
+            catalog_df,
+        )
+    else:
+        effective_data = _build_declared_plan_data(data, selected_program_ids, catalog_df)
     selected_program_labels = [_program_label(pid) for pid in selected_program_ids]
     declared_major_labels = [_program_label(mid) for mid in declared_majors]
     selected_track_label = _program_label(selected_track_id) if selected_track_id else None
@@ -362,6 +649,7 @@ def _build_current_progress(completed, in_progress, data, track_id):
         data["courses_df"],
         data["equivalencies_df"],
         track_id=track_id,
+        double_count_policy_df=data.get("v2_double_count_policy_df"),
     )
     assumed_alloc = allocate_courses(
         _dedupe_codes(completed + in_progress),
@@ -371,6 +659,7 @@ def _build_current_progress(completed, in_progress, data, track_id):
         data["courses_df"],
         data["equivalencies_df"],
         track_id=track_id,
+        double_count_policy_df=data.get("v2_double_count_policy_df"),
     )
 
     bucket_order = list(dict.fromkeys(
@@ -505,7 +794,7 @@ def get_programs():
     if not _data:
         return jsonify({"error": "Data not loaded"}), 500
 
-    catalog_df = _normalize_program_catalog(_data.get("tracks_df"))
+    catalog_df, _, _ = _get_program_catalog(_data)
     if len(catalog_df) == 0:
         return jsonify({
             "majors": [],
@@ -554,7 +843,7 @@ def recommend():
             "error": {"error_code": err_code, "message": err_msg},
         }), 400
 
-    selection, selection_error = _resolve_program_selection(body, _data.get("tracks_df"))
+    selection, selection_error = _resolve_program_selection(body, _data)
     if selection_error:
         payload, status = selection_error
         return jsonify(payload), status

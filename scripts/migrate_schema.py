@@ -1,4 +1,4 @@
-﻿"""
+"""
 Cleanup utility for course workbook schema.
 
 Removes deprecated `bucket1..bucket4` and `prereq_raw` columns from `courses`
@@ -36,18 +36,26 @@ def _sheet_headers(ws) -> list[str]:
 
 def preflight_clean(wb: openpyxl.Workbook) -> None:
     """Abort unless cleanup preconditions are satisfied."""
-    if "course_bucket" not in wb.sheetnames:
-        sys.exit("[ERROR] 'course_bucket' sheet not found. Cleanup requires canonical mapping data.")
+    map_sheet = None
+    for candidate in ("course_sub_buckets", "course_bucket", "course_bucket_legacy"):
+        if candidate in wb.sheetnames:
+            map_sheet = candidate
+            break
+    if map_sheet is None:
+        sys.exit(
+            "[ERROR] No canonical mapping sheet found. "
+            "Expected one of: course_sub_buckets, course_bucket, course_bucket_legacy."
+        )
     if "courses" not in wb.sheetnames:
         sys.exit("[ERROR] No 'courses' sheet found in workbook.")
 
-    map_ws = wb["course_bucket"]
+    map_ws = wb[map_sheet]
     has_data_rows = any(
         any(val is not None and str(val).strip() for val in row)
         for row in map_ws.iter_rows(min_row=2, values_only=True)
     )
     if not has_data_rows:
-        sys.exit("[ERROR] 'course_bucket' sheet has no data rows. Cleanup aborted.")
+        sys.exit(f"[ERROR] '{map_sheet}' sheet has no data rows. Cleanup aborted.")
 
 
 def find_deprecated_cols(courses_ws) -> list[int]:

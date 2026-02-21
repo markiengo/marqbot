@@ -1,12 +1,12 @@
 import pandas as pd
 
-# Default track identifier — used as parameter default for backward compatibility
+# Default track identifier used as parameter default for backward compatibility.
 DEFAULT_TRACK_ID = "FIN_MAJOR"
 
-# Maximum number of requirement buckets a single course can fill
+# Maximum number of requirement buckets a single course can fill.
 MAX_BUCKETS_PER_COURSE = 6
 
-# prereq_soft tags that surface as warnings but do NOT block eligibility
+# prereq_soft tags that surface as warnings but do NOT block eligibility.
 SOFT_WARNING_TAGS = {
     "instructor_consent",
     "admitted_program",
@@ -18,41 +18,222 @@ SOFT_WARNING_TAGS = {
     "minimum_gpa",
 }
 
-# prereq_soft tag that signals the hard prereq is too complex to parse
-# → course goes to manual_review_courses list (same as unsupported prereq_hard)
+# prereq_soft tag that signals the hard prereq is too complex to parse.
 COMPLEX_PREREQ_TAG = "hard_prereq_complex"
 
-# prereq_soft tags indicating concurrent enrollment is allowed
+# prereq_soft tags indicating concurrent enrollment is allowed.
 CONCURRENT_TAGS = {"may_be_concurrent"}
 
-# Minimum blocking threshold: warn if a CORE course blocks this many Finance electives
+# Minimum blocking threshold: warn if a CORE course blocks this many Finance electives.
 BLOCKING_WARNING_THRESHOLD = 2
 
 
-def get_allowed_double_count_pairs(buckets_df: pd.DataFrame) -> set:
+def _legacy_allowed_double_count_pairs(buckets_df: pd.DataFrame) -> set[frozenset[str]]:
     """
-    Returns a set of frozensets — each frozenset is a pair of bucket_ids
-    that are allowed to double-count.
+    Legacy behavior:
+    any two buckets where both have allow_double_count=True can double-count.
+    """
+    if buckets_df is None or len(buckets_df) == 0:
+        return set()
+    if "allow_double_count" not in buckets_df.columns or "bucket_id" not in buckets_df.columns:
+        return set()
 
-    Any two buckets where both have allow_double_count=True can form a pair.
-    CORE (allow_double_count=False) is automatically excluded.
-    """
     eligible = set(
         buckets_df.loc[buckets_df["allow_double_count"] == True, "bucket_id"].tolist()
     )
-    eligible_list = sorted(eligible)
-    pairs = set()
+    eligible_list = sorted(str(b).strip() for b in eligible if str(b).strip())
+    pairs: set[frozenset[str]] = set()
     for i in range(len(eligible_list)):
         for j in range(i + 1, len(eligible_list)):
             pairs.add(frozenset([eligible_list[i], eligible_list[j]]))
     return pairs
 
 
+def _build_parent_bucket_map(track_buckets_df: pd.DataFrame) -> dict[str, str]:
+    """
+    Map runtime bucket_id -> parent bucket_id when available.
+
+    In V2-derived runtime data, `parent_bucket_id` exists for sub-buckets.
+    In legacy data, this map is empty.
+    """
+    if "parent_bucket_id" not in track_buckets_df.columns or "bucket_id" not in track_buckets_df.columns:
+        return {}
+    out: dict[str, str] = {}
+    for _, row in track_buckets_df.iterrows():
+        child = str(row.get("bucket_id", "") or "").strip()
+        parent = str(row.get("parent_bucket_id", "") or "").strip()
+        if child and parent:
+            out[child] = parent
+    return out
+
+
+def _canon_node_pair(type_a: str, id_a: str, type_b: str, id_b: str) -> tuple[str, str, str, str]:
+    a = (str(type_a).strip().lower(), str(id_a).strip())
+    b = (str(type_b).strip().lower(), str(id_b).strip())
+    if a <= b:
+        return (a[0], a[1], b[0], b[1])
+    return (b[0], b[1], a[0], a[1])
+
+
+def _build_policy_lookup(
+    double_count_policy_df: pd.DataFrame,
+    program_id: str,
+) -> dict[tuple[str, str, str, str], bool]:
+    """
+    Build canonical lookup:
+      (node_type_a, node_id_a, node_type_b, node_id_b) -> allow_double_count (bool)
+    """
+    if double_count_policy_df is None or len(double_count_policy_df) == 0:
+        return {}
+    if "program_id" not in double_count_policy_df.columns:
+        return {}
+
+    policy = double_count_policy_df[
+        double_count_policy_df["program_id"].astype(str).str.strip().str.upper()
+        == str(program_id).strip().upper()
+    ].copy()
+    if len(policy) == 0:
+        return {}
+
+    # Compatibility fallback: old-style policy can omit node_type columns.
+    if "node_type_a" not in policy.columns:
+        policy["node_type_a"] = "bucket"
+    if "node_type_b" not in policy.columns:
+        policy["node_type_b"] = "bucket"
+    if "node_id_a" not in policy.columns and "bucket_id_a" in policy.columns:
+        policy["node_id_a"] = policy["bucket_id_a"]
+    if "node_id_b" not in policy.columns and "bucket_id_b" in policy.columns:
+        policy["node_id_b"] = policy["bucket_id_b"]
+
+    required_cols = {"node_type_a", "node_id_a", "node_type_b", "node_id_b", "allow_double_count"}
+    if not required_cols.issubset(set(policy.columns)):
+        return {}
+
+    lookup: dict[tuple[str, str, str, str], bool] = {}
+    for _, row in policy.iterrows():
+        key = _canon_node_pair(
+            row.get("node_type_a", ""),
+            row.get("node_id_a", ""),
+            row.get("node_type_b", ""),
+            row.get("node_id_b", ""),
+        )
+        allow = row.get("allow_double_count", False)
+        if isinstance(allow, str):
+            allow = allow.strip().lower() in {"1", "true", "yes", "y"}
+        else:
+            allow = bool(allow)
+        lookup[key] = allow
+    return lookup
+
+
+def _policy_pair_allowed(
+    bucket_a: str,
+    bucket_b: str,
+    parent_bucket_map: dict[str, str],
+    policy_lookup: dict[tuple[str, str, str, str], bool],
+) -> bool:
+    """
+    Resolution precedence:
+      1) sub_bucket <-> sub_bucket
+      2) bucket <-> bucket (using parent_bucket_id)
+      3) no rule => DENY
+    """
+    sub_key = _canon_node_pair("sub_bucket", bucket_a, "sub_bucket", bucket_b)
+    if sub_key in policy_lookup:
+        return bool(policy_lookup[sub_key])
+
+    parent_a = parent_bucket_map.get(bucket_a)
+    parent_b = parent_bucket_map.get(bucket_b)
+    if parent_a and parent_b:
+        bucket_key = _canon_node_pair("bucket", parent_a, "bucket", parent_b)
+        if bucket_key in policy_lookup:
+            return bool(policy_lookup[bucket_key])
+
+    return False
+
+
+def get_allowed_double_count_pairs(
+    buckets_df: pd.DataFrame,
+    track_id: str | None = None,
+    double_count_policy_df: pd.DataFrame | None = None,
+) -> set[frozenset[str]]:
+    """
+    Return allowed bucket pairs for the current runtime track/program.
+
+    Behavior:
+    - If policy rows exist for track_id, use policy resolution
+      (sub-bucket rule > bucket rule > deny).
+    - Otherwise, fallback to legacy allow_double_count behavior.
+    """
+    if buckets_df is None or len(buckets_df) == 0:
+        return set()
+
+    if track_id is None:
+        # Legacy callers pass already filtered bucket rows.
+        track_buckets = buckets_df.copy()
+        inferred_track_id = None
+    else:
+        if "track_id" in buckets_df.columns:
+            track_buckets = buckets_df[
+                buckets_df["track_id"].astype(str).str.strip().str.upper()
+                == str(track_id).strip().upper()
+            ].copy()
+        else:
+            track_buckets = buckets_df.copy()
+        inferred_track_id = str(track_id).strip().upper()
+
+    if len(track_buckets) == 0 or "bucket_id" not in track_buckets.columns:
+        return set()
+
+    if inferred_track_id and double_count_policy_df is not None and len(double_count_policy_df) > 0:
+        policy_lookup = _build_policy_lookup(double_count_policy_df, inferred_track_id)
+        if len(policy_lookup) > 0:
+            parent_map = _build_parent_bucket_map(track_buckets)
+            bucket_ids = sorted(
+                {
+                    str(b).strip()
+                    for b in track_buckets["bucket_id"].tolist()
+                    if str(b).strip()
+                }
+            )
+
+            # If policy rows exist but do not reference any runtime nodes for this
+            # track/program (common during dual-read migration), treat policy as
+            # not applicable and fall back to legacy behavior.
+            policy_sub_nodes = {
+                key[1] for key in policy_lookup.keys() if key[0] == "sub_bucket"
+            } | {
+                key[3] for key in policy_lookup.keys() if key[2] == "sub_bucket"
+            }
+            policy_bucket_nodes = {
+                key[1] for key in policy_lookup.keys() if key[0] == "bucket"
+            } | {
+                key[3] for key in policy_lookup.keys() if key[2] == "bucket"
+            }
+            has_sub_match = any(bid in policy_sub_nodes for bid in bucket_ids)
+            has_parent_match = any(
+                parent in policy_bucket_nodes for parent in parent_map.values()
+            )
+            if not has_sub_match and not has_parent_match:
+                return _legacy_allowed_double_count_pairs(track_buckets)
+
+            allowed_pairs: set[frozenset[str]] = set()
+            for i in range(len(bucket_ids)):
+                for j in range(i + 1, len(bucket_ids)):
+                    a = bucket_ids[i]
+                    b = bucket_ids[j]
+                    if _policy_pair_allowed(a, b, parent_map, policy_lookup):
+                        allowed_pairs.add(frozenset([a, b]))
+            return allowed_pairs
+
+    return _legacy_allowed_double_count_pairs(track_buckets)
+
+
 def get_bucket_by_role(buckets_df: pd.DataFrame, track_id: str, role: str) -> str | None:
     """Return the first bucket_id with the given role for a track, or None.
 
     Expects exactly one match per role per track. Logs a warning if multiple
-    rows match (tie-break uses spreadsheet row order).
+    rows match (tie-break uses deterministic order).
     """
     if "role" not in buckets_df.columns:
         return None
@@ -69,8 +250,6 @@ def get_bucket_by_role(buckets_df: pd.DataFrame, track_id: str, role: str) -> st
             "(priority asc, bucket_id asc)."
         )
 
-    # Deterministic tie-break for malformed data:
-    # 1) smallest priority value, 2) bucket_id alphabetical.
     rows = rows.copy()
     if "priority" in rows.columns:
         priority_sort = pd.to_numeric(rows["priority"], errors="coerce").fillna(10**9)

@@ -216,7 +216,13 @@ class TestServerTrackValidation:
         assert data["error"]["error_code"] == "UNKNOWN_TRACK"
 
     def test_inactive_track_returns_warning(self, client):
-        resp = self._post(client, track_id="CB_CONC")
+        import server
+
+        patched_defs = server._data["v2_track_definitions_df"].copy()
+        patched_defs.loc[patched_defs["track_id"] == "CB", "active"] = False
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setitem(server._data, "v2_track_definitions_df", patched_defs)
+            resp = self._post(client, track_id="CB")
         data = resp.get_json()
         assert data["mode"] == "recommendations"
         assert "track_warning" in data
@@ -387,20 +393,20 @@ class TestServerTrackValidation:
         assert data["mode"] == "recommendations"
         assert data["selection_context"]["declared_majors"] == ["FIN_MAJOR"]
         assert data["selection_context"]["selected_track_id"] is None
-        assert "FIN_MAJOR::CORE" in data["progress"]
+        assert "FIN_MAJOR::FIN_CORE" in data["progress"]
 
     def test_declared_track_must_match_major(self, client, monkeypatch):
         import server
 
-        patched_tracks = server._data["tracks_df"].copy()
-        patched_tracks.loc[patched_tracks["track_id"] == "CB_CONC", "parent_major_id"] = "OTHER_MAJOR"
-        monkeypatch.setitem(server._data, "tracks_df", patched_tracks)
+        patched_defs = server._data["v2_track_definitions_df"].copy()
+        patched_defs.loc[patched_defs["track_id"] == "CB", "program_id"] = "OTHER_MAJOR"
+        monkeypatch.setitem(server._data, "v2_track_definitions_df", patched_defs)
 
         resp = client.post("/recommend", json={
             "completed_courses": "",
             "in_progress_courses": "",
             "declared_majors": ["FIN_MAJOR"],
-            "track_id": "CB_CONC",
+            "track_id": "CB",
         })
         assert resp.status_code == 400
         data = resp.get_json()
@@ -411,15 +417,14 @@ class TestServerTrackValidation:
             "completed_courses": "",
             "in_progress_courses": "",
             "declared_majors": ["FIN_MAJOR"],
-            "track_id": "CB_CONC",
+            "track_id": "CB",
         })
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["mode"] == "recommendations"
-        assert data["selection_context"]["selected_track_id"] == "CB_CONC"
-        assert "FIN_MAJOR::CORE" in data["progress"]
-        assert "CB_CONC::CB_CORE" in data["progress"]
-        assert data.get("program_warnings")  # CB_CONC is inactive in workbook
+        assert data["selection_context"]["selected_track_id"] == "CB"
+        assert "FIN_MAJOR::FIN_CORE" in data["progress"]
+        assert "FIN_MAJOR::CB_CORE" in data["progress"]
 
     def test_programs_endpoint_returns_expected_shape(self, client):
         resp = client.get("/programs")
@@ -439,10 +444,10 @@ class TestServerTrackValidation:
         tracks = {t["track_id"]: t for t in data["tracks"]}
 
         assert "FIN_MAJOR" in majors
-        assert "CB_CONC" in tracks
-        assert "FP_CONC" in tracks
-        assert tracks["CB_CONC"]["parent_major_id"] == "FIN_MAJOR"
-        assert tracks["FP_CONC"]["parent_major_id"] == "FIN_MAJOR"
+        assert "CB" in tracks
+        assert "FP" in tracks
+        assert tracks["CB"]["parent_major_id"] == "FIN_MAJOR"
+        assert tracks["FP"]["parent_major_id"] == "FIN_MAJOR"
 
     def test_courses_endpoint_prereq_level_is_json_safe(self, client):
         resp = client.get("/courses")
@@ -583,4 +588,4 @@ class TestSyntheticTrackSmoke:
         data = resp.get_json()
         assert data["mode"] == "recommendations"
         assert "ST_CORE" not in data["progress"]
-        assert "CORE" in data["progress"]
+        assert "FIN_CORE" in data["progress"]
