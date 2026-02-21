@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git -C \"C:/Users/marki/OneDrive - Marquette University/Semesters/ECs/marqbot\" ls-files)"
-    ]
-  }
-}
