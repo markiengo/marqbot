@@ -212,15 +212,21 @@ def get_eligible_courses(
         if not eligible_buckets and not manual_review:
             continue  # course doesn't belong to any tracked bucket
 
-        # Multi-bucket score still reflects unmet buckets for ranking,
-        # but fills_buckets now shows all eligible buckets for UI clarity.
+        # Keep only courses that can fill at least one unmet bucket slot.
+        # This avoids recommending extra courses for already-satisfied buckets
+        # (e.g., MCC_ESSV1 after its single-slot requirement is fulfilled).
         unmet_buckets = [
             b for b in eligible_buckets
             if allocator_remaining.get(b["bucket_id"], {}).get("slots_remaining", 0) > 0
         ]
+        if not unmet_buckets:
+            continue
+
+        # Multi-bucket score reflects unmet buckets for ranking, while
+        # fills_buckets still shows all eligible buckets for UI clarity.
         multi_bucket_score = len(unmet_buckets)
 
-        primary = eligible_buckets[0] if eligible_buckets else None
+        primary = unmet_buckets[0] if unmet_buckets else (eligible_buckets[0] if eligible_buckets else None)
 
         # prereq_check string
         if has_explicit_concurrent:

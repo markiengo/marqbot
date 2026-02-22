@@ -177,6 +177,19 @@ class TestGetEligibleCourses:
         assert set(row["fills_buckets"]) == {"CORE", "FIN_CHOOSE_2"}
         assert row["multi_bucket_score"] == 1
 
+    def test_excludes_course_when_all_its_buckets_are_already_satisfied(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        remaining = dict(allocator_remaining)
+        remaining["CORE"] = {"slots_remaining": 0, "needed": 3}
+        eligible = get_eligible_courses(
+            courses_df, ["FINA 3001"], [], "Fall", prereq_map,
+            remaining, course_bucket_map, buckets_df,
+        )
+        codes = [c["course_code"] for c in eligible]
+        # FINA 4011 only maps to CORE in this fixture; with CORE full it should not appear.
+        assert "FINA 4011" not in codes
+
 
 class TestCheckCanTake:
     def test_can_take_eligible(self, courses_df, prereq_map):
