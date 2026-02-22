@@ -125,6 +125,107 @@ Key outcomes:
 
 </details>
 
+<details>
+<summary><strong>v1.7.1 - Compact 2x2 Planner Stabilization</strong></summary>
+
+Window:
+1. Post-`v1.7.0` follow-up patch cycle (2026-02-22)
+
+Why this version:
+1. The initial revamp required compacting and balancing to fit the no-scroll desktop target.
+
+Key outcomes:
+1. Standardized pane heading system (support text + title) across all 4 planner quadrants.
+2. Moved planner background ownership to a single cover/overlay layer and removed duplicate shell layering.
+3. Shifted plan context/current progress rendering out of recommendation lane into dashboard lane.
+4. Added compact semester preview mode in bottom-right (codes + names), with full details preserved in modal.
+5. Added/normalized avatar placeholder rendering and initial rail/profile alignment adjustments.
+
+</details>
+
+<details>
+<summary><strong>v1.7.2 - Modal + Dashboard Layout Corrections</strong></summary>
+
+Window:
+1. 2026-02-22 iterative UI corrections
+
+Why this version:
+1. Fixes to interaction ergonomics after v1.7.1 visual compression.
+
+Key outcomes:
+1. Removed redundant `Expand Dashboard` control; kept explicit `View Full Progress`.
+2. Reworked upper-right dashboard into 60/40 split: left progress donut+KPIs, right degree summary.
+3. Centered and enlarged modal behavior with improved internal scroll handling.
+4. Moved semester expand control into each semester selector tile.
+5. Added explicit recommendation error handling when no major is selected.
+
+</details>
+
+<details>
+<summary><strong>v1.7.3 - KPI Expansion + Recommendations Lane Rebalance</strong></summary>
+
+Window:
+1. 2026-02-22 UI/logic enhancement pass
+
+Why this version:
+1. Increase decision signal density in dashboard with compact KPI insights.
+
+Key outcomes:
+1. Added second KPI row: estimated time left (months) and estimated semesters left.
+2. Added third KPI row: fullest bucket and lowest fulfilled bucket (percent-based, green/red emphasis).
+3. Re-tuned recommendations lane ratio and semester selector width to avoid wasted space.
+4. Anchored expand icon inside semester tile boundaries during ratio changes.
+
+</details>
+
+<details>
+<summary><strong>v1.7.4 - Input UX + Dropdown Behavior Hardening</strong></summary>
+
+Window:
+1. 2026-02-22 usability patch batch
+
+Why this version:
+1. Resolve friction in profile entry inputs and dropdown discoverability.
+
+Key outcomes:
+1. Added `Auto` to `Target Semester (1)` and normalized payload fallback behavior.
+2. Course search dropdowns now open on focus even with empty query (pre-populated, scrollable list).
+3. Major/track dropdown height/scroll behavior tightened for reliable in-pane scrolling.
+4. Increased spacing between selected course chips and search input for readability.
+5. Normalized compact font sizes after over-compression pass.
+
+</details>
+
+<details>
+<summary><strong>v1.7.5 - Progress Timeline Math Unification</strong></summary>
+
+Window:
+1. 2026-02-22 consistency patch
+
+Why this version:
+1. Keep projected/current timeline estimations consistent across modal and dashboard surfaces.
+
+Key outcomes:
+1. Unified timeline calculations from progress maps using the same 5-courses-per-term assumption path.
+2. Applied the same formula to semester modal progress timelines and full progress modal timelines.
+3. Removed redundant “Major-only estimate” disclaimer text from modal timeline blocks.
+
+</details>
+
+<details>
+<summary><strong>v1.7.6 - Rail Branding + Profile Copy Polish</strong></summary>
+
+Window:
+1. 2026-02-22 final polish pass in this session
+
+Why this version:
+1. Final visual polish and wording cleanup for profile-first onboarding.
+
+Key outcomes:
+1. Renamed top-left heading from `Build Your Plan` to `Enter Your Profile`.
+2. Increased rail branding scale (`MarqBot` text + logo) for stronger product identity.
+3. Nudged avatar control upward and increased bottom breathing room on the rail.
+
 </details>
 
 ---
@@ -427,3 +528,9 @@ Key outcomes:
 18. `v1.6.2`: 2026-02-22 MCC universal overlay injection
 19. `v1.6.3`: 2026-02-22 plan-cover + typography consistency patch
 20. `v1.7.0`: 2026-02-22 dashboard UI revamp (left rail + 2x2 grid)
+21. `v1.7.1`: 2026-02-22 compact 2x2 planner stabilization
+22. `v1.7.2`: 2026-02-22 modal + dashboard layout corrections
+23. `v1.7.3`: 2026-02-22 KPI expansion + recommendations lane rebalance
+24. `v1.7.4`: 2026-02-22 input UX + dropdown behavior hardening
+25. `v1.7.5`: 2026-02-22 progress timeline math unification
+26. `v1.7.6`: 2026-02-22 rail branding + profile copy polish

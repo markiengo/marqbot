@@ -1,6 +1,9 @@
 # MarqBot
+![Version](https://img.shields.io/badge/version-v1.7.6-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
 
 MarqBot is a Marquette degree-planning assistant for business students. It recommends next-term courses, explains progress, and checks can-take eligibility from workbook-driven rules.
+
+Current release line: `v1.7.6` (latest local session build).
 
 ## Guide
 
@@ -45,7 +48,7 @@ MarqBot is a Marquette degree-planning assistant for business students. It recom
 
 ### Data model docs
 - ERD and relationship notes: `docs/data_model.md`
-- Project release history: `PROJECT_HISTORY.md`
+- Project release history: `docs/PROJECT_HISTORY.md`
 
 ### API endpoints
 - `GET /courses`

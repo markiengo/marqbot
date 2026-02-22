@@ -4,12 +4,14 @@ import { loadCourses, loadPrograms, postRecommend, postCanTake } from "./modules
 import {
   renderErrorHtml,
   renderCanTakeHtml,
-  renderRecommendationsHtml,
-  renderRecommendationsPrefixHtml,
+  renderCurrentProgressHtml,
   renderSemesterSelectorHtml,
+  renderSemesterPreviewHtml,
   getProgramLabelMap,
   renderProgressRing,
   renderKpiCardsHtml,
+  renderProgressInsightCardsHtml,
+  renderOverallTimelineHtml,
   renderDegreeSummaryHtml,
   renderCanTakeInlineHtml,
   renderSemesterHtml,
@@ -69,11 +71,11 @@ const trackFormGroup = document.getElementById("track-form-group");
 const majorFormGroup = document.getElementById("major-form-group");
 const appShell = document.getElementById("app-shell");
 const placeholderScreens = Array.from(document.querySelectorAll(".placeholder-screen"));
-const sectionHero = document.getElementById("section-hero");
 const semesterModal = document.getElementById("semester-modal");
 const semesterModalBody = document.getElementById("semester-modal-body");
 const semesterModalTitle = document.getElementById("semester-modal-title");
 const semesterModalCloseBtn = document.getElementById("semester-modal-close");
+const progressExpandBtn = document.getElementById("progress-expand");
 
 /* -- Session refs ------------------------------------------------------ */
 const sessionElements = {
@@ -109,10 +111,10 @@ function clearResults() {
   closeSemesterModal();
   state.lastRecommendationData = null;
   state.selectedSemesterIndex = 0;
+  if (progressExpandBtn) progressExpandBtn.disabled = true;
 
   resultsEl.innerHTML = "";
   resultsEl.classList.add("hidden");
-  if (sectionHero) sectionHero.classList.remove("hidden");
   // Also reset progress dashboard and right-panel summary
   const progressDash = document.getElementById("progress-dashboard");
   if (progressDash) progressDash.classList.add("hidden");
@@ -129,6 +131,17 @@ function clearResults() {
     canTakeResult.innerHTML = "";
     canTakeResult.classList.add("hidden");
   }
+}
+
+function getPrimaryTargetSemester() {
+  const selectEl = sessionElements.targetSemester;
+  if (!selectEl) return "Spring 2026";
+  const raw = String(selectEl.value || "").trim();
+  if (raw) return raw;
+  const fallback = Array.from(selectEl.options || [])
+    .map(opt => String(opt.value || "").trim())
+    .find(Boolean);
+  return fallback || "Spring 2026";
 }
 
 /* -- Program selector helpers ----------------------------------------- */
@@ -413,6 +426,22 @@ function closeSemesterModal() {
   state.modalTriggerEl = null;
 }
 
+function openModalContent(title, html, triggerEl = null) {
+  if (!semesterModal) return;
+  if (semesterModalTitle) semesterModalTitle.textContent = title;
+  if (semesterModalBody) semesterModalBody.innerHTML = html || "";
+  state.modalTriggerEl = triggerEl;
+  semesterModal.classList.add("is-open");
+  semesterModal.setAttribute("aria-hidden", "false");
+
+  const focusables = getFocusableElements(semesterModal.querySelector(".semester-modal-card"));
+  if (focusables.length) {
+    focusables[0].focus();
+  } else if (semesterModalCloseBtn) {
+    semesterModalCloseBtn.focus();
+  }
+}
+
 function getFocusableElements(rootEl) {
   if (!rootEl) return [];
   const selectors = [
@@ -463,28 +492,31 @@ function openSemesterModal(semesterIdx, triggerEl = null) {
   const programLabelMap = getProgramLabelMap(state.lastRecommendationData.selection_context);
   const semester = semesters[safeIndex];
   const termLabel = semester?.target_semester ? ` - ${semester.target_semester}` : "";
-  if (semesterModalTitle) {
-    semesterModalTitle.textContent = `Semester ${safeIndex + 1}${termLabel}`;
-  }
-  if (semesterModalBody) {
-    semesterModalBody.innerHTML = renderSemesterHtml(
-      semester,
-      safeIndex + 1,
-      requested,
-      { programLabelMap },
-    );
-  }
+  openModalContent(
+    `Semester ${safeIndex + 1}${termLabel}`,
+    renderSemesterHtml(semester, safeIndex + 1, requested, { programLabelMap }),
+    triggerEl,
+  );
+}
 
-  state.modalTriggerEl = triggerEl;
-  semesterModal.classList.add("is-open");
-  semesterModal.setAttribute("aria-hidden", "false");
-
-  const focusables = getFocusableElements(semesterModal.querySelector(".semester-modal-card"));
-  if (focusables.length) {
-    focusables[0].focus();
-  } else if (semesterModalCloseBtn) {
-    semesterModalCloseBtn.focus();
-  }
+function openProgressModal(triggerEl = null) {
+  if (!state.lastRecommendationData) return;
+  const data = state.lastRecommendationData;
+  const programLabelMap = getProgramLabelMap(data.selection_context);
+  const progressHtml = renderCurrentProgressHtml(
+    data.current_progress || {},
+    data.current_assumption_notes || [],
+    programLabelMap,
+    {},
+  );
+  const timelineHtml = renderOverallTimelineHtml(data.current_progress || {}, 5);
+  const fullHtml = `
+    <div class="dashboard-modal-content">
+      ${progressHtml}
+      ${timelineHtml}
+    </div>
+  `;
+  openModalContent("Degree Progress", fullHtml, triggerEl);
 }
 
 function wireSemesterInteractions() {
@@ -495,8 +527,6 @@ function wireSemesterInteractions() {
   const semesterData = Array.isArray(state.lastRecommendationData.semesters) && state.lastRecommendationData.semesters.length
     ? state.lastRecommendationData.semesters
     : [state.lastRecommendationData];
-  const requested = Number.isFinite(state.lastRequestedCount) ? state.lastRequestedCount : 3;
-  const programLabelMap = getProgramLabelMap(state.lastRecommendationData.selection_context);
 
   const updateSelectedSemester = (newIndex, options = {}) => {
     const safe = clampIndex(newIndex, semesterData.length);
@@ -511,12 +541,7 @@ function wireSemesterInteractions() {
       tab.tabIndex = selected ? 0 : -1;
     });
 
-    detailPane.innerHTML = renderSemesterHtml(
-      semesterData[safe],
-      safe + 1,
-      requested,
-      { programLabelMap },
-    );
+    detailPane.innerHTML = renderSemesterPreviewHtml(semesterData[safe], safe + 1);
 
     if (options.focusTab) {
       const active = tabs[safe];
@@ -566,6 +591,10 @@ function setupModalBindings() {
     }
   });
   semesterModalCloseBtn?.addEventListener("click", closeSemesterModal);
+  progressExpandBtn?.addEventListener("click", () => {
+    if (progressExpandBtn.disabled) return;
+    openProgressModal(progressExpandBtn);
+  });
   document.addEventListener("keydown", onModalKeydown);
 }
 
@@ -656,16 +685,27 @@ function populateProgressDashboard(data) {
   const dashEl = document.getElementById("progress-dashboard");
   const ringWrap = document.getElementById("progress-ring-wrap");
   const kpiRow = document.getElementById("kpi-row");
+  const programLabelMap = getProgramLabelMap(data.selection_context);
 
-  if (ringWrap) ringWrap.innerHTML = renderProgressRing(donePct, 100, 10, inProgressPct, overallPct);
-  if (kpiRow) kpiRow.innerHTML = renderKpiCardsHtml(totalDone, totalRemaining, totalInProg);
+  if (ringWrap) ringWrap.innerHTML = renderProgressRing(donePct, 72, 8, inProgressPct, overallPct);
+  if (kpiRow) {
+    kpiRow.innerHTML = `${renderKpiCardsHtml(totalDone, totalRemaining, totalInProg)}${renderProgressInsightCardsHtml(
+      data.current_progress,
+      totalRemaining,
+      programLabelMap,
+      5,
+    )}`;
+  }
   if (dashEl) dashEl.classList.remove("hidden");
 
-  // Right-panel summary
+  // Upper-right degree summary (moved from settings pane)
   const rightSummary = document.getElementById("right-summary");
   const rightSummaryContent = document.getElementById("right-summary-content");
   if (rightSummaryContent) {
-    rightSummaryContent.innerHTML = renderDegreeSummaryHtml(data.current_progress);
+    rightSummaryContent.innerHTML = renderDegreeSummaryHtml(
+      data.current_progress,
+      programLabelMap,
+    );
   }
   if (rightSummary) rightSummary.classList.remove("hidden");
 }
@@ -691,7 +731,7 @@ function setupCanTakeStandalone() {
     const payload = {
       completed_courses: [...state.completed].join(", "),
       in_progress_courses: [...state.inProgress].join(", "),
-      target_semester: document.getElementById("target-semester")?.value || "Spring 2026",
+      target_semester: getPrimaryTargetSemester(),
       requested_course: requestedCourse,
       declared_majors: [...state.selectedMajors],
       track_id: state.selectedTrack || null,
@@ -894,7 +934,6 @@ function renderResults(data) {
   state.lastRecommendationData = null;
   resultsEl.innerHTML = "";
   resultsEl.classList.remove("hidden");
-  if (sectionHero) sectionHero.classList.add("hidden");
 
   if (data.mode === "error") {
     resultsEl.innerHTML = renderErrorHtml(data.error?.message || "An error occurred.", data.error);
@@ -905,10 +944,10 @@ function renderResults(data) {
     return;
   }
   if (data.mode === "recommendations") {
-    const requested = parseInt(sessionElements.maxRecs?.value || "3", 10);
     state.lastRecommendationData = data;
-    state.lastRequestedCount = requested;
+    state.lastRequestedCount = parseInt(sessionElements.maxRecs?.value || "3", 10);
     state.selectedSemesterIndex = 0;
+    if (progressExpandBtn) progressExpandBtn.disabled = false;
 
     const semesters = Array.isArray(data.semesters) && data.semesters.length
       ? data.semesters
@@ -916,20 +955,16 @@ function renderResults(data) {
     const safeIdx = clampIndex(state.selectedSemesterIndex, semesters.length);
     state.selectedSemesterIndex = safeIdx < 0 ? 0 : safeIdx;
     const selected = semesters[state.selectedSemesterIndex] || semesters[0];
-    const programLabelMap = getProgramLabelMap(data.selection_context);
-
-    const prefixHtml = renderRecommendationsPrefixHtml(data, { programLabelMap });
     const selectorHtml = renderSemesterSelectorHtml(semesters, state.selectedSemesterIndex);
     const detailHtml = selected
-      ? renderSemesterHtml(selected, state.selectedSemesterIndex + 1, requested, { programLabelMap })
-      : renderRecommendationsHtml(data, requested);
+      ? renderSemesterPreviewHtml(selected, state.selectedSemesterIndex + 1)
+      : `<div class="semester-preview-empty">No semester recommendations available.</div>`;
 
     resultsEl.innerHTML = `
-      <div class="recommendation-workspace recommendation-workspace--${Math.min(3, Math.max(1, semesters.length))}">
-        <div class="recommendation-prefix">${prefixHtml}</div>
+      <div class="recommendation-workspace recommendation-workspace--preview recommendation-workspace--${Math.min(3, Math.max(1, semesters.length))}">
         <div class="recommendation-interactive">
           ${selectorHtml}
-          <section id="semester-detail-pane" class="semester-detail-pane" aria-live="polite">${detailHtml}</section>
+          <section id="semester-detail-pane" class="semester-detail-pane semester-detail-pane--preview" aria-live="polite">${detailHtml}</section>
         </div>
       </div>
     `;
@@ -948,7 +983,6 @@ form.addEventListener("submit", async e => {
   if (!selectedMajors.length) {
     clearResults();
     resultsEl.classList.remove("hidden");
-    if (sectionHero) sectionHero.classList.add("hidden");
     resultsEl.innerHTML = renderErrorHtml("Please select at least one declared major before requesting recommendations.");
     return;
   }
@@ -960,8 +994,8 @@ form.addEventListener("submit", async e => {
   const payload = {
     completed_courses: [...state.completed].join(", "),
     in_progress_courses: [...state.inProgress].join(", "),
-    target_semester: sessionElements.targetSemester.value,
-    target_semester_primary: sessionElements.targetSemester.value,
+    target_semester: getPrimaryTargetSemester(),
+    target_semester_primary: getPrimaryTargetSemester(),
     target_semester_secondary: sessionElements.targetSemester2.value || null,
     target_semester_tertiary: sessionElements.targetSemester3.value || null,
     requested_course: canTakeInput.value.trim() || null,

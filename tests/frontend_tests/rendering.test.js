@@ -3,6 +3,9 @@ import {
   renderErrorHtml,
   renderCanTakeHtml,
   renderSemesterHtml,
+  renderSemesterPreviewHtml,
+  renderPlanContextHtml,
+  renderCurrentProgressHtml,
   renderRecommendationsHtml,
   renderRecommendationsPrefixHtml,
   renderSemesterSelectorHtml,
@@ -266,6 +269,54 @@ describe("renderRecommendationsHtml()", () => {
     }, 3);
     expect(html).toContain("Current Degree Progress");
     expect(html).not.toContain('class="assumption-notes"');
+  });
+});
+
+describe("renderSemesterPreviewHtml()", () => {
+  test("renders compact rows with course code and name", () => {
+    const html = renderSemesterPreviewHtml({
+      target_semester: "Fall 2026",
+      recommendations: [
+        { course_code: "FINA 4001", course_name: "Advanced Finance" },
+        { course_code: "FINA 4081", course_name: "Investments" },
+      ],
+    }, 1);
+    expect(html).toContain("Semester 1 - Fall 2026");
+    expect(html).toContain("FINA 4001");
+    expect(html).toContain("Advanced Finance");
+    expect(html).toContain("semester-preview-item");
+  });
+
+  test("renders empty-state when there are no recommendations", () => {
+    const html = renderSemesterPreviewHtml({ target_semester: "Spring 2027", recommendations: [] }, 2);
+    expect(html).toContain("semester-preview-empty");
+    expect(html).toContain("No eligible courses");
+  });
+});
+
+describe("renderPlanContextHtml()", () => {
+  test("renders majors and track labels from selection context", () => {
+    const html = renderPlanContextHtml({
+      declared_majors: ["FIN_MAJOR"],
+      declared_major_labels: ["Finance Major"],
+      selected_track_id: "CB_TRACK",
+      selected_track_label: "Commercial Banking",
+    });
+    expect(html).toContain("Plan Context");
+    expect(html).toContain("Majors: Finance Major");
+    expect(html).toContain("Track: Commercial Banking");
+  });
+});
+
+describe("renderCurrentProgressHtml()", () => {
+  test("supports row limiting and truncation note", () => {
+    const progress = {
+      A: { label: "A", needed: 1, completed_done: 0, assumed_done: 0, in_progress_increment: 0, satisfied: false },
+      B: { label: "B", needed: 1, completed_done: 0, assumed_done: 0, in_progress_increment: 0, satisfied: false },
+      C: { label: "C", needed: 1, completed_done: 0, assumed_done: 0, in_progress_increment: 0, satisfied: false },
+    };
+    const html = renderCurrentProgressHtml(progress, [], null, { limit: 2 });
+    expect(html).toContain("Showing 2 of 3 requirement rows");
   });
 });
 

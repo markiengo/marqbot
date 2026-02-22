@@ -13,7 +13,9 @@ describe("v1.7 static UI contract", () => {
   test("left rail includes branding logo and six nav buttons in order", () => {
     const html = read(indexPath);
     expect(html).toContain('id="rail"');
-    expect(html).toContain('src="marquette_logo2.jpg"');
+    expect(html).toContain('src="assets/branding/marquette_logo.webp"');
+    expect(html).toContain('class="avatar-circle"');
+    expect(html).toContain('class="avatar-photo"');
 
     const navOrder = ["nav-home", "nav-plan", "nav-courses", "nav-saved", "nav-ai-advisor", "nav-avatar"];
     let cursor = -1;
@@ -47,15 +49,17 @@ describe("v1.7 static UI contract", () => {
     expect(html).toContain('data-modal-close="backdrop"');
     expect(html).toContain('id="semester-modal-close"');
     expect(html).toContain('id="semester-modal-body"');
+    expect(html).toContain('id="progress-expand"');
   });
 
   test("cover image assets exist", () => {
     const files = [
-      path.join(repoRoot, "frontend", "screen_courses_cover.jpg"),
-      path.join(repoRoot, "frontend", "screen_saved_cover.jpg"),
-      path.join(repoRoot, "frontend", "screen_aiadvisor_cover.jpg"),
-      path.join(repoRoot, "frontend", "screen_plan_cover.jpg"),
-      path.join(repoRoot, "frontend", "marquette_logo2.jpg"),
+      path.join(repoRoot, "frontend", "assets", "covers", "screen_courses_cover.jpg"),
+      path.join(repoRoot, "frontend", "assets", "covers", "screen_saved_cover.jpg"),
+      path.join(repoRoot, "frontend", "assets", "covers", "screen_aiadvisor_cover.jpg"),
+      path.join(repoRoot, "frontend", "assets", "covers", "screen_plan_cover.jpg"),
+      path.join(repoRoot, "frontend", "assets", "branding", "marquette_logo.webp"),
+      path.join(repoRoot, "frontend", "assets", "avatar_silhouette.svg"),
     ];
     for (const file of files) {
       expect(fs.existsSync(file)).toBe(true);
@@ -89,6 +93,8 @@ describe("v1.7 static UI contract", () => {
     expect(css).toContain(".recommendation-interactive");
     expect(css).toContain(".semester-selector");
     expect(css).toContain(".semester-detail-pane");
+    expect(css).toContain(".semester-preview-wrap");
+    expect(css).toContain(".dashboard-expand-btn");
     expect(css).toContain(".semester-modal");
     expect(css).toContain(".semester-modal-card");
   });

@@ -17,7 +17,7 @@
   <div id="app-frame">
     <aside id="rail" aria-label="Primary navigation">
       <div class="rail-brand">
-        <img src="marquette_logo2.jpg" alt="Marquette logo" class="rail-logo" />
+        <img src="assets/branding/marquette_logo.webp" alt="Marquette logo" class="rail-logo" />
         <span class="rail-title">MarqBot</span>
       </div>
       <nav id="rail-nav" class="rail-nav" role="tablist" aria-label="Primary sections">
@@ -27,7 +27,11 @@
         <button type="button" class="rail-link" id="nav-saved" data-nav-index="3" role="tab" aria-selected="false">Saved</button>
         <button type="button" class="rail-link" id="nav-ai-advisor" data-nav-index="4" role="tab" aria-selected="false">AI Advisor</button>
       </nav>
-      <button type="button" class="rail-link rail-link-avatar" id="nav-avatar" data-nav-index="5" role="tab" aria-selected="false">Avatar</button>
+      <button type="button" class="rail-link rail-link-avatar" id="nav-avatar" data-nav-index="5" role="tab" aria-selected="false" aria-label="Avatar">
+        <span class="avatar-circle">
+          <img src="assets/avatar_silhouette.svg" alt="" class="avatar-photo" />
+        </span>
+      </button>
     </aside>
 
     <div id="app-content">
@@ -36,10 +40,10 @@
           <aside id="panel-left">
             <section id="section-input" data-nav-section="section-input">
               <form id="advisor-form">
-                <div class="left-panel-header">
-                  <p class="eyebrow">Academic Advisor</p>
-                  <h2 class="panel-heading">Build Your Plan</h2>
-                </div>
+                <header class="pane-head">
+                  <p class="pane-support">Fill in exactly as your transcript to have the most accurate results.</p>
+                  <h2 class="pane-title">Enter Your Profile</h2>
+                </header>
 
                 <div class="form-group" id="major-form-group">
                   <label for="declared-majors">Declared Major(s)</label>
@@ -101,35 +105,47 @@
 
         <section id="quad-tr" class="planner-quad">
           <main id="panel-center">
-            <header class="center-header">
-              <p class="eyebrow">Marquette University</p>
-              <h1>Academic Dashboard</h1>
+            <header class="pane-head">
+              <p class="pane-support">Double-check this with your "Graduation Checklist" in Checkmarq</p>
+              <h2 class="pane-title">Academic Progress</h2>
             </header>
             <section id="section-progress" data-nav-section="section-progress">
               <div id="progress-dashboard" class="hidden">
-                <div class="section-title">Degree Progress</div>
+                <div class="progress-dashboard-head">
+                  <div class="section-title">Degree Progress</div>
+                  <button type="button" id="progress-expand" class="dashboard-expand-btn dashboard-expand-btn--inline" disabled>
+                    View Full Progress
+                  </button>
+                </div>
                 <div id="progress-ring-wrap"></div>
                 <div id="kpi-row"></div>
               </div>
+              <section id="right-summary" class="hidden">
+                <h3 class="panel-section-title">Degree Summary</h3>
+                <div id="right-summary-content"></div>
+              </section>
             </section>
           </main>
         </section>
 
         <section id="quad-bl" class="planner-quad">
           <aside id="panel-right">
+            <header class="pane-head">
+              <p class="pane-support">Adjust your preferences to cater the recommendations</p>
+              <h2 class="pane-title">Settings</h2>
+            </header>
             <section id="quick-settings">
-              <h3 class="panel-section-title">Settings</h3>
-
               <div class="form-group">
                 <label for="target-semester">Target Semester (1)</label>
                 <p class="form-hint">Choose the first target term.</p>
                 <select id="target-semester" form="advisor-form">
-                  <option selected>Spring 2026</option>
-                  <option>Summer 2026</option>
-                  <option>Fall 2026</option>
-                  <option>Spring 2027</option>
-                  <option>Summer 2027</option>
-                  <option>Fall 2027</option>
+                  <option value="" selected>Auto</option>
+                  <option value="Spring 2026">Spring 2026</option>
+                  <option value="Summer 2026">Summer 2026</option>
+                  <option value="Fall 2026">Fall 2026</option>
+                  <option value="Spring 2027">Spring 2027</option>
+                  <option value="Summer 2027">Summer 2027</option>
+                  <option value="Fall 2027">Fall 2027</option>
                 </select>
               </div>
 
@@ -175,11 +191,6 @@
               </div>
             </section>
 
-            <section id="right-summary" class="hidden">
-              <h3 class="panel-section-title">Degree Summary</h3>
-              <div id="right-summary-content"></div>
-            </section>
-
             <section id="can-take-section">
               <h3 class="panel-section-title">Can I Take This Next Semester?</h3>
               <p class="form-hint">Enter a course code and press Enter to check next-semester eligibility.</p>
@@ -187,6 +198,7 @@
                 <input type="text" class="ms-input" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
                 <div class="ms-dropdown" id="dropdown-can-take"></div>
               </div>
+              <p class="can-take-help">Press Enter to see Answer</p>
               <div id="can-take-result" class="hidden"></div>
             </section>
           </aside>
@@ -194,11 +206,10 @@
 
         <section id="quad-br" class="planner-quad">
           <main id="panel-recommendations">
-            <section id="section-hero" class="recommendation-empty-state">
-              <p class="eyebrow">Planner Workspace</p>
-              <h1>Interactive Recommendations</h1>
-              <p class="form-hint">Choose majors, add completed/in-progress courses, then generate semester recommendations.</p>
-            </section>
+            <header class="pane-head">
+              <p class="pane-support">Expand each semester to view recommendations in more details.</p>
+              <h2 class="pane-title">Recommendations</h2>
+            </header>
             <section id="section-recommendations" data-nav-section="section-recommendations">
               <div id="results" class="hidden"></div>
             </section>

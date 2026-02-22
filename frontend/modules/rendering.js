@@ -122,8 +122,17 @@ function compactKpiBucketLabel(label) {
     .trim();
 }
 
-function renderCurrentProgressHtml(currentProgress, assumptionNotes = [], programLabelMap = null) {
+export function renderCurrentProgressHtml(
+  currentProgress,
+  assumptionNotes = [],
+  programLabelMap = null,
+  options = {},
+) {
   if (!currentProgress || !Object.keys(currentProgress).length) return "";
+  const limitRaw = Number(options.limit);
+  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.floor(limitRaw) : null;
+  const entries = sortProgressEntries(currentProgress);
+  const displayed = limit ? entries.slice(0, limit) : entries;
 
   let html = `<div class="section-title section-title-compact">Current Degree Progress</div>`;
   html += `<p class="progress-note"><strong class="progress-note-strong">Current snapshot:</strong> green = completed; yellow = in-progress assumed completed.</p>`;
@@ -136,7 +145,7 @@ function renderCurrentProgressHtml(currentProgress, assumptionNotes = [], progra
   }
   html += `<div class="progress-table" role="table" aria-label="Current degree progress by requirement bucket">`;
 
-  for (const [bid, prog] of sortProgressEntries(currentProgress)) {
+  for (const [bid, prog] of displayed) {
     const needed = Number(prog.needed || 0);
     const completedDone = Number(prog.completed_done || 0);
     const assumedDone = Number(prog.assumed_done || 0);
@@ -177,7 +186,27 @@ function renderCurrentProgressHtml(currentProgress, assumptionNotes = [], progra
   }
 
   html += `</div>`;
+  if (displayed.length < entries.length) {
+    html += `<p class="progress-note">Showing ${displayed.length} of ${entries.length} requirement rows. Expand for full details.</p>`;
+  }
   return html;
+}
+
+export function renderPlanContextHtml(selectionContext, programLabelMap = null) {
+  if (!selectionContext) return "";
+  const map = programLabelMap || getProgramLabelMap(selectionContext);
+  const majorLabels = Array.isArray(selectionContext.declared_major_labels)
+    ? selectionContext.declared_major_labels
+    : (selectionContext.declared_majors || []).map(id => map.get(id) || id);
+
+  const selectedTrackId = selectionContext.selected_track_id;
+  const selectedTrackLabel = selectionContext.selected_track_label
+    || (selectedTrackId ? (map.get(selectedTrackId) || selectedTrackId) : null);
+
+  const majors = majorLabels.map(esc).join(", ");
+  const track = selectedTrackLabel ? esc(selectedTrackLabel) : "None";
+
+  return `<div class="warnings-box"><h4 class="heading-gold">Plan Context</h4><ul><li>Majors: ${majors || "None"}</li><li>Track: ${track}</li></ul></div>`;
 }
 
 export function renderCard(c, options = {}) {
@@ -295,7 +324,7 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
   }
 
   const semesterProgress = data.projected_progress || data.progress;
-  const semesterTimeline = data.projected_timeline || data.timeline;
+  const semesterTimeline = buildTimelineFromProgress(semesterProgress, 5) || data.projected_timeline || data.timeline;
   if (semesterProgress && Object.keys(semesterProgress).length) {
     html += `<div class="section-title">Degree Progress</div>`;
     if (data.projection_note) {
@@ -366,11 +395,30 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
           <div class="num">${t.estimated_min_terms}</div>
           <div class="lbl">Est. terms to finish major</div>
         </div>
-        <div class="timeline-disclaimer">${esc(t.disclaimer)}</div>
       </div>`;
   }
 
   return html;
+}
+
+export function renderSemesterPreviewHtml(data, index) {
+  if (!data) return "";
+  const semesterLabel = data.target_semester ? ` - ${esc(data.target_semester)}` : "";
+  const rows = Array.isArray(data.recommendations) ? data.recommendations : [];
+  const rowHtml = rows.length
+    ? rows.map((course) => {
+      const code = esc(String(course.course_code || ""));
+      const name = esc(String(course.course_name || "Course"));
+      return `<div class="semester-preview-item"><div class="semester-preview-code">${code}</div><div class="semester-preview-name">${name}</div></div>`;
+    }).join("")
+    : `<div class="semester-preview-empty">No eligible courses for this semester.</div>`;
+
+  return `
+    <div class="semester-preview-wrap">
+      <div class="semester-preview-title">Semester ${index}${semesterLabel}</div>
+      <div class="semester-preview-list">${rowHtml}</div>
+    </div>
+  `;
 }
 
 function clampSelectedIndex(index, length) {
@@ -380,6 +428,33 @@ function clampSelectedIndex(index, length) {
   if (raw < 0) return 0;
   if (raw >= length) return length - 1;
   return raw;
+}
+
+function buildTimelineFromProgress(progressMap, coursesPerSemester = 5) {
+  const entries = Object.values(progressMap || {});
+  if (!entries.length) return null;
+
+  const safePerSemester = Math.max(1, Number(coursesPerSemester) || 5);
+  let totalNeeded = 0;
+  let totalDone = 0;
+  let totalInProgress = 0;
+  entries.forEach((prog) => {
+    totalNeeded += Number(prog?.needed || 0);
+    totalDone += Number(
+      prog?.done_count != null
+        ? prog.done_count
+        : prog?.completed_done || 0,
+    );
+    totalInProgress += Array.isArray(prog?.in_progress_applied)
+      ? prog.in_progress_applied.length
+      : Number(prog?.in_progress_increment || 0);
+  });
+
+  const remaining_slots_total = Math.max(0, totalNeeded - totalDone - totalInProgress);
+  const estimated_min_terms = remaining_slots_total > 0
+    ? Math.ceil(remaining_slots_total / safePerSemester)
+    : 0;
+  return { remaining_slots_total, estimated_min_terms };
 }
 
 export function getRecommendationSemesters(data) {
@@ -397,18 +472,7 @@ export function renderRecommendationsPrefixHtml(data, options = {}) {
   let prefix = "";
 
   if (data?.selection_context) {
-    const majorLabels = Array.isArray(data.selection_context.declared_major_labels)
-      ? data.selection_context.declared_major_labels
-      : (data.selection_context.declared_majors || []).map(id => programLabelMap.get(id) || id);
-
-    const selectedTrackId = data.selection_context.selected_track_id;
-    const selectedTrackLabel = data.selection_context.selected_track_label
-      || (selectedTrackId ? (programLabelMap.get(selectedTrackId) || selectedTrackId) : null);
-
-    const majors = majorLabels.map(esc).join(", ");
-    const track = selectedTrackLabel ? esc(selectedTrackLabel) : "None";
-
-    prefix += `<div class="warnings-box"><h4 class="heading-gold">Plan Context</h4><ul><li>Majors: ${majors || "None"}</li><li>Track: ${track}</li></ul></div>`;
+    prefix += renderPlanContextHtml(data.selection_context, programLabelMap);
   }
 
   if (data?.current_progress && Object.keys(data.current_progress).length) {
@@ -416,6 +480,7 @@ export function renderRecommendationsPrefixHtml(data, options = {}) {
       data.current_progress,
       data.current_assumption_notes || [],
       programLabelMap,
+      {},
     );
   }
 
@@ -443,7 +508,7 @@ export function renderSemesterSelectorHtml(semesters, selectedIndex = 0) {
     const recLabel = `${recommendationCount} course${recommendationCount === 1 ? "" : "s"}`;
 
     return `
-      <div class="semester-tab-row">
+      <div class="semester-tab-row${active ? " is-active" : ""}">
         <button
           type="button"
           class="semester-tab${active ? " is-active" : ""}"
@@ -460,12 +525,12 @@ export function renderSemesterSelectorHtml(semesters, selectedIndex = 0) {
         </button>
         <button
           type="button"
-          class="semester-expand"
+          class="semester-expand semester-expand--inset"
           data-semester-expand="${idx}"
           aria-label="Expand ${esc(title)} details"
           title="Expand semester details"
         >
-          <span aria-hidden="true">&#8645;</span>
+          <span aria-hidden="true">&#10530;</span>
         </button>
       </div>
     `;
@@ -532,6 +597,87 @@ export function renderKpiCardsHtml(done, remaining, inProgress) {
   <div class="kpi-card kpi-ip"><span class="kpi-value">${inProgress}</span><span class="kpi-label">In Progress</span></div>
   <div class="kpi-card kpi-rem"><span class="kpi-value">${remaining}</span><span class="kpi-label">Remaining</span></div>
 </div>`;
+}
+
+export function renderProgressInsightCardsHtml(
+  currentProgress,
+  remainingCourses,
+  programLabelMap = null,
+  coursesPerSemester = 5,
+) {
+  const safeRemaining = Math.max(0, Number(remainingCourses) || 0);
+  const safePerSemester = Math.max(1, Number(coursesPerSemester) || 5);
+  const estSemestersLeft = safeRemaining > 0 ? Math.ceil(safeRemaining / safePerSemester) : 0;
+  const estMonthsLeft = estSemestersLeft * 4;
+
+  const buckets = sortProgressEntries(currentProgress || {})
+    .map(([bid, prog]) => {
+      const needed = Math.max(0, Number(prog?.needed || 0));
+      const assumed = Math.max(
+        0,
+        Number(
+          prog?.assumed_done != null
+            ? prog.assumed_done
+            : (Number(prog?.completed_done || 0) + Number(prog?.in_progress_increment || 0)),
+        ),
+      );
+      const pct = needed > 0
+        ? Math.max(0, Math.min(100, Math.round((Math.min(needed, assumed) / needed) * 100)))
+        : 0;
+      const label = compactKpiBucketLabel(prog?.label || bucketLabel(bid, programLabelMap));
+      return { label, pct, needed };
+    })
+    .filter((entry) => entry.needed > 0);
+
+  let fullest = { label: "N/A", pct: 0 };
+  let lowest = { label: "N/A", pct: 0 };
+  if (buckets.length) {
+    fullest = buckets.reduce((best, cur) => (cur.pct > best.pct ? cur : best), buckets[0]);
+    lowest = buckets.reduce((best, cur) => (cur.pct < best.pct ? cur : best), buckets[0]);
+  }
+
+  return `
+    <div class="kpi-cards kpi-cards--half">
+      <div class="kpi-card kpi-est-time">
+        <span class="kpi-value">${estMonthsLeft}</span>
+        <span class="kpi-label">Est Time Left (Months)</span>
+      </div>
+      <div class="kpi-card kpi-est-sem">
+        <span class="kpi-value">${estSemestersLeft}</span>
+        <span class="kpi-label">Est Semesters Left</span>
+      </div>
+    </div>
+    <div class="kpi-cards kpi-cards--half">
+      <div class="kpi-card kpi-fullest">
+        <span class="kpi-value">${fullest.pct}%</span>
+        <span class="kpi-label">Fullest Bucket</span>
+        <span class="kpi-sub">${esc(fullest.label)}</span>
+      </div>
+      <div class="kpi-card kpi-lowest">
+        <span class="kpi-value">${lowest.pct}%</span>
+        <span class="kpi-label">Lowest Bucket Fulfilled</span>
+        <span class="kpi-sub">${esc(lowest.label)}</span>
+      </div>
+    </div>
+  `;
+}
+
+export function renderOverallTimelineHtml(currentProgress, coursesPerSemester = 5) {
+  const t = buildTimelineFromProgress(currentProgress, coursesPerSemester);
+  if (!t) return "";
+
+  return `
+    <div class="timeline-box">
+      <div class="timeline-stat">
+        <div class="num">${t.remaining_slots_total}</div>
+        <div class="lbl">Courses required remaining</div>
+      </div>
+      <div class="timeline-stat">
+        <div class="num">${t.estimated_min_terms}</div>
+        <div class="lbl">Est. terms to finish major</div>
+      </div>
+    </div>
+  `;
 }
 
 /**

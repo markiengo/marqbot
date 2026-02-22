@@ -72,6 +72,18 @@ export function setupMultiselect(searchEl, dropdownEl, targetSet, courses, onSel
   let matches = [];
   let activeIndex = -1;
 
+  const defaultMatches = () => courses
+    .filter(c => !targetSet.has(c.course_code))
+    .sort((a, b) => {
+      const aLevel = Number(a?.level ?? a?.prereq_level);
+      const bLevel = Number(b?.level ?? b?.prereq_level);
+      const aRank = Number.isFinite(aLevel) ? aLevel : Number.POSITIVE_INFINITY;
+      const bRank = Number.isFinite(bLevel) ? bLevel : Number.POSITIVE_INFINITY;
+      if (aRank !== bRank) return aRank - bRank;
+      return String(a?.course_code || "").localeCompare(String(b?.course_code || ""));
+    })
+    .slice(0, 24);
+
   const close = () => {
     matches = [];
     activeIndex = -1;
@@ -88,11 +100,20 @@ export function setupMultiselect(searchEl, dropdownEl, targetSet, courses, onSel
   };
 
   searchEl.addEventListener("input", () => {
-    matches = filterCourses(searchEl.value, targetSet, courses);
-    if (searchEl.value.trim().length < 2) {
+    const query = searchEl.value.trim();
+    matches = query ? filterCourses(searchEl.value, targetSet, courses) : defaultMatches();
+    activeIndex = matches.length ? 0 : -1;
+    renderDropdown(dropdownEl, matches, c => {
+      onSelect(c);
+      searchEl.value = "";
       close();
-      return;
-    }
+      searchEl.focus();
+    }, activeIndex);
+  });
+
+  searchEl.addEventListener("focus", () => {
+    const query = searchEl.value.trim();
+    matches = query ? filterCourses(searchEl.value, targetSet, courses) : defaultMatches();
     activeIndex = matches.length ? 0 : -1;
     renderDropdown(dropdownEl, matches, c => {
       onSelect(c);
