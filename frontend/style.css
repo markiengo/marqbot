@@ -1839,6 +1839,15 @@ body {
   min-height: 122px;
 }
 
+.semester-selector--four .semester-tab {
+  min-height: 106px;
+  padding: 12px 12px 38px 12px;
+}
+
+.recommendation-workspace--4 .recommendation-interactive {
+  grid-template-columns: minmax(164px, 24%) minmax(0, 1fr);
+}
+
 .semester-tab-row {
   position: relative;
   min-height: 0;
@@ -2402,6 +2411,24 @@ body {
   color: #b8caec;
   display: grid;
   place-items: center;
+}
+
+.recommendation-workspace--dense .semester-preview-list {
+  gap: 5px;
+}
+
+.recommendation-workspace--dense .semester-preview-item {
+  padding: 5px 7px;
+  border-radius: 9px;
+}
+
+.recommendation-workspace--dense .semester-preview-code {
+  font-size: 0.74rem;
+}
+
+.recommendation-workspace--dense .semester-preview-name {
+  font-size: 0.69rem;
+  -webkit-line-clamp: 1;
 }
 
 .dashboard-modal-content {

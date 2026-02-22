@@ -80,8 +80,7 @@ const progressExpandBtn = document.getElementById("progress-expand");
 /* -- Session refs ------------------------------------------------------ */
 const sessionElements = {
   get targetSemester() { return document.getElementById("target-semester"); },
-  get targetSemester2() { return document.getElementById("target-semester-2"); },
-  get targetSemester3() { return document.getElementById("target-semester-3"); },
+  get semesterCount() { return document.getElementById("semester-count"); },
   get maxRecs() { return document.getElementById("max-recs"); },
   get canTake() { return canTakeInput; },
   get declaredMajors() { return declaredMajorsSelect; },
@@ -142,6 +141,13 @@ function getPrimaryTargetSemester() {
     .map(opt => String(opt.value || "").trim())
     .find(Boolean);
   return fallback || "Spring 2026";
+}
+
+function getTargetSemesterCount() {
+  const selectEl = sessionElements.semesterCount;
+  const raw = Number.parseInt(String(selectEl?.value || "3"), 10);
+  if (!Number.isFinite(raw)) return 3;
+  return Math.min(4, Math.max(1, raw));
 }
 
 /* -- Program selector helpers ----------------------------------------- */
@@ -945,7 +951,10 @@ function renderResults(data) {
   }
   if (data.mode === "recommendations") {
     state.lastRecommendationData = data;
-    state.lastRequestedCount = parseInt(sessionElements.maxRecs?.value || "3", 10);
+    const parsedRequestedCount = parseInt(sessionElements.maxRecs?.value || "3", 10);
+    state.lastRequestedCount = Number.isFinite(parsedRequestedCount)
+      ? Math.min(6, Math.max(1, parsedRequestedCount))
+      : 3;
     state.selectedSemesterIndex = 0;
     if (progressExpandBtn) progressExpandBtn.disabled = false;
 
@@ -959,12 +968,14 @@ function renderResults(data) {
     const detailHtml = selected
       ? renderSemesterPreviewHtml(selected, state.selectedSemesterIndex + 1)
       : `<div class="semester-preview-empty">No semester recommendations available.</div>`;
+    const semesterCountClass = `recommendation-workspace--${Math.min(4, Math.max(1, semesters.length))}`;
+    const densityClass = state.lastRequestedCount >= 6 ? "recommendation-workspace--dense" : "";
 
     resultsEl.innerHTML = `
-      <div class="recommendation-workspace recommendation-workspace--preview recommendation-workspace--${Math.min(3, Math.max(1, semesters.length))}">
+      <div class="recommendation-workspace recommendation-workspace--preview ${semesterCountClass} ${densityClass}">
         <div class="recommendation-interactive">
           ${selectorHtml}
-          <section id="semester-detail-pane" class="semester-detail-pane semester-detail-pane--preview" aria-live="polite">${detailHtml}</section>
+          <section id="semester-detail-pane" class="semester-detail-pane semester-detail-pane--preview${state.lastRequestedCount >= 6 ? " semester-detail-pane--dense" : ""}" aria-live="polite">${detailHtml}</section>
         </div>
       </div>
     `;
@@ -996,10 +1007,12 @@ form.addEventListener("submit", async e => {
     in_progress_courses: [...state.inProgress].join(", "),
     target_semester: getPrimaryTargetSemester(),
     target_semester_primary: getPrimaryTargetSemester(),
-    target_semester_secondary: sessionElements.targetSemester2.value || null,
-    target_semester_tertiary: sessionElements.targetSemester3.value || null,
+    target_semester_count: getTargetSemesterCount(),
     requested_course: canTakeInput.value.trim() || null,
-    max_recommendations: parseInt(sessionElements.maxRecs.value, 10),
+    max_recommendations: (() => {
+      const parsed = parseInt(sessionElements.maxRecs.value, 10);
+      return Number.isFinite(parsed) ? Math.min(6, Math.max(1, parsed)) : 3;
+    })(),
   };
 
   payload.declared_majors = selectedMajors;
@@ -1125,8 +1138,7 @@ async function init() {
   refreshProgramOptions(false);
 
   sessionElements.targetSemester?.addEventListener("change", onSave);
-  sessionElements.targetSemester2?.addEventListener("change", onSave);
-  sessionElements.targetSemester3?.addEventListener("change", onSave);
+  sessionElements.semesterCount?.addEventListener("change", onSave);
   sessionElements.maxRecs?.addEventListener("change", onSave);
   canTakeInput?.addEventListener("input", onSave);
   window.addEventListener("beforeunload", onSave);

@@ -392,6 +392,20 @@ class TestServerTrackValidation:
         assert len(data.get("semesters", [])) == 3
         assert all(len(sem.get("recommendations", [])) <= 5 for sem in data["semesters"])
 
+    def test_semester_count_supports_four_terms_and_six_recs(self, client):
+        resp = self._post(
+            client,
+            completed_courses="BUAD 1001, ECON 1103, MATH 1400",
+            target_semester_primary="Fall 2026",
+            target_semester_count=4,
+            max_recommendations=6,
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert len(data.get("semesters", [])) == 4
+        assert all(len(sem.get("recommendations", [])) <= 6 for sem in data["semesters"])
+
     def test_declared_majors_must_be_array(self, client):
         resp = client.post("/recommend", json={
             "completed_courses": "",

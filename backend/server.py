@@ -120,11 +120,25 @@ def _validate_recommend_body(body):
     max_recs_raw = body.get("max_recommendations", 3)
     try:
         max_recs = int(max_recs_raw)
-        if not (1 <= max_recs <= 5):
+        if not (1 <= max_recs <= 6):
             raise ValueError
     except (TypeError, ValueError):
-        return "INVALID_INPUT", "max_recommendations must be an integer between 1 and 5."
-    for field in ("target_semester_primary", "target_semester", "target_semester_secondary", "target_semester_tertiary"):
+        return "INVALID_INPUT", "max_recommendations must be an integer between 1 and 6."
+    semester_count_raw = body.get("target_semester_count")
+    if semester_count_raw not in (None, ""):
+        try:
+            semester_count = int(semester_count_raw)
+            if not (1 <= semester_count <= 4):
+                raise ValueError
+        except (TypeError, ValueError):
+            return "INVALID_INPUT", "target_semester_count must be an integer between 1 and 4."
+    for field in (
+        "target_semester_primary",
+        "target_semester",
+        "target_semester_secondary",
+        "target_semester_tertiary",
+        "target_semester_quaternary",
+    ):
         val = body.get(field)
         if val and val not in ("", "__NONE__") and not SEM_RE.match(str(val).strip()):
             return "INVALID_INPUT", f"'{field}' value '{val}' is not a valid semester (e.g. 'Spring 2026')."
@@ -1161,29 +1175,34 @@ def recommend():
     )
     target_semester_primary = normalize_semester_label(target_semester_primary)
 
-    target_semester_secondary_raw = body.get("target_semester_secondary")
-    target_semester_secondary = str(target_semester_secondary_raw).strip() if target_semester_secondary_raw is not None else None
-    if target_semester_secondary == "__NONE__":
-        target_semester_secondary = "__NONE__"
+    def _parse_optional_semester(raw_value):
+        if raw_value is None:
+            return None
+        raw = str(raw_value).strip()
+        if raw == "__NONE__":
+            return "__NONE__"
+        return normalize_semester_label(raw) if raw else None
+
+    target_semester_secondary = _parse_optional_semester(body.get("target_semester_secondary"))
+    target_semester_tertiary = _parse_optional_semester(body.get("target_semester_tertiary"))
+    target_semester_quaternary = _parse_optional_semester(body.get("target_semester_quaternary"))
+
+    target_semester_count_raw = body.get("target_semester_count")
+    if target_semester_count_raw in (None, ""):
+        # Backward compatibility for legacy second/third-term controls.
+        if target_semester_secondary == "__NONE__":
+            target_semester_count = 1
+        elif target_semester_tertiary == "__NONE__":
+            target_semester_count = 2
+        elif target_semester_quaternary == "__NONE__":
+            target_semester_count = 3
+        else:
+            target_semester_count = 3
     else:
-        target_semester_secondary = (
-            normalize_semester_label(target_semester_secondary)
-            if target_semester_secondary
-            else None
-        )
-    target_semester_tertiary_raw = body.get("target_semester_tertiary")
-    target_semester_tertiary = str(target_semester_tertiary_raw).strip() if target_semester_tertiary_raw is not None else None
-    if target_semester_tertiary == "__NONE__":
-        target_semester_tertiary = "__NONE__"
-    else:
-        target_semester_tertiary = (
-            normalize_semester_label(target_semester_tertiary)
-            if target_semester_tertiary
-            else None
-        )
+        target_semester_count = max(1, min(4, int(target_semester_count_raw)))
 
     requested_course_raw = body.get("requested_course") or None
-    max_recs = max(1, min(5, int(body.get("max_recommendations", 3) or 3)))
+    max_recs = max(1, min(6, int(body.get("max_recommendations", 3) or 3)))
 
     catalog_codes = effective_data["catalog_codes"]
 
@@ -1276,36 +1295,53 @@ def recommend():
             effective_data["prereq_map"],
         )
 
-    sem1 = run_recommendation_semester(
-        completed, in_progress, target_semester_primary,
-        effective_data, max_recs, _reverse_map,
-        track_id=effective_track_id,
-    )
-    semesters_payload = [sem1]
-    second_label = None
-    if target_semester_secondary != "__NONE__":
-        second_label = target_semester_secondary or default_followup_semester(target_semester_primary)
-        completed_for_sem2 = list(dict.fromkeys(
-            completed + in_progress + [r["course_code"] for r in sem1["recommendations"] if r.get("course_code")]
-        ))
-        sem2 = run_recommendation_semester(
-            completed_for_sem2, [], second_label,
-            effective_data, max_recs, _reverse_map,
-            track_id=effective_track_id,
-        )
-        semesters_payload.append(sem2)
+    explicit_labels = [
+        target_semester_secondary,
+        target_semester_tertiary,
+        target_semester_quaternary,
+    ]
+    semester_labels = [target_semester_primary]
+    while len(semester_labels) < target_semester_count:
+        idx = len(semester_labels)  # 1-based semester offset from primary
+        explicit = explicit_labels[idx - 1] if idx - 1 < len(explicit_labels) else None
+        if explicit and explicit != "__NONE__":
+            semester_labels.append(explicit)
+        else:
+            semester_labels.append(default_followup_semester(semester_labels[-1]))
 
-        if target_semester_tertiary != "__NONE__":
-            third_label = target_semester_tertiary or default_followup_semester(second_label)
-            completed_for_sem3 = list(dict.fromkeys(
-                completed_for_sem2 + [r["course_code"] for r in sem2["recommendations"] if r.get("course_code")]
-            ))
-            sem3 = run_recommendation_semester(
-                completed_for_sem3, [], third_label,
-                effective_data, max_recs, _reverse_map,
+    semesters_payload = []
+    completed_cursor = list(dict.fromkeys(completed + in_progress))
+    for idx, semester_label in enumerate(semester_labels):
+        if idx == 0:
+            semester_payload = run_recommendation_semester(
+                completed,
+                in_progress,
+                semester_label,
+                effective_data,
+                max_recs,
+                _reverse_map,
                 track_id=effective_track_id,
             )
-            semesters_payload.append(sem3)
+        else:
+            semester_payload = run_recommendation_semester(
+                completed_cursor,
+                [],
+                semester_label,
+                effective_data,
+                max_recs,
+                _reverse_map,
+                track_id=effective_track_id,
+            )
+        semesters_payload.append(semester_payload)
+        completed_cursor = list(dict.fromkeys(
+            completed_cursor + [
+                r["course_code"]
+                for r in semester_payload.get("recommendations", [])
+                if r.get("course_code")
+            ]
+        ))
+
+    sem1 = semesters_payload[0]
 
     response = {
         "mode": "recommendations",

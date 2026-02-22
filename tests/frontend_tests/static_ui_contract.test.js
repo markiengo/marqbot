@@ -52,6 +52,15 @@ describe("v1.7 static UI contract", () => {
     expect(html).toContain('id="progress-expand"');
   });
 
+  test("settings include scalable semester count control and 6-course option", () => {
+    const html = read(indexPath);
+    expect(html).toContain('id="target-semester"');
+    expect(html).toContain('id="semester-count"');
+    expect(html).not.toContain('id="target-semester-2"');
+    expect(html).not.toContain('id="target-semester-3"');
+    expect(html).toContain('<option value="6">6</option>');
+  });
+
   test("cover image assets exist", () => {
     const files = [
       path.join(repoRoot, "frontend", "assets", "covers", "screen_courses_cover.jpg"),

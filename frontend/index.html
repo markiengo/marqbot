@@ -136,8 +136,8 @@
             </header>
             <section id="quick-settings">
               <div class="form-group">
-                <label for="target-semester">Target Semester (1)</label>
-                <p class="form-hint">Choose the first target term.</p>
+                <label for="target-semester">What's your next semester</label>
+                <p class="form-hint">Choose your next term; following terms auto-fill in sequence.</p>
                 <select id="target-semester" form="advisor-form">
                   <option value="" selected>Auto</option>
                   <option value="Spring 2026">Spring 2026</option>
@@ -150,32 +150,13 @@
               </div>
 
               <div class="form-group">
-                <label for="target-semester-2">Semester (2) <span class="label-note">(optional)</span></label>
-                <p class="form-hint">Leave blank to auto-pick next term.</p>
-                <select id="target-semester-2" form="advisor-form">
-                  <option value="" selected>Auto</option>
-                  <option value="__NONE__">None (Do not generate)</option>
-                  <option>Spring 2026</option>
-                  <option>Summer 2026</option>
-                  <option>Fall 2026</option>
-                  <option>Spring 2027</option>
-                  <option>Summer 2027</option>
-                  <option>Fall 2027</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="target-semester-3">Semester (3) <span class="label-note">(optional)</span></label>
-                <p class="form-hint">Leave blank to auto-pick after Semester (2).</p>
-                <select id="target-semester-3" form="advisor-form">
-                  <option value="" selected>Auto</option>
-                  <option value="__NONE__">None (Do not generate)</option>
-                  <option>Spring 2026</option>
-                  <option>Summer 2026</option>
-                  <option>Fall 2026</option>
-                  <option>Spring 2027</option>
-                  <option>Summer 2027</option>
-                  <option>Fall 2027</option>
+                <label for="semester-count">How many future semesters you want to plan</label>
+                <p class="form-hint">Pick 1 to 4 semesters. Term names auto-generate from your next semester.</p>
+                <select id="semester-count" form="advisor-form">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3" selected>3</option>
+                  <option value="4">4</option>
                 </select>
               </div>
 
@@ -187,6 +168,7 @@
                   <option value="3" selected>3</option>
                   <option value="4">4</option>
                   <option value="5">5</option>
+                  <option value="6">6</option>
                 </select>
               </div>
             </section>

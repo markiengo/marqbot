@@ -495,7 +495,9 @@ export function renderSemesterSelectorHtml(semesters, selectedIndex = 0) {
     ? "semester-selector--single"
     : list.length === 2
       ? "semester-selector--two"
-      : "semester-selector--three";
+      : list.length === 3
+        ? "semester-selector--three"
+        : "semester-selector--four";
 
   const rows = list.map((semester, idx) => {
     const active = idx === safe;
@@ -621,19 +623,41 @@ export function renderProgressInsightCardsHtml(
             : (Number(prog?.completed_done || 0) + Number(prog?.in_progress_increment || 0)),
         ),
       );
+      const completed = needed > 0 ? Math.max(0, Math.min(needed, assumed)) : 0;
+      const ratio = needed > 0 ? (completed / needed) : 0;
       const pct = needed > 0
-        ? Math.max(0, Math.min(100, Math.round((Math.min(needed, assumed) / needed) * 100)))
+        ? Math.max(0, Math.min(100, Math.round(ratio * 100)))
         : 0;
       const label = compactKpiBucketLabel(prog?.label || bucketLabel(bid, programLabelMap));
-      return { label, pct, needed };
+      return { label, pct, needed, completed, ratio };
     })
     .filter((entry) => entry.needed > 0);
 
   let fullest = { label: "N/A", pct: 0 };
   let lowest = { label: "N/A", pct: 0 };
   if (buckets.length) {
-    fullest = buckets.reduce((best, cur) => (cur.pct > best.pct ? cur : best), buckets[0]);
-    lowest = buckets.reduce((best, cur) => (cur.pct < best.pct ? cur : best), buckets[0]);
+    const ratioCompare = (cand, best) => {
+      const lhs = cand.completed * best.needed;
+      const rhs = best.completed * cand.needed;
+      if (lhs === rhs) return 0;
+      return lhs > rhs ? 1 : -1;
+    };
+    const isHigher = (cand, best) => {
+      const cmp = ratioCompare(cand, best);
+      if (cmp !== 0) return cmp > 0;
+      if (cand.needed !== best.needed) return cand.needed > best.needed;
+      if (cand.completed !== best.completed) return cand.completed > best.completed;
+      return cand.label.localeCompare(best.label) < 0;
+    };
+    const isLower = (cand, best) => {
+      const cmp = ratioCompare(cand, best);
+      if (cmp !== 0) return cmp < 0;
+      if (cand.needed !== best.needed) return cand.needed > best.needed;
+      if (cand.completed !== best.completed) return cand.completed < best.completed;
+      return cand.label.localeCompare(best.label) < 0;
+    };
+    fullest = buckets.reduce((best, cur) => (isHigher(cur, best) ? cur : best), buckets[0]);
+    lowest = buckets.reduce((best, cur) => (isLower(cur, best) ? cur : best), buckets[0]);
   }
 
   return `

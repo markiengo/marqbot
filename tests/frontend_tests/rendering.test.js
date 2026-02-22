@@ -12,6 +12,7 @@ import {
   getRecommendationSemesters,
   renderProgressRing,
   renderKpiCardsHtml,
+  renderProgressInsightCardsHtml,
   renderDegreeSummaryHtml,
   renderCanTakeInlineHtml,
 } from "../../frontend/modules/rendering.js";
@@ -350,6 +351,17 @@ describe("renderSemesterSelectorHtml()", () => {
     expect(html).toContain('aria-selected="true"');
     expect(html).toContain("Semester 2");
   });
+
+  test("uses four-semester mode class when 4 semesters exist", () => {
+    const html = renderSemesterSelectorHtml([
+      { target_semester: "Fall 2026", recommendations: [{}] },
+      { target_semester: "Spring 2027", recommendations: [{}] },
+      { target_semester: "Fall 2027", recommendations: [{}] },
+      { target_semester: "Spring 2028", recommendations: [{}] },
+    ], 0);
+    expect(html).toContain("semester-selector--four");
+    expect(html).toContain("Semester 4");
+  });
 });
 
 describe("getRecommendationSemesters()", () => {
@@ -426,6 +438,55 @@ describe("renderKpiCardsHtml()", () => {
   test("uses kpi-cards wrapper class", () => {
     const html = renderKpiCardsHtml(0, 0, 0);
     expect(html).toContain('class="kpi-cards"');
+  });
+});
+
+describe("renderProgressInsightCardsHtml()", () => {
+  const getLowestSection = (html) => {
+    const m = html.match(/<div class="kpi-card kpi-lowest">([\s\S]*?)<\/div>/);
+    return m ? m[1] : "";
+  };
+
+  test("uses denominator tie-break when lowest ratios are both 0", () => {
+    const html = renderProgressInsightCardsHtml({
+      BUCKET_FOUR: {
+        label: "Bucket Four",
+        needed: 4,
+        completed_done: 0,
+        in_progress_increment: 0,
+        assumed_done: 0,
+      },
+      BUCKET_TWO: {
+        label: "Bucket Two",
+        needed: 2,
+        completed_done: 0,
+        in_progress_increment: 0,
+        assumed_done: 0,
+      },
+    }, 0);
+    const lowest = getLowestSection(html);
+    expect(lowest).toContain("Bucket Four");
+  });
+
+  test("uses exact ratio ordering instead of rounded percentage", () => {
+    const html = renderProgressInsightCardsHtml({
+      BUCKET_ZERO: {
+        label: "Zero Bucket",
+        needed: 2,
+        completed_done: 0,
+        in_progress_increment: 0,
+        assumed_done: 0,
+      },
+      BUCKET_TINY: {
+        label: "Tiny Progress Bucket",
+        needed: 201,
+        completed_done: 1,
+        in_progress_increment: 0,
+        assumed_done: 1,
+      },
+    }, 0);
+    const lowest = getLowestSection(html);
+    expect(lowest).toContain("Zero Bucket");
   });
 });
 

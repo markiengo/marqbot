@@ -23,9 +23,8 @@ function makeElements(overrides = {}) {
 
   return {
     targetSemester: mockSelect("Spring 2026", ["Spring 2026", "Fall 2026"]),
-    targetSemester2: mockSelect("Fall 2026", ["", "__NONE__", "Spring 2026", "Fall 2026"]),
-    targetSemester3: mockSelect("", ["", "__NONE__", "Spring 2026", "Fall 2026"]),
-    maxRecs: mockSelect("3", ["2", "3", "4", "5"]),
+    semesterCount: mockSelect("3", ["1", "2", "3", "4"]),
+    maxRecs: mockSelect("3", ["2", "3", "4", "5", "6"]),
     canTake: { value: "FINA 4001" },
     getActiveNavTab: () => "nav-plan",
     ...overrides,
@@ -41,7 +40,7 @@ describe("getSessionSnapshot()", () => {
     expect(snap.completed).toContain("FINA 3001");
     expect(snap.inProgress).toContain("ECON 1103");
     expect(snap.targetSemester).toBe("Spring 2026");
-    expect(snap.targetSemester3).toBe("");
+    expect(snap.semesterCount).toBe("3");
     expect(snap.maxRecs).toBe("3");
     expect(snap.canTake).toBe("FINA 4001");
     expect(snap.activeNavTab).toBe("nav-plan");
@@ -51,8 +50,7 @@ describe("getSessionSnapshot()", () => {
     const state = makeState();
     const elements = {
       targetSemester: null,
-      targetSemester2: null,
-      targetSemester3: null,
+      semesterCount: null,
       maxRecs: null,
       canTake: null,
       getActiveNavTab: null,
@@ -105,7 +103,7 @@ describe("restoreSession()", () => {
   });
 
   test("restores completed and in-progress sets from storage", () => {
-    const snap = { completed: ["FINA 3001"], inProgress: ["ECON 1103"], targetSemester: "Spring 2026", targetSemester2: "", targetSemester3: "", maxRecs: "3", canTake: "" };
+    const snap = { completed: ["FINA 3001"], inProgress: ["ECON 1103"], targetSemester: "Spring 2026", semesterCount: "4", maxRecs: "3", canTake: "" };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
 
     const state = makeState([], [], courses);
@@ -117,7 +115,7 @@ describe("restoreSession()", () => {
   });
 
   test("calls render callbacks after restoring", () => {
-    const snap = { completed: ["FINA 3001"], inProgress: ["ECON 1103"], targetSemester: "Spring 2026", targetSemester2: "", targetSemester3: "", maxRecs: "3", canTake: "" };
+    const snap = { completed: ["FINA 3001"], inProgress: ["ECON 1103"], targetSemester: "Spring 2026", semesterCount: "3", maxRecs: "3", canTake: "" };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
 
     const state = makeState([], [], courses);
@@ -131,7 +129,7 @@ describe("restoreSession()", () => {
   });
 
   test("filters out codes not in catalog", () => {
-    const snap = { completed: ["FINA 3001", "FAKE 9999"], inProgress: [], targetSemester: "", targetSemester2: "", targetSemester3: "", maxRecs: "3", canTake: "" };
+    const snap = { completed: ["FINA 3001", "FAKE 9999"], inProgress: [], targetSemester: "", semesterCount: "3", maxRecs: "3", canTake: "" };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
 
     const state = makeState([], [], courses);
@@ -154,7 +152,7 @@ describe("restoreSession()", () => {
 
   test("does not add a completed course to inProgress", () => {
     // ECON 1103 is both in completed and inProgress in saved data — completed wins
-    const snap = { completed: ["ECON 1103"], inProgress: ["ECON 1103"], targetSemester: "", targetSemester2: "", targetSemester3: "", maxRecs: "3", canTake: "" };
+    const snap = { completed: ["ECON 1103"], inProgress: ["ECON 1103"], targetSemester: "", semesterCount: "3", maxRecs: "3", canTake: "" };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
 
     const state = makeState([], [], courses);
@@ -170,8 +168,7 @@ describe("restoreSession()", () => {
       completed: [],
       inProgress: [],
       targetSemester: "",
-      targetSemester2: "",
-      targetSemester3: "",
+      semesterCount: "3",
       maxRecs: "3",
       canTake: "",
       activeNavTab: "nav-courses",
@@ -188,5 +185,24 @@ describe("restoreSession()", () => {
     });
 
     expect(restoreNavTab).toHaveBeenCalledWith("nav-courses");
+  });
+
+  test("maps legacy targetSemester2/targetSemester3 controls to semesterCount", () => {
+    const snap = {
+      completed: [],
+      inProgress: [],
+      targetSemester: "Fall 2026",
+      targetSemester2: "__NONE__",
+      targetSemester3: "",
+      maxRecs: "3",
+      canTake: "",
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
+
+    const state = makeState([], [], courses);
+    const elements = makeElements();
+    restoreSession(state, elements, { renderChipsCompleted: jest.fn(), renderChipsIp: jest.fn() });
+
+    expect(elements.semesterCount.value).toBe("1");
   });
 });
