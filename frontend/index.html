@@ -17,19 +17,14 @@
   <!-- Sticky top navigation bar -->
   <div id="topbar">
     <div class="topbar-brand">
-      <img src="marquette-logo.jpg" alt="Marquette logo" class="topbar-logo" />
+      <img src="marquette_logo2.jpg" alt="Marquette logo" class="topbar-logo" />
       <span class="topbar-title">MarqBot</span>
     </div>
     <nav class="anchor-nav" aria-label="Page sections">
       <span id="nav-pill-indicator" class="nav-pill-indicator" aria-hidden="true"></span>
-      <a
-        href="https://bulletin.marquette.edu/class-search/"
-        class="anchor-link"
-        target="_blank"
-        rel="noopener noreferrer"
-      >Courses</a>
-      <a href="#section-progress" class="anchor-link">Progress</a>
-      <a href="#section-recommendations" class="anchor-link">Plan</a>
+      <button type="button" class="anchor-link" id="nav-courses">Courses</button>
+      <a href="#section-progress" class="anchor-link" id="nav-plan">Plan</a>
+      <button type="button" class="anchor-link" id="nav-saved">Saved</button>
       <button type="button" class="anchor-link anchor-link-ai" id="nav-ai-advisor" aria-label="AI Advisor">
         <span class="topbar-ai-icon" aria-hidden="true">&#x1F58C;</span>
         AI Advisor
@@ -206,6 +201,38 @@
 
     </aside>
   </div>
+
+  <!-- Placeholder screens (hidden by default, shown when nav tabs activated) -->
+  <section id="placeholder-courses" class="placeholder-screen placeholder-screen--courses">
+    <h2>Courses</h2>
+    <p class="placeholder-subtitle">Coming Soon</p>
+    <p class="placeholder-detail">In progress...</p>
+    <div class="placeholder-notify" role="group" aria-label="Notify me for Courses">
+      <input type="email" class="placeholder-notify-input" placeholder="your.email@marquette.edu" />
+      <button type="button" class="placeholder-notify-btn">Notify Me</button>
+    </div>
+    <p class="placeholder-note">Notify form is preview-only in this build.</p>
+  </section>
+  <section id="placeholder-saved" class="placeholder-screen placeholder-screen--saved">
+    <h2>Saved Plans</h2>
+    <p class="placeholder-subtitle">Coming Soon</p>
+    <p class="placeholder-detail">In progress...</p>
+    <div class="placeholder-notify" role="group" aria-label="Notify me for Saved Plans">
+      <input type="email" class="placeholder-notify-input" placeholder="your.email@marquette.edu" />
+      <button type="button" class="placeholder-notify-btn">Notify Me</button>
+    </div>
+    <p class="placeholder-note">Notify form is preview-only in this build.</p>
+  </section>
+  <section id="placeholder-ai" class="placeholder-screen placeholder-screen--ai">
+    <h2>AI Advisor</h2>
+    <p class="placeholder-subtitle">Coming Soon</p>
+    <p class="placeholder-detail">In progress...</p>
+    <div class="placeholder-notify" role="group" aria-label="Notify me for AI Advisor">
+      <input type="email" class="placeholder-notify-input" placeholder="your.email@marquette.edu" />
+      <button type="button" class="placeholder-notify-btn">Notify Me</button>
+    </div>
+    <p class="placeholder-note">Notify form is preview-only in this build.</p>
+  </section>
 
   <script type="module" src="app.js"></script>
 </body>

@@ -1,5 +1,5 @@
 """
-Tests for the /can-take endpoint added in the UI redesign (Phase 4).
+Tests for the /can-take endpoint added in the UI redesign.
 
 These tests use the real Flask test client against the actual workbook data,
 so they exercise the full request→response pipeline.

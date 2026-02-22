@@ -48,7 +48,7 @@
   /* Layout tokens */
   --panel-left: 336px;
   --panel-right: 312px;
-  --topbar-h: 52px;
+  --topbar-h: 60px;
   --topbar-height: var(--topbar-h);
   --panel-surface: linear-gradient(180deg, rgba(26, 45, 81, 0.5), rgba(18, 32, 61, 0.42));
 }
@@ -849,10 +849,12 @@ select:focus,
 }
 
 .topbar-logo {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 6px;
-  background: #fff;
+  object-fit: contain;
+  object-position: center;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .topbar-title {
@@ -1005,6 +1007,17 @@ select:focus,
   min-height: calc(100vh - var(--topbar-height));
   margin-top: var(--topbar-height);
   position: relative;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 220ms ease, transform 280ms ease, visibility 0s linear;
+}
+
+#app-shell.app-shell-hidden {
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 220ms ease, transform 280ms ease, visibility 0s linear 280ms;
 }
 
 /* Left and right panels: sticky scroll */
@@ -1363,4 +1376,135 @@ select:focus,
 :focus-visible {
   outline: 2px solid var(--mu-gold);
   outline-offset: 2px;
+}
+
+/* ── Placeholder screens ─────────────────────────────────────────────── */
+.placeholder-screen {
+  position: fixed;
+  inset: var(--topbar-height) 0 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - var(--topbar-height));
+  text-align: center;
+  padding: min(8vw, 72px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(20px) scale(0.99);
+  transition: opacity 260ms ease, transform 320ms ease, visibility 0s linear 320ms;
+}
+
+.placeholder-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--placeholder-cover);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: scale(1.02);
+}
+
+.placeholder-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(3, 28, 57, 0.65), rgba(7, 20, 44, 0.42));
+  backdrop-filter: blur(8px) saturate(115%);
+}
+
+.placeholder-screen > * {
+  position: relative;
+  z-index: 2;
+}
+
+.placeholder-screen.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  transition-delay: 0s;
+}
+
+.placeholder-screen--courses {
+  --placeholder-cover: url("screen_courses_cover.jpg");
+}
+
+.placeholder-screen--saved {
+  --placeholder-cover: url("screen_saved_cover.jpg");
+}
+
+.placeholder-screen--ai {
+  --placeholder-cover: url("screen_aiadvisor_cover.jpg");
+}
+
+.placeholder-screen h2 {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(2rem, 4.4vw, 3rem);
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 var(--sp-3) 0;
+  text-shadow: 0 8px 24px rgba(4, 16, 36, 0.36);
+}
+.placeholder-subtitle {
+  font-size: clamp(1.25rem, 2vw, 1.45rem);
+  color: var(--mu-gold);
+  font-weight: 700;
+  margin: 0 0 var(--sp-2) 0;
+}
+.placeholder-detail {
+  font-size: var(--text-lg);
+  color: #dbe8ff;
+  margin: 0;
+}
+.placeholder-notify {
+  margin-top: var(--sp-5);
+  display: flex;
+  gap: var(--sp-2);
+  width: min(560px, 100%);
+}
+.placeholder-notify-input {
+  flex: 1;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(222, 236, 255, 0.46);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 24, 50, 0.52);
+  color: #ffffff;
+  box-shadow: 0 8px 22px rgba(5, 20, 44, 0.3);
+}
+.placeholder-notify-input::placeholder {
+  color: rgba(214, 229, 255, 0.68);
+}
+.placeholder-notify-btn {
+  min-height: 48px;
+  border: 1px solid rgba(255, 204, 0, 0.5);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, #ad8100, #ffcc00);
+  color: #091327;
+  font-weight: 800;
+  padding: 0 16px;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(108, 80, 0, 0.25);
+  transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
+}
+.placeholder-notify-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 12px 24px rgba(108, 80, 0, 0.32);
+}
+.placeholder-note {
+  margin: var(--sp-2) 0 0 0;
+  color: #c9daff;
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 700px) {
+  .placeholder-notify {
+    flex-direction: column;
+  }
 }

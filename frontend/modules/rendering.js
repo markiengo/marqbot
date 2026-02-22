@@ -63,6 +63,7 @@ function humanizeSoftWarningTag(tag, course = null) {
     placement_required: "placement requirement",
     minimum_grade: "minimum grade requirement",
     minimum_gpa: "minimum GPA requirement",
+    not_frequently_offered: "not offered every semester; confirm availability",
   }[key];
   if (mapped) return mapped;
   return key.replace(/_/g, " ");
@@ -95,9 +96,10 @@ function compactKpiBucketLabel(label) {
   const raw = String(label || "");
   if (!raw) return "";
   return raw
-    .replace(/AIM No Concentration Core/gi, "AIM Core (No Concentration)")
-    .replace(/AIM No Concentration Elective\s*\(1\)/gi, "AIM Elective (No Concentration)")
-    .replace(/\bNo Conc\b/gi, "No Concentration")
+    .replace(/AIM No Concentration Core/gi, "AIM Core")
+    .replace(/AIM No Concentration Elective\s*\(1\)/gi, "AIM Elective")
+    .replace(/\s*\(No Concentration\)/gi, "")
+    .replace(/\bNo Conc(?:entration)?\b/gi, "")
     .replace(/Information Systems Major/gi, "IS Major")
     .replace(/Business Analytics Major/gi, "BUAN Major")
     .replace(/Operations and Supply Chain Major/gi, "OSCM Major")

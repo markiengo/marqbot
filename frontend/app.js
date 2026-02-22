@@ -302,16 +302,20 @@ function refreshProgramOptions(clear = false) {
     majorFormGroup.classList.toggle("major-limit-reached", majorLimitReached);
   }
 
-  // Show/hide track section based on whether the selected major(s) have tracks.
+  // Disable track input when no major is selected, or when selected major(s) have no tracks.
+  const noMajorSelected = state.selectedMajors.size === 0;
   const noTracksAvailable = state.selectedMajors.size > 0 && filteredTracks.length === 0;
+  const trackDisabled = noMajorSelected || noTracksAvailable;
   if (searchTrack) {
-    searchTrack.disabled = noTracksAvailable;
-    searchTrack.placeholder = noTracksAvailable
-      ? "No concentrations for selected major(s)"
-      : "Search tracks...";
+    searchTrack.disabled = trackDisabled;
+    searchTrack.placeholder = noMajorSelected
+      ? "Select a major first"
+      : noTracksAvailable
+        ? "No concentrations for selected major(s)"
+        : "Search tracks...";
   }
   if (trackFormGroup) {
-    trackFormGroup.classList.toggle("track-unavailable", noTracksAvailable);
+    trackFormGroup.classList.toggle("track-unavailable", trackDisabled);
   }
 
   renderMajorChips();
@@ -339,25 +343,15 @@ function updateStepIndicator() {
 function setupAnchorNav() {
   const navItems = Array.from(document.querySelectorAll(".anchor-link"));
   const navIndicator = document.getElementById("nav-pill-indicator");
-  const panelCenter = document.getElementById("panel-center");
-  const navOrder = ["#section-progress", "#section-recommendations"];
-  let currentInternalHref = "#section-progress";
+  const appShell = document.getElementById("app-shell");
+  const placeholderScreens = document.querySelectorAll(".placeholder-screen");
   let activeNavEl = null;
 
-  const playPanelSwipe = (fromHref, toHref) => {
-    if (!panelCenter) return;
-    const fromIdx = navOrder.indexOf(fromHref);
-    const toIdx = navOrder.indexOf(toHref);
-    if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
-
-    const cls = toIdx > fromIdx ? "panel-swipe-forward" : "panel-swipe-backward";
-    panelCenter.classList.remove("panel-swipe-forward", "panel-swipe-backward");
-    // Restart animation cleanly on repeated clicks.
-    void panelCenter.offsetWidth;
-    panelCenter.classList.add(cls);
-      panelCenter.addEventListener("animationend", () => {
-        panelCenter.classList.remove("panel-swipe-forward", "panel-swipe-backward");
-      }, { once: true });
+  // Map nav button IDs to placeholder screen IDs
+  const placeholderMap = {
+    "nav-courses": "placeholder-courses",
+    "nav-saved": "placeholder-saved",
+    "nav-ai-advisor": "placeholder-ai",
   };
 
   const moveNavIndicator = (el) => {
@@ -378,24 +372,38 @@ function setupAnchorNav() {
     moveNavIndicator(activeNavEl);
   };
 
-  const navByHref = (href) =>
-    navItems.find((item) => item.tagName === "A" && item.getAttribute("href") === href) || null;
+  const hideAllPlaceholders = () => {
+    placeholderScreens.forEach((s) => s.classList.remove("active"));
+  };
+
+  const showAppShell = () => {
+    document.body.classList.remove("placeholder-mode");
+    if (appShell) appShell.classList.remove("app-shell-hidden");
+    hideAllPlaceholders();
+  };
+
+  const showPlaceholder = (screenId) => {
+    document.body.classList.add("placeholder-mode");
+    if (appShell) appShell.classList.add("app-shell-hidden");
+    hideAllPlaceholders();
+    const screen = document.getElementById(screenId);
+    if (screen) screen.classList.add("active");
+  };
 
   navItems.forEach(item => {
     item.addEventListener("click", e => {
-      const href = item.tagName === "A" ? (item.getAttribute("href") || "") : "";
-      const isInternal = href.startsWith("#");
-
-      // Persistent active state: keep clicked nav item highlighted until another nav click.
+      e.preventDefault();
       setActiveNav(item);
 
-      if (isInternal) {
-        e.preventDefault();
-        playPanelSwipe(currentInternalHref, href);
-        const targetId = href.slice(1);
-        const target = targetId ? document.getElementById(targetId) : null;
+      const placeholderId = placeholderMap[item.id];
+      if (placeholderId) {
+        // Placeholder tab: hide app shell, show placeholder screen
+        showPlaceholder(placeholderId);
+      } else {
+        // Plan tab: show app shell, scroll to progress section
+        showAppShell();
+        const target = document.getElementById("section-progress");
         if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-        currentInternalHref = href;
       }
     });
   });
@@ -404,8 +412,9 @@ function setupAnchorNav() {
     moveNavIndicator(activeNavEl);
   });
 
-  const initial = navByHref("#section-progress");
-  if (initial) setActiveNav(initial);
+  // Default to Plan tab active
+  const planNav = document.getElementById("nav-plan");
+  if (planNav) setActiveNav(planNav);
 }
 
 /* -- Progress dashboard ------------------------------------------------ */
@@ -422,10 +431,9 @@ function populateProgressDashboard(data) {
     totalNeeded += Number(prog.needed || 0);
   }
   const totalRemaining = Math.max(0, totalNeeded - totalDone - totalInProg);
-  const totalUnits = totalDone + totalInProg + totalRemaining;
-  const donePct = totalUnits > 0 ? Math.min(100, (totalDone / totalUnits) * 100) : 0;
-  const inProgressPct = totalUnits > 0 ? Math.min(100, (totalInProg / totalUnits) * 100) : 0;
-  const overallPct = totalUnits > 0 ? Math.min(100, ((totalDone + totalInProg) / totalUnits) * 100) : 0;
+  const donePct = totalNeeded > 0 ? Math.min(100, (totalDone / totalNeeded) * 100) : 0;
+  const inProgressPct = totalNeeded > 0 ? Math.min(100, (totalInProg / totalNeeded) * 100) : 0;
+  const overallPct = totalNeeded > 0 ? Math.min(100, ((totalDone + totalInProg) / totalNeeded) * 100) : 0;
 
   const dashEl = document.getElementById("progress-dashboard");
   const ringWrap = document.getElementById("progress-ring-wrap");

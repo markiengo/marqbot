@@ -311,12 +311,27 @@ def allocate_courses(
             )
 
     # Step 3: in-progress display only.
+    # Respect pairwise double-count policy so in-progress courses don't appear
+    # in multiple same-parent buckets simultaneously (visual double-count bug).
     for course_code in in_progress:
         eligible_buckets = get_eligible_buckets_for_course(course_code)
+        ip_assigned_to: list[str] = []
         for bucket_info in eligible_buckets:
             bid = bucket_info["bucket_id"]
-            if course_code not in applied[bid]["in_progress_applied"]:
+            if course_code in applied[bid]["in_progress_applied"]:
+                ip_assigned_to.append(bid)
+                continue
+            if not ip_assigned_to:
                 applied[bid]["in_progress_applied"].append(course_code)
+                ip_assigned_to.append(bid)
+            else:
+                pairwise_ok = all(
+                    frozenset([existing, bid]) in allowed_pairs
+                    for existing in ip_assigned_to
+                )
+                if pairwise_ok:
+                    applied[bid]["in_progress_applied"].append(course_code)
+                    ip_assigned_to.append(bid)
 
     # Step 4: remaining view.
     completed_set = set(completed)

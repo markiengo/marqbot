@@ -19,3 +19,6 @@ Thumbs.db
 *.orig
 *.rej
 *.tmp
+*.v33_backup
+v34_*_output.txt
+backups/*.xlsx

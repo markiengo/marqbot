@@ -1,5 +1,5 @@
 """
-Phase 3 track-aware architecture tests.
+Track-aware architecture tests.
 
 Covers:
   1. Allocator isolates tracks — courses allocated under the correct track only.
@@ -220,7 +220,7 @@ class TestServerTrackValidation:
 
         patched_programs = server._data["v2_programs_df"].copy()
         mask = (
-            patched_programs["program_id"].astype(str).str.strip().str.upper() == "CB"
+            patched_programs["program_id"].astype(str).str.strip().str.upper() == "CB_TRACK"
         )
         patched_programs.loc[mask, "active"] = False
         with pytest.MonkeyPatch.context() as mp:
@@ -439,7 +439,7 @@ class TestServerTrackValidation:
 
         patched_programs = server._data["v2_programs_df"].copy()
         mask = (
-            patched_programs["program_id"].astype(str).str.strip().str.upper() == "CB"
+            patched_programs["program_id"].astype(str).str.strip().str.upper() == "CB_TRACK"
         )
         patched_programs.loc[mask, "parent_major_id"] = "OTHER_MAJOR"
         monkeypatch.setitem(server._data, "v2_programs_df", patched_programs)
@@ -464,7 +464,7 @@ class TestServerTrackValidation:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["mode"] == "recommendations"
-        assert data["selection_context"]["selected_track_id"] == "CB"
+        assert data["selection_context"]["selected_track_id"] == "CB_TRACK"
         assert "FIN_MAJOR::FIN_CORE" in data["progress"]
         assert "FIN_MAJOR::CB_CORE" in data["progress"]
 
@@ -509,10 +509,10 @@ class TestServerTrackValidation:
         tracks = {t["track_id"]: t for t in data["tracks"]}
 
         assert "FIN_MAJOR" in majors
-        assert "CB" in tracks
-        assert "FP" in tracks
-        assert tracks["CB"]["parent_major_id"] == "FIN_MAJOR"
-        assert tracks["FP"]["parent_major_id"] == "FIN_MAJOR"
+        assert "CB_TRACK" in tracks
+        assert "FP_TRACK" in tracks
+        assert tracks["CB_TRACK"]["parent_major_id"] == "FIN_MAJOR"
+        assert tracks["FP_TRACK"]["parent_major_id"] == "FIN_MAJOR"
 
     def test_programs_endpoint_major_labels_use_canonical_major_codes(self, client):
         resp = client.get("/programs")
@@ -563,7 +563,7 @@ class TestServerTrackValidation:
         assert data["mode"] == "recommendations"
 
     def test_track_conc_alias_resolves_to_canonical(self, client):
-        """'CB_CONC' should resolve to canonical 'CB' via _track_alias_map."""
+        """'CB_CONC' should resolve to canonical 'CB_TRACK' via _track_alias_map."""
         resp = self._post(client, track_id="CB_CONC")
         data = resp.get_json()
         assert data["mode"] == "recommendations"
@@ -572,7 +572,7 @@ class TestServerTrackValidation:
         )
 
     def test_track_track_alias_resolves_to_canonical(self, client):
-        """'CB_TRACK' should resolve to canonical 'CB' via _track_alias_map."""
+        """'CB_TRACK' should resolve to canonical 'CB_TRACK' via _track_alias_map."""
         resp = self._post(client, track_id="CB_TRACK")
         data = resp.get_json()
         assert data["mode"] == "recommendations"
@@ -588,7 +588,7 @@ class TestServerTrackValidation:
 # ── 5. End-to-end smoke test — synthetic track through /recommend ────────────
 
 class TestSyntheticTrackSmoke:
-    """Proves Phase 4 exit criteria: a new track onboarded via data only
+    """Proves data-only onboarding criteria: a new track added in workbook data
     produces valid recommendations through /recommend with zero code changes.
 
     The test monkeypatches server._data to inject a synthetic track alongside

@@ -13,6 +13,7 @@ SOFT_WARNING_TAGS = {
     "placement_required",
     "minimum_grade",
     "minimum_gpa",
+    "not_frequently_offered",
 }
 
 # prereq_soft tag that signals the hard prereq is too complex to parse.
@@ -58,6 +59,12 @@ def _build_policy_lookup(
     """
     Build canonical lookup:
       (node_type_a, node_id_a, node_type_b, node_id_b) -> allow_double_count (bool)
+
+    Primary v1.6 schema:
+      program_id, sub_bucket_id_a, sub_bucket_id_b, allow_double_count, reason
+
+    Legacy fallback:
+      node_type_a/node_id_a + node_type_b/node_id_b (or bucket_id_a/b aliases).
     """
     if double_count_policy_df is None or len(double_count_policy_df) == 0:
         return {}
@@ -70,6 +77,23 @@ def _build_policy_lookup(
     ].copy()
     if len(policy) == 0:
         return {}
+
+    # v1.6 simplified schema (sub-bucket pair exceptions).
+    if {"sub_bucket_id_a", "sub_bucket_id_b"}.issubset(set(policy.columns)):
+        lookup: dict[tuple[str, str, str, str], bool] = {}
+        for _, row in policy.iterrows():
+            sub_a = str(row.get("sub_bucket_id_a", "") or "").strip()
+            sub_b = str(row.get("sub_bucket_id_b", "") or "").strip()
+            if not sub_a or not sub_b:
+                continue
+            key = _canon_node_pair("sub_bucket", sub_a, "sub_bucket", sub_b)
+            allow = row.get("allow_double_count", False)
+            if isinstance(allow, str):
+                allow = allow.strip().lower() in {"1", "true", "yes", "y"}
+            else:
+                allow = bool(allow)
+            lookup[key] = allow
+        return lookup
 
     # Compatibility fallback: old-style policy can omit node_type columns.
     if "node_type_a" not in policy.columns:

@@ -35,10 +35,11 @@ app = Flask(__name__)
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 FRONTEND_DIR = os.path.join(PROJECT_ROOT, "frontend")
-DATA_PATH = os.environ.get(
-    "DATA_PATH",
-    os.path.join(PROJECT_ROOT, "marquette_courses_full.xlsx"),
-)
+DATA_PATH = os.environ.get("DATA_PATH")
+if not DATA_PATH:
+    DATA_PATH = os.path.join(PROJECT_ROOT, "marquette_courses_full.xlsx")
+elif not os.path.isabs(DATA_PATH):
+    DATA_PATH = os.path.join(PROJECT_ROOT, DATA_PATH)
 _data_lock = threading.Lock()
 _data_mtime = None
 
@@ -176,6 +177,7 @@ def _normalize_program_catalog(tracks_df):
                 "kind",
                 "parent_major_id",
                 "requires_primary_major",
+                "applies_to_all",
             ]
         )
 
@@ -197,12 +199,15 @@ def _normalize_program_catalog(tracks_df):
         df["active"] = True
     if "requires_primary_major" not in df.columns:
         df["requires_primary_major"] = False
+    if "applies_to_all" not in df.columns:
+        df["applies_to_all"] = False
 
     df["track_id"] = df["track_id"].astype(str).str.strip().str.upper()
     df["track_label"] = df["track_label"].fillna("").astype(str).str.strip()
     df["parent_major_id"] = df["parent_major_id"].fillna("").astype(str).str.strip().str.upper()
-    df["active"] = df["active"].apply(bool)
-    df["requires_primary_major"] = df["requires_primary_major"].apply(bool)
+    df["active"] = df["active"].apply(lambda v: bool(v) if pd.notna(v) else False)
+    df["requires_primary_major"] = df["requires_primary_major"].apply(lambda v: bool(v) if pd.notna(v) else False)
+    df["applies_to_all"] = df["applies_to_all"].apply(lambda v: bool(v) if pd.notna(v) else False)
 
     def _normalize_kind(row):
         kind = str(row.get("kind", "") or "").strip().lower()
@@ -241,6 +246,7 @@ def _normalize_program_catalog(tracks_df):
             "kind",
             "parent_major_id",
             "requires_primary_major",
+            "applies_to_all",
         ]
     ]
 
@@ -266,10 +272,19 @@ def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
                 {
                     "track_id": program_id,
                     "track_label": _canonical_program_label(program_id, kind, raw_label),
-                    "active": bool(row.get("active", True)),
+                    "active": bool(row.get("active", True)) if pd.notna(row.get("active", True)) else False,
                     "kind": kind,
                     "parent_major_id": parent_major_id,
-                    "requires_primary_major": bool(row.get("requires_primary_major", False)),
+                    "requires_primary_major": (
+                        bool(row.get("requires_primary_major", False))
+                        if pd.notna(row.get("requires_primary_major", False))
+                        else False
+                    ),
+                    "applies_to_all": (
+                        bool(row.get("applies_to_all", False))
+                        if pd.notna(row.get("applies_to_all", False))
+                        else False
+                    ),
                 }
             )
 
@@ -282,6 +297,7 @@ def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
                 "kind",
                 "parent_major_id",
                 "requires_primary_major",
+                "applies_to_all",
             ]
         )
     return pd.DataFrame(rows)
@@ -327,11 +343,36 @@ def _track_alias_map(catalog_df: pd.DataFrame) -> dict[str, str]:
         if not tid:
             continue
         alias_map[tid] = tid
-        if not tid.endswith("_CONC"):
-            alias_map[f"{tid}_CONC"] = tid
-        if not tid.endswith("_TRACK"):
+        if tid.endswith("_TRACK"):
+            base = tid[: -len("_TRACK")]
+            if base:
+                alias_map[base] = tid
+                alias_map[f"{base}_CONC"] = tid
+        elif tid.endswith("_CONC"):
+            base = tid[: -len("_CONC")]
+            if base:
+                alias_map[base] = tid
+                alias_map[f"{base}_TRACK"] = tid
+        else:
             alias_map[f"{tid}_TRACK"] = tid
+            alias_map[f"{tid}_CONC"] = tid
     return alias_map
+
+
+def _universal_program_ids(data: dict) -> set[str]:
+    programs = data.get("v2_programs_df")
+    if programs is None or len(programs) == 0:
+        return set()
+    p = programs.copy()
+    p["program_id"] = p["program_id"].astype(str).str.strip().str.upper()
+    p["active"] = p.get("active", True).apply(lambda v: bool(v) if pd.notna(v) else False)
+    if "applies_to_all" in p.columns:
+        p["applies_to_all"] = p["applies_to_all"].apply(lambda v: bool(v) if pd.notna(v) else False)
+    else:
+        p["applies_to_all"] = False
+    return set(
+        p[(p["applies_to_all"] == True) & (p["active"] == True)]["program_id"].tolist()
+    )
 
 
 def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: str | None) -> dict:
@@ -348,6 +389,8 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
     v2_buckets = data.get("v2_buckets_df", pd.DataFrame()).copy()
     v2_sub = data.get("v2_sub_buckets_df", pd.DataFrame()).copy()
     v2_map = data.get("v2_courses_all_buckets_df", data.get("v2_course_sub_buckets_df", pd.DataFrame())).copy()
+    universal_program_ids = _universal_program_ids(data)
+    program_scope = {major_id} | universal_program_ids
 
     if len(v2_buckets) == 0 or len(v2_sub) == 0 or len(v2_map) == 0:
         return dict(data)
@@ -357,23 +400,42 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
     buckets["bucket_id"] = buckets["bucket_id"].astype(str).str.strip()
     buckets["track_required"] = buckets.get("track_required", "").fillna("").astype(str).str.strip().str.upper()
     buckets["active"] = buckets.get("active", True).apply(bool)
-    buckets = buckets[(buckets["program_id"] == major_id) & (buckets["active"] == True)].copy()
+    buckets = buckets[
+        (buckets["program_id"].isin(program_scope))
+        & (buckets["active"] == True)
+    ].copy()
 
     if selected_track:
-        buckets = buckets[(buckets["track_required"] == "") | (buckets["track_required"] == selected_track)].copy()
+        buckets = buckets[
+            (buckets["program_id"] != major_id)
+            | (buckets["track_required"] == "")
+            | (buckets["track_required"] == selected_track)
+        ].copy()
     else:
-        buckets = buckets[buckets["track_required"] == ""].copy()
-
-    allowed_parent_ids = set(buckets["bucket_id"].tolist())
+        buckets = buckets[
+            (buckets["program_id"] != major_id)
+            | (buckets["track_required"] == "")
+        ].copy()
+    bucket_keys = buckets[["program_id", "bucket_id"]].drop_duplicates()
 
     sub = v2_sub.copy()
     sub["program_id"] = sub["program_id"].astype(str).str.strip().str.upper()
     sub["bucket_id"] = sub["bucket_id"].astype(str).str.strip()
     sub["sub_bucket_id"] = sub["sub_bucket_id"].astype(str).str.strip()
-    sub = sub[(sub["program_id"] == major_id) & (sub["bucket_id"].isin(allowed_parent_ids))].copy()
+    sub = sub.merge(bucket_keys, on=["program_id", "bucket_id"], how="inner")
 
-    bucket_labels = buckets.set_index("bucket_id")["bucket_label"].to_dict()
-    bucket_track_required = buckets.set_index("bucket_id")["track_required"].to_dict()
+    bucket_labels = {
+        (str(row.get("program_id", "")).strip().upper(), str(row.get("bucket_id", "")).strip()): str(
+            row.get("bucket_label", "")
+        )
+        for _, row in buckets.iterrows()
+    }
+    bucket_track_required = {
+        (str(row.get("program_id", "")).strip().upper(), str(row.get("bucket_id", "")).strip()): str(
+            row.get("track_required", "")
+        ).strip().upper()
+        for _, row in buckets.iterrows()
+    }
 
     runtime_buckets = pd.DataFrame(
         {
@@ -386,17 +448,43 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
             "allow_double_count": False,
             "role": sub.get("role", "").fillna(""),
             "parent_bucket_id": sub["bucket_id"],
-            "parent_bucket_label": sub["bucket_id"].map(bucket_labels).fillna(sub["bucket_id"]),
-            "track_required": sub["bucket_id"].map(bucket_track_required).fillna(""),
+            "parent_bucket_label": sub.apply(
+                lambda r: bucket_labels.get(
+                    (
+                        str(r.get("program_id", "")).strip().upper(),
+                        str(r.get("bucket_id", "")).strip(),
+                    ),
+                    str(r.get("bucket_id", "")),
+                ),
+                axis=1,
+            ),
+            "track_required": sub.apply(
+                lambda r: bucket_track_required.get(
+                    (
+                        str(r.get("program_id", "")).strip().upper(),
+                        str(r.get("bucket_id", "")).strip(),
+                    ),
+                    "",
+                ),
+                axis=1,
+            ),
+            "source_program_id": sub["program_id"],
+            "source_parent_bucket_id": sub["bucket_id"],
         }
     )
 
-    sub_ids = set(runtime_buckets["bucket_id"].tolist())
+    sub_keys = runtime_buckets[["source_program_id", "bucket_id"]].copy()
+    sub_keys = sub_keys.rename(
+        columns={
+            "source_program_id": "program_id",
+            "bucket_id": "sub_bucket_id",
+        }
+    ).drop_duplicates()
     mappings = v2_map.copy()
     mappings["program_id"] = mappings["program_id"].astype(str).str.strip().str.upper()
     mappings["sub_bucket_id"] = mappings["sub_bucket_id"].astype(str).str.strip()
     mappings["course_code"] = mappings["course_code"].astype(str).str.strip()
-    mappings = mappings[(mappings["program_id"] == major_id) & (mappings["sub_bucket_id"].isin(sub_ids))].copy()
+    mappings = mappings.merge(sub_keys, on=["program_id", "sub_bucket_id"], how="inner")
 
     runtime_map = pd.DataFrame(
         {
@@ -404,6 +492,8 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
             "course_code": mappings["course_code"],
             "bucket_id": mappings["sub_bucket_id"],
             "notes": mappings.get("notes"),
+            "source_program_id": mappings["program_id"],
+            "source_bucket_id": mappings["sub_bucket_id"],
         }
     )
 
@@ -425,6 +515,7 @@ def _build_declared_plan_data_v2(
         str(r["track_id"]): str(r.get("parent_major_id", "") or "").strip().upper()
         for _, r in catalog_df[catalog_df["kind"] == "track"].iterrows()
     }
+    universal_programs = _universal_program_ids(data)
 
     all_buckets = []
     all_maps = []
@@ -435,41 +526,60 @@ def _build_declared_plan_data_v2(
         buckets = major_data["buckets_df"].copy()
         course_map = major_data["course_bucket_map_df"].copy()
 
-        buckets["source_program_id"] = major_id
-        buckets["source_bucket_id"] = buckets["bucket_id"].astype(str)
-        buckets["source_parent_bucket_id"] = (
-            buckets.get("parent_bucket_id", "").fillna("").astype(str).str.strip().str.upper()
+        buckets["source_program_id"] = buckets.get("source_program_id", major_id).fillna(major_id).astype(str).str.strip().str.upper()
+        buckets["source_bucket_id"] = buckets.get("source_bucket_id", buckets["bucket_id"]).fillna("").astype(str)
+        buckets["source_parent_bucket_id"] = buckets.get(
+            "source_parent_bucket_id",
+            buckets.get("parent_bucket_id", ""),
+        ).fillna("").astype(str).str.strip().str.upper()
+
+        is_overlay_bucket = buckets["source_program_id"].isin(universal_programs)
+        has_named_core_parent_bucket = is_overlay_bucket & buckets["source_parent_bucket_id"].isin({"BCC", "MCC"})
+        buckets.loc[has_named_core_parent_bucket, "bucket_id"] = (
+            buckets.loc[has_named_core_parent_bucket, "source_parent_bucket_id"].astype(str)
+            + "::"
+            + buckets.loc[has_named_core_parent_bucket, "source_bucket_id"].astype(str)
         )
-        is_bcc_bucket = buckets["source_parent_bucket_id"] == "BCC"
-        buckets.loc[is_bcc_bucket, "bucket_id"] = (
-            "BCC::" + buckets.loc[is_bcc_bucket, "source_bucket_id"].astype(str)
+        buckets.loc[is_overlay_bucket & ~has_named_core_parent_bucket, "bucket_id"] = (
+            buckets.loc[is_overlay_bucket & ~has_named_core_parent_bucket, "source_program_id"].astype(str)
+            + "::"
+            + buckets.loc[is_overlay_bucket & ~has_named_core_parent_bucket, "source_bucket_id"].astype(str)
         )
-        buckets.loc[~is_bcc_bucket, "bucket_id"] = (
-            major_id + "::" + buckets.loc[~is_bcc_bucket, "source_bucket_id"].astype(str)
+        buckets.loc[~is_overlay_bucket, "bucket_id"] = (
+            major_id + "::" + buckets.loc[~is_overlay_bucket, "source_bucket_id"].astype(str)
         )
-        buckets.loc[~is_bcc_bucket, "bucket_label"] = (
+        buckets.loc[~is_overlay_bucket, "bucket_label"] = (
             f"{label_map.get(major_id, major_id)}: "
-            + buckets.loc[~is_bcc_bucket, "bucket_label"].astype(str)
+            + buckets.loc[~is_overlay_bucket, "bucket_label"].astype(str)
         )
         buckets["track_id"] = PHASE5_PLAN_TRACK_ID
 
-        course_map["source_program_id"] = major_id
-        course_map["source_bucket_id"] = course_map["bucket_id"].astype(str)
-        parent_map = (
-            buckets[["source_bucket_id", "source_parent_bucket_id"]]
-            .drop_duplicates()
-            .set_index("source_bucket_id")["source_parent_bucket_id"]
-            .to_dict()
+        course_map["source_program_id"] = course_map.get("source_program_id", major_id).fillna(major_id).astype(str).str.strip().str.upper()
+        course_map["source_bucket_id"] = course_map.get("source_bucket_id", course_map["bucket_id"]).fillna("").astype(str)
+        parent_lookup = buckets[
+            ["source_program_id", "source_bucket_id", "source_parent_bucket_id"]
+        ].drop_duplicates()
+        course_map = course_map.merge(
+            parent_lookup,
+            on=["source_program_id", "source_bucket_id"],
+            how="left",
         )
-        course_map["source_parent_bucket_id"] = (
-            course_map["source_bucket_id"].map(parent_map).fillna("").astype(str).str.upper()
+        course_map["source_parent_bucket_id"] = course_map["source_parent_bucket_id"].fillna("").astype(str).str.upper()
+
+        is_overlay_map = course_map["source_program_id"].isin(universal_programs)
+        has_named_core_parent_map = is_overlay_map & course_map["source_parent_bucket_id"].isin({"BCC", "MCC"})
+        course_map.loc[has_named_core_parent_map, "bucket_id"] = (
+            course_map.loc[has_named_core_parent_map, "source_parent_bucket_id"].astype(str)
+            + "::"
+            + course_map.loc[has_named_core_parent_map, "source_bucket_id"].astype(str)
         )
-        is_bcc_map = course_map["source_parent_bucket_id"] == "BCC"
-        course_map.loc[is_bcc_map, "bucket_id"] = (
-            "BCC::" + course_map.loc[is_bcc_map, "source_bucket_id"].astype(str)
+        course_map.loc[is_overlay_map & ~has_named_core_parent_map, "bucket_id"] = (
+            course_map.loc[is_overlay_map & ~has_named_core_parent_map, "source_program_id"].astype(str)
+            + "::"
+            + course_map.loc[is_overlay_map & ~has_named_core_parent_map, "source_bucket_id"].astype(str)
         )
-        course_map.loc[~is_bcc_map, "bucket_id"] = (
-            major_id + "::" + course_map.loc[~is_bcc_map, "source_bucket_id"].astype(str)
+        course_map.loc[~is_overlay_map, "bucket_id"] = (
+            major_id + "::" + course_map.loc[~is_overlay_map, "source_bucket_id"].astype(str)
         )
         course_map["track_id"] = PHASE5_PLAN_TRACK_ID
 
@@ -549,7 +659,11 @@ def _resolve_program_selection(body, data: dict):
       None, (payload_dict, status_code)  on error
     """
     catalog_df, legacy_catalog_df, using_v2_catalog = _get_program_catalog(data)
-    alias_map = _track_alias_map(catalog_df)
+    if "applies_to_all" in catalog_df.columns:
+        selectable_catalog_df = catalog_df[catalog_df["applies_to_all"] != True].copy()
+    else:
+        selectable_catalog_df = catalog_df.copy()
+    alias_map = _track_alias_map(selectable_catalog_df)
     label_map = {
         str(r["track_id"]): str(r["track_label"] or r["track_id"])
         for _, r in catalog_df.iterrows()
@@ -578,7 +692,7 @@ def _resolve_program_selection(body, data: dict):
             # Backward compatibility: explicit default major means "no track".
             if raw_track_id not in ("", "__NONE__", major_id):
                 selected_track_id = alias_map.get(raw_track_id, raw_track_id)
-                track_row = catalog_df[catalog_df["track_id"] == selected_track_id]
+                track_row = selectable_catalog_df[selectable_catalog_df["track_id"] == selected_track_id]
 
                 # If V2 does not know this track but legacy does, allow legacy fallback.
                 if len(track_row) == 0 and len(legacy_catalog_df) > 0:
@@ -626,8 +740,8 @@ def _resolve_program_selection(body, data: dict):
 
         # Legacy catalog path.
         track_id = raw_track_id
-        if len(catalog_df) > 0:
-            row = catalog_df[catalog_df["track_id"] == track_id]
+        if len(selectable_catalog_df) > 0:
+            row = selectable_catalog_df[selectable_catalog_df["track_id"] == track_id]
             if len(row) == 0:
                 return None, (_build_unknown_track_error(track_id), 400)
             if not row.iloc[0].get("active", True):
@@ -653,13 +767,13 @@ def _resolve_program_selection(body, data: dict):
         }, None
 
     # Declared majors path.
-    if len(catalog_df) == 0:
+    if len(selectable_catalog_df) == 0:
         return None, (_build_unknown_major_error(declared_majors[0]), 400)
 
     warnings = []
     major_requires_primary = {}
     for major_id in declared_majors:
-        row = catalog_df[catalog_df["track_id"] == major_id]
+        row = selectable_catalog_df[selectable_catalog_df["track_id"] == major_id]
         if len(row) == 0 or row.iloc[0]["kind"] != "major":
             return None, (_build_unknown_major_error(major_id), 400)
         major_requires_primary[major_id] = bool(row.iloc[0].get("requires_primary_major", False))
@@ -688,7 +802,7 @@ def _resolve_program_selection(body, data: dict):
         selected_track_id = str(raw_track).strip().upper()
         if using_v2_catalog:
             selected_track_id = alias_map.get(selected_track_id, selected_track_id)
-        track_row = catalog_df[catalog_df["track_id"] == selected_track_id]
+        track_row = selectable_catalog_df[selectable_catalog_df["track_id"] == selected_track_id]
         if len(track_row) == 0:
             return None, (_build_unknown_track_error(str(raw_track).strip()), 400)
         track_row = track_row.iloc[0]
@@ -958,7 +1072,7 @@ def get_courses():
 
 @app.route("/programs", methods=["GET"])
 def get_programs():
-    """Return published program catalog for Phase 5 selector UX."""
+    """Return published program catalog for the major/track selector."""
     _refresh_data_if_needed()
     if not _data:
         return jsonify({"error": "Data not loaded"}), 500
@@ -971,8 +1085,9 @@ def get_programs():
             "default_track_id": DEFAULT_TRACK_ID,
         })
 
-    majors = catalog_df[catalog_df["kind"] == "major"].sort_values("track_id", kind="stable")
-    tracks = catalog_df[catalog_df["kind"] == "track"].sort_values("track_id", kind="stable")
+    publishable = catalog_df[catalog_df.get("applies_to_all", False) != True].copy()
+    majors = publishable[publishable["kind"] == "major"].sort_values("track_id", kind="stable")
+    tracks = publishable[publishable["kind"] == "track"].sort_values("track_id", kind="stable")
 
     majors_payload = [
         {

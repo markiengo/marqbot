@@ -70,14 +70,25 @@ class TestGetEligibleCourses:
         codes = [c["course_code"] for c in eligible]
         assert "FINA 3001" not in codes
 
-    def test_excludes_wrong_term(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
-        # FINA 4011 is Spring only
+    def test_includes_wrong_term_with_warning(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
+        # Recommendation mode no longer hard-excludes courses by selected term.
+        # FINA 4011 is Spring only but should still appear for Fall with warning.
         eligible = get_eligible_courses(
             courses_df, ["FINA 3001"], [], "Fall", prereq_map,
             allocator_remaining, course_bucket_map, buckets_df
         )
-        codes = [c["course_code"] for c in eligible]
-        assert "FINA 4011" not in codes
+        row = next(c for c in eligible if c["course_code"] == "FINA 4011")
+        assert row["low_confidence"] is True
+
+    def test_medium_confidence_is_warning(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
+        adjusted = courses_df.copy()
+        adjusted.loc[adjusted["course_code"] == "FINA 4020", "offering_confidence"] = "medium"
+        eligible = get_eligible_courses(
+            adjusted, ["FINA 3001"], [], "Fall", prereq_map,
+            allocator_remaining, course_bucket_map, buckets_df
+        )
+        row = next(c for c in eligible if c["course_code"] == "FINA 4020")
+        assert row["low_confidence"] is True
 
     def test_missing_prereq_excluded(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
         # FINA 4001 requires FINA 3001 — not completed

@@ -99,8 +99,8 @@ def get_eligible_courses(
       2. Multi-bucket score (descending = more unmet buckets filled = better)
       3. Prerequisite level (ascending = earlier classes first)
 
-    Eligible = offered in term AND not yet taken AND prereqs satisfied
-             AND not a manual_review course
+    Eligible = not yet taken AND prereqs satisfied AND not manual_review.
+    Term offering is warning-only in recommendation mode (no hard exclusion).
 
     Each returned dict:
     {
@@ -140,10 +140,9 @@ def get_eligible_courses(
         if code in completed_set or code in in_progress_set:
             continue
 
-        # Check offering
-        offered = _safe_bool(row.get(term_col, False))
-        if not offered:
-            continue
+        # Recommendation lane is warning-driven for term offering:
+        # do not hard-exclude courses that are not offered in target term.
+        offered_this_term = _safe_bool(row.get(term_col, False))
 
         # Parse prereqs
         parsed = prereq_map.get(code, {"type": "none"})
@@ -198,7 +197,7 @@ def get_eligible_courses(
 
         # Offering confidence
         confidence = str(row.get("offering_confidence", "high") or "high").lower()
-        low_confidence = confidence in ("low", "unknown")
+        low_confidence = confidence in ("medium", "low", "unknown") or not offered_this_term
 
         # Course notes
         course_notes = str(row.get("notes", "") or "")

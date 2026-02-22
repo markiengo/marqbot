@@ -95,7 +95,7 @@ class TestTrackExists:
         assert not result.passed
         assert any("empty" in e.lower() for e in result.errors)
 
-# -- Phase 5 readiness: major/track linkage ----------------------------------
+# -- Program hierarchy readiness ----------------------------------------------
 
 class TestProgramHierarchy:
     def test_track_with_valid_parent_major_passes(self, good_track):
@@ -322,7 +322,7 @@ class TestMultiTrackIsolation:
         assert not result_a.passed  # Missing core role is an error
 
 
-# ── V3.1 Governance checks ────────────────────────────────────────────────────
+# Data-governance checks
 
 def _v2_base(program_id: str = "FIN_MAJOR"):
     """Return minimal V2 data that passes legacy checks so governance tests run cleanly."""
@@ -437,10 +437,10 @@ class TestV2PolicyDuplicatePairs:
 
     def test_duplicate_pair_warns(self):
         policy = self._policy([
-            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "A",
-             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": True},
-            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "A",
-             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": False},
+            {"program_id": "FIN_MAJOR", "sub_bucket_id_a": "A",
+             "sub_bucket_id_b": "B", "allow_double_count": True},
+            {"program_id": "FIN_MAJOR", "sub_bucket_id_a": "A",
+             "sub_bucket_id_b": "B", "allow_double_count": False},
         ])
         result = _run_v2("FIN_MAJOR", policy_df=policy)
         assert any("duplicate" in w.lower() for w in result.warnings)
@@ -448,20 +448,20 @@ class TestV2PolicyDuplicatePairs:
     def test_canonical_order_duplicate_warns(self):
         """(A, B) and (B, A) are the same canonical pair and should warn."""
         policy = self._policy([
-            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "A",
-             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": True},
-            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "B",
-             "node_type_b": "sub_bucket", "node_id_b": "A", "allow_double_count": True},
+            {"program_id": "FIN_MAJOR", "sub_bucket_id_a": "A",
+             "sub_bucket_id_b": "B", "allow_double_count": True},
+            {"program_id": "FIN_MAJOR", "sub_bucket_id_a": "B",
+             "sub_bucket_id_b": "A", "allow_double_count": True},
         ])
         result = _run_v2("FIN_MAJOR", policy_df=policy)
         assert any("duplicate" in w.lower() for w in result.warnings)
 
     def test_no_duplicates_is_clean(self):
         policy = self._policy([
-            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "A",
-             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": True},
-            {"program_id": "FIN_MAJOR", "node_type_a": "sub_bucket", "node_id_a": "A",
-             "node_type_b": "sub_bucket", "node_id_b": "C", "allow_double_count": False},
+            {"program_id": "FIN_MAJOR", "sub_bucket_id_a": "A",
+             "sub_bucket_id_b": "B", "allow_double_count": True},
+            {"program_id": "FIN_MAJOR", "sub_bucket_id_a": "A",
+             "sub_bucket_id_b": "C", "allow_double_count": False},
         ])
         result = _run_v2("FIN_MAJOR", policy_df=policy)
         assert not any("duplicate" in w.lower() for w in result.warnings)
@@ -473,10 +473,10 @@ class TestV2PolicyDuplicatePairs:
     def test_different_program_rows_not_flagged(self):
         """Duplicates in a different program do not affect the target program."""
         policy = self._policy([
-            {"program_id": "OTHER", "node_type_a": "sub_bucket", "node_id_a": "A",
-             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": True},
-            {"program_id": "OTHER", "node_type_a": "sub_bucket", "node_id_a": "A",
-             "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": False},
+            {"program_id": "OTHER", "sub_bucket_id_a": "A",
+             "sub_bucket_id_b": "B", "allow_double_count": True},
+            {"program_id": "OTHER", "sub_bucket_id_a": "A",
+             "sub_bucket_id_b": "B", "allow_double_count": False},
         ])
         result = _run_v2("FIN_MAJOR", policy_df=policy)
         assert not any("duplicate" in w.lower() for w in result.warnings)
@@ -542,7 +542,7 @@ class TestV2EquivalencyScopeIntegrity:
 
 
 class TestV2SubBucketCoursesRequiredSatisfiable:
-    """V3.1 governance: warn when courses_required > mapped course count."""
+    """Warn when courses_required exceeds mapped course count."""
 
     def _sub_bucket(self, sbid, courses_required, bucket_id="FIN_REQ"):
         return {

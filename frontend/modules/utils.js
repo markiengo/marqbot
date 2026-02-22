@@ -80,8 +80,8 @@ export function bucketLabel(bucketId, programLabelMap = null) {
     BUS_ELEC_4: "Business Electives",
     BUAN_BUS_ELEC_5: "Business Electives",
     INSY_BUS_ELEC_4: "Business Electives",
-    AIM_NO_CONC_CORE: "AIM Core (No Concentration)",
-    AIM_NO_CONC_ELECTIVE_1: "AIM Elective (No Concentration)",
+    AIM_NO_CONC_CORE: "AIM Core",
+    AIM_NO_CONC_ELECTIVE_1: "AIM Elective",
   };
 
   const businessElectivePattern = /^[A-Z]+_BUS_ELEC_\d+$/;

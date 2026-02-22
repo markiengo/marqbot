@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 
 from prereq_parser import parse_prereqs
@@ -13,13 +15,14 @@ _CANONICAL_MAP_SHEET = "courses_all_buckets"
 _LEGACY_MAP_SHEET = "course_sub_buckets"
 _DEFAULT_POLICY_COLUMNS = [
     "program_id",
-    "node_type_a",
-    "node_id_a",
-    "node_type_b",
-    "node_id_b",
+    "sub_bucket_id_a",
+    "sub_bucket_id_b",
     "allow_double_count",
     "reason",
 ]
+
+_TERM_CODE_RE = re.compile(r"^(?P<year>\d{4})(?P<term>FA|SP|SU)$", re.IGNORECASE)
+_SEMESTER_LABEL_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
 
 
 def _safe_bool_col(df: pd.DataFrame, col: str) -> pd.DataFrame:
@@ -53,6 +56,8 @@ def _normalize_programs_df(programs_df: pd.DataFrame) -> pd.DataFrame:
         out["active"] = False
     if "requires_primary_major" not in out.columns:
         out["requires_primary_major"] = False
+    if "applies_to_all" not in out.columns:
+        out["applies_to_all"] = False
 
     out["program_id"] = out["program_id"].fillna("").astype(str).str.strip().str.upper()
     out["program_label"] = out["program_label"].fillna("").astype(str).str.strip()
@@ -74,6 +79,7 @@ def _normalize_programs_df(programs_df: pd.DataFrame) -> pd.DataFrame:
 
     out = _safe_bool_col(out, "active")
     out = _safe_bool_col(out, "requires_primary_major")
+    out = _safe_bool_col(out, "applies_to_all")
     return out[
         [
             "program_id",
@@ -82,6 +88,7 @@ def _normalize_programs_df(programs_df: pd.DataFrame) -> pd.DataFrame:
             "parent_major_id",
             "active",
             "requires_primary_major",
+            "applies_to_all",
         ]
     ]
 
@@ -170,6 +177,7 @@ def _build_tracks_from_programs(programs_df: pd.DataFrame) -> pd.DataFrame:
                 "kind",
                 "parent_major_id",
                 "requires_primary_major",
+                "applies_to_all",
             ]
         )
 
@@ -183,10 +191,13 @@ def _build_tracks_from_programs(programs_df: pd.DataFrame) -> pd.DataFrame:
         {
             "track_id": programs_df["program_id"].astype(str).str.strip().str.upper(),
             "track_label": programs_df["program_label"].fillna("").astype(str).str.strip(),
-            "active": programs_df["active"].apply(bool),
+            "active": programs_df["active"].apply(lambda v: bool(v) if pd.notna(v) else False),
             "kind": programs_df["kind"].fillna("major").astype(str).str.strip().str.lower(),
             "parent_major_id": programs_df["parent_major_id"].fillna("").astype(str).str.strip().str.upper(),
-            "requires_primary_major": requires_primary_series.apply(bool),
+            "requires_primary_major": requires_primary_series.apply(lambda v: bool(v) if pd.notna(v) else False),
+            "applies_to_all": programs_df.get("applies_to_all", False).apply(
+                lambda v: bool(v) if pd.notna(v) else False
+            ),
         }
     )
     tracks_df = tracks_df[tracks_df["track_id"] != ""]
@@ -203,6 +214,7 @@ def _build_tracks_from_programs(programs_df: pd.DataFrame) -> pd.DataFrame:
             "kind",
             "parent_major_id",
             "requires_primary_major",
+            "applies_to_all",
         ]
     ]
 
@@ -244,84 +256,170 @@ def _overlay_course_prereqs(courses_df: pd.DataFrame, prereqs_df: pd.DataFrame) 
     return out
 
 
-def _term_sort_key(term_code: str) -> tuple[int, int]:
-    s = str(term_code or "").strip().upper()
-    if len(s) < 6:
-        return (-1, -1)
-    try:
-        year = int(s[:4])
-    except ValueError:
-        return (-1, -1)
-    season_rank = {"FA": 3, "SU": 2, "SP": 1}.get(s[4:], 0)
-    return (year, season_rank)
+def _semester_sort_key(term_label: str) -> tuple[int, int]:
+    raw = str(term_label or "").strip()
+
+    code_match = _TERM_CODE_RE.match(raw.upper())
+    if code_match:
+        year = int(code_match.group("year"))
+        season_rank = {"SP": 1, "SU": 2, "FA": 3}.get(code_match.group("term").upper(), 0)
+        return (year, season_rank)
+
+    label_match = _SEMESTER_LABEL_RE.match(raw)
+    if label_match:
+        season = label_match.group(1).strip().lower()
+        year = int(label_match.group(2))
+        season_rank = {"spring": 1, "summer": 2, "fall": 3}.get(season, 0)
+        return (year, season_rank)
+    return (-1, -1)
 
 
 def _term_code_to_label(term_code: str) -> str:
-    s = str(term_code or "").strip().upper()
-    if len(s) < 6:
-        return s
+    raw = str(term_code or "").strip().upper()
+    match = _TERM_CODE_RE.match(raw)
+    if not match:
+        return raw
     season_map = {"FA": "Fall", "SP": "Spring", "SU": "Summer"}
-    return f"{s[:4]} {season_map.get(s[4:], s[4:])}"
+    return f"{season_map.get(match.group('term').upper(), match.group('term').upper())} {int(match.group('year'))}"
 
 
-def _overlay_course_offerings(courses_df: pd.DataFrame, offerings_df: pd.DataFrame) -> pd.DataFrame:
-    """Derive offered_fall/spring/summer + confidence + last_four_terms from row-per-term V2 data."""
+def _semester_to_season(term_label: str) -> str:
+    raw = str(term_label or "").strip().lower()
+    if raw.startswith("fall"):
+        return "fall"
+    if raw.startswith("spring"):
+        return "spring"
+    if raw.startswith("summer"):
+        return "summer"
+    return ""
+
+
+def _offering_confidence_from_frequency(freq: int) -> str:
+    if freq >= 3:
+        return "high"
+    if freq == 2:
+        return "medium"
+    return "low"
+
+
+def _normalize_offering_rows(
+    offerings_df: pd.DataFrame,
+) -> tuple[dict[str, dict[str, bool]], list[str]]:
+    """
+    Return:
+      course_term_map[course_code][semester_label] = offered_bool
+      ordered_semesters (chronological ascending)
+
+    Supports both:
+      - legacy rows: course_code, term_code, offered
+      - wide rows:  course_code, Fall 2025, Spring 2026, ...
+    """
     if len(offerings_df) == 0 or "course_code" not in offerings_df.columns:
-        return courses_df
+        return {}, []
 
     src = offerings_df.copy()
     src["course_code"] = src["course_code"].fillna("").astype(str).str.strip()
-    src["term_code"] = src.get("term_code", pd.Series(dtype=str)).fillna("").astype(str).str.strip().str.upper()
-    src = _safe_bool_col(src, "offered")
-    if "confidence" not in src.columns:
-        src["confidence"] = None
+    src = src[src["course_code"] != ""]
+    if len(src) == 0:
+        return {}, []
 
-    grouped = {}
+    course_terms: dict[str, dict[str, bool]] = {}
+    ordered_semesters: list[str] = []
+
+    legacy_cols = {c.strip().lower() for c in src.columns}
+    if {"term_code", "offered"}.issubset(legacy_cols):
+        src["term_code"] = src["term_code"].fillna("").astype(str).str.strip().str.upper()
+        src = _safe_bool_col(src, "offered")
+        src = src[src["term_code"] != ""]
+        src["semester_label"] = src["term_code"].apply(_term_code_to_label)
+
+        for _, row in src.iterrows():
+            code = str(row.get("course_code", "")).strip()
+            label = str(row.get("semester_label", "")).strip()
+            if not code or not label:
+                continue
+            offered = bool(row.get("offered", False))
+            course_terms.setdefault(code, {})
+            course_terms[code][label] = course_terms[code].get(label, False) or offered
+        ordered_semesters = sorted(
+            {str(v).strip() for v in src["semester_label"].tolist() if str(v).strip()},
+            key=_semester_sort_key,
+        )
+        return course_terms, ordered_semesters
+
+    semester_cols = [
+        c for c in src.columns
+        if _semester_sort_key(c) != (-1, -1) and c != "course_code"
+    ]
+    semester_cols = sorted(semester_cols, key=_semester_sort_key)
+    if not semester_cols:
+        return {}, []
+
+    for col in semester_cols:
+        src[col] = src[col].apply(
+            lambda v: False if pd.isna(v) else (
+                v if isinstance(v, bool) else str(v).strip().lower() in {"1", "true", "yes", "y"}
+            )
+        )
+
     for _, row in src.iterrows():
-        code = row["course_code"]
+        code = str(row.get("course_code", "")).strip()
         if not code:
             continue
-        grouped.setdefault(code, []).append(
-            {
-                "term_code": row.get("term_code", ""),
-                "offered": bool(row.get("offered", False)),
-                "confidence": row.get("confidence"),
-            }
-        )
+        course_terms.setdefault(code, {})
+        for sem_col in semester_cols:
+            course_terms[code][sem_col] = bool(row.get(sem_col, False))
+    return course_terms, semester_cols
+
+
+def _overlay_course_offerings(courses_df: pd.DataFrame, offerings_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Derive offered_fall/spring/summer + confidence + last_four_terms from course_offerings.
+
+    confidence derivation (last 3 semesters):
+      - 3 offered: high
+      - 2 offered: medium
+      - 0/1 offered: low
+    """
+    course_terms, ordered_semesters = _normalize_offering_rows(offerings_df)
+    if not course_terms:
+        return courses_df
 
     out = courses_df.copy()
     for col in ("offered_fall", "offered_spring", "offered_summer", "offering_confidence", "last_four_terms"):
         if col not in out.columns:
             out[col] = None
 
-    offered_fall = {}
-    offered_spring = {}
-    offered_summer = {}
-    conf_map = {}
-    terms_map = {}
-    for code, rows in grouped.items():
-        sorted_rows = sorted(rows, key=lambda r: _term_sort_key(r["term_code"]), reverse=True)
-        offered_fall[code] = any(r["offered"] and str(r["term_code"]).endswith("FA") for r in sorted_rows)
-        offered_spring[code] = any(r["offered"] and str(r["term_code"]).endswith("SP") for r in sorted_rows)
-        offered_summer[code] = any(r["offered"] and str(r["term_code"]).endswith("SU") for r in sorted_rows)
-        latest_conf = next(
-            (
-                str(r["confidence"]).strip().lower()
-                for r in sorted_rows
-                if pd.notna(r.get("confidence")) and str(r.get("confidence")).strip()
-            ),
-            None,
-        )
-        conf_map[code] = latest_conf
-        terms_map[code] = ", ".join(
-            [_term_code_to_label(r["term_code"]) for r in sorted_rows[:4] if r["term_code"]]
-        )
+    offered_fall: dict[str, bool] = {}
+    offered_spring: dict[str, bool] = {}
+    offered_summer: dict[str, bool] = {}
+    conf_map: dict[str, str] = {}
+    terms_map: dict[str, str] = {}
+    offering_freq: dict[str, int] = {}
+
+    latest_three = list(sorted(ordered_semesters, key=_semester_sort_key, reverse=True)[:3])
+    latest_four = list(sorted(ordered_semesters, key=_semester_sort_key, reverse=True)[:4])
+
+    for code, sem_map in course_terms.items():
+        offered_semesters = [s for s, offered in sem_map.items() if offered]
+        seasons = [_semester_to_season(s) for s in offered_semesters]
+        offered_fall[code] = "fall" in seasons
+        offered_spring[code] = "spring" in seasons
+        offered_summer[code] = "summer" in seasons
+
+        freq = sum(1 for sem in latest_three if sem_map.get(sem, False))
+        offering_freq[code] = int(freq)
+        conf_map[code] = _offering_confidence_from_frequency(freq)
+
+        shown = [sem for sem in latest_four if sem_map.get(sem, False)]
+        terms_map[code] = ", ".join(shown)
 
     out["offered_fall"] = out["course_code"].map(offered_fall).fillna(out["offered_fall"])
     out["offered_spring"] = out["course_code"].map(offered_spring).fillna(out["offered_spring"])
     out["offered_summer"] = out["course_code"].map(offered_summer).fillna(out["offered_summer"])
     out["offering_confidence"] = out["course_code"].map(conf_map).fillna(out["offering_confidence"])
     out["last_four_terms"] = out["course_code"].map(terms_map).fillna(out["last_four_terms"])
+    out["offering_freq_last3"] = out["course_code"].map(offering_freq).fillna(0).astype(int)
     return out
 
 
@@ -432,7 +530,9 @@ def _load_v2_equivalencies(xl: pd.ExcelFile, sheet_set: set[str]) -> pd.DataFram
         return pd.DataFrame(columns=["equiv_group_id", "course_code", "label"])
     if "course_code" not in eq.columns:
         eq["course_code"] = ""
-    if "restriction_note" in eq.columns:
+    if "course_name" in eq.columns:
+        label = eq["course_name"].fillna("").astype(str)
+    elif "restriction_note" in eq.columns:
         label = eq["restriction_note"].fillna("").astype(str)
     elif "notes" in eq.columns:
         label = eq["notes"].fillna("").astype(str)
@@ -509,6 +609,14 @@ def load_data(data_path: str) -> dict:
     courses_df["course_code"] = courses_df["course_code"].fillna("").astype(str).str.strip()
     courses_df["prereq_hard"] = courses_df.get("prereq_hard", pd.Series(dtype=str)).fillna("none")
     courses_df["prereq_soft"] = courses_df.get("prereq_soft", pd.Series(dtype=str)).fillna("")
+
+    # Inject not_frequently_offered tag for courses offered in fewer than 3 of last 3 terms.
+    if "offering_freq_last3" in courses_df.columns:
+        infrequent_mask = courses_df["offering_freq_last3"] < 3
+        for idx in courses_df[infrequent_mask].index:
+            existing = str(courses_df.at[idx, "prereq_soft"] or "").strip()
+            if "not_frequently_offered" not in existing:
+                courses_df.at[idx, "prereq_soft"] = (existing + ";not_frequently_offered").strip(";")
     catalog_codes = set(c for c in courses_df["course_code"].tolist() if c)
 
     prereq_map: dict = {}

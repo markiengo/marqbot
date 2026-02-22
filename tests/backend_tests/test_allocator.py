@@ -50,10 +50,8 @@ def simple_policy():
     return pd.DataFrame([
         {
             "program_id": "FIN_MAJOR",
-            "node_type_a": "sub_bucket",
-            "node_id_a": "FIN_CHOOSE_1",
-            "node_type_b": "sub_bucket",
-            "node_id_b": "FIN_CHOOSE_2",
+            "sub_bucket_id_a": "FIN_CHOOSE_1",
+            "sub_bucket_id_b": "FIN_CHOOSE_2",
             "allow_double_count": True,
         },
     ])
@@ -175,9 +173,9 @@ class TestPolicyDrivenDoubleCount:
             {"track_id": "P1", "bucket_id": "C", "course_code": "X100"},
         ])
         policy = pd.DataFrame([
-            {"program_id": "P1", "node_type_a": "sub_bucket", "node_id_a": "A", "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": True},
-            {"program_id": "P1", "node_type_a": "sub_bucket", "node_id_a": "A", "node_type_b": "sub_bucket", "node_id_b": "C", "allow_double_count": True},
-            {"program_id": "P1", "node_type_a": "sub_bucket", "node_id_a": "B", "node_type_b": "sub_bucket", "node_id_b": "C", "allow_double_count": True},
+            {"program_id": "P1", "sub_bucket_id_a": "A", "sub_bucket_id_b": "B", "allow_double_count": True},
+            {"program_id": "P1", "sub_bucket_id_a": "A", "sub_bucket_id_b": "C", "allow_double_count": True},
+            {"program_id": "P1", "sub_bucket_id_a": "B", "sub_bucket_id_b": "C", "allow_double_count": True},
         ])
 
         result = run_with_policy(["X100"], [], buckets, course_map, self._base_courses(), policy)
@@ -198,7 +196,7 @@ class TestPolicyDrivenDoubleCount:
             {"track_id": "P1", "bucket_id": "C", "course_code": "X100"},
         ])
         policy = pd.DataFrame([
-            {"program_id": "P1", "node_type_a": "sub_bucket", "node_id_a": "A", "node_type_b": "sub_bucket", "node_id_b": "B", "allow_double_count": True},
+            {"program_id": "P1", "sub_bucket_id_a": "A", "sub_bucket_id_b": "B", "allow_double_count": True},
         ])
 
         result = run_with_policy(["X100"], [], buckets, course_map, self._base_courses(), policy)
@@ -259,3 +257,76 @@ class TestPolicyDrivenDoubleCount:
         result = run_with_policy(["X100"], [], buckets, course_map, self._base_courses(), policy)
         assert len(result["double_counted_courses"]) == 1
         assert result["double_counted_courses"][0]["buckets"] == ["A", "B"]
+
+
+class TestInProgressPolicyRespect:
+    """Verify in-progress courses respect same-parent deny policy."""
+
+    def _base_courses(self):
+        return pd.DataFrame([
+            {"course_code": "X100", "course_name": "Course X", "credits": 3, "level": 3000},
+        ])
+
+    def test_in_progress_same_parent_deny(self):
+        """In-progress course should NOT appear in multiple same-parent buckets."""
+        buckets = pd.DataFrame([
+            {"track_id": "P1", "bucket_id": "A", "bucket_label": "A", "priority": 1, "needed_count": 1, "needed_credits": None, "min_level": None, "parent_bucket_id": "PARENT"},
+            {"track_id": "P1", "bucket_id": "B", "bucket_label": "B", "priority": 2, "needed_count": 1, "needed_credits": None, "min_level": None, "parent_bucket_id": "PARENT"},
+            {"track_id": "P1", "bucket_id": "C", "bucket_label": "C", "priority": 3, "needed_count": 1, "needed_credits": None, "min_level": None, "parent_bucket_id": "PARENT"},
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "P1", "bucket_id": "A", "course_code": "X100"},
+            {"track_id": "P1", "bucket_id": "B", "course_code": "X100"},
+            {"track_id": "P1", "bucket_id": "C", "course_code": "X100"},
+        ])
+
+        result = run_with_policy([], ["X100"], buckets, course_map, self._base_courses(), pd.DataFrame())
+
+        # X100 should appear in exactly ONE bucket (highest priority = A), not all three
+        ip_buckets = [
+            bid for bid, data in result["applied_by_bucket"].items()
+            if "X100" in data["in_progress_applied"]
+        ]
+        assert len(ip_buckets) == 1, f"Expected in 1 bucket, found in {ip_buckets}"
+        assert ip_buckets[0] == "A"
+
+    def test_in_progress_different_parent_allowed(self):
+        """In-progress course CAN appear in multiple different-parent buckets."""
+        buckets = pd.DataFrame([
+            {"track_id": "P1", "bucket_id": "A", "bucket_label": "A", "priority": 1, "needed_count": 1, "needed_credits": None, "min_level": None, "parent_bucket_id": "PARENT_1"},
+            {"track_id": "P1", "bucket_id": "B", "bucket_label": "B", "priority": 2, "needed_count": 1, "needed_credits": None, "min_level": None, "parent_bucket_id": "PARENT_2"},
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "P1", "bucket_id": "A", "course_code": "X100"},
+            {"track_id": "P1", "bucket_id": "B", "course_code": "X100"},
+        ])
+
+        result = run_with_policy([], ["X100"], buckets, course_map, self._base_courses(), pd.DataFrame())
+
+        ip_buckets = [
+            bid for bid, data in result["applied_by_bucket"].items()
+            if "X100" in data["in_progress_applied"]
+        ]
+        assert len(ip_buckets) == 2, f"Expected in 2 buckets, found in {ip_buckets}"
+
+    def test_in_progress_with_explicit_policy_allow(self):
+        """In-progress course respects explicit allow policy for same-parent siblings."""
+        buckets = pd.DataFrame([
+            {"track_id": "P1", "bucket_id": "A", "bucket_label": "A", "priority": 1, "needed_count": 1, "needed_credits": None, "min_level": None, "parent_bucket_id": "PARENT"},
+            {"track_id": "P1", "bucket_id": "B", "bucket_label": "B", "priority": 2, "needed_count": 1, "needed_credits": None, "min_level": None, "parent_bucket_id": "PARENT"},
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "P1", "bucket_id": "A", "course_code": "X100"},
+            {"track_id": "P1", "bucket_id": "B", "course_code": "X100"},
+        ])
+        policy = pd.DataFrame([
+            {"program_id": "P1", "sub_bucket_id_a": "A", "sub_bucket_id_b": "B", "allow_double_count": True},
+        ])
+
+        result = run_with_policy([], ["X100"], buckets, course_map, self._base_courses(), policy)
+
+        ip_buckets = [
+            bid for bid, data in result["applied_by_bucket"].items()
+            if "X100" in data["in_progress_applied"]
+        ]
+        assert len(ip_buckets) == 2, f"Expected in 2 buckets with explicit allow, found in {ip_buckets}"
