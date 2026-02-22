@@ -370,6 +370,38 @@ Key outcomes:
 
 </details>
 
+<details>
+<summary><strong>v1.7.0 - Dashboard UI Revamp (Left Rail + 2x2 Grid)</strong></summary>
+
+Window:
+1. 2026-02-22 UI revamp batch
+
+Why this version:
+1. Major layout and interaction overhaul: topbar replaced with left navigation rail, 3-panel layout replaced with 2x2 asymmetric planner grid.
+
+Key outcomes:
+1. Replaced horizontal topbar navigation with a fixed left vertical rail (`#rail`) containing 6 items: Home, Planner, Courses, Saved, AI Advisor, Avatar.
+2. All nav items normalized to `<button type="button">` with `role="tab"` and ARIA `tablist` attributes.
+3. Added Avatar placeholder screen (`#placeholder-avatar`, `.placeholder-screen--avatar`) reusing Saved cover art.
+4. Restructured 3-panel layout (`#panel-left`, `#panel-center`, `#panel-right`) into 2x2 grid with quadrant containers (`#quad-tl`, `#quad-tr`, `#quad-bl`, `#quad-br`).
+5. Grid uses 33/67 column split and equal rows (`1fr 1fr`).
+6. All existing element IDs preserved; elements re-parented into new quadrant containers.
+7. Settings controls retain `form="advisor-form"` attribute binding.
+8. Quadrant containers use `overflow: visible` to prevent multiselect dropdown clipping.
+9. Removed `updateStepIndicator()` ghost code and all `#topbar` / `.anchor-nav` / `.nav-pill-indicator` CSS.
+10. Added direction-aware vertical transitions for placeholder screen switching (`.transition-up`, `.transition-down`).
+11. Added `activeNavTab` to session persistence with graceful fallback to `nav-plan`.
+12. Added rail keyboard navigation: arrow keys cycle items, Home/End jump to first/last.
+13. Decomposed `renderRecommendationsHtml` into `renderRecsPrefixHtml` + `renderSemesterSelectorHtml` while preserving the original function as a facade.
+14. Added semester modal (`#semester-modal`) with focus trap, ARIA dialog attributes, backdrop click/Escape/close-button dismissal.
+15. Added semester selector CSS with adaptive modes for 1/2/3 semester responses.
+16. Responsive breakpoints updated: desktop (>1200px) full rail + 2x2 grid, tablet (900-1200px) compact rail + single column, mobile (<900px) bottom tab bar + single column.
+17. `clearResults()` extended to reset `selectedSemesterIndex`, `lastRecommendationData`, and close modal.
+18. `#section-hero` renders as empty-state in top-right quadrant, hidden once results load.
+19. Frontend test suite updated: nav order tests include Avatar (6 items), container selector changed to `#rail`, added tests for modal, semester selector, direction transitions, ARIA roles, and `activeNavTab` round-trip.
+
+</details>
+
 </details>
 
 ---
@@ -394,3 +426,4 @@ Key outcomes:
 17. `v1.6.1`: 2026-02-22 UI placeholder + logo patch
 18. `v1.6.2`: 2026-02-22 MCC universal overlay injection
 19. `v1.6.3`: 2026-02-22 plan-cover + typography consistency patch
+20. `v1.7.0`: 2026-02-22 dashboard UI revamp (left rail + 2x2 grid)

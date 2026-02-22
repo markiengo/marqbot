@@ -5,10 +5,14 @@ import {
   renderErrorHtml,
   renderCanTakeHtml,
   renderRecommendationsHtml,
+  renderRecommendationsPrefixHtml,
+  renderSemesterSelectorHtml,
+  getProgramLabelMap,
   renderProgressRing,
   renderKpiCardsHtml,
   renderDegreeSummaryHtml,
   renderCanTakeInlineHtml,
+  renderSemesterHtml,
 } from "./modules/rendering.js";
 import {
   renderChips,
@@ -28,6 +32,11 @@ const state = {
   inProgress: new Set(),
   selectedMajors: new Set(),
   selectedTrack: null,
+  activeNavTab: "nav-plan",
+  selectedSemesterIndex: 0,
+  lastRecommendationData: null,
+  lastRequestedCount: 3,
+  modalTriggerEl: null,
 };
 
 /* -- DOM refs ---------------------------------------------------------- */
@@ -58,6 +67,13 @@ const dropdownTrack = document.getElementById("dropdown-track");
 const chipsTrack = document.getElementById("chips-track");
 const trackFormGroup = document.getElementById("track-form-group");
 const majorFormGroup = document.getElementById("major-form-group");
+const appShell = document.getElementById("app-shell");
+const placeholderScreens = Array.from(document.querySelectorAll(".placeholder-screen"));
+const sectionHero = document.getElementById("section-hero");
+const semesterModal = document.getElementById("semester-modal");
+const semesterModalBody = document.getElementById("semester-modal-body");
+const semesterModalTitle = document.getElementById("semester-modal-title");
+const semesterModalCloseBtn = document.getElementById("semester-modal-close");
 
 /* -- Session refs ------------------------------------------------------ */
 const sessionElements = {
@@ -69,6 +85,7 @@ const sessionElements = {
   get declaredMajors() { return declaredMajorsSelect; },
   get declaredTrack() { return declaredTrackSelect; },
   get refreshProgramOptions() { return () => refreshProgramOptions(false); },
+  getActiveNavTab() { return state.activeNavTab || "nav-plan"; },
 };
 
 /* -- Course chip helpers ---------------------------------------------- */
@@ -76,14 +93,12 @@ function renderCompletedChips() {
   renderChips(chipsCompleted, state.completed, code =>
     removeChip(code, state.completed, chipsCompleted, renderCompletedChips, onSave),
   );
-  updateStepIndicator();
 }
 
 function renderIpChips() {
   renderChips(chipsIp, state.inProgress, code =>
     removeChip(code, state.inProgress, chipsIp, renderIpChips, onSave),
   );
-  updateStepIndicator();
 }
 
 function onSave() {
@@ -91,8 +106,13 @@ function onSave() {
 }
 
 function clearResults() {
+  closeSemesterModal();
+  state.lastRecommendationData = null;
+  state.selectedSemesterIndex = 0;
+
   resultsEl.innerHTML = "";
   resultsEl.classList.add("hidden");
+  if (sectionHero) sectionHero.classList.remove("hidden");
   // Also reset progress dashboard and right-panel summary
   const progressDash = document.getElementById("progress-dashboard");
   if (progressDash) progressDash.classList.add("hidden");
@@ -320,101 +340,299 @@ function refreshProgramOptions(clear = false) {
 
   renderMajorChips();
   renderTrackChip();
-  updateStepIndicator();
 
   if (clear) clearResults();
 }
 
-/* -- Step indicator --------------------------------------------------- */
-function updateStepIndicator() {
-  const step1Done = state.selectedMajors.size > 0;
-  const step2Done = state.completed.size > 0 || state.inProgress.size > 0;
-  const step3Done = resultsEl && !resultsEl.classList.contains("hidden") && resultsEl.innerHTML.trim() !== "";
+/* -- Navigation and modal --------------------------------------------- */
+const NAV_ORDER = [
+  "nav-home",
+  "nav-plan",
+  "nav-courses",
+  "nav-saved",
+  "nav-ai-advisor",
+  "nav-avatar",
+];
 
-  const steps = [step1Done, step2Done, step3Done];
-  const indicators = document.querySelectorAll("#step-indicator .step");
-  indicators.forEach((el, idx) => {
-    el.classList.toggle("step--done", steps[idx]);
-    el.classList.toggle("step--pending", !steps[idx]);
+const PLACEHOLDER_MAP = {
+  "nav-home": "placeholder-home",
+  "nav-courses": "placeholder-courses",
+  "nav-saved": "placeholder-saved",
+  "nav-ai-advisor": "placeholder-ai",
+  "nav-avatar": "placeholder-avatar",
+};
+
+function getNavIndex(navId) {
+  return NAV_ORDER.indexOf(navId);
+}
+
+function applyDirectionalTransition(targetEl, direction) {
+  if (!targetEl) return;
+  targetEl.classList.remove("transition-up", "transition-down");
+  void targetEl.offsetWidth;
+  targetEl.classList.add(direction === "down" ? "transition-down" : "transition-up");
+  window.setTimeout(() => {
+    targetEl.classList.remove("transition-up", "transition-down");
+  }, 340);
+}
+
+function hideAllPlaceholders() {
+  placeholderScreens.forEach((screen) => {
+    screen.classList.remove("active", "transition-up", "transition-down");
   });
 }
 
-/* -- Anchor navigation ------------------------------------------------- */
-function setupAnchorNav() {
-  const navItems = Array.from(document.querySelectorAll(".anchor-link"));
-  const navIndicator = document.getElementById("nav-pill-indicator");
-  const appShell = document.getElementById("app-shell");
-  const placeholderScreens = document.querySelectorAll(".placeholder-screen");
-  let activeNavEl = null;
+function showAppShell(direction) {
+  document.body.classList.remove("placeholder-mode");
+  hideAllPlaceholders();
+  if (appShell) {
+    appShell.classList.remove("app-shell-hidden");
+    applyDirectionalTransition(appShell, direction);
+  }
+}
 
-  // Map nav button IDs to placeholder screen IDs
-  const placeholderMap = {
-    "nav-courses": "placeholder-courses",
-    "nav-saved": "placeholder-saved",
-    "nav-ai-advisor": "placeholder-ai",
-  };
+function showPlaceholder(screenId, direction) {
+  const screen = document.getElementById(screenId);
+  if (!screen) return;
+  document.body.classList.add("placeholder-mode");
+  if (appShell) appShell.classList.add("app-shell-hidden");
+  hideAllPlaceholders();
+  screen.classList.add("active");
+  applyDirectionalTransition(screen, direction);
+}
 
-  const moveNavIndicator = (el) => {
-    if (!navIndicator) return;
-    if (!el) {
-      navIndicator.style.opacity = "0";
-      navIndicator.style.width = "0px";
-      return;
+function closeSemesterModal() {
+  if (!semesterModal) return;
+  semesterModal.classList.remove("is-open");
+  semesterModal.setAttribute("aria-hidden", "true");
+  if (semesterModalBody) semesterModalBody.innerHTML = "";
+
+  if (state.modalTriggerEl && typeof state.modalTriggerEl.focus === "function") {
+    state.modalTriggerEl.focus();
+  }
+  state.modalTriggerEl = null;
+}
+
+function getFocusableElements(rootEl) {
+  if (!rootEl) return [];
+  const selectors = [
+    "button:not([disabled])",
+    "[href]",
+    "input:not([disabled])",
+    "select:not([disabled])",
+    "textarea:not([disabled])",
+    "[tabindex]:not([tabindex='-1'])",
+  ];
+  return Array.from(rootEl.querySelectorAll(selectors.join(",")))
+    .filter((el) => !el.hasAttribute("hidden"));
+}
+
+function onModalKeydown(e) {
+  if (!semesterModal || !semesterModal.classList.contains("is-open")) return;
+  if (e.key === "Escape") {
+    e.preventDefault();
+    closeSemesterModal();
+    return;
+  }
+  if (e.key !== "Tab") return;
+
+  const card = semesterModal.querySelector(".semester-modal-card");
+  const focusables = getFocusableElements(card);
+  if (!focusables.length) return;
+
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+function openSemesterModal(semesterIdx, triggerEl = null) {
+  if (!semesterModal || !state.lastRecommendationData) return;
+  const semesters = Array.isArray(state.lastRecommendationData.semesters) && state.lastRecommendationData.semesters.length
+    ? state.lastRecommendationData.semesters
+    : [state.lastRecommendationData];
+  const safeIndex = clampIndex(semesterIdx, semesters.length);
+  if (safeIndex < 0) return;
+
+  const requested = Number.isFinite(state.lastRequestedCount) ? state.lastRequestedCount : 3;
+  const programLabelMap = getProgramLabelMap(state.lastRecommendationData.selection_context);
+  const semester = semesters[safeIndex];
+  const termLabel = semester?.target_semester ? ` - ${semester.target_semester}` : "";
+  if (semesterModalTitle) {
+    semesterModalTitle.textContent = `Semester ${safeIndex + 1}${termLabel}`;
+  }
+  if (semesterModalBody) {
+    semesterModalBody.innerHTML = renderSemesterHtml(
+      semester,
+      safeIndex + 1,
+      requested,
+      { programLabelMap },
+    );
+  }
+
+  state.modalTriggerEl = triggerEl;
+  semesterModal.classList.add("is-open");
+  semesterModal.setAttribute("aria-hidden", "false");
+
+  const focusables = getFocusableElements(semesterModal.querySelector(".semester-modal-card"));
+  if (focusables.length) {
+    focusables[0].focus();
+  } else if (semesterModalCloseBtn) {
+    semesterModalCloseBtn.focus();
+  }
+}
+
+function wireSemesterInteractions() {
+  const selectorRoot = resultsEl.querySelector("#semester-selector");
+  const detailPane = resultsEl.querySelector("#semester-detail-pane");
+  if (!selectorRoot || !detailPane || !state.lastRecommendationData) return;
+
+  const semesterData = Array.isArray(state.lastRecommendationData.semesters) && state.lastRecommendationData.semesters.length
+    ? state.lastRecommendationData.semesters
+    : [state.lastRecommendationData];
+  const requested = Number.isFinite(state.lastRequestedCount) ? state.lastRequestedCount : 3;
+  const programLabelMap = getProgramLabelMap(state.lastRecommendationData.selection_context);
+
+  const updateSelectedSemester = (newIndex, options = {}) => {
+    const safe = clampIndex(newIndex, semesterData.length);
+    if (safe < 0) return;
+    state.selectedSemesterIndex = safe;
+
+    const tabs = Array.from(selectorRoot.querySelectorAll(".semester-tab"));
+    tabs.forEach((tab, idx) => {
+      const selected = idx === safe;
+      tab.classList.toggle("is-active", selected);
+      tab.setAttribute("aria-selected", selected ? "true" : "false");
+      tab.tabIndex = selected ? 0 : -1;
+    });
+
+    detailPane.innerHTML = renderSemesterHtml(
+      semesterData[safe],
+      safe + 1,
+      requested,
+      { programLabelMap },
+    );
+
+    if (options.focusTab) {
+      const active = tabs[safe];
+      if (active && typeof active.focus === "function") active.focus();
     }
-    navIndicator.style.opacity = "1";
-    navIndicator.style.width = `${el.offsetWidth}px`;
-    navIndicator.style.transform = `translateX(${el.offsetLeft}px)`;
   };
 
-  const setActiveNav = (el) => {
-    activeNavEl = el || null;
-    navItems.forEach((item) => item.classList.toggle("anchor-active", item === activeNavEl));
-    moveNavIndicator(activeNavEl);
-  };
-
-  const hideAllPlaceholders = () => {
-    placeholderScreens.forEach((s) => s.classList.remove("active"));
-  };
-
-  const showAppShell = () => {
-    document.body.classList.remove("placeholder-mode");
-    if (appShell) appShell.classList.remove("app-shell-hidden");
-    hideAllPlaceholders();
-  };
-
-  const showPlaceholder = (screenId) => {
-    document.body.classList.add("placeholder-mode");
-    if (appShell) appShell.classList.add("app-shell-hidden");
-    hideAllPlaceholders();
-    const screen = document.getElementById(screenId);
-    if (screen) screen.classList.add("active");
-  };
-
-  navItems.forEach(item => {
-    item.addEventListener("click", e => {
-      e.preventDefault();
-      setActiveNav(item);
-
-      const placeholderId = placeholderMap[item.id];
-      if (placeholderId) {
-        // Placeholder tab: hide app shell, show placeholder screen
-        showPlaceholder(placeholderId);
-      } else {
-        // Plan tab: show app shell, scroll to progress section
-        showAppShell();
-        const target = document.getElementById("section-progress");
-        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  selectorRoot.querySelectorAll(".semester-tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      updateSelectedSemester(Number(btn.dataset.semesterIndex || "0"));
+    });
+    btn.addEventListener("keydown", (e) => {
+      const current = Number(btn.dataset.semesterIndex || "0");
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        updateSelectedSemester((current + 1) % semesterData.length, { focusTab: true });
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        updateSelectedSemester((current - 1 + semesterData.length) % semesterData.length, { focusTab: true });
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        updateSelectedSemester(0, { focusTab: true });
+      } else if (e.key === "End") {
+        e.preventDefault();
+        updateSelectedSemester(semesterData.length - 1, { focusTab: true });
       }
     });
   });
 
-  window.addEventListener("resize", () => {
-    moveNavIndicator(activeNavEl);
+  selectorRoot.querySelectorAll("[data-semester-expand]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.semesterExpand || "0");
+      openSemesterModal(idx, btn);
+    });
   });
 
-  // Default to Plan tab active
-  const planNav = document.getElementById("nav-plan");
-  if (planNav) setActiveNav(planNav);
+  updateSelectedSemester(state.selectedSemesterIndex);
+}
+
+function setupModalBindings() {
+  if (!semesterModal) return;
+  semesterModal.addEventListener("click", (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.dataset.modalClose === "backdrop") {
+      closeSemesterModal();
+    }
+  });
+  semesterModalCloseBtn?.addEventListener("click", closeSemesterModal);
+  document.addEventListener("keydown", onModalKeydown);
+}
+
+function setupRailNavigation() {
+  const navItems = NAV_ORDER
+    .map(id => document.getElementById(id))
+    .filter(Boolean);
+
+  const setActiveNavById = (navId, opts = {}) => {
+    const targetId = NAV_ORDER.includes(navId) ? navId : "nav-plan";
+    const previous = state.activeNavTab || "nav-plan";
+    const previousIndex = getNavIndex(previous);
+    const nextIndex = getNavIndex(targetId);
+    const direction = opts.direction || (nextIndex >= previousIndex ? "up" : "down");
+    state.activeNavTab = targetId;
+
+    navItems.forEach((item) => {
+      const isActive = item.id === targetId;
+      item.classList.toggle("is-active", isActive);
+      item.setAttribute("aria-selected", isActive ? "true" : "false");
+      item.tabIndex = isActive ? 0 : -1;
+    });
+
+    const placeholderId = PLACEHOLDER_MAP[targetId];
+    if (placeholderId) {
+      showPlaceholder(placeholderId, direction);
+    } else {
+      showAppShell(direction);
+    }
+
+    if (opts.persist !== false) onSave();
+  };
+
+  navItems.forEach((item) => {
+    item.addEventListener("click", () => {
+      setActiveNavById(item.id);
+    });
+    item.addEventListener("keydown", (e) => {
+      const currentIndex = NAV_ORDER.indexOf(item.id);
+      if (currentIndex < 0) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = NAV_ORDER[(currentIndex + 1) % NAV_ORDER.length];
+        const nextEl = document.getElementById(next);
+        if (nextEl) nextEl.focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = NAV_ORDER[(currentIndex - 1 + NAV_ORDER.length) % NAV_ORDER.length];
+        const prevEl = document.getElementById(prev);
+        if (prevEl) prevEl.focus();
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        const first = document.getElementById(NAV_ORDER[0]);
+        if (first) first.focus();
+      } else if (e.key === "End") {
+        e.preventDefault();
+        const last = document.getElementById(NAV_ORDER[NAV_ORDER.length - 1]);
+        if (last) last.focus();
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        setActiveNavById(item.id);
+      }
+    });
+  });
+
+  setActiveNavById(state.activeNavTab, { persist: false, direction: "up" });
+  return { setActiveNavById };
 }
 
 /* -- Progress dashboard ------------------------------------------------ */
@@ -673,29 +891,50 @@ function getSelectedMajorIds() {
 
 /* -- Result dispatcher ------------------------------------------------- */
 function renderResults(data) {
+  state.lastRecommendationData = null;
   resultsEl.innerHTML = "";
   resultsEl.classList.remove("hidden");
+  if (sectionHero) sectionHero.classList.add("hidden");
 
   if (data.mode === "error") {
     resultsEl.innerHTML = renderErrorHtml(data.error?.message || "An error occurred.", data.error);
-    updateStepIndicator();
     return;
   }
   if (data.mode === "can_take") {
     resultsEl.innerHTML = renderCanTakeHtml(data);
-    updateStepIndicator();
     return;
   }
   if (data.mode === "recommendations") {
     const requested = parseInt(sessionElements.maxRecs?.value || "3", 10);
-    resultsEl.innerHTML = renderRecommendationsHtml(data, requested);
+    state.lastRecommendationData = data;
+    state.lastRequestedCount = requested;
+    state.selectedSemesterIndex = 0;
+
+    const semesters = Array.isArray(data.semesters) && data.semesters.length
+      ? data.semesters
+      : [data];
+    const safeIdx = clampIndex(state.selectedSemesterIndex, semesters.length);
+    state.selectedSemesterIndex = safeIdx < 0 ? 0 : safeIdx;
+    const selected = semesters[state.selectedSemesterIndex] || semesters[0];
+    const programLabelMap = getProgramLabelMap(data.selection_context);
+
+    const prefixHtml = renderRecommendationsPrefixHtml(data, { programLabelMap });
+    const selectorHtml = renderSemesterSelectorHtml(semesters, state.selectedSemesterIndex);
+    const detailHtml = selected
+      ? renderSemesterHtml(selected, state.selectedSemesterIndex + 1, requested, { programLabelMap })
+      : renderRecommendationsHtml(data, requested);
+
+    resultsEl.innerHTML = `
+      <div class="recommendation-workspace recommendation-workspace--${Math.min(3, Math.max(1, semesters.length))}">
+        <div class="recommendation-prefix">${prefixHtml}</div>
+        <div class="recommendation-interactive">
+          ${selectorHtml}
+          <section id="semester-detail-pane" class="semester-detail-pane" aria-live="polite">${detailHtml}</section>
+        </div>
+      </div>
+    `;
+    wireSemesterInteractions();
     populateProgressDashboard(data);
-    updateStepIndicator();
-    // Auto-scroll to progress dashboard after render
-    requestAnimationFrame(() => {
-      const progressEl = document.getElementById("section-progress");
-      if (progressEl) progressEl.scrollIntoView({ behavior: "smooth" });
-    });
   }
 }
 
@@ -704,12 +943,19 @@ form.addEventListener("submit", async e => {
   e.preventDefault();
   onSave();
 
+  const selectedMajors = getSelectedMajorIds();
+  const selectedTrack = state.selectedTrack;
+  if (!selectedMajors.length) {
+    clearResults();
+    resultsEl.classList.remove("hidden");
+    if (sectionHero) sectionHero.classList.add("hidden");
+    resultsEl.innerHTML = renderErrorHtml("Please select at least one declared major before requesting recommendations.");
+    return;
+  }
+
   submitBtn.disabled = true;
   submitBtn.innerHTML = `<span class="spinner"></span> Analyzing…`;
   clearResults();
-
-  const selectedMajors = getSelectedMajorIds();
-  const selectedTrack = state.selectedTrack;
 
   const payload = {
     completed_courses: [...state.completed].join(", "),
@@ -722,12 +968,8 @@ form.addEventListener("submit", async e => {
     max_recommendations: parseInt(sessionElements.maxRecs.value, 10),
   };
 
-  if (selectedMajors.length > 0) {
-    payload.declared_majors = selectedMajors;
-    payload.track_id = selectedTrack || null;
-  } else if (selectedTrack) {
-    payload.track_id = selectedTrack;
-  }
+  payload.declared_majors = selectedMajors;
+  payload.track_id = selectedTrack || null;
 
   try {
     const data = await postRecommend(payload);
@@ -835,15 +1077,18 @@ async function init() {
   );
 
   setupProgramSelectors();
-  setupAnchorNav();
+  const railApi = setupRailNavigation();
+  setupModalBindings();
   setupCanTakeStandalone();
 
   restoreSession(state, sessionElements, {
     renderChipsCompleted: renderCompletedChips,
     renderChipsIp: renderIpChips,
+    restoreNavTab: (tabId) => {
+      railApi?.setActiveNavById?.(tabId, { persist: false });
+    },
   });
   refreshProgramOptions(false);
-  updateStepIndicator();
 
   sessionElements.targetSemester?.addEventListener("change", onSave);
   sessionElements.targetSemester2?.addEventListener("change", onSave);
@@ -854,3 +1099,4 @@ async function init() {
 }
 
 init();
+

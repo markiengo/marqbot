@@ -9,6 +9,9 @@ export function getSessionSnapshot(state, elements) {
   const declaredMajors = elements.declaredMajors
     ? Array.from(elements.declaredMajors.selectedOptions || []).map(o => o.value).filter(Boolean)
     : [];
+  const activeNavTab = typeof elements.getActiveNavTab === "function"
+    ? String(elements.getActiveNavTab() || "nav-plan")
+    : "nav-plan";
   return {
     completed: [...state.completed],
     inProgress: [...state.inProgress],
@@ -19,6 +22,7 @@ export function getSessionSnapshot(state, elements) {
     canTake: elements.canTake?.value || "",
     declaredMajors,
     declaredTrack: elements.declaredTrack?.value || "",
+    activeNavTab,
   };
 }
 
@@ -106,5 +110,9 @@ export function restoreSession(state, elements, callbacks) {
       o => String(o.value) === String(parsed.declaredTrack),
     );
     if (ok) elements.declaredTrack.value = parsed.declaredTrack;
+  }
+  if (typeof callbacks.restoreNavTab === "function") {
+    const tabId = typeof parsed.activeNavTab === "string" ? parsed.activeNavTab : "nav-plan";
+    callbacks.restoreNavTab(tabId);
   }
 }

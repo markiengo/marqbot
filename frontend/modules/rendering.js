@@ -373,12 +373,30 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
   return html;
 }
 
-export function renderRecommendationsHtml(data, requestedCount, options = {}) {
-  const programLabelMap = getProgramLabelMap(data.selection_context);
-  const renderOptions = { ...options, programLabelMap };
+function clampSelectedIndex(index, length) {
+  if (length <= 0) return 0;
+  const raw = Number(index);
+  if (!Number.isFinite(raw)) return 0;
+  if (raw < 0) return 0;
+  if (raw >= length) return length - 1;
+  return raw;
+}
 
+export function getRecommendationSemesters(data) {
+  if (Array.isArray(data?.semesters) && data.semesters.length) {
+    return data.semesters;
+  }
+  if (data && typeof data === "object") {
+    return [data];
+  }
+  return [];
+}
+
+export function renderRecommendationsPrefixHtml(data, options = {}) {
+  const programLabelMap = options.programLabelMap || getProgramLabelMap(data?.selection_context);
   let prefix = "";
-  if (data.selection_context) {
+
+  if (data?.selection_context) {
     const majorLabels = Array.isArray(data.selection_context.declared_major_labels)
       ? data.selection_context.declared_major_labels
       : (data.selection_context.declared_majors || []).map(id => programLabelMap.get(id) || id);
@@ -393,7 +411,7 @@ export function renderRecommendationsHtml(data, requestedCount, options = {}) {
     prefix += `<div class="warnings-box"><h4 class="heading-gold">Plan Context</h4><ul><li>Majors: ${majors || "None"}</li><li>Track: ${track}</li></ul></div>`;
   }
 
-  if (data.current_progress && Object.keys(data.current_progress).length) {
+  if (data?.current_progress && Object.keys(data.current_progress).length) {
     prefix += renderCurrentProgressHtml(
       data.current_progress,
       data.current_assumption_notes || [],
@@ -401,13 +419,76 @@ export function renderRecommendationsHtml(data, requestedCount, options = {}) {
     );
   }
 
-  if (Array.isArray(data.semesters) && data.semesters.length) {
-    return prefix + data.semesters.map((sem, i) =>
+  return prefix;
+}
+
+export function renderSemesterSelectorHtml(semesters, selectedIndex = 0) {
+  const list = Array.isArray(semesters) ? semesters : [];
+  if (!list.length) return "";
+  const safe = clampSelectedIndex(selectedIndex, list.length);
+  const modeClass = list.length === 1
+    ? "semester-selector--single"
+    : list.length === 2
+      ? "semester-selector--two"
+      : "semester-selector--three";
+
+  const rows = list.map((semester, idx) => {
+    const active = idx === safe;
+    const semLabel = `Semester ${idx + 1}`;
+    const term = String(semester?.target_semester || "").trim();
+    const title = term ? `${semLabel} - ${term}` : semLabel;
+    const recommendationCount = Array.isArray(semester?.recommendations)
+      ? semester.recommendations.length
+      : 0;
+    const recLabel = `${recommendationCount} course${recommendationCount === 1 ? "" : "s"}`;
+
+    return `
+      <div class="semester-tab-row">
+        <button
+          type="button"
+          class="semester-tab${active ? " is-active" : ""}"
+          data-semester-index="${idx}"
+          role="tab"
+          aria-selected="${active ? "true" : "false"}"
+          aria-controls="semester-detail-pane"
+          tabindex="${active ? "0" : "-1"}"
+          title="${esc(title)}"
+        >
+          <span class="semester-tab-title">${esc(semLabel)}</span>
+          <span class="semester-tab-term">${esc(term || "Auto-selected term")}</span>
+          <span class="semester-tab-meta">${esc(recLabel)}</span>
+        </button>
+        <button
+          type="button"
+          class="semester-expand"
+          data-semester-expand="${idx}"
+          aria-label="Expand ${esc(title)} details"
+          title="Expand semester details"
+        >
+          <span aria-hidden="true">&#8645;</span>
+        </button>
+      </div>
+    `;
+  }).join("");
+
+  return `
+    <aside id="semester-selector" class="semester-selector ${modeClass}" role="tablist" aria-label="Semester selector">
+      ${rows}
+    </aside>
+  `;
+}
+
+export function renderRecommendationsHtml(data, requestedCount, options = {}) {
+  const programLabelMap = options.programLabelMap || getProgramLabelMap(data.selection_context);
+  const renderOptions = { ...options, programLabelMap };
+  const prefix = renderRecommendationsPrefixHtml(data, renderOptions);
+  const semesters = getRecommendationSemesters(data);
+  if (semesters.length) {
+    return prefix + semesters.map((sem, i) =>
       `<section class="semester-block">${renderSemesterHtml(sem, i + 1, requestedCount, renderOptions)}</section>`
     ).join("");
   }
-
-  return prefix + renderSemesterHtml(data, 1, requestedCount, renderOptions);
+  return prefix;
 }
 
 /**

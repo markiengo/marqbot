@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   /*
     Token Migration Policy
     Canonical tokens: --sp-1 .. --sp-10
@@ -814,17 +814,17 @@ select:focus,
   .progress-grid { grid-template-columns: 1fr; }
 }
 
-/* Track unavailable state — shown when selected major(s) have no concentrations */
+/* Track unavailable state â€” shown when selected major(s) have no concentrations */
 .track-unavailable .ms-input { opacity: 0.4; cursor: not-allowed; }
 .track-unavailable .form-hint { opacity: 0.5; }
 
-/* Major limit reached — shown when 2 majors are already declared */
+/* Major limit reached â€” shown when 2 majors are already declared */
 .major-limit-reached .ms-input { opacity: 0.4; cursor: not-allowed; }
 .major-limit-reached .form-hint { opacity: 0.5; }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    3-PANEL LAYOUT
-   ═══════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Sticky topbar */
 #topbar {
@@ -1204,9 +1204,9 @@ select:focus,
   font-size: 0.86rem;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    PROGRESS DASHBOARD
-   ═══════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 #progress-dashboard {
   padding: var(--sp-5);
@@ -1274,9 +1274,9 @@ select:focus,
   margin-top: var(--sp-1);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    INLINE WARNING STRIP (persistent, replaces transient soft-warn text)
-   ═══════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .warning-strip {
   background: rgba(190, 125, 0, 0.12);
@@ -1289,9 +1289,9 @@ select:focus,
   font-weight: 700;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    DEGREE SUMMARY (right panel)
-   ═══════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .degree-summary { display: grid; gap: var(--sp-1); }
 
@@ -1308,9 +1308,9 @@ select:focus,
 .summary-label { color: var(--ink-700); font-weight: 600; flex: 1; margin-right: var(--sp-2); }
 .summary-frac { color: var(--ink-500); font-variant-numeric: tabular-nums; flex-shrink: 0; }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    INLINE CAN-TAKE RESULT (right panel)
-   ═══════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .can-take-inline {
   border: 1px solid var(--line);
@@ -1341,9 +1341,9 @@ select:focus,
 .ct-reason { margin: var(--sp-1) 0 0; color: var(--ink-700); font-size: var(--text-xs); }
 .ct-prereqs { margin: var(--sp-1) 0 0; color: var(--bad); font-size: var(--text-xs); }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TABLET BREAKPOINT (<=1200px): explicit right-panel stacking
-   ═══════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 @media (max-width: 1200px) {
   #app-shell {
@@ -1395,9 +1395,9 @@ select:focus,
   #topbar .step-indicator { display: none; }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ACCESSIBILITY
-   ═══════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -1415,7 +1415,7 @@ select:focus,
   outline-offset: 2px;
 }
 
-/* ── Placeholder screens ─────────────────────────────────────────────── */
+/* â”€â”€ Placeholder screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .placeholder-screen {
   position: fixed;
   inset: var(--topbar-height) 0 0 0;
@@ -1552,3 +1552,562 @@ select:focus,
     flex-direction: column;
   }
 }
+
+/* ===== v1.7 Layout Overrides ===== */
+:root {
+  --rail-width: 212px;
+  --rail-width-tablet: 132px;
+  --mobile-rail-h: 74px;
+  --app-pad: 20px;
+}
+
+body {
+  min-height: 100vh;
+}
+
+#app-frame {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: var(--rail-width) minmax(0, 1fr);
+}
+
+#rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--sp-5);
+  padding: 22px 16px 18px;
+  border-right: 1px solid rgba(141, 170, 224, 0.26);
+  background: linear-gradient(180deg, rgba(6, 27, 54, 0.92), rgba(4, 20, 44, 0.88));
+  backdrop-filter: blur(12px) saturate(120%);
+  z-index: 20;
+}
+
+.rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px 10px;
+}
+
+.rail-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.rail-title {
+  color: var(--mu-gold);
+  font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.rail-nav {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.rail-link {
+  border: 1px solid rgba(133, 167, 228, 0.16);
+  border-radius: 14px;
+  background: rgba(14, 34, 67, 0.34);
+  color: #dce9ff;
+  text-align: left;
+  font-family: "Plus Jakarta Sans", "Avenir Next", sans-serif;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 14px 14px;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.rail-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(133, 167, 228, 0.34);
+  background: rgba(23, 48, 88, 0.5);
+}
+
+.rail-link.is-active {
+  color: #062141;
+  background: linear-gradient(90deg, #f0bc00, #ffcc00);
+  border-color: rgba(255, 210, 32, 0.72);
+  box-shadow: 0 10px 24px rgba(255, 204, 0, 0.28);
+}
+
+.rail-link-avatar {
+  margin-top: auto;
+}
+
+#app-content {
+  position: relative;
+  min-height: 100vh;
+  padding: var(--app-pad);
+}
+
+#app-shell {
+  grid-template-columns: minmax(300px, 33fr) minmax(520px, 67fr);
+  grid-template-rows: minmax(360px, auto) minmax(360px, auto);
+  grid-template-areas:
+    "tl tr"
+    "bl br";
+  align-items: stretch;
+  gap: 22px;
+  padding: 22px;
+  margin-top: 0;
+  min-height: calc(100vh - (2 * var(--app-pad)));
+  border: 1px solid rgba(141, 170, 224, 0.26);
+  border-radius: 24px;
+  background: rgba(7, 22, 46, 0.54);
+  box-shadow: 0 20px 50px rgba(4, 18, 37, 0.34);
+}
+
+#app-shell::before {
+  background-image: url("screen_plan_cover.jpg");
+  filter: saturate(108%);
+}
+
+#app-shell::after {
+  background:
+    linear-gradient(145deg, rgba(5, 20, 40, 0.7), rgba(8, 28, 56, 0.54));
+  backdrop-filter: blur(8px) saturate(118%);
+}
+
+.planner-quad {
+  position: relative;
+  overflow: visible;
+  min-height: 0;
+  z-index: 1;
+}
+
+#quad-tl { grid-area: tl; }
+#quad-tr { grid-area: tr; }
+#quad-bl { grid-area: bl; }
+#quad-br { grid-area: br; }
+
+#panel-left,
+#panel-center,
+#panel-right,
+#panel-recommendations {
+  height: 100%;
+  min-height: 100%;
+  border: 1px solid rgba(141, 170, 224, 0.24);
+  border-radius: 20px;
+  padding: 22px;
+  backdrop-filter: blur(8px);
+}
+
+#panel-left {
+  position: relative;
+  top: auto;
+  overflow: visible;
+  background: linear-gradient(180deg, rgba(15, 32, 61, 0.82), rgba(10, 24, 48, 0.68));
+}
+
+#panel-center {
+  min-height: 350px;
+  background: linear-gradient(180deg, rgba(13, 33, 63, 0.72), rgba(8, 24, 48, 0.58));
+}
+
+#panel-right {
+  position: relative;
+  top: auto;
+  overflow: visible;
+  align-content: start;
+  background: linear-gradient(180deg, rgba(17, 34, 66, 0.77), rgba(10, 24, 49, 0.64));
+}
+
+#panel-recommendations {
+  background: linear-gradient(180deg, rgba(11, 28, 55, 0.72), rgba(8, 23, 47, 0.58));
+  min-height: 360px;
+}
+
+#panel-left form {
+  gap: 18px;
+}
+
+#panel-left .form-group,
+#quick-settings .form-group {
+  padding: 16px;
+  border-radius: 14px;
+}
+
+.center-header {
+  margin-bottom: 18px;
+}
+
+.center-header .eyebrow {
+  font-size: 0.98rem;
+}
+
+.center-header h1 {
+  margin-top: 2px;
+  font-size: clamp(2rem, 3.5vw, 3.2rem);
+}
+
+#progress-dashboard {
+  margin-bottom: 0;
+}
+
+.recommendation-empty-state {
+  padding: 22px;
+  border: 1px dashed rgba(141, 170, 224, 0.42);
+  border-radius: 16px;
+  background: rgba(16, 36, 67, 0.54);
+  margin-bottom: 16px;
+}
+
+.recommendation-empty-state h1 {
+  margin: 6px 0;
+  font-size: clamp(1.8rem, 2.8vw, 2.5rem);
+}
+
+.recommendation-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.recommendation-prefix {
+  display: grid;
+  gap: 14px;
+}
+
+.recommendation-interactive {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.semester-selector {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.semester-selector--single .semester-tab {
+  min-height: 132px;
+}
+
+.semester-selector--two .semester-tab {
+  min-height: 122px;
+}
+
+.semester-tab-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.semester-tab {
+  border: 1px solid rgba(135, 168, 226, 0.28);
+  border-radius: 14px;
+  background: rgba(18, 38, 72, 0.62);
+  color: #e6f0ff;
+  padding: 12px;
+  text-align: left;
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.semester-tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(156, 186, 238, 0.44);
+}
+
+.semester-tab.is-active {
+  border-color: rgba(255, 205, 14, 0.75);
+  background: linear-gradient(160deg, rgba(255, 204, 0, 0.24), rgba(27, 72, 136, 0.56));
+  box-shadow: 0 10px 20px rgba(7, 32, 67, 0.22);
+}
+
+.semester-tab-title {
+  font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.semester-tab-term {
+  font-size: 0.9rem;
+  color: #d1e1ff;
+}
+
+.semester-tab-meta {
+  font-size: 0.8rem;
+  color: rgba(255, 236, 150, 0.92);
+  font-weight: 700;
+}
+
+.semester-expand {
+  align-self: stretch;
+  min-width: 42px;
+  border: 1px solid rgba(141, 170, 224, 0.34);
+  border-radius: 12px;
+  background: rgba(15, 33, 62, 0.74);
+  color: #e5f0ff;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.semester-expand:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 204, 0, 0.62);
+}
+
+.semester-detail-pane {
+  border: 1px solid rgba(141, 170, 224, 0.22);
+  border-radius: 16px;
+  background: rgba(15, 33, 63, 0.58);
+  padding: 16px;
+  min-height: 220px;
+}
+
+.semester-detail-pane .section-title-semester {
+  margin-top: 0;
+}
+
+.semester-modal {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 220ms ease, visibility 0s linear 220ms;
+  z-index: 120;
+}
+
+.semester-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.semester-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 17, 37, 0.56);
+  backdrop-filter: blur(8px);
+}
+
+.semester-modal-card {
+  position: relative;
+  width: min(62vw, 980px);
+  max-width: calc(100vw - 52px);
+  max-height: min(84vh, 900px);
+  margin: min(7vh, 56px) auto 0;
+  border: 1px solid rgba(141, 170, 224, 0.28);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(10, 26, 51, 0.96), rgba(8, 21, 42, 0.94));
+  box-shadow: 0 24px 58px rgba(4, 15, 31, 0.45);
+  padding: 20px 22px 24px;
+  overflow: hidden;
+}
+
+.semester-modal-close {
+  border: 1px solid rgba(141, 170, 224, 0.38);
+  border-radius: 10px;
+  background: rgba(18, 39, 72, 0.74);
+  color: #dce8ff;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.semester-modal-title {
+  margin: 14px 0 12px;
+  font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+  font-size: 1.35rem;
+  color: #ffffff;
+}
+
+.semester-modal-body {
+  max-height: calc(min(84vh, 900px) - 118px);
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.semester-modal-body .rec-card {
+  padding: 16px;
+}
+
+.semester-modal-body .rec-card-title {
+  font-size: 1.06rem;
+}
+
+.semester-modal-body .section-title {
+  font-size: 1.2rem;
+}
+
+.placeholder-screen {
+  inset: 0 0 0 var(--rail-width);
+  min-height: 100vh;
+  padding: min(8vw, 70px);
+  transform: translateY(14px) scale(0.995);
+}
+
+.placeholder-screen--home {
+  --placeholder-cover: url("screen_plan_cover.jpg");
+}
+
+.placeholder-screen--courses {
+  --placeholder-cover: url("screen_courses_cover.jpg");
+}
+
+.placeholder-screen--saved,
+.placeholder-screen--avatar {
+  --placeholder-cover: url("screen_saved_cover.jpg");
+}
+
+.placeholder-screen--ai {
+  --placeholder-cover: url("screen_aiadvisor_cover.jpg");
+}
+
+.placeholder-screen::after {
+  background:
+    linear-gradient(135deg, rgba(3, 28, 57, 0.72), rgba(7, 20, 44, 0.48));
+  backdrop-filter: blur(10px) saturate(120%);
+}
+
+#app-shell.app-shell-hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+#app-shell.transition-up,
+.placeholder-screen.transition-up {
+  animation: shellTransitionUp 300ms cubic-bezier(0.2, 0.76, 0.2, 1);
+}
+
+#app-shell.transition-down,
+.placeholder-screen.transition-down {
+  animation: shellTransitionDown 300ms cubic-bezier(0.2, 0.76, 0.2, 1);
+}
+
+@keyframes shellTransitionUp {
+  from { opacity: 0.72; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shellTransitionDown {
+  from { opacity: 0.72; transform: translateY(-22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1200px) {
+  #app-frame {
+    grid-template-columns: var(--rail-width-tablet) minmax(0, 1fr);
+  }
+
+  .rail-title {
+    font-size: 1.24rem;
+  }
+
+  .rail-link {
+    padding: 12px 10px;
+    font-size: 0.92rem;
+  }
+
+  #app-shell {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "tl"
+      "tr"
+      "bl"
+      "br";
+    grid-template-rows: auto;
+    gap: 16px;
+  }
+
+  .placeholder-screen {
+    inset: 0 0 0 var(--rail-width-tablet);
+  }
+}
+
+@media (max-width: 900px) {
+  #app-frame {
+    display: block;
+    padding-bottom: var(--mobile-rail-h);
+  }
+
+  #rail {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    height: var(--mobile-rail-h);
+    grid-template-rows: 1fr;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    border-right: none;
+    border-top: 1px solid rgba(141, 170, 224, 0.24);
+  }
+
+  .rail-brand {
+    display: none;
+  }
+
+  .rail-nav {
+    display: contents;
+  }
+
+  .rail-link,
+  .rail-link-avatar {
+    margin: 0;
+    border-radius: 10px;
+    text-align: center;
+    padding: 10px 4px;
+    font-size: 0.78rem;
+    line-height: 1.1;
+  }
+
+  #app-content {
+    padding: 12px;
+  }
+
+  #app-shell {
+    padding: 14px;
+    min-height: auto;
+  }
+
+  .recommendation-interactive {
+    grid-template-columns: 1fr;
+  }
+
+  .semester-selector {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  .semester-modal-card {
+    width: calc(100vw - 24px);
+    max-height: 88vh;
+    margin-top: 20px;
+    padding: 16px;
+  }
+
+  .semester-modal-body {
+    max-height: calc(88vh - 102px);
+  }
+
+  .placeholder-screen {
+    inset: 0 0 var(--mobile-rail-h) 0;
+  }
+}
+

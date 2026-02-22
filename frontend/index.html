@@ -14,195 +14,211 @@
   <div class="bg-orb bg-orb-b"></div>
   <div class="bg-grid"></div>
 
-  <!-- Sticky top navigation bar -->
-  <div id="topbar">
-    <div class="topbar-brand">
-      <img src="marquette_logo2.jpg" alt="Marquette logo" class="topbar-logo" />
-      <span class="topbar-title">MarqBot</span>
+  <div id="app-frame">
+    <aside id="rail" aria-label="Primary navigation">
+      <div class="rail-brand">
+        <img src="marquette_logo2.jpg" alt="Marquette logo" class="rail-logo" />
+        <span class="rail-title">MarqBot</span>
+      </div>
+      <nav id="rail-nav" class="rail-nav" role="tablist" aria-label="Primary sections">
+        <button type="button" class="rail-link" id="nav-home" data-nav-index="0" role="tab" aria-selected="false">Home</button>
+        <button type="button" class="rail-link" id="nav-plan" data-nav-index="1" role="tab" aria-selected="true">Planner</button>
+        <button type="button" class="rail-link" id="nav-courses" data-nav-index="2" role="tab" aria-selected="false">Courses</button>
+        <button type="button" class="rail-link" id="nav-saved" data-nav-index="3" role="tab" aria-selected="false">Saved</button>
+        <button type="button" class="rail-link" id="nav-ai-advisor" data-nav-index="4" role="tab" aria-selected="false">AI Advisor</button>
+      </nav>
+      <button type="button" class="rail-link rail-link-avatar" id="nav-avatar" data-nav-index="5" role="tab" aria-selected="false">Avatar</button>
+    </aside>
+
+    <div id="app-content">
+      <div id="app-shell">
+        <section id="quad-tl" class="planner-quad">
+          <aside id="panel-left">
+            <section id="section-input" data-nav-section="section-input">
+              <form id="advisor-form">
+                <div class="left-panel-header">
+                  <p class="eyebrow">Academic Advisor</p>
+                  <h2 class="panel-heading">Build Your Plan</h2>
+                </div>
+
+                <div class="form-group" id="major-form-group">
+                  <label for="declared-majors">Declared Major(s)</label>
+                  <p class="form-hint">Select up to 2 majors.</p>
+                  <select id="declared-majors" multiple class="hidden"></select>
+                  <div class="multiselect" id="ms-majors">
+                    <div class="ms-chips" id="chips-majors"></div>
+                    <input type="text" class="ms-input" id="search-majors" placeholder="Search majors..." autocomplete="off" />
+                    <div class="ms-dropdown" id="dropdown-majors"></div>
+                  </div>
+                </div>
+
+                <div class="form-group" id="track-form-group">
+                  <label for="declared-track">Track <span class="label-note">(optional)</span></label>
+                  <p class="form-hint">Select one track for a selected major.</p>
+                  <select id="declared-track" class="hidden"></select>
+                  <div class="multiselect" id="ms-track">
+                    <div class="ms-chips" id="chips-track"></div>
+                    <input type="text" class="ms-input" id="search-track" placeholder="Search tracks..." autocomplete="off" />
+                    <div class="ms-dropdown" id="dropdown-track"></div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Completed Courses</label>
+                  <p class="form-hint">Search by course code and add. Or <button type="button" class="link-btn" id="toggle-paste-completed">paste codes</button>.</p>
+                  <p class="form-hint">You can enter higher-level completed courses only. Required prereq chains are auto-assumed; OR-choice and concurrent prereqs are not.</p>
+                  <div class="multiselect" id="ms-completed">
+                    <div class="ms-chips" id="chips-completed"></div>
+                    <input type="text" class="ms-input" id="search-completed" placeholder="Search courses..." autocomplete="off" />
+                    <div class="ms-dropdown" id="dropdown-completed"></div>
+                  </div>
+                  <textarea class="paste-area hidden" id="paste-completed" placeholder="Paste comma-separated codes, e.g. FINA 3001, ECON 1103"></textarea>
+                  <button type="button" class="link-btn hidden" id="apply-paste-completed">Apply</button>
+                  <div class="paste-errors hidden" id="paste-errors-completed"></div>
+                </div>
+
+                <div class="form-group">
+                  <label>Currently In-Progress Courses <span class="label-note">(this semester)</span></label>
+                  <p class="form-hint">Search by course code and add. Or <button type="button" class="link-btn" id="toggle-paste-ip">paste codes</button>.</p>
+                  <div class="multiselect" id="ms-ip">
+                    <div class="ms-chips" id="chips-ip"></div>
+                    <input type="text" class="ms-input" id="search-ip" placeholder="Search courses..." autocomplete="off" />
+                    <div class="ms-dropdown" id="dropdown-ip"></div>
+                  </div>
+                  <textarea class="paste-area hidden" id="paste-ip" placeholder="Paste comma-separated codes, e.g. FINA 4001"></textarea>
+                  <button type="button" class="link-btn hidden" id="apply-paste-ip">Apply</button>
+                  <div class="paste-errors hidden" id="paste-errors-ip"></div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="submit-btn">
+                  Get Recommendations
+                </button>
+                <p class="form-hint submit-hint">Press to refresh results.</p>
+              </form>
+            </section>
+          </aside>
+        </section>
+
+        <section id="quad-tr" class="planner-quad">
+          <main id="panel-center">
+            <header class="center-header">
+              <p class="eyebrow">Marquette University</p>
+              <h1>Academic Dashboard</h1>
+            </header>
+            <section id="section-progress" data-nav-section="section-progress">
+              <div id="progress-dashboard" class="hidden">
+                <div class="section-title">Degree Progress</div>
+                <div id="progress-ring-wrap"></div>
+                <div id="kpi-row"></div>
+              </div>
+            </section>
+          </main>
+        </section>
+
+        <section id="quad-bl" class="planner-quad">
+          <aside id="panel-right">
+            <section id="quick-settings">
+              <h3 class="panel-section-title">Settings</h3>
+
+              <div class="form-group">
+                <label for="target-semester">Target Semester (1)</label>
+                <p class="form-hint">Choose the first target term.</p>
+                <select id="target-semester" form="advisor-form">
+                  <option selected>Spring 2026</option>
+                  <option>Summer 2026</option>
+                  <option>Fall 2026</option>
+                  <option>Spring 2027</option>
+                  <option>Summer 2027</option>
+                  <option>Fall 2027</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="target-semester-2">Semester (2) <span class="label-note">(optional)</span></label>
+                <p class="form-hint">Leave blank to auto-pick next term.</p>
+                <select id="target-semester-2" form="advisor-form">
+                  <option value="" selected>Auto</option>
+                  <option value="__NONE__">None (Do not generate)</option>
+                  <option>Spring 2026</option>
+                  <option>Summer 2026</option>
+                  <option>Fall 2026</option>
+                  <option>Spring 2027</option>
+                  <option>Summer 2027</option>
+                  <option>Fall 2027</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="target-semester-3">Semester (3) <span class="label-note">(optional)</span></label>
+                <p class="form-hint">Leave blank to auto-pick after Semester (2).</p>
+                <select id="target-semester-3" form="advisor-form">
+                  <option value="" selected>Auto</option>
+                  <option value="__NONE__">None (Do not generate)</option>
+                  <option>Spring 2026</option>
+                  <option>Summer 2026</option>
+                  <option>Fall 2026</option>
+                  <option>Spring 2027</option>
+                  <option>Summer 2027</option>
+                  <option>Fall 2027</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="max-recs">Recommendations</label>
+                <p class="form-hint">Max courses to show.</p>
+                <select id="max-recs" form="advisor-form">
+                  <option value="2">2</option>
+                  <option value="3" selected>3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                </select>
+              </div>
+            </section>
+
+            <section id="right-summary" class="hidden">
+              <h3 class="panel-section-title">Degree Summary</h3>
+              <div id="right-summary-content"></div>
+            </section>
+
+            <section id="can-take-section">
+              <h3 class="panel-section-title">Can I Take This Next Semester?</h3>
+              <p class="form-hint">Enter a course code and press Enter to check next-semester eligibility.</p>
+              <div class="multiselect" id="ms-can-take">
+                <input type="text" class="ms-input" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
+                <div class="ms-dropdown" id="dropdown-can-take"></div>
+              </div>
+              <div id="can-take-result" class="hidden"></div>
+            </section>
+          </aside>
+        </section>
+
+        <section id="quad-br" class="planner-quad">
+          <main id="panel-recommendations">
+            <section id="section-hero" class="recommendation-empty-state">
+              <p class="eyebrow">Planner Workspace</p>
+              <h1>Interactive Recommendations</h1>
+              <p class="form-hint">Choose majors, add completed/in-progress courses, then generate semester recommendations.</p>
+            </section>
+            <section id="section-recommendations" data-nav-section="section-recommendations">
+              <div id="results" class="hidden"></div>
+            </section>
+          </main>
+        </section>
+      </div>
     </div>
-    <nav class="anchor-nav" aria-label="Page sections">
-      <span id="nav-pill-indicator" class="nav-pill-indicator" aria-hidden="true"></span>
-      <button type="button" class="anchor-link" id="nav-courses">Courses</button>
-      <a href="#section-progress" class="anchor-link" id="nav-plan">Plan</a>
-      <button type="button" class="anchor-link" id="nav-saved">Saved</button>
-      <button type="button" class="anchor-link anchor-link-ai" id="nav-ai-advisor" aria-label="AI Advisor">
-        <span class="topbar-ai-icon" aria-hidden="true">&#x1F58C;</span>
-        AI Advisor
-      </button>
-    </nav>
-  </div>
-
-  <!-- 3-panel app shell -->
-  <div id="app-shell">
-
-    <!-- LEFT PANEL: Guided input -->
-    <aside id="panel-left">
-      <section id="section-input" data-nav-section="section-input">
-        <form id="advisor-form">
-          <div class="left-panel-header">
-            <p class="eyebrow">Academic Advisor</p>
-            <h2 class="panel-heading">Build Your Plan</h2>
-          </div>
-
-          <div class="form-group" id="major-form-group">
-            <label for="declared-majors">Declared Major(s)</label>
-            <p class="form-hint">Select up to 2 majors.</p>
-            <select id="declared-majors" multiple class="hidden"></select>
-            <div class="multiselect" id="ms-majors">
-              <div class="ms-chips" id="chips-majors"></div>
-              <input type="text" class="ms-input" id="search-majors" placeholder="Search majors..." autocomplete="off" />
-              <div class="ms-dropdown" id="dropdown-majors"></div>
-            </div>
-          </div>
-
-          <div class="form-group" id="track-form-group">
-            <label for="declared-track">Track <span class="label-note">(optional)</span></label>
-            <p class="form-hint">Select one track for a selected major.</p>
-            <select id="declared-track" class="hidden"></select>
-            <div class="multiselect" id="ms-track">
-              <div class="ms-chips" id="chips-track"></div>
-              <input type="text" class="ms-input" id="search-track" placeholder="Search tracks..." autocomplete="off" />
-              <div class="ms-dropdown" id="dropdown-track"></div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Completed Courses</label>
-            <p class="form-hint">Search by course code and add. Or <button type="button" class="link-btn" id="toggle-paste-completed">paste codes</button>.</p>
-            <p class="form-hint">You can enter higher-level completed courses only. Required prereq chains are auto-assumed; OR-choice and concurrent prereqs are not.</p>
-            <div class="multiselect" id="ms-completed">
-              <div class="ms-chips" id="chips-completed"></div>
-              <input type="text" class="ms-input" id="search-completed" placeholder="Search courses..." autocomplete="off" />
-              <div class="ms-dropdown" id="dropdown-completed"></div>
-            </div>
-            <textarea class="paste-area hidden" id="paste-completed" placeholder="Paste comma-separated codes, e.g. FINA 3001, ECON 1103"></textarea>
-            <button type="button" class="link-btn hidden" id="apply-paste-completed">Apply</button>
-            <div class="paste-errors hidden" id="paste-errors-completed"></div>
-          </div>
-
-          <div class="form-group">
-            <label>Currently In-Progress Courses <span class="label-note">(this semester)</span></label>
-            <p class="form-hint">Search by course code and add. Or <button type="button" class="link-btn" id="toggle-paste-ip">paste codes</button>.</p>
-            <div class="multiselect" id="ms-ip">
-              <div class="ms-chips" id="chips-ip"></div>
-              <input type="text" class="ms-input" id="search-ip" placeholder="Search courses..." autocomplete="off" />
-              <div class="ms-dropdown" id="dropdown-ip"></div>
-            </div>
-            <textarea class="paste-area hidden" id="paste-ip" placeholder="Paste comma-separated codes, e.g. FINA 4001"></textarea>
-            <button type="button" class="link-btn hidden" id="apply-paste-ip">Apply</button>
-            <div class="paste-errors hidden" id="paste-errors-ip"></div>
-          </div>
-
-          <button type="submit" class="btn-primary" id="submit-btn">
-            Get Recommendations
-          </button>
-          <p class="form-hint submit-hint">Press to refresh results.</p>
-        </form>
-      </section>
-    </aside>
-
-    <!-- CENTER PANEL: Progress and results -->
-    <main id="panel-center">
-      <section id="section-hero">
-        <header class="center-header">
-          <p class="eyebrow">Marquette University</p>
-          <h1>Academic Dashboard</h1>
-        </header>
-      </section>
-
-      <section id="section-progress" data-nav-section="section-progress">
-        <div id="progress-dashboard" class="hidden">
-          <div class="section-title">Degree Progress</div>
-          <div id="progress-ring-wrap"></div>
-          <div id="kpi-row"></div>
-        </div>
-      </section>
-
-      <section id="section-recommendations" data-nav-section="section-recommendations">
-        <div id="results" class="hidden"></div>
-      </section>
-    </main>
-
-    <!-- RIGHT PANEL: Settings, summary, can-take -->
-    <aside id="panel-right">
-
-      <section id="quick-settings">
-        <h3 class="panel-section-title">Settings</h3>
-
-        <div class="form-group">
-          <label for="target-semester">Target Semester (1)</label>
-          <p class="form-hint">Choose the first target term.</p>
-          <select id="target-semester" form="advisor-form">
-            <option selected>Spring 2026</option>
-            <option>Summer 2026</option>
-            <option>Fall 2026</option>
-            <option>Spring 2027</option>
-            <option>Summer 2027</option>
-            <option>Fall 2027</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="target-semester-2">Semester (2) <span class="label-note">(optional)</span></label>
-          <p class="form-hint">Leave blank to auto-pick next term.</p>
-          <select id="target-semester-2" form="advisor-form">
-            <option value="" selected>Auto</option>
-            <option value="__NONE__">None (Do not generate)</option>
-            <option>Spring 2026</option>
-            <option>Summer 2026</option>
-            <option>Fall 2026</option>
-            <option>Spring 2027</option>
-            <option>Summer 2027</option>
-            <option>Fall 2027</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="target-semester-3">Semester (3) <span class="label-note">(optional)</span></label>
-          <p class="form-hint">Leave blank to auto-pick after Semester (2).</p>
-          <select id="target-semester-3" form="advisor-form">
-            <option value="" selected>Auto</option>
-            <option value="__NONE__">None (Do not generate)</option>
-            <option>Spring 2026</option>
-            <option>Summer 2026</option>
-            <option>Fall 2026</option>
-            <option>Spring 2027</option>
-            <option>Summer 2027</option>
-            <option>Fall 2027</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="max-recs">Recommendations</label>
-          <p class="form-hint">Max courses to show.</p>
-          <select id="max-recs" form="advisor-form">
-            <option value="2">2</option>
-            <option value="3" selected>3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
-        </div>
-      </section>
-
-      <section id="right-summary" class="hidden">
-        <h3 class="panel-section-title">Degree Summary</h3>
-        <div id="right-summary-content"></div>
-      </section>
-
-      <section id="can-take-section">
-        <h3 class="panel-section-title">Can I Take This Next Semester?</h3>
-        <p class="form-hint">Enter a course code and press Enter to check next-semester eligibility.</p>
-        <div class="multiselect" id="ms-can-take">
-          <input type="text" class="ms-input" id="can-take-input" placeholder="e.g. FINA 4081" autocomplete="off" />
-          <div class="ms-dropdown" id="dropdown-can-take"></div>
-        </div>
-        <div id="can-take-result" class="hidden"></div>
-      </section>
-
-    </aside>
   </div>
 
   <!-- Placeholder screens (hidden by default, shown when nav tabs activated) -->
+  <section id="placeholder-home" class="placeholder-screen placeholder-screen--home">
+    <h2>Home</h2>
+    <p class="placeholder-subtitle">Coming Soon</p>
+    <p class="placeholder-detail">In progress...</p>
+    <div class="placeholder-notify" role="group" aria-label="Notify me for Home">
+      <input type="email" class="placeholder-notify-input" placeholder="your.email@marquette.edu" />
+      <button type="button" class="placeholder-notify-btn">Notify Me</button>
+    </div>
+    <p class="placeholder-note">Notify form is preview-only in this build.</p>
+  </section>
   <section id="placeholder-courses" class="placeholder-screen placeholder-screen--courses">
     <h2>Courses</h2>
     <p class="placeholder-subtitle">Coming Soon</p>
@@ -214,10 +230,10 @@
     <p class="placeholder-note">Notify form is preview-only in this build.</p>
   </section>
   <section id="placeholder-saved" class="placeholder-screen placeholder-screen--saved">
-    <h2>Saved Plans</h2>
+    <h2>Saved</h2>
     <p class="placeholder-subtitle">Coming Soon</p>
     <p class="placeholder-detail">In progress...</p>
-    <div class="placeholder-notify" role="group" aria-label="Notify me for Saved Plans">
+    <div class="placeholder-notify" role="group" aria-label="Notify me for Saved">
       <input type="email" class="placeholder-notify-input" placeholder="your.email@marquette.edu" />
       <button type="button" class="placeholder-notify-btn">Notify Me</button>
     </div>
@@ -233,6 +249,25 @@
     </div>
     <p class="placeholder-note">Notify form is preview-only in this build.</p>
   </section>
+  <section id="placeholder-avatar" class="placeholder-screen placeholder-screen--avatar">
+    <h2>Avatar</h2>
+    <p class="placeholder-subtitle">Coming Soon</p>
+    <p class="placeholder-detail">In progress...</p>
+    <div class="placeholder-notify" role="group" aria-label="Notify me for Avatar">
+      <input type="email" class="placeholder-notify-input" placeholder="your.email@marquette.edu" />
+      <button type="button" class="placeholder-notify-btn">Notify Me</button>
+    </div>
+    <p class="placeholder-note">Notify form is preview-only in this build.</p>
+  </section>
+
+  <div id="semester-modal" class="semester-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="semester-modal-title">
+    <div class="semester-modal-backdrop" data-modal-close="backdrop"></div>
+    <div class="semester-modal-card" role="document">
+      <button type="button" id="semester-modal-close" class="semester-modal-close" data-modal-close="button" aria-label="Close semester details">Close</button>
+      <h2 id="semester-modal-title" class="semester-modal-title">Semester Details</h2>
+      <div id="semester-modal-body" class="semester-modal-body"></div>
+    </div>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>

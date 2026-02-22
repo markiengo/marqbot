@@ -27,6 +27,7 @@ function makeElements(overrides = {}) {
     targetSemester3: mockSelect("", ["", "__NONE__", "Spring 2026", "Fall 2026"]),
     maxRecs: mockSelect("3", ["2", "3", "4", "5"]),
     canTake: { value: "FINA 4001" },
+    getActiveNavTab: () => "nav-plan",
     ...overrides,
   };
 }
@@ -43,14 +44,23 @@ describe("getSessionSnapshot()", () => {
     expect(snap.targetSemester3).toBe("");
     expect(snap.maxRecs).toBe("3");
     expect(snap.canTake).toBe("FINA 4001");
+    expect(snap.activeNavTab).toBe("nav-plan");
   });
 
   test("handles null elements gracefully", () => {
     const state = makeState();
-    const elements = { targetSemester: null, targetSemester2: null, targetSemester3: null, maxRecs: null, canTake: null };
+    const elements = {
+      targetSemester: null,
+      targetSemester2: null,
+      targetSemester3: null,
+      maxRecs: null,
+      canTake: null,
+      getActiveNavTab: null,
+    };
     const snap = getSessionSnapshot(state, elements);
     expect(snap.targetSemester).toBe("");
     expect(snap.maxRecs).toBe("3");
+    expect(snap.activeNavTab).toBe("nav-plan");
   });
 });
 
@@ -153,5 +163,30 @@ describe("restoreSession()", () => {
 
     expect(state.completed.has("ECON 1103")).toBe(true);
     expect(state.inProgress.has("ECON 1103")).toBe(false);
+  });
+
+  test("restores active nav tab via callback when present", () => {
+    const snap = {
+      completed: [],
+      inProgress: [],
+      targetSemester: "",
+      targetSemester2: "",
+      targetSemester3: "",
+      maxRecs: "3",
+      canTake: "",
+      activeNavTab: "nav-courses",
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
+
+    const restoreNavTab = jest.fn();
+    const state = makeState([], [], courses);
+    const elements = makeElements();
+    restoreSession(state, elements, {
+      renderChipsCompleted: jest.fn(),
+      renderChipsIp: jest.fn(),
+      restoreNavTab,
+    });
+
+    expect(restoreNavTab).toHaveBeenCalledWith("nav-courses");
   });
 });

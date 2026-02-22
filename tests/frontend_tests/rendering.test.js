@@ -4,6 +4,9 @@ import {
   renderCanTakeHtml,
   renderSemesterHtml,
   renderRecommendationsHtml,
+  renderRecommendationsPrefixHtml,
+  renderSemesterSelectorHtml,
+  getRecommendationSemesters,
   renderProgressRing,
   renderKpiCardsHtml,
   renderDegreeSummaryHtml,
@@ -263,6 +266,52 @@ describe("renderRecommendationsHtml()", () => {
     }, 3);
     expect(html).toContain("Current Degree Progress");
     expect(html).not.toContain('class="assumption-notes"');
+  });
+});
+
+describe("renderRecommendationsPrefixHtml()", () => {
+  test("renders plan context without semester sections", () => {
+    const html = renderRecommendationsPrefixHtml({
+      selection_context: {
+        declared_majors: ["FIN_MAJOR"],
+        declared_major_labels: ["Finance Major"],
+        selected_track_id: "CB_TRACK",
+        selected_track_label: "Commercial Banking",
+      },
+    });
+    expect(html).toContain("Plan Context");
+    expect(html).toContain("Majors: Finance Major");
+    expect(html).toContain("Track: Commercial Banking");
+    expect(html).not.toContain("Semester 1");
+  });
+});
+
+describe("renderSemesterSelectorHtml()", () => {
+  test("renders selector tabs with active state", () => {
+    const html = renderSemesterSelectorHtml([
+      { target_semester: "Fall 2026", recommendations: [{}, {}] },
+      { target_semester: "Spring 2027", recommendations: [{}] },
+    ], 1);
+    expect(html).toContain('id="semester-selector"');
+    expect(html).toContain('data-semester-index="0"');
+    expect(html).toContain('data-semester-index="1"');
+    expect(html).toContain('data-semester-expand="1"');
+    expect(html).toContain('aria-selected="true"');
+    expect(html).toContain("Semester 2");
+  });
+});
+
+describe("getRecommendationSemesters()", () => {
+  test("returns semesters array when present", () => {
+    const list = getRecommendationSemesters({ semesters: [{ target_semester: "Fall 2026" }] });
+    expect(list).toHaveLength(1);
+    expect(list[0].target_semester).toBe("Fall 2026");
+  });
+
+  test("wraps single recommendation payload when semesters is absent", () => {
+    const list = getRecommendationSemesters({ target_semester: "Fall 2026" });
+    expect(list).toHaveLength(1);
+    expect(list[0].target_semester).toBe("Fall 2026");
   });
 });
 
