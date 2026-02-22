@@ -354,13 +354,6 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
     html += `</ul>`;
   }
 
-  if (data.manual_review_courses?.length) {
-    html += `<p style="font-size:13px;color:var(--mu-muted);margin-top:10px;">
-      Courses requiring manual prereq review (not shown above):
-      ${data.manual_review_courses.map(esc).join(", ")}
-    </p>`;
-  }
-
   if (semesterTimeline) {
     const t = semesterTimeline;
     html += `

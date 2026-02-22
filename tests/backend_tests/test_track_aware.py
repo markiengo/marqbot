@@ -205,6 +205,7 @@ class TestServerTrackValidation:
             "completed_courses": "",
             "in_progress_courses": "",
             "target_semester_primary": "Fall 2026",
+            "declared_majors": ["FIN_MAJOR"],
         }
         payload.update(overrides)
         return client.post("/recommend", json=payload)
@@ -228,8 +229,8 @@ class TestServerTrackValidation:
             resp = self._post(client, track_id="CB")
         data = resp.get_json()
         assert data["mode"] == "recommendations"
-        assert "track_warning" in data
-        assert "not yet published" in data["track_warning"]
+        assert "program_warnings" in data
+        assert any("not yet published" in str(w) for w in data["program_warnings"])
 
     def test_default_track_no_warning(self, client):
         resp = self._post(client)
@@ -238,20 +239,32 @@ class TestServerTrackValidation:
         assert data.get("track_warning") is None
 
     def test_case_insensitive_track_id(self, client):
-        """'fin_major' should resolve to 'FIN_MAJOR' via uppercase normalization."""
-        resp = self._post(client, track_id="fin_major")
+        """Case-insensitive track aliases should resolve to canonical track IDs."""
+        resp = self._post(client, track_id="cb_track")
         data = resp.get_json()
         assert data["mode"] == "recommendations"
         assert data.get("track_warning") is None
 
     def test_omitted_track_id_uses_default(self, client):
-        """When track_id is absent from the request, DEFAULT_TRACK_ID is used."""
+        """When track_id is absent, declared-major planning still succeeds."""
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": ["FIN_MAJOR"],
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+
+    def test_missing_major_returns_400(self, client):
         resp = client.post("/recommend", json={
             "completed_courses": "",
             "in_progress_courses": "",
         })
+        assert resp.status_code == 400
         data = resp.get_json()
-        assert data["mode"] == "recommendations"
+        assert data["error"]["error_code"] == "INVALID_INPUT"
+        assert "major" in data["error"]["message"].lower()
 
     def test_recommend_includes_current_progress(self, client):
         resp = self._post(
@@ -552,13 +565,13 @@ class TestServerTrackValidation:
         assert data["error"]["error_code"] == "UNKNOWN_TRACK"
 
     def test_empty_tracks_allows_default_track(self, client, monkeypatch):
-        """When tracks_df is empty, default track remains allowed for compatibility."""
+        """When tracks_df is empty, declared-major request still remains valid."""
         import server
 
         empty_tracks = server._data["tracks_df"].iloc[0:0].copy()
         monkeypatch.setitem(server._data, "tracks_df", empty_tracks)
 
-        resp = self._post(client, track_id="FIN_MAJOR")
+        resp = self._post(client)
         data = resp.get_json()
         assert data["mode"] == "recommendations"
 
@@ -685,8 +698,9 @@ class TestSyntheticTrackSmoke:
             "completed_courses": "",
             "in_progress_courses": "",
             "target_semester_primary": "Fall 2026",
+            "declared_majors": ["FIN_MAJOR"],
         })
         data = resp.get_json()
         assert data["mode"] == "recommendations"
         assert "ST_CORE" not in data["progress"]
-        assert "FIN_CORE" in data["progress"]
+        assert "FIN_MAJOR::FIN_CORE" in data["progress"]

@@ -36,6 +36,7 @@ describe("v1.6.1 static UI contract", () => {
       path.join(repoRoot, "frontend", "screen_courses_cover.jpg"),
       path.join(repoRoot, "frontend", "screen_saved_cover.jpg"),
       path.join(repoRoot, "frontend", "screen_aiadvisor_cover.jpg"),
+      path.join(repoRoot, "frontend", "screen_plan_cover.jpg"),
       path.join(repoRoot, "frontend", "marquette_logo2.jpg"),
     ];
     for (const file of files) {
@@ -60,5 +61,27 @@ describe("v1.6.1 static UI contract", () => {
     const css = read(stylePath);
     expect(css).toContain('#app-shell.app-shell-hidden');
     expect(css).toContain('transition: opacity 220ms ease');
+  });
+
+  test("plan shell uses dedicated cover image background", () => {
+    const css = read(stylePath);
+    expect(css).toContain('#app-shell::before');
+    expect(css).toContain('screen_plan_cover.jpg');
+    expect(css).toContain('#app-shell::after');
+  });
+
+  test("plan shell keeps pane top alignment baseline", () => {
+    const css = read(stylePath);
+    expect(css).toContain('#app-shell {');
+    expect(css).toContain('align-items: start;');
+    expect(css).toContain('overflow: visible;');
+  });
+
+  test("notify controls use explicit product font stack", () => {
+    const css = read(stylePath);
+    expect(css).toContain('.placeholder-notify-input');
+    expect(css).toContain('.placeholder-notify-btn');
+    expect(css).toContain('font-family: "Plus Jakarta Sans", "Avenir Next", sans-serif;');
+    expect(css).toContain('font-family: "Sora", "Plus Jakarta Sans", sans-serif;');
   });
 });

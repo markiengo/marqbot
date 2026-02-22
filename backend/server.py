@@ -1129,6 +1129,20 @@ def recommend():
             "error": {"error_code": err_code, "message": err_msg},
         }), 400
 
+    # Recommendations require an explicit major selection from the UI.
+    # Keep backward-compatible track-only calls only when a track_id is provided.
+    declared_majors_raw = body.get("declared_majors", None)
+    track_raw = body.get("track_id", None)
+    has_track_context = str(track_raw).strip().upper() not in {"", "__NONE__", "NONE"}
+    if declared_majors_raw is None and not has_track_context:
+        return jsonify({
+            "mode": "error",
+            "error": {
+                "error_code": "INVALID_INPUT",
+                "message": "Select at least one major before requesting recommendations.",
+            },
+        }), 400
+
     selection, selection_error = _resolve_program_selection(body, _data)
     if selection_error:
         payload, status = selection_error

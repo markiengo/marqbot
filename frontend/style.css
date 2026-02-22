@@ -50,7 +50,10 @@
   --panel-right: 312px;
   --topbar-h: 60px;
   --topbar-height: var(--topbar-h);
-  --panel-surface: linear-gradient(180deg, rgba(26, 45, 81, 0.5), rgba(18, 32, 61, 0.42));
+  --panel-left-surface: linear-gradient(180deg, rgba(17, 34, 66, 0.8), rgba(11, 22, 44, 0.64));
+  --panel-center-surface: linear-gradient(180deg, rgba(16, 34, 64, 0.68), rgba(10, 22, 44, 0.5));
+  --panel-right-surface: linear-gradient(180deg, rgba(20, 38, 70, 0.77), rgba(12, 24, 47, 0.6));
+  --panel-surface: var(--panel-center-surface);
 }
 
 * { box-sizing: border-box; }
@@ -1002,14 +1005,41 @@ select:focus,
   display: grid;
   grid-template-columns: var(--panel-left) minmax(0, 1fr) var(--panel-right);
   grid-template-areas: "left center right";
+  align-items: start;
   gap: var(--sp-6);
   padding: var(--sp-6);
   min-height: calc(100vh - var(--topbar-height));
   margin-top: var(--topbar-height);
   position: relative;
+  overflow: visible;
+  isolation: isolate;
   opacity: 1;
   transform: translateY(0);
   transition: opacity 220ms ease, transform 280ms ease, visibility 0s linear;
+}
+
+#app-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("screen_plan_cover.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: saturate(112%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#app-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(140deg, rgba(5, 24, 48, 0.68), rgba(7, 27, 53, 0.46));
+  backdrop-filter: blur(6px) saturate(115%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 #app-shell.app-shell-hidden {
@@ -1029,10 +1059,12 @@ select:focus,
   overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
-  background: var(--panel-surface);
+  background: var(--panel-left-surface);
+  backdrop-filter: blur(8px);
   padding: var(--sp-6) var(--sp-5);
   scrollbar-width: thin;
   scrollbar-color: rgba(141, 170, 224, 0.2) transparent;
+  z-index: 1;
 }
 
 #panel-right {
@@ -1046,20 +1078,25 @@ select:focus,
   overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
-  background: var(--panel-surface);
+  background: var(--panel-right-surface);
+  backdrop-filter: blur(8px);
   padding: var(--sp-6) var(--sp-5);
   scrollbar-width: thin;
   scrollbar-color: rgba(141, 170, 224, 0.2) transparent;
+  z-index: 1;
 }
 
 /* Center panel */
 #panel-center {
   grid-area: center;
+  position: relative;
   padding: var(--sp-7);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
-  background: var(--panel-surface);
+  background: var(--panel-center-surface);
+  backdrop-filter: blur(8px);
   min-height: calc(100vh - var(--topbar-height));
+  z-index: 1;
 }
 
 #section-input,
@@ -1475,10 +1512,14 @@ select:focus,
   border-radius: var(--radius-sm);
   background: rgba(7, 24, 50, 0.52);
   color: #ffffff;
+  font-family: "Plus Jakarta Sans", "Avenir Next", sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
   box-shadow: 0 8px 22px rgba(5, 20, 44, 0.3);
 }
 .placeholder-notify-input::placeholder {
   color: rgba(214, 229, 255, 0.68);
+  font-family: "Plus Jakarta Sans", "Avenir Next", sans-serif;
 }
 .placeholder-notify-btn {
   min-height: 48px;
@@ -1486,7 +1527,10 @@ select:focus,
   border-radius: var(--radius-sm);
   background: linear-gradient(90deg, #ad8100, #ffcc00);
   color: #091327;
+  font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+  font-size: 1rem;
   font-weight: 800;
+  letter-spacing: 0.01em;
   padding: 0 16px;
   cursor: pointer;
   box-shadow: 0 10px 20px rgba(108, 80, 0, 0.25);

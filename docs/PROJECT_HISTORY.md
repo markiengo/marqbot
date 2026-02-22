@@ -352,6 +352,24 @@ Source-data note (intentional):
 
 </details>
 
+<details>
+<summary><strong>v1.6.3 - Plan-Screen Visual Consistency Patch</strong></summary>
+
+Window:
+1. 2026-02-22 frontend patch batch
+
+Why this version:
+1. UI consistency and legibility improvements across the new static screens and plan lane.
+
+Key outcomes:
+1. Standardized Notify controls typography across all placeholder screens so input and button fonts align with the product type system.
+2. Added plan-screen cover background using `frontend/screen_plan_cover.jpg`.
+3. Applied the same translucent/blur layering approach used by static placeholders to the plan shell.
+4. Tuned left/center/right panel translucency independently so the three planning lanes remain visually distinct on top of the plan cover.
+5. Extended frontend contract tests to cover the plan background asset and notify font contracts.
+
+</details>
+
 </details>
 
 ---
@@ -375,3 +393,4 @@ Source-data note (intentional):
 16. `v1.6.0`: 2026-02-22 migration batch (data-model governance release)
 17. `v1.6.1`: 2026-02-22 UI placeholder + logo patch
 18. `v1.6.2`: 2026-02-22 MCC universal overlay injection
+19. `v1.6.3`: 2026-02-22 plan-cover + typography consistency patch
