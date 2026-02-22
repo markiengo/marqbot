@@ -398,38 +398,17 @@ Data validator:
 
 ## Upcoming Work (In Progress)
 
-### Marquette Common Core (MCC)
-Add support for the university-wide Marquette Common Core requirement set, which applies to all undergraduate students regardless of major.
+Upcoming roadmap highlights:
+- **V3.4**: Marquette Common Core (MCC) universal overlay.
+- **V3.5-V3.7**: degree-rule enforcement, local multi-plan semester grid, and production hardening.
+- **V4.0.0**: AI launch (assistive, non-binding lane).
 
-Planned scope:
-- New `MCC` program entry in the `programs` sheet (`kind=major`, but scoped as a universal overlay).
-- Buckets and sub-buckets covering all MCC categories (e.g. Diverse Perspectives, Rhetoric, Theology, Ethics, etc.).
-- Course mappings from the existing catalog to MCC sub-buckets where applicable.
-- UI: MCC progress displayed alongside major progress in the dashboard, with separate progress ring or KPI card.
-- Double-count policy entries where MCC requirements overlap with major/track requirements (e.g. BUAD writing courses satisfying both MCC Rhetoric and a major elective).
-- Validator extended with MCC-specific integrity checks.
-
-Design considerations:
-- MCC should display independently from major selection — all students need it.
-- MCC mappings must be maintained separately from major mappings so changes to one do not break the other.
-- Overlapping courses (MCC + major) need explicit policy entries to avoid silent double-count suppression.
-
-### AI Features
-Integrate AI-powered assistance to help students navigate planning decisions that go beyond rule-based recommendations.
-
-Planned scope:
-- **Natural-language course search**: let students describe what they are looking for ("a finance elective I can take next semester without prereqs") and surface matching courses using embedding similarity or an LLM prompt over the course catalog.
-- **Personalized explanation**: generate plain-English explanations of why a course was or was not recommended, referencing the student's specific situation (missing prereqs, scheduling conflict, already satisfies requirement, etc.).
-- **What-if advisor**: allow students to ask "what if I add X?" and see projected requirement impact before committing to a selection.
-- **Advisor summary export**: generate a structured summary of the student's plan suitable for sharing with an academic advisor, including completed courses, in-progress courses, planned courses, and remaining gaps.
-
-Design considerations:
-- AI features must degrade gracefully — if the LLM is unavailable, the rule-based engine continues to function normally.
-- All AI output is advisory only and must be labeled as such in the UI.
-- No student data should be sent to external APIs without explicit opt-in.
-- Prefer a local/offline-capable model option where feasible for privacy.
-
+For full technical scope, execution details, interfaces, and test gates, see:
+- `v4_roadmap.md`
 ---
 
 ## Canonical Project Narrative
 See `PROJECT_HISTORY.md` for the consolidated phase-by-phase history.
+
+
+
