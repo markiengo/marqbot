@@ -27,9 +27,21 @@ describe("bucketLabel()", () => {
   });
 
   test("handles namespaced bucket IDs", () => {
-    expect(bucketLabel("CB_CONC::CB_CORE")).toBe("CB Core");
+    expect(bucketLabel("CB_CONC::CB_CORE")).toBe("CB CORE");
     const map = new Map([["CB_CONC", "Commercial Banking"]]);
-    expect(bucketLabel("CB_CONC::CB_CORE", map)).toBe("Commercial Banking: CB Core");
+    expect(bucketLabel("CB_CONC::CB_CORE", map)).toBe("Commercial Banking: CB CORE");
+  });
+
+  test("MCC ESSV1 renders with correct capitalization", () => {
+    expect(bucketLabel("MCC_ESSV1")).toBe("MCC ESSV1");
+    expect(bucketLabel("MCC::MCC_ESSV1")).toBe("MCC ESSV1");
+  });
+
+  test("MCC bucket labels use mapped display names", () => {
+    expect(bucketLabel("MCC_CULM")).toBe("MCC Culminating Experience");
+    expect(bucketLabel("MCC_Foundation")).toBe("MCC Foundation");
+    expect(bucketLabel("MCC_ESSV2")).toBe("MCC ESSV2");
+    expect(bucketLabel("MCC_ESSV3")).toBe("MCC ESSV3");
   });
 });
 

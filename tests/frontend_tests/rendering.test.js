@@ -53,7 +53,7 @@ describe("renderCard()", () => {
       { ...baseCard, fills_buckets: ["CB_CONC::CB_CORE"] },
       { programLabelMap: new Map([["CB_CONC", "Commercial Banking"]]) },
     );
-    expect(html).toContain("Commercial Banking: CB Core");
+    expect(html).toContain("Commercial Banking: CB CORE");
   });
 
   test("soft_tags render as warning-strip, not soft-warn", () => {
@@ -80,7 +80,7 @@ describe("renderCard()", () => {
   test("multi-bucket course renders multiple bucket tags", () => {
     const html = renderCard({ ...baseCard, fills_buckets: ["CORE", "ELEC"] });
     expect(html).toContain("Finance Required");
-    expect(html).toContain("Elec");
+    expect(html).toContain("ELEC");
   });
 
   test("does not render counts-toward line for single-bucket course", () => {

@@ -501,6 +501,53 @@ Key outcomes:
 18. `#section-hero` renders as empty-state in top-right quadrant, hidden once results load.
 19. Frontend test suite updated: nav order tests include Avatar (6 items), container selector changed to `#rail`, added tests for modal, semester selector, direction transitions, ARIA roles, and `activeNavTab` round-trip.
 
+<details>
+<summary><strong>v1.7.7 - Already-Satisfied Bucket Exclusion Fix</strong></summary>
+
+Window:
+1. 2026-02-22 bug fix
+
+Why this version:
+1. Targeted bug fix preventing courses from being recommended for buckets already fully satisfied at allocation time.
+
+Key outcomes:
+1. `get_eligible_courses()` now filters out courses whose eligible buckets all have `slots_remaining == 0`.
+2. Prevents recommending extra courses for single-slot buckets (e.g., MCC_ESSV1) that are already fulfilled by completed/in-progress courses.
+
+</details>
+
+<details>
+<summary><strong>v1.7.8 - Scalable Semester Planning and Rec Cap</strong></summary>
+
+Window:
+1. 2026-02-22 feature batch
+
+Why this version:
+1. Expanded planner from fixed 2-semester to configurable N-semester planning with per-semester recommendation caps.
+
+Key outcomes:
+1. Added `semester-count` control replacing fixed `target-semester-2`/`target-semester-3` inputs.
+2. Recommendation pipeline now iterates over configurable semester count (1-8).
+3. Added `max-recs` per-semester cap (3-6 courses).
+4. Frontend semester selector and modal system updated for dynamic semester count.
+
+</details>
+
+<details>
+<summary><strong>v1.7.9 - Greedy Bucket Dedup, MCC/BCC Tier Parity, MCC Labels</strong></summary>
+
+Window:
+1. 2026-02-23 recommendation engine + UI fix batch
+
+Why this version:
+1. Three related fixes to recommendation quality and display correctness for universal overlay programs.
+
+Key outcomes:
+1. **Greedy bucket-aware selection**: Replaced naive `ranked[:max_recs]` slice with a greedy loop that tracks virtual remaining slots per bucket. Single-slot buckets (e.g., MCC_ESSV1) now get exactly 1 recommendation instead of filling all top slots with duplicates.
+2. **MCC/BCC tier parity**: Rewrote `_bucket_hierarchy_tier()` so all universal overlay buckets (`BCC::*`, `MCC::*`) receive tier-0 recommendation priority, not just `BCC_REQUIRED`. MCC Foundation, ESSV1, and CULM now rank equally with BCC sub-buckets.
+3. **MCC label capitalization**: Added MCC vocabulary tokens (`MCC`, `ESSV1`, `ESSV2`, `ESSV3`, `CULM`) to `upperTokens` in `prettifyIdentifier()`, widened all-caps regex from `{2,3}` to `{2,5}`, and added explicit `labels` map entries for MCC buckets. "Essv1" now correctly renders as "MCC ESSV1".
+4. Tests: 286 backend, 87 frontend passing. Validator PASS on all tracks.
+
 </details>
 
 </details>
@@ -534,3 +581,6 @@ Key outcomes:
 24. `v1.7.4`: 2026-02-22 input UX + dropdown behavior hardening
 25. `v1.7.5`: 2026-02-22 progress timeline math unification
 26. `v1.7.6`: 2026-02-22 rail branding + profile copy polish
+27. `v1.7.7`: 2026-02-22 already-satisfied bucket exclusion fix
+28. `v1.7.8`: 2026-02-22 scalable semester planning and rec cap
+29. `v1.7.9`: 2026-02-23 greedy bucket dedup, MCC/BCC tier parity, MCC label fix

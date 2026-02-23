@@ -1,9 +1,9 @@
 # MarqBot
-![Version](https://img.shields.io/badge/version-v1.7.6-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
+![Version](https://img.shields.io/badge/version-v1.7.9-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
 
 MarqBot is a Marquette degree-planning assistant for business students. It recommends next-term courses, explains progress, and checks can-take eligibility from workbook-driven rules.
 
-Current release line: `v1.7.6` (latest local session build).
+Current release line: `v1.7.9` (latest local session build).
 
 ## Guide
 
@@ -15,6 +15,13 @@ Current release line: `v1.7.6` (latest local session build).
 - Shows progress by requirement buckets/sub-buckets.
 - Lets you check a specific course in **Can I Take This Next Semester?**.
 - Warns when a course has lower recent-offering confidence.
+
+### How recommendations are prioritized
+When MarqBot recommends courses, it follows a priority hierarchy:
+1. **Universal requirements first** — Marquette Core Curriculum (MCC) and Business Core (BCC) courses are prioritized above major-specific electives, since every student needs them regardless of major.
+2. **Prereq unblockers** — Courses that unlock other required classes get a boost so you stay on track.
+3. **Bucket diversity** — The engine avoids recommending multiple courses for the same single-slot requirement. If a bucket only needs one course, you get one recommendation for it, and the remaining slots go toward other unmet requirements.
+4. **Prereq readiness** — Lower-level courses you can take now rank before upper-level courses, keeping your plan achievable each semester.
 
 ### Who should use it
 - Students building a semester plan before advising.

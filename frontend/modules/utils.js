@@ -32,6 +32,11 @@ function prettifyIdentifier(value) {
     "OSCM",
     "REQ",
     "GPA",
+    "MCC",
+    "ESSV1",
+    "ESSV2",
+    "ESSV3",
+    "CULM",
   ]);
   return raw
     .split("_")
@@ -39,7 +44,7 @@ function prettifyIdentifier(value) {
     .map(part => {
       const up = part.toUpperCase();
       if (upperTokens.has(up)) return up;
-      if (/^[A-Z0-9]{2,3}$/.test(part)) return up;
+      if (/^[A-Z0-9]{2,5}$/.test(part)) return up;
       const lower = part.toLowerCase();
       return `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`;
     })
@@ -82,6 +87,11 @@ export function bucketLabel(bucketId, programLabelMap = null) {
     INSY_BUS_ELEC_4: "Business Electives",
     AIM_NO_CONC_CORE: "AIM Core",
     AIM_NO_CONC_ELECTIVE_1: "AIM Elective",
+    MCC_ESSV1: "MCC ESSV1",
+    MCC_ESSV2: "MCC ESSV2",
+    MCC_ESSV3: "MCC ESSV3",
+    MCC_CULM: "MCC Culminating Experience",
+    MCC_Foundation: "MCC Foundation",
   };
 
   const businessElectivePattern = /^[A-Z]+_BUS_ELEC_\d+$/;

@@ -77,11 +77,14 @@ def _local_bucket_id(bucket_id: str) -> str:
 def _bucket_hierarchy_tier(candidate: dict) -> int:
     """
     Recommendation hierarchy override:
-    1) BCC_REQUIRED first
-    2) All other buckets in the same tier (BCC child sub-buckets and major requirements)
+    Tier 0 — all universal overlay buckets (BCC::*, MCC::*)
+    Tier 1 — everything else (major-specific requirements, electives)
     """
-    local_id = _local_bucket_id(candidate.get("primary_bucket"))
-    if local_id == "BCC_REQUIRED":
+    pb = candidate.get("primary_bucket") or ""
+    if pb.startswith("BCC::") or pb.startswith("MCC::"):
+        return 0
+    local_id = _local_bucket_id(pb)
+    if local_id.startswith("BCC_") or local_id.startswith("MCC_"):
         return 0
     return 1
 
@@ -281,7 +284,24 @@ def run_recommendation_semester(
             c["course_code"],
         ),
     )
-    selected_sem = ranked_sem[:max_recs]
+    # Greedy selection that respects bucket capacity: once a single-slot
+    # bucket is filled by a prior pick, skip subsequent courses whose
+    # buckets are ALL already virtually satisfied.
+    selected_sem = []
+    virtual_remaining = {
+        bid: rem.get("slots_remaining", 0)
+        for bid, rem in alloc["remaining"].items()
+    }
+    for cand in ranked_sem:
+        if len(selected_sem) >= max_recs:
+            break
+        cand_buckets = cand.get("fills_buckets", [])
+        if not any(virtual_remaining.get(bid, 0) > 0 for bid in cand_buckets):
+            continue
+        selected_sem.append(cand)
+        for bid in cand_buckets:
+            if virtual_remaining.get(bid, 0) > 0:
+                virtual_remaining[bid] -= 1
     for cand in selected_sem:
         cand["unlocks"] = get_direct_unlocks(cand["course_code"], reverse_map, limit=3)
 
