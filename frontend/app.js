@@ -10,8 +10,9 @@ import {
   getProgramLabelMap,
   renderProgressRing,
   renderKpiCardsHtml,
-  renderProgressInsightCardsHtml,
-  renderOverallTimelineHtml,
+  buildCourseCreditMap,
+  sumCreditsForCourseCodes,
+  computeCreditKpiMetrics,
   renderDegreeSummaryHtml,
   renderCanTakeInlineHtml,
   renderSemesterHtml,
@@ -515,11 +516,9 @@ function openProgressModal(triggerEl = null) {
     programLabelMap,
     {},
   );
-  const timelineHtml = renderOverallTimelineHtml(data.current_progress || {}, 5);
   const fullHtml = `
     <div class="dashboard-modal-content">
       ${progressHtml}
-      ${timelineHtml}
     </div>
   `;
   openModalContent("Degree Progress", fullHtml, triggerEl);
@@ -674,33 +673,28 @@ function setupRailNavigation() {
 function populateProgressDashboard(data) {
   if (!data.current_progress) return;
 
-  // Aggregate totals
-  let totalDone = 0;
-  let totalInProg = 0;
-  let totalNeeded = 0;
-  for (const prog of Object.values(data.current_progress)) {
-    totalDone += Number(prog.completed_done || 0);
-    totalInProg += Number(prog.in_progress_increment || 0);
-    totalNeeded += Number(prog.needed || 0);
-  }
-  const totalRemaining = Math.max(0, totalNeeded - totalDone - totalInProg);
-  const donePct = totalNeeded > 0 ? Math.min(100, (totalDone / totalNeeded) * 100) : 0;
-  const inProgressPct = totalNeeded > 0 ? Math.min(100, (totalInProg / totalNeeded) * 100) : 0;
-  const overallPct = totalNeeded > 0 ? Math.min(100, ((totalDone + totalInProg) / totalNeeded) * 100) : 0;
+  // KPI metrics are credit-based from user-entered course chips only.
+  const creditMap = buildCourseCreditMap(state.courses);
+  const completedCredits = sumCreditsForCourseCodes(state.completed, creditMap);
+  const inProgressCredits = sumCreditsForCourseCodes(state.inProgress, creditMap);
+  const creditKpis = computeCreditKpiMetrics(completedCredits, inProgressCredits);
 
   const dashEl = document.getElementById("progress-dashboard");
   const ringWrap = document.getElementById("progress-ring-wrap");
   const kpiRow = document.getElementById("kpi-row");
   const programLabelMap = getProgramLabelMap(data.selection_context);
 
-  if (ringWrap) ringWrap.innerHTML = renderProgressRing(donePct, 72, 8, inProgressPct, overallPct);
+  if (ringWrap) {
+    ringWrap.innerHTML = renderProgressRing(
+      creditKpis.donePercent,
+      72,
+      8,
+      creditKpis.inProgressPercent,
+      creditKpis.overallPercent,
+    );
+  }
   if (kpiRow) {
-    kpiRow.innerHTML = `${renderKpiCardsHtml(totalDone, totalRemaining, totalInProg)}${renderProgressInsightCardsHtml(
-      data.current_progress,
-      totalRemaining,
-      programLabelMap,
-      5,
-    )}`;
+    kpiRow.innerHTML = renderKpiCardsHtml(creditKpis);
   }
   if (dashEl) dashEl.classList.remove("hidden");
 

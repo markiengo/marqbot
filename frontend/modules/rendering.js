@@ -356,7 +356,6 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
   }
 
   const semesterProgress = data.projected_progress || data.progress;
-  const semesterTimeline = buildTimelineFromProgress(semesterProgress, 5) || data.projected_timeline || data.timeline;
   if (semesterProgress && Object.keys(semesterProgress).length) {
     html += `<div class="section-title">Degree Progress</div>`;
     if (data.projection_note) {
@@ -400,36 +399,6 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
     html += `</div>`;
   }
 
-  if (data.double_counted_courses?.length) {
-    html += `<div class="section-title">Double-Counted Courses</div><ul class="notes-list">`;
-    data.double_counted_courses.forEach(d => {
-      const buckets = (d.buckets || []).map(bid => bucketLabel(bid, programLabelMap)).map(esc).join(" + ");
-      html += `<li>${esc(d.course_code)} counts toward: ${buckets}</li>`;
-    });
-    html += `</ul>`;
-  }
-
-  if (data.allocation_notes?.length) {
-    html += `<ul class="notes-list" style="margin-top:6px;">`;
-    data.allocation_notes.forEach(n => { html += `<li>${humanCourseText(n)}</li>`; });
-    html += `</ul>`;
-  }
-
-  if (semesterTimeline) {
-    const t = semesterTimeline;
-    html += `
-      <div class="timeline-box">
-        <div class="timeline-stat">
-          <div class="num">${t.remaining_slots_total}</div>
-          <div class="lbl">Courses required remaining</div>
-        </div>
-        <div class="timeline-stat">
-          <div class="num">${t.estimated_min_terms}</div>
-          <div class="lbl">Est. terms to finish major</div>
-        </div>
-      </div>`;
-  }
-
   return html;
 }
 
@@ -460,33 +429,6 @@ function clampSelectedIndex(index, length) {
   if (raw < 0) return 0;
   if (raw >= length) return length - 1;
   return raw;
-}
-
-function buildTimelineFromProgress(progressMap, coursesPerSemester = 5) {
-  const entries = Object.values(progressMap || {});
-  if (!entries.length) return null;
-
-  const safePerSemester = Math.max(1, Number(coursesPerSemester) || 5);
-  let totalNeeded = 0;
-  let totalDone = 0;
-  let totalInProgress = 0;
-  entries.forEach((prog) => {
-    totalNeeded += Number(prog?.needed || 0);
-    totalDone += Number(
-      prog?.done_count != null
-        ? prog.done_count
-        : prog?.completed_done || 0,
-    );
-    totalInProgress += Array.isArray(prog?.in_progress_applied)
-      ? prog.in_progress_applied.length
-      : Number(prog?.in_progress_increment || 0);
-  });
-
-  const remaining_slots_total = Math.max(0, totalNeeded - totalDone - totalInProgress);
-  const estimated_min_terms = remaining_slots_total > 0
-    ? Math.ceil(remaining_slots_total / safePerSemester)
-    : 0;
-  return { remaining_slots_total, estimated_min_terms };
 }
 
 export function getRecommendationSemesters(data) {
@@ -622,15 +564,105 @@ export function renderProgressRing(pct, size = 100, stroke = 10, inProgressPct =
 </svg>`;
 }
 
+export const MIN_GRAD_CREDITS = 124;
+
+export function buildCourseCreditMap(courses) {
+  const map = new Map();
+  (Array.isArray(courses) ? courses : []).forEach((course) => {
+    const code = String(course?.course_code || "").trim();
+    const rawCredits = Number(course?.credits);
+    if (!code) return;
+    if (!Number.isFinite(rawCredits)) {
+      map.set(code, 0);
+      return;
+    }
+    map.set(code, Math.max(0, Math.round(rawCredits)));
+  });
+  return map;
+}
+
+export function sumCreditsForCourseCodes(courseCodes, creditMap) {
+  const map = creditMap instanceof Map ? creditMap : new Map();
+  const seen = new Set();
+  let total = 0;
+  for (const rawCode of courseCodes || []) {
+    const code = String(rawCode || "").trim();
+    if (!code || seen.has(code)) continue;
+    seen.add(code);
+    total += Number(map.get(code) || 0);
+  }
+  return Math.max(0, total);
+}
+
+export function deriveStandingFromCredits(earnedCredits) {
+  const credits = Math.max(0, Number(earnedCredits) || 0);
+  if (credits >= 90) return "Senior Standing";
+  if (credits >= 60) return "Junior Standing";
+  if (credits >= 24) return "Sophomore Standing";
+  return "Freshman Standing";
+}
+
+export function computeCreditKpiMetrics(
+  completedCredits,
+  inProgressCredits,
+  minGradCredits = MIN_GRAD_CREDITS,
+) {
+  const gradTarget = Math.max(1, Number(minGradCredits) || MIN_GRAD_CREDITS);
+  const completed = Math.max(0, Number(completedCredits) || 0);
+  const inProgress = Math.max(0, Number(inProgressCredits) || 0);
+  const remaining = Math.max(0, gradTarget - (completed + inProgress));
+  const donePct = Math.max(0, Math.min(100, (completed / gradTarget) * 100));
+  const inProgressPctRaw = Math.max(0, Math.min(100, (inProgress / gradTarget) * 100));
+  const inProgressPct = Math.max(0, Math.min(100 - donePct, inProgressPctRaw));
+  const overallPct = Math.max(0, Math.min(100, ((completed + inProgress) / gradTarget) * 100));
+  return {
+    minGradCredits: gradTarget,
+    completedCredits: completed,
+    inProgressCredits: inProgress,
+    remainingCredits: remaining,
+    standingLabel: deriveStandingFromCredits(completed),
+    donePercent: donePct,
+    inProgressPercent: inProgressPct,
+    overallPercent: overallPct,
+  };
+}
+
 /**
  * Renders a row of KPI summary cards.
  */
-export function renderKpiCardsHtml(done, remaining, inProgress) {
-  return `<div class="kpi-cards">
-  <div class="kpi-card kpi-done"><span class="kpi-value">${done}</span><span class="kpi-label">Completed</span></div>
-  <div class="kpi-card kpi-ip"><span class="kpi-value">${inProgress}</span><span class="kpi-label">In Progress</span></div>
-  <div class="kpi-card kpi-rem"><span class="kpi-value">${remaining}</span><span class="kpi-label">Remaining</span></div>
-</div>`;
+export function renderKpiCardsHtml(metrics) {
+  const m = metrics || {};
+  const completed = Number(m.completedCredits || 0);
+  const inProgress = Number(m.inProgressCredits || 0);
+  const remaining = Number(m.remainingCredits || 0);
+  const gradTarget = Number(m.minGradCredits || MIN_GRAD_CREDITS);
+  const standing = String(m.standingLabel || "").trim() || deriveStandingFromCredits(completed);
+
+  return `
+    <div class="kpi-cards kpi-cards--main">
+      <div class="kpi-card kpi-done">
+        <span class="kpi-value">${completed}</span>
+        <span class="kpi-label">Credits Completed</span>
+        <span class="kpi-meta" aria-hidden="true">&nbsp;</span>
+      </div>
+      <div class="kpi-card kpi-ip">
+        <span class="kpi-value">${inProgress}</span>
+        <span class="kpi-label">Credits In Progress</span>
+        <span class="kpi-meta" aria-hidden="true">&nbsp;</span>
+      </div>
+      <div class="kpi-card kpi-rem">
+        <span class="kpi-value">${remaining}</span>
+        <span class="kpi-label">Credits Remaining</span>
+        <span class="kpi-meta">to ${gradTarget}</span>
+      </div>
+    </div>
+    <div class="kpi-cards kpi-cards--status">
+      <div class="kpi-card kpi-status">
+        <span class="kpi-value">${esc(standing)}</span>
+        <span class="kpi-label">Your Status</span>
+      </div>
+    </div>
+  `;
 }
 
 export function renderProgressInsightCardsHtml(
@@ -713,24 +745,6 @@ export function renderProgressInsightCardsHtml(
         <span class="kpi-value">${lowest.pct}%</span>
         <span class="kpi-label">Lowest Bucket Fulfilled</span>
         <span class="kpi-sub">${esc(lowest.label)}</span>
-      </div>
-    </div>
-  `;
-}
-
-export function renderOverallTimelineHtml(currentProgress, coursesPerSemester = 5) {
-  const t = buildTimelineFromProgress(currentProgress, coursesPerSemester);
-  if (!t) return "";
-
-  return `
-    <div class="timeline-box">
-      <div class="timeline-stat">
-        <div class="num">${t.remaining_slots_total}</div>
-        <div class="lbl">Courses required remaining</div>
-      </div>
-      <div class="timeline-stat">
-        <div class="num">${t.estimated_min_terms}</div>
-        <div class="lbl">Est. terms to finish major</div>
       </div>
     </div>
   `;

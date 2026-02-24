@@ -352,9 +352,9 @@ class TestServerTrackValidation:
         assert "semesters" in data
         sem1 = data["semesters"][0]
         assert "progress" in sem1
-        assert "timeline" in sem1
+        assert "timeline" not in sem1
         assert "projected_progress" in sem1
-        assert "projected_timeline" in sem1
+        assert "projected_timeline" not in sem1
         assert "projection_note" in sem1
 
     def test_existing_progress_fields_remain_compatible(self, client):
@@ -362,11 +362,11 @@ class TestServerTrackValidation:
         assert resp.status_code == 200
         data = resp.get_json()
         assert "progress" in data
-        assert "timeline" in data
+        assert "timeline" not in data
         assert "semesters" in data and len(data["semesters"]) > 0
         sem1 = data["semesters"][0]
         assert "progress" in sem1
-        assert "timeline" in sem1
+        assert "timeline" not in sem1
 
     def test_projection_done_count_is_non_decreasing(self, client):
         resp = self._post(client, completed_courses="BUAD 1001, ECON 1103, MATH 1400")

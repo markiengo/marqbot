@@ -190,6 +190,209 @@ class TestGetEligibleCourses:
         # FINA 4011 only maps to CORE in this fixture; with CORE full it should not appear.
         assert "FINA 4011" not in codes
 
+    def test_same_family_non_elective_hides_same_family_elective_pool_but_keeps_cross_family(self):
+        courses = pd.DataFrame([
+            {
+                "course_code": "X100",
+                "course_name": "X Course",
+                "credits": 3,
+                "level": 3000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "",
+                "offering_confidence": "high",
+                "notes": None,
+            }
+        ])
+        from prereq_parser import parse_prereqs
+        prereq_map = {"X100": parse_prereqs("none")}
+        buckets = pd.DataFrame([
+            {
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_MAJOR::REQ",
+                "bucket_label": "FIN Req",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "requirement_mode": "required",
+                "parent_bucket_id": "FIN_MAJOR",
+                "double_count_family_id": "FIN_MAJOR",
+            },
+            {
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_MAJOR::ELEC",
+                "bucket_label": "FIN Elec",
+                "priority": 2,
+                "needed_count": None,
+                "needed_credits": 3,
+                "min_level": None,
+                "requirement_mode": "credits_pool",
+                "parent_bucket_id": "FIN_MAJOR",
+                "double_count_family_id": "FIN_MAJOR",
+            },
+            {
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "ACCO_MAJOR::ELEC",
+                "bucket_label": "ACCO Elec",
+                "priority": 3,
+                "needed_count": None,
+                "needed_credits": 3,
+                "min_level": None,
+                "requirement_mode": "credits_pool",
+                "parent_bucket_id": "ACCO_MAJOR",
+                "double_count_family_id": "ACCO_MAJOR",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::REQ", "course_code": "X100"},
+            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::ELEC", "course_code": "X100"},
+            {"track_id": "FIN_MAJOR", "bucket_id": "ACCO_MAJOR::ELEC", "course_code": "X100"},
+        ])
+        remaining = {
+            "FIN_MAJOR::REQ": {"slots_remaining": 1, "needed": 1},
+            "FIN_MAJOR::ELEC": {"slots_remaining": 3, "needed": 3},
+            "ACCO_MAJOR::ELEC": {"slots_remaining": 3, "needed": 3},
+        }
+
+        eligible = get_eligible_courses(
+            courses,
+            [],
+            [],
+            "Fall",
+            prereq_map,
+            remaining,
+            course_map,
+            buckets,
+            track_id="FIN_MAJOR",
+        )
+        row = next(c for c in eligible if c["course_code"] == "X100")
+        assert "FIN_MAJOR::REQ" in row["fills_buckets"]
+        assert "FIN_MAJOR::ELEC" not in row["fills_buckets"]
+        assert "ACCO_MAJOR::ELEC" in row["fills_buckets"]
+
+    def test_duplicate_bucket_mapping_rows_are_deduped_in_fills(self):
+        courses = pd.DataFrame([
+            {
+                "course_code": "X101",
+                "course_name": "X Course 101",
+                "credits": 3,
+                "level": 3000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "",
+                "offering_confidence": "high",
+                "notes": None,
+            }
+        ])
+        from prereq_parser import parse_prereqs
+        prereq_map = {"X101": parse_prereqs("none")}
+        buckets = pd.DataFrame([
+            {
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_MAJOR::REQ",
+                "bucket_label": "FIN Req",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "requirement_mode": "required",
+                "parent_bucket_id": "FIN_MAJOR",
+                "double_count_family_id": "FIN_MAJOR",
+            }
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::REQ", "course_code": "X101"},
+            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::REQ", "course_code": "X101"},
+        ])
+        remaining = {"FIN_MAJOR::REQ": {"slots_remaining": 1, "needed": 1}}
+
+        eligible = get_eligible_courses(
+            courses,
+            [],
+            [],
+            "Fall",
+            prereq_map,
+            remaining,
+            course_map,
+            buckets,
+            track_id="FIN_MAJOR",
+        )
+        row = next(c for c in eligible if c["course_code"] == "X101")
+        assert row["fills_buckets"] == ["FIN_MAJOR::REQ"]
+
+    def test_same_family_required_orders_before_choose_for_primary_bucket(self):
+        courses = pd.DataFrame([
+            {
+                "course_code": "X102",
+                "course_name": "X Course 102",
+                "credits": 3,
+                "level": 3000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "",
+                "offering_confidence": "high",
+                "notes": None,
+            }
+        ])
+        from prereq_parser import parse_prereqs
+        prereq_map = {"X102": parse_prereqs("none")}
+        buckets = pd.DataFrame([
+            {
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_MAJOR::CHOOSE",
+                "bucket_label": "FIN Choose",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "requirement_mode": "choose_n",
+                "parent_bucket_id": "FIN_MAJOR",
+                "double_count_family_id": "FIN_MAJOR",
+            },
+            {
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_MAJOR::REQ",
+                "bucket_label": "FIN Req",
+                "priority": 99,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "requirement_mode": "required",
+                "parent_bucket_id": "FIN_MAJOR",
+                "double_count_family_id": "FIN_MAJOR",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::CHOOSE", "course_code": "X102"},
+            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::REQ", "course_code": "X102"},
+        ])
+        remaining = {
+            "FIN_MAJOR::CHOOSE": {"slots_remaining": 1, "needed": 1},
+            "FIN_MAJOR::REQ": {"slots_remaining": 1, "needed": 1},
+        }
+
+        eligible = get_eligible_courses(
+            courses,
+            [],
+            [],
+            "Fall",
+            prereq_map,
+            remaining,
+            course_map,
+            buckets,
+            track_id="FIN_MAJOR",
+        )
+        row = next(c for c in eligible if c["course_code"] == "X102")
+        assert row["primary_bucket"] == "FIN_MAJOR::REQ"
+        assert row["fills_buckets"][:2] == ["FIN_MAJOR::REQ", "FIN_MAJOR::CHOOSE"]
+
 
 class TestCheckCanTake:
     def test_can_take_eligible(self, courses_df, prereq_map):

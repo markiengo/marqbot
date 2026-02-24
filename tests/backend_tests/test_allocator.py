@@ -207,6 +207,56 @@ class TestElectiveRouting:
         assert "X100" in result["applied_by_bucket"]["FIN_CORE"]["completed_applied"]
         assert "X100" not in result["applied_by_bucket"]["FIN_ELEC"]["completed_applied"]
 
+    def test_same_family_required_preferred_over_choose_n(self):
+        """
+        Deterministic same-family precedence:
+        required > choose_n > credits_pool.
+        """
+        buckets = pd.DataFrame([
+            {
+                "track_id": "PLAN",
+                "bucket_id": "FIN_CHOOSE",
+                "bucket_label": "Finance Choose",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "requirement_mode": "choose_n",
+                "parent_bucket_id": "FIN_MAJOR",
+            },
+            {
+                "track_id": "PLAN",
+                "bucket_id": "FIN_REQ",
+                "bucket_label": "Finance Required",
+                "priority": 99,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "requirement_mode": "required",
+                "parent_bucket_id": "FIN_MAJOR",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "PLAN", "bucket_id": "FIN_CHOOSE", "course_code": "X200"},
+            {"track_id": "PLAN", "bucket_id": "FIN_REQ", "course_code": "X200"},
+        ])
+        courses = pd.DataFrame([
+            {"course_code": "X200", "course_name": "Test Course 2", "credits": 3, "level": 3000},
+        ])
+
+        result = allocate_courses(
+            completed=["X200"],
+            in_progress=[],
+            buckets_df=buckets,
+            course_bucket_map_df=course_map,
+            courses_df=courses,
+            track_id="PLAN",
+            double_count_policy_df=pd.DataFrame(),
+        )
+
+        assert "X200" in result["applied_by_bucket"]["FIN_REQ"]["completed_applied"]
+        assert "X200" not in result["applied_by_bucket"]["FIN_CHOOSE"]["completed_applied"]
+
 
 class TestPolicyDrivenDoubleCount:
     def _base_courses(self):

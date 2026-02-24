@@ -27,6 +27,90 @@ def _is_none_prereq(raw_val) -> bool:
     return s in ("", "none", "none listed", "n/a", "nan")
 
 
+def _bucket_family_key(bucket: dict) -> str:
+    family = str(bucket.get("double_count_family_id", "") or "").strip()
+    if family:
+        return family
+    parent = str(bucket.get("parent_bucket_id", "") or "").strip()
+    if parent:
+        return parent
+    return ""
+
+
+def _prune_same_family_elective_overlap(buckets: list[dict]) -> list[dict]:
+    """
+    If a course can fill both non-elective and elective-pool buckets in the same
+    family, keep non-elective visibility only for that family.
+    Cross-family elective visibility remains unchanged.
+    """
+    if len(buckets) <= 1:
+        return buckets
+
+    family_has_non_elective: dict[str, bool] = {}
+    for bucket in buckets:
+        family = _bucket_family_key(bucket)
+        if not family:
+            continue
+        mode = str(bucket.get("requirement_mode", "") or "").strip().lower()
+        if mode != "credits_pool":
+            family_has_non_elective[family] = True
+
+    pruned: list[dict] = []
+    for bucket in buckets:
+        family = _bucket_family_key(bucket)
+        mode = str(bucket.get("requirement_mode", "") or "").strip().lower()
+        if family and family_has_non_elective.get(family, False) and mode == "credits_pool":
+            continue
+        pruned.append(bucket)
+    return pruned
+
+
+def _order_buckets_same_family(buckets: list[dict]) -> list[dict]:
+    """
+    Deterministic same-family ordering:
+      required -> choose_n -> credits_pool -> other
+      then bucket priority -> bucket_id lexical
+    """
+    if len(buckets) <= 1:
+        return buckets
+
+    by_family: dict[str, dict[str, list[dict]]] = {}
+    family_order: list[str] = []
+    for bucket in buckets:
+        family = _bucket_family_key(bucket) or "__NO_FAMILY__"
+        if family not in by_family:
+            by_family[family] = {
+                "required": [],
+                "choose_n": [],
+                "credits_pool": [],
+                "other": [],
+            }
+            family_order.append(family)
+        mode = str(bucket.get("requirement_mode", "") or "").strip().lower()
+        if mode == "required":
+            by_family[family]["required"].append(bucket)
+        elif mode == "choose_n":
+            by_family[family]["choose_n"].append(bucket)
+        elif mode == "credits_pool":
+            by_family[family]["credits_pool"].append(bucket)
+        else:
+            by_family[family]["other"].append(bucket)
+
+    def _sort_rows(rows: list[dict]) -> list[dict]:
+        return sorted(
+            rows,
+            key=lambda r: (int(r.get("priority", 99)), str(r.get("bucket_id", ""))),
+        )
+
+    ordered: list[dict] = []
+    for family in family_order:
+        ordered.extend(_sort_rows(by_family[family]["required"]))
+        ordered.extend(_sort_rows(by_family[family]["choose_n"]))
+        ordered.extend(_sort_rows(by_family[family]["credits_pool"]))
+        ordered.extend(_sort_rows(by_family[family]["other"]))
+    return ordered
+
+
 def get_course_eligible_buckets(
     course_code: str,
     course_bucket_map_df: pd.DataFrame,
@@ -59,8 +143,11 @@ def get_course_eligible_buckets(
     }
 
     result = []
+    seen_bucket_ids: set[str] = set()
     for _, row in track_map.iterrows():
         bid = row["bucket_id"]
+        if bid in seen_bucket_ids:
+            continue
         meta = bucket_meta.get(bid)
         if meta is None:
             continue
@@ -82,10 +169,14 @@ def get_course_eligible_buckets(
             "priority": int(priority_raw) if pd.notna(priority_raw) else 99,
             "parent_bucket_priority": int(parent_priority_raw) if pd.notna(parent_priority_raw) else 99,
             "parent_bucket_id": str(meta.get("parent_bucket_id", "") or "").strip().upper(),
+            "double_count_family_id": str(meta.get("double_count_family_id", "") or "").strip(),
+            "requirement_mode": str(meta.get("requirement_mode", "") or "").strip().lower(),
         })
+        seen_bucket_ids.add(bid)
 
-    result.sort(key=lambda b: b["priority"])
-    return result
+    result.sort(key=lambda b: (b["priority"], str(b.get("bucket_id", ""))))
+    result = _prune_same_family_elective_overlap(result)
+    return _order_buckets_same_family(result)
 
 
 def get_eligible_courses(

@@ -133,7 +133,7 @@ def test_soft_tags_demoted_except_concurrent_only():
     assert codes[1] == "FINA 4300"
     assert len(codes) >= 2
     assert "projected_progress" in out
-    assert "projected_timeline" in out
+    assert "projected_timeline" not in out
     assert "projection_note" in out
 
 
@@ -183,7 +183,7 @@ def test_soft_demoted_courses_still_return_as_fallback():
     codes = [r["course_code"] for r in out["recommendations"]]
     assert codes == ["FINA 4995"]
     assert "projected_progress" in out
-    assert "projected_timeline" in out
+    assert "projected_timeline" not in out
     assert "projection_note" in out
 
 
@@ -758,6 +758,90 @@ def test_tier_order_bcc_required_then_major_then_track_then_demoted_bcc():
     assert codes == ["BCC 1001", "MAJOR 2001", "TRACK 3001", "BCC 4001"]
 
 
+def test_bcc_required_in_any_fill_bucket_forces_tier_1_priority():
+    """
+    If a course fills BCC_REQUIRED plus a major bucket, it must rank as tier 1
+    even when its primary bucket would otherwise be non-BCC.
+    """
+    courses = [
+        {
+            "course_code": "AAA 2001",
+            "course_name": "Major Only Course",
+            "credits": 3,
+            "level": 2000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "ZZZ 2001",
+            "course_name": "Major + BCC Required Course",
+            "credits": 3,
+            "level": 2000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::FIN_CORE",
+            "bucket_label": "Major Bucket",
+            "priority": 1,
+            "needed_count": 2,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "parent_bucket_id": "FIN_MAJOR",
+            "track_required": "",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "BCC::BCC_REQUIRED",
+            "bucket_label": "Business Core Required",
+            "priority": 50,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "parent_bucket_id": "BCC_CORE",
+            "track_required": "",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::FIN_CORE", "course_code": "AAA 2001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::FIN_CORE", "course_code": "ZZZ 2001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "ZZZ 2001"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    assert codes == ["ZZZ 2001", "AAA 2001"]
+
+
 def test_soft_bucket_cap_stays_enforced_when_bucket_diversity_is_sufficient():
     """Cap remains active when viable unmet buckets can satisfy requested count."""
     courses = [
@@ -977,3 +1061,85 @@ def test_selection_uses_allocator_style_non_elective_first_within_same_family():
 
     codes = [r["course_code"] for r in out["recommendations"]]
     assert codes == ["X100", "Y200"]
+
+
+def test_selection_uses_required_before_choose_n_within_same_family():
+    courses = [
+        {
+            "course_code": "X300",
+            "course_name": "Shared Req and Choose",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "Y300",
+            "course_name": "Choose-Only Course",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::CHOOSE_A",
+            "bucket_label": "Choose A",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "choose_n",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::REQ_A",
+            "bucket_label": "Required A",
+            "priority": 99,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::CHOOSE_A", "course_code": "X300"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::REQ_A", "course_code": "X300"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::CHOOSE_A", "course_code": "Y300"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    assert codes == ["X300", "Y300"]

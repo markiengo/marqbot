@@ -12,6 +12,10 @@ import {
   getRecommendationSemesters,
   renderProgressRing,
   renderKpiCardsHtml,
+  buildCourseCreditMap,
+  sumCreditsForCourseCodes,
+  deriveStandingFromCredits,
+  computeCreditKpiMetrics,
   renderProgressInsightCardsHtml,
   renderDegreeSummaryHtml,
   renderCanTakeInlineHtml,
@@ -167,12 +171,13 @@ describe("renderSemesterHtml()", () => {
     expect(html).not.toContain("sequencing-item");
   });
 
-  test("renames timeline label to courses required remaining", () => {
+  test("does not render timeline stats section", () => {
     const html = renderSemesterHtml({
       ...sem,
       timeline: { remaining_slots_total: 8, estimated_min_terms: 3, disclaimer: "d1" },
     }, 1, 3);
-    expect(html).toContain("Courses required remaining");
+    expect(html).not.toContain("Courses required remaining");
+    expect(html).not.toContain("Est. terms to finish major");
   });
 });
 
@@ -434,24 +439,82 @@ describe("renderProgressRing()", () => {
 });
 
 describe("renderKpiCardsHtml()", () => {
-  test("contains completed value", () => {
-    const html = renderKpiCardsHtml(5, 10, 2);
-    expect(html).toContain(">5<");
+  const sample = {
+    completedCredits: 35,
+    inProgressCredits: 12,
+    remainingCredits: 77,
+    standingLabel: "Sophomore Standing",
+    minGradCredits: 124,
+  };
+
+  test("contains completed credit value", () => {
+    const html = renderKpiCardsHtml(sample);
+    expect(html).toContain(">35<");
+    expect(html).toContain("Credits Completed");
   });
 
-  test("contains remaining value", () => {
-    const html = renderKpiCardsHtml(5, 10, 2);
-    expect(html).toContain(">10<");
+  test("contains in-progress credit value", () => {
+    const html = renderKpiCardsHtml(sample);
+    expect(html).toContain(">12<");
+    expect(html).toContain("Credits In Progress");
   });
 
-  test("contains in-progress value", () => {
-    const html = renderKpiCardsHtml(5, 10, 2);
-    expect(html).toContain(">2<");
+  test("contains remaining credit value and 124 target", () => {
+    const html = renderKpiCardsHtml(sample);
+    expect(html).toContain(">77<");
+    expect(html).toContain("Credits Remaining");
+    expect(html).toContain("to 124");
   });
 
-  test("uses kpi-cards wrapper class", () => {
-    const html = renderKpiCardsHtml(0, 0, 0);
-    expect(html).toContain('class="kpi-cards"');
+  test("contains standing card", () => {
+    const html = renderKpiCardsHtml(sample);
+    expect(html).toContain("Your Status");
+    expect(html).toContain("Sophomore Standing");
+  });
+
+  test("does not include retired insight KPI labels", () => {
+    const html = renderKpiCardsHtml(sample);
+    expect(html).not.toContain("Est Semesters Left");
+    expect(html).not.toContain("Fullest Bucket");
+    expect(html).not.toContain("Lowest Bucket Fulfilled");
+  });
+
+  test("uses kpi-cards wrapper classes", () => {
+    const html = renderKpiCardsHtml(sample);
+    expect(html).toContain('class="kpi-cards kpi-cards--main"');
+    expect(html).toContain('class="kpi-cards kpi-cards--status"');
+  });
+});
+
+describe("credit KPI helpers", () => {
+  test("buildCourseCreditMap and sumCreditsForCourseCodes use catalog credits", () => {
+    const creditMap = buildCourseCreditMap([
+      { course_code: "A 1000", credits: 3 },
+      { course_code: "B 2000", credits: 4 },
+      { course_code: "C 3000", credits: 0 },
+    ]);
+    const total = sumCreditsForCourseCodes(["A 1000", "B 2000", "MISSING 9999"], creditMap);
+    expect(total).toBe(7);
+  });
+
+  test("deriveStandingFromCredits uses defined cutoffs", () => {
+    expect(deriveStandingFromCredits(0)).toBe("Freshman Standing");
+    expect(deriveStandingFromCredits(23)).toBe("Freshman Standing");
+    expect(deriveStandingFromCredits(24)).toBe("Sophomore Standing");
+    expect(deriveStandingFromCredits(59)).toBe("Sophomore Standing");
+    expect(deriveStandingFromCredits(60)).toBe("Junior Standing");
+    expect(deriveStandingFromCredits(89)).toBe("Junior Standing");
+    expect(deriveStandingFromCredits(90)).toBe("Senior Standing");
+  });
+
+  test("computeCreditKpiMetrics calculates remaining and ring percentages", () => {
+    const k = computeCreditKpiMetrics(30, 9, 124);
+    expect(k.completedCredits).toBe(30);
+    expect(k.inProgressCredits).toBe(9);
+    expect(k.remainingCredits).toBe(85);
+    expect(Math.round(k.donePercent)).toBe(24);
+    expect(Math.round(k.inProgressPercent)).toBe(7);
+    expect(Math.round(k.overallPercent)).toBe(31);
   });
 });
 

@@ -18,7 +18,7 @@ Current release line: `v1.8.2` (latest local session build).
 
 ### What it does
 - Helps plan next semester(s) from completed and in-progress classes.
-- Shows progress by requirement buckets and child buckets.
+- Shows progress by requirement buckets.
 - Lets students check a specific class in **Can I Take This Next Semester?**.
 - Shows warnings for standing, major declaration, and low offering confidence.
 
@@ -28,7 +28,7 @@ Current release line: `v1.8.2` (latest local session build).
    - Tier 1: MCC + `BCC_REQUIRED`
    - Tier 2: selected major buckets
    - Tier 3: selected track buckets
-   - Tier 4: demoted BCC children (`BCC_ETHICS`, `BCC_ANALYTICS`, `BCC_ENHANCE`)
+   - Tier 4: BCC sub-groups (`BCC_ETHICS`, `BCC_ANALYTICS`, `BCC_ENHANCE`)
 3. **Inside each tier**:
    - ACCO-only warning boost applies in-tier (`Required for ACCO majors`) and does not jump tiers.
    - Unlockers and warning penalties act as tie-breakers, not top-level priority overrides.
@@ -53,6 +53,12 @@ Current release line: `v1.8.2` (latest local session build).
 - Universal overlays:
   - `BCC_CORE` (Business Core Curriculum)
   - `MCC_CORE` (Marquette Core Curriculum)
+
+### Future plans
+- fix kpi cards and add credits counter
+- add student status (standing)
+- fix child buckets double counting - which one it goes to
+- testing still shows inconsistent double-counting for elective and non-elective in same family bucket
 
 ### Important note
 - MarqBot is a planning aid. Final enrollment decisions still belong to official advising and registration workflows.

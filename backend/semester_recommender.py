@@ -9,7 +9,6 @@ from requirements import (
 )
 from allocator import allocate_courses
 from unlocks import get_direct_unlocks, get_blocking_warnings
-from timeline import estimate_timeline
 from eligibility import get_eligible_courses, parse_term
 
 
@@ -153,18 +152,35 @@ def _order_buckets_allocator_style(
         meta = bucket_meta.get(bid, {})
         parent = str(meta.get("parent_bucket_id", "") or "").strip()
         if parent not in grouped:
-            grouped[parent] = {"non_elective": [], "elective_pool": []}
+            grouped[parent] = {
+                "required": [],
+                "choose_n": [],
+                "credits_pool": [],
+                "other": [],
+            }
             parent_order.append(parent)
         mode = str(meta.get("requirement_mode", "") or "").strip().lower()
-        if mode == "credits_pool":
-            grouped[parent]["elective_pool"].append(bid)
+        if mode == "required":
+            grouped[parent]["required"].append(bid)
+        elif mode == "choose_n":
+            grouped[parent]["choose_n"].append(bid)
+        elif mode == "credits_pool":
+            grouped[parent]["credits_pool"].append(bid)
         else:
-            grouped[parent]["non_elective"].append(bid)
+            grouped[parent]["other"].append(bid)
+
+    def _sort_group(bucket_ids_: list[str]) -> list[str]:
+        return sorted(
+            bucket_ids_,
+            key=lambda b: (bucket_meta.get(b, {}).get("priority", 99), b),
+        )
 
     ordered: list[str] = []
     for parent in parent_order:
-        ordered.extend(grouped[parent]["non_elective"])
-        ordered.extend(grouped[parent]["elective_pool"])
+        ordered.extend(_sort_group(grouped[parent]["required"]))
+        ordered.extend(_sort_group(grouped[parent]["choose_n"]))
+        ordered.extend(_sort_group(grouped[parent]["credits_pool"]))
+        ordered.extend(_sort_group(grouped[parent]["other"]))
     return ordered
 
 
@@ -205,7 +221,7 @@ def _bucket_virtual_consumption_units(bucket_id: str, candidate: dict, bucket_me
 
 def _bucket_hierarchy_tier(candidate: dict) -> int:
     """Deprecated compatibility wrapper; use _bucket_hierarchy_tier_v2."""
-    return _bucket_hierarchy_tier_v2(candidate, {}, {})
+    return _bucket_hierarchy_tier_v2(candidate, {}, {}, {})
 
 
 def _build_parent_type_map(data: dict) -> dict[str, str]:
@@ -252,6 +268,30 @@ def _build_bucket_track_required_map(data: dict, track_id: str) -> dict[str, str
     return out
 
 
+def _build_bucket_parent_map(data: dict, track_id: str) -> dict[str, str]:
+    """Build runtime bucket_id -> parent_bucket_id map for the current runtime track."""
+    buckets_df = data.get("buckets_df")
+    if buckets_df is None or len(buckets_df) == 0:
+        return {}
+    if "bucket_id" not in buckets_df.columns or "track_id" not in buckets_df.columns:
+        return {}
+
+    tid = str(track_id or "").strip().upper()
+    subset = buckets_df[
+        buckets_df["track_id"].astype(str).str.strip().str.upper() == tid
+    ].copy()
+    if len(subset) == 0:
+        return {}
+
+    out: dict[str, str] = {}
+    for _, row in subset.iterrows():
+        bid = str(row.get("bucket_id", "") or "").strip().upper()
+        pid = str(row.get("parent_bucket_id", "") or "").strip().upper()
+        if bid:
+            out[bid] = pid
+    return out
+
+
 def _is_mcc_tier_1_candidate(parent_id: str, primary_bucket: str, local_id: str) -> bool:
     if parent_id in _MCC_PARENT_FAMILY_IDS:
         return True
@@ -266,6 +306,7 @@ def _bucket_hierarchy_tier_v2(
     candidate: dict,
     parent_type_map: dict[str, str],
     bucket_track_required_map: dict[str, str],
+    bucket_parent_map: dict[str, str],
 ) -> int:
     """
     Priority tiers:
@@ -277,32 +318,47 @@ def _bucket_hierarchy_tier_v2(
     Unlockers remain an in-tier tie-break in the ranking key.
     """
     primary_bucket = str(candidate.get("primary_bucket", "") or "").strip().upper()
-    local_id = _local_bucket_id(primary_bucket).upper()
-    parent_id = str(candidate.get("primary_parent_bucket_id", "") or "").strip().upper()
-
-    # Tier 1: MCC family and BCC required child only.
-    if local_id == "BCC_REQUIRED" or _is_mcc_tier_1_candidate(parent_id, primary_bucket, local_id):
-        return 1
-
-    # Tier 4: explicitly demoted BCC children.
-    if local_id in _DEMOTED_BCC_CHILD_BUCKETS:
-        return 4
-
-    # Tier 2/3 via authoritative parent type when available.
-    parent_type = parent_type_map.get(parent_id, "")
-    if parent_type in {"track", "minor"}:
-        return 3
-    if parent_type == "major":
+    primary_parent_id = str(candidate.get("primary_parent_bucket_id", "") or "").strip().upper()
+    fills = [
+        str(bid or "").strip().upper()
+        for bid in (candidate.get("fills_buckets") or [])
+        if str(bid or "").strip()
+    ]
+    bucket_ids = fills if fills else ([primary_bucket] if primary_bucket else [])
+    if not bucket_ids:
         return 2
 
-    # Fallback: runtime track_required indicates track-scoped bucket.
-    # This keeps behavior stable even when parent_buckets_df is missing in test data.
-    track_required = bucket_track_required_map.get(primary_bucket, "")
-    if track_required:
-        return 3
+    def _tier_for_bucket(bucket_id: str) -> int:
+        local_id = _local_bucket_id(bucket_id).upper()
+        parent_id = bucket_parent_map.get(bucket_id, "")
+        if not parent_id and bucket_id == primary_bucket:
+            parent_id = primary_parent_id
+        parent_id = str(parent_id or "").strip().upper()
 
-    # Unknown/legacy fallback.
-    return 2
+        # Tier 1: MCC family and BCC required child only.
+        if local_id == "BCC_REQUIRED" or _is_mcc_tier_1_candidate(parent_id, bucket_id, local_id):
+            return 1
+
+        # Tier 4: explicitly demoted BCC children.
+        if local_id in _DEMOTED_BCC_CHILD_BUCKETS:
+            return 4
+
+        # Tier 2/3 via authoritative parent type when available.
+        parent_type = parent_type_map.get(parent_id, "")
+        if parent_type in {"track", "minor"}:
+            return 3
+        if parent_type == "major":
+            return 2
+
+        # Fallback: runtime track_required indicates track-scoped bucket.
+        track_required = bucket_track_required_map.get(bucket_id, "")
+        if track_required:
+            return 3
+
+        # Unknown/legacy fallback.
+        return 2
+
+    return min(_tier_for_bucket(bid) for bid in bucket_ids)
 
 
 def _is_acco_major_context(data: dict, track_id: str) -> bool:
@@ -371,9 +427,8 @@ def _build_projected_outputs(
     selected_codes: list[str],
     data: dict,
     track_id: str,
-) -> tuple[dict, dict]:
-    # Progress view keeps planned semester courses as in-progress (yellow segment),
-    # while timeline keeps completion-assumption semantics.
+) -> dict:
+    # Progress view keeps planned semester courses as in-progress (yellow segment).
     projected_completed_for_progress = _dedupe_codes(completed)
     projected_in_progress_for_progress = _dedupe_codes(in_progress + selected_codes)
     projected_alloc_for_progress = allocate_courses(
@@ -390,24 +445,7 @@ def _build_projected_outputs(
         projected_alloc_for_progress,
         data["course_bucket_map_df"],
     )
-
-    projected_completed_for_timeline = _dedupe_codes(completed + in_progress + selected_codes)
-    projected_alloc_for_timeline = allocate_courses(
-        projected_completed_for_timeline,
-        [],
-        data["buckets_df"],
-        data["course_bucket_map_df"],
-        data["courses_df"],
-        data["equivalencies_df"],
-        track_id=track_id,
-        double_count_policy_df=data.get("v2_double_count_policy_df"),
-    )
-    projected_timeline = estimate_timeline(projected_alloc_for_timeline["remaining"])
-    if isinstance(projected_timeline, dict):
-        projected_timeline["disclaimer"] = (
-            "Major-only estimate, assuming ~3 major courses per term and typical availability."
-        )
-    return projected_progress, projected_timeline
+    return projected_progress
 
 
 def _build_deterministic_recommendations(candidates: list[dict], max_recommendations: int) -> list[dict]:
@@ -483,14 +521,8 @@ def run_recommendation_semester(
     eligible_count_sem = len(non_manual_sem)
 
     progress_sem = build_progress_output(alloc, data["course_bucket_map_df"])
-    timeline_sem = estimate_timeline(alloc["remaining"])
-    if isinstance(timeline_sem, dict):
-        timeline_sem["disclaimer"] = (
-            "Major-only estimate, assuming ~3 major courses per term and typical availability."
-        )
-
     if not non_manual_sem:
-        projected_progress_sem, projected_timeline_sem = _build_projected_outputs(
+        projected_progress_sem = _build_projected_outputs(
             completed,
             in_progress,
             [],
@@ -507,12 +539,8 @@ def run_recommendation_semester(
             "in_progress_note": None,
             "blocking_warnings": [],
             "progress": progress_sem,
-            "double_counted_courses": alloc["double_counted_courses"],
-            "allocation_notes": alloc["notes"],
             "manual_review_courses": manual_review_sem,
-            "timeline": timeline_sem,
             "projected_progress": projected_progress_sem,
-            "projected_timeline": projected_timeline_sem,
             "projection_note": _PROJECTION_NOTE,
         }
 
@@ -531,10 +559,16 @@ def run_recommendation_semester(
     is_acco_context = _is_acco_major_context(data, track_id)
     parent_type_map = _build_parent_type_map(data)
     bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
+    bucket_parent_map = _build_bucket_parent_map(data, track_id)
     ranked_sem = sorted(
         non_manual_sem,
         key=lambda c: (
-            _bucket_hierarchy_tier_v2(c, parent_type_map, bucket_track_required_map),
+            _bucket_hierarchy_tier_v2(
+                c,
+                parent_type_map,
+                bucket_track_required_map,
+                bucket_parent_map,
+            ),
             _accc_major_required_rank(c, is_acco_context),
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
             _soft_tag_demote_penalty(c),
@@ -632,7 +666,7 @@ def run_recommendation_semester(
         in_progress_note_sem = "Prerequisites satisfied via in-progress courses assume successful completion."
 
     selected_codes = [r["course_code"] for r in recommendations_sem if r.get("course_code")]
-    projected_progress_sem, projected_timeline_sem = _build_projected_outputs(
+    projected_progress_sem = _build_projected_outputs(
         completed,
         in_progress,
         selected_codes,
@@ -650,12 +684,8 @@ def run_recommendation_semester(
         "in_progress_note": in_progress_note_sem,
         "blocking_warnings": blocking_sem,
         "progress": progress_sem,
-        "double_counted_courses": alloc["double_counted_courses"],
-        "allocation_notes": alloc["notes"],
         "manual_review_courses": manual_review_sem,
-        "timeline": timeline_sem,
         "projected_progress": projected_progress_sem,
-        "projected_timeline": projected_timeline_sem,
         "projection_note": _PROJECTION_NOTE,
     }
 
