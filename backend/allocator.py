@@ -15,6 +15,22 @@ def _safe_int(val, default=None):
         return default
 
 
+def _infer_requirement_mode(row: pd.Series) -> str:
+    mode = str(row.get("requirement_mode", "") or "").strip().lower()
+    if mode in {"required", "choose_n", "credits_pool"}:
+        return mode
+    role = str(row.get("role", "") or "").strip().lower()
+    if role == "core":
+        return "required"
+    needed_credits = _safe_int(row.get("needed_credits"))
+    if needed_credits is not None and needed_credits > 0:
+        return "credits_pool"
+    needed_count = _safe_int(row.get("needed_count"))
+    if role == "elective" or (needed_count is not None and needed_count > 0):
+        return "choose_n"
+    return "required"
+
+
 def _expand_map_with_equivalencies(
     track_map: pd.DataFrame,
     equivalencies_df: pd.DataFrame,
@@ -165,12 +181,14 @@ def allocate_courses(
         needed_count = _safe_int(row.get("needed_count"))
         needed_credits = _safe_int(row.get("needed_credits"))
         min_level = _safe_int(row.get("min_level"))
+        requirement_mode = _infer_requirement_mode(row)
         bucket_meta[bid] = {
             "label": str(row.get("bucket_label", bid)),
             "priority": _safe_int(row.get("priority"), 99),
             "needed_count": needed_count,
             "needed_credits": needed_credits,
             "min_level": min_level,
+            "requirement_mode": requirement_mode,
             "parent_bucket_id": str(row.get("parent_bucket_id", "") or "").strip(),
             # mutable tracking:
             "slots_used": 0,
@@ -207,8 +225,35 @@ def allocate_courses(
                 continue
             result.append({"bucket_id": bid})
 
+        # Base order by bucket priority.
         result.sort(key=lambda b: bucket_meta.get(b["bucket_id"], {}).get("priority", 99))
-        return result
+
+        # Same-family precedence guard:
+        # prefer non-elective buckets (required/choose_n) before credits_pool
+        # within each parent bucket family.
+        if len(result) <= 1:
+            return result
+
+        parent_order: list[str] = []
+        grouped: dict[str, dict[str, list[dict]]] = {}
+        for entry in result:
+            bid = entry["bucket_id"]
+            meta = bucket_meta.get(bid, {})
+            parent = str(meta.get("parent_bucket_id", "") or "").strip()
+            if parent not in grouped:
+                grouped[parent] = {"non_elective": [], "elective_pool": []}
+                parent_order.append(parent)
+            mode = str(meta.get("requirement_mode", "") or "").strip().lower()
+            if mode == "credits_pool":
+                grouped[parent]["elective_pool"].append(entry)
+            else:
+                grouped[parent]["non_elective"].append(entry)
+
+        reordered: list[dict] = []
+        for parent in parent_order:
+            reordered.extend(grouped[parent]["non_elective"])
+            reordered.extend(grouped[parent]["elective_pool"])
+        return reordered
 
     def slots_remaining(bid: str) -> int:
         meta = bucket_meta[bid]

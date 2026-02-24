@@ -155,6 +155,59 @@ class TestMinLevel:
         assert "ACCO 1030" in result["applied_by_bucket"]["BUS_ELEC_4"]["completed_applied"]
 
 
+class TestElectiveRouting:
+    def test_same_family_non_elective_preferred_over_credits_pool(self):
+        """
+        If a course can fill both same-family required and credits_pool buckets,
+        it should route to the non-elective bucket first even when elective has
+        a numerically higher priority.
+        """
+        buckets = pd.DataFrame([
+            {
+                "track_id": "PLAN",
+                "bucket_id": "FIN_ELEC",
+                "bucket_label": "Finance Elective Pool",
+                "priority": 1,
+                "needed_count": None,
+                "needed_credits": 3,
+                "min_level": None,
+                "requirement_mode": "credits_pool",
+                "parent_bucket_id": "FIN_MAJOR",
+            },
+            {
+                "track_id": "PLAN",
+                "bucket_id": "FIN_CORE",
+                "bucket_label": "Finance Core",
+                "priority": 2,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "requirement_mode": "required",
+                "parent_bucket_id": "FIN_MAJOR",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "PLAN", "bucket_id": "FIN_ELEC", "course_code": "X100"},
+            {"track_id": "PLAN", "bucket_id": "FIN_CORE", "course_code": "X100"},
+        ])
+        courses = pd.DataFrame([
+            {"course_code": "X100", "course_name": "Test Course", "credits": 3, "level": 3000},
+        ])
+
+        result = allocate_courses(
+            completed=["X100"],
+            in_progress=[],
+            buckets_df=buckets,
+            course_bucket_map_df=course_map,
+            courses_df=courses,
+            track_id="PLAN",
+            double_count_policy_df=pd.DataFrame(),
+        )
+
+        assert "X100" in result["applied_by_bucket"]["FIN_CORE"]["completed_applied"]
+        assert "X100" not in result["applied_by_bucket"]["FIN_ELEC"]["completed_applied"]
+
+
 class TestPolicyDrivenDoubleCount:
     def _base_courses(self):
         return pd.DataFrame([
@@ -258,6 +311,219 @@ class TestPolicyDrivenDoubleCount:
         assert len(result["double_counted_courses"]) == 1
         assert result["double_counted_courses"][0]["buckets"] == ["A", "B"]
 
+    def test_cross_parent_major_style_buckets_double_count_by_default(self):
+        """
+        Cross-parent major buckets should double-count by default.
+
+        Mirrors merged-plan naming style (MAJOR::child_bucket_id).
+        """
+        buckets = pd.DataFrame([
+            {
+                "track_id": "PLAN",
+                "bucket_id": "FIN_MAJOR::fina-req-core",
+                "bucket_label": "Finance Core",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "FIN_MAJOR",
+            },
+            {
+                "track_id": "PLAN",
+                "bucket_id": "ACCO_MAJOR::acco-choose-2",
+                "bucket_label": "Accounting Choose 2",
+                "priority": 2,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "ACCO_MAJOR",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "PLAN", "bucket_id": "FIN_MAJOR::fina-req-core", "course_code": "X100"},
+            {"track_id": "PLAN", "bucket_id": "ACCO_MAJOR::acco-choose-2", "course_code": "X100"},
+        ])
+
+        result = allocate_courses(
+            completed=["X100"],
+            in_progress=[],
+            buckets_df=buckets,
+            course_bucket_map_df=course_map,
+            courses_df=self._base_courses(),
+            track_id="PLAN",
+            double_count_policy_df=pd.DataFrame(),
+        )
+        dc = result["double_counted_courses"]
+        assert len(dc) == 1
+        assert dc[0]["course_code"] == "X100"
+        assert dc[0]["buckets"] == [
+            "FIN_MAJOR::fina-req-core",
+            "ACCO_MAJOR::acco-choose-2",
+        ]
+
+    def test_cross_major_required_and_elective_pool_share_by_default(self):
+        """
+        Double-major policy: a course can satisfy one major's required child
+        and the other major's elective credits pool by default.
+        """
+        buckets = pd.DataFrame([
+            {
+                "track_id": "PLAN",
+                "bucket_id": "FIN_MAJOR::fina-req-core",
+                "bucket_label": "Finance Core",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "FIN_MAJOR",
+                "double_count_family_id": "FIN_MAJOR",
+                "requirement_mode": "required",
+            },
+            {
+                "track_id": "PLAN",
+                "bucket_id": "ACCO_MAJOR::acco-elec-2",
+                "bucket_label": "Accounting Electives",
+                "priority": 2,
+                "needed_count": None,
+                "needed_credits": 3,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "ACCO_MAJOR",
+                "double_count_family_id": "ACCO_MAJOR",
+                "requirement_mode": "credits_pool",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "PLAN", "bucket_id": "FIN_MAJOR::fina-req-core", "course_code": "X100"},
+            {"track_id": "PLAN", "bucket_id": "ACCO_MAJOR::acco-elec-2", "course_code": "X100"},
+        ])
+
+        result = allocate_courses(
+            completed=["X100"],
+            in_progress=[],
+            buckets_df=buckets,
+            course_bucket_map_df=course_map,
+            courses_df=self._base_courses(),
+            track_id="PLAN",
+            double_count_policy_df=pd.DataFrame(),
+        )
+        dc = result["double_counted_courses"]
+        assert len(dc) == 1
+        assert dc[0]["buckets"] == [
+            "FIN_MAJOR::fina-req-core",
+            "ACCO_MAJOR::acco-elec-2",
+        ]
+        assert "X100" in result["applied_by_bucket"]["FIN_MAJOR::fina-req-core"]["completed_applied"]
+        assert "X100" in result["applied_by_bucket"]["ACCO_MAJOR::acco-elec-2"]["completed_applied"]
+        assert result["applied_by_bucket"]["ACCO_MAJOR::acco-elec-2"]["credits_applied"] == 3
+
+    def test_same_family_id_denies_major_track_default(self):
+        """
+        Major + child track buckets should default-deny when they share
+        the same double_count_family_id, even if parent_bucket_id differs.
+        """
+        buckets = pd.DataFrame([
+            {
+                "track_id": "PLAN",
+                "bucket_id": "FIN_MAJOR::fina-req-core",
+                "bucket_label": "Finance Core",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "FIN_MAJOR",
+                "double_count_family_id": "FIN_MAJOR",
+            },
+            {
+                "track_id": "PLAN",
+                "bucket_id": "FIN_MAJOR::commbank-req-core",
+                "bucket_label": "Commercial Banking Core",
+                "priority": 2,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "CB_TRACK",
+                "double_count_family_id": "FIN_MAJOR",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "PLAN", "bucket_id": "FIN_MAJOR::fina-req-core", "course_code": "X100"},
+            {"track_id": "PLAN", "bucket_id": "FIN_MAJOR::commbank-req-core", "course_code": "X100"},
+        ])
+
+        result = allocate_courses(
+            completed=["X100"],
+            in_progress=[],
+            buckets_df=buckets,
+            course_bucket_map_df=course_map,
+            courses_df=self._base_courses(),
+            track_id="PLAN",
+            double_count_policy_df=pd.DataFrame(),
+        )
+        assert result["double_counted_courses"] == []
+        assert "X100" in result["applied_by_bucket"]["FIN_MAJOR::fina-req-core"]["completed_applied"]
+        assert "X100" not in result["applied_by_bucket"]["FIN_MAJOR::commbank-req-core"]["completed_applied"]
+
+    def test_same_family_id_can_be_overridden_with_sub_bucket_allow(self):
+        buckets = pd.DataFrame([
+            {
+                "track_id": "PLAN",
+                "bucket_id": "FIN_MAJOR::fina-req-core",
+                "bucket_label": "Finance Core",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "FIN_MAJOR",
+                "double_count_family_id": "FIN_MAJOR",
+            },
+            {
+                "track_id": "PLAN",
+                "bucket_id": "FIN_MAJOR::commbank-req-core",
+                "bucket_label": "Commercial Banking Core",
+                "priority": 2,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "CB_TRACK",
+                "double_count_family_id": "FIN_MAJOR",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "PLAN", "bucket_id": "FIN_MAJOR::fina-req-core", "course_code": "X100"},
+            {"track_id": "PLAN", "bucket_id": "FIN_MAJOR::commbank-req-core", "course_code": "X100"},
+        ])
+        policy = pd.DataFrame([
+            {
+                "program_id": "PLAN",
+                "sub_bucket_id_a": "FIN_MAJOR::fina-req-core",
+                "sub_bucket_id_b": "FIN_MAJOR::commbank-req-core",
+                "allow_double_count": True,
+            }
+        ])
+
+        result = allocate_courses(
+            completed=["X100"],
+            in_progress=[],
+            buckets_df=buckets,
+            course_bucket_map_df=course_map,
+            courses_df=self._base_courses(),
+            track_id="PLAN",
+            double_count_policy_df=policy,
+        )
+        assert len(result["double_counted_courses"]) == 1
+        assert result["double_counted_courses"][0]["buckets"] == [
+            "FIN_MAJOR::fina-req-core",
+            "FIN_MAJOR::commbank-req-core",
+        ]
+
 
 class TestInProgressPolicyRespect:
     """Verify in-progress courses respect same-parent deny policy."""
@@ -308,6 +574,24 @@ class TestInProgressPolicyRespect:
             if "X100" in data["in_progress_applied"]
         ]
         assert len(ip_buckets) == 2, f"Expected in 2 buckets, found in {ip_buckets}"
+
+    def test_in_progress_same_family_id_denies_even_with_different_parent_ids(self):
+        buckets = pd.DataFrame([
+            {"track_id": "P1", "bucket_id": "A", "bucket_label": "A", "priority": 1, "needed_count": 1, "needed_credits": None, "min_level": None, "parent_bucket_id": "FIN_MAJOR", "double_count_family_id": "FIN_MAJOR"},
+            {"track_id": "P1", "bucket_id": "B", "bucket_label": "B", "priority": 2, "needed_count": 1, "needed_credits": None, "min_level": None, "parent_bucket_id": "CB_TRACK", "double_count_family_id": "FIN_MAJOR"},
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "P1", "bucket_id": "A", "course_code": "X100"},
+            {"track_id": "P1", "bucket_id": "B", "course_code": "X100"},
+        ])
+
+        result = run_with_policy([], ["X100"], buckets, course_map, self._base_courses(), pd.DataFrame())
+        ip_buckets = [
+            bid for bid, data in result["applied_by_bucket"].items()
+            if "X100" in data["in_progress_applied"]
+        ]
+        assert len(ip_buckets) == 1, f"Expected in 1 bucket, found in {ip_buckets}"
+        assert ip_buckets[0] == "A"
 
     def test_in_progress_with_explicit_policy_allow(self):
         """In-progress course respects explicit allow policy for same-parent siblings."""

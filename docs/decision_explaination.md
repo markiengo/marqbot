@@ -1,4 +1,4 @@
-# Decision Explanation (v1.7.11)
+# Decision Explanation (v1.8.2)
 
 ## Purpose
 This document explains the high-level product decisions behind MarqBot so future features stay aligned with student-facing clarity: recommendations should be explainable, deterministic, and auditable from workbook data.
@@ -25,6 +25,13 @@ This document explains the high-level product decisions behind MarqBot so future
 - Why users benefit:
   - avoids "one class counted everywhere" confusion
   - still supports legitimate cross-major overlap for double majors
+
+### 5) Double-major elective sharing policy
+- Different major families can share course credit by default.
+- This includes required children and elective credits pools when a course maps to both.
+- Why users benefit:
+  - reflects real advising policy for double-major credit sharing
+  - avoids unnecessary extra elective recommendations when cross-major overlap is valid
 
 ### 3) Double-count policy precedence
 - Precedence order:
@@ -62,6 +69,15 @@ This document explains the high-level product decisions behind MarqBot so future
 - Why users benefit:
   - prevents repetitive recommendation lists early
   - avoids empty/underfilled lists late in degree progress
+
+### 4) Selection-allocation parity
+- Semester recommendation selection now mirrors allocator routing:
+  - same-family non-elective (`required`/`choose_n`) before `credits_pool`
+  - pairwise double-count policy respected during selection packing
+  - credit pools consume credits (not course count) during virtual packing
+- Why users benefit:
+  - recommendation counts and projected progress stay aligned
+  - credits-pool requirements behave predictably (for example, `12` means `12 credits`, not `12 courses`)
 
 ## Elective-Pool Decisions
 ### 1) Dynamic elective pools

@@ -1,7 +1,12 @@
 import re
 import pandas as pd
 
-from requirements import DEFAULT_TRACK_ID, BLOCKING_WARNING_THRESHOLD, get_buckets_by_role
+from requirements import (
+    DEFAULT_TRACK_ID,
+    BLOCKING_WARNING_THRESHOLD,
+    get_allowed_double_count_pairs,
+    get_buckets_by_role,
+)
 from allocator import allocate_courses
 from unlocks import get_direct_unlocks, get_blocking_warnings
 from timeline import estimate_timeline
@@ -11,9 +16,12 @@ from eligibility import get_eligible_courses, parse_term
 SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
 
 _CONCURRENT_ONLY_TAG = "may_be_concurrent"
+_MAX_PER_BUCKET_PER_SEM = 2
 _PROJECTION_NOTE = (
     "Projected progress below assumes you complete these recommendations."
 )
+_DEMOTED_BCC_CHILD_BUCKETS = {"BCC_ETHICS", "BCC_ANALYTICS", "BCC_ENHANCE"}
+_MCC_PARENT_FAMILY_IDS = {"MCC", "MCC_CORE", "MCC_FOUNDATION"}
 
 
 def normalize_semester_label(label: str) -> str:
@@ -74,17 +82,263 @@ def _local_bucket_id(bucket_id: str) -> str:
     return raw
 
 
+def _safe_int(val, default=None):
+    try:
+        if pd.isna(val):
+            return default
+        return int(val)
+    except (TypeError, ValueError):
+        return default
+
+
+def _infer_requirement_mode(row: pd.Series) -> str:
+    mode = str(row.get("requirement_mode", "") or "").strip().lower()
+    if mode in {"required", "choose_n", "credits_pool"}:
+        return mode
+    role = str(row.get("role", "") or "").strip().lower()
+    if role == "core":
+        return "required"
+    needed_credits = _safe_int(row.get("needed_credits"))
+    if needed_credits is not None and needed_credits > 0:
+        return "credits_pool"
+    needed_count = _safe_int(row.get("needed_count"))
+    if role == "elective" or (needed_count is not None and needed_count > 0):
+        return "choose_n"
+    return "required"
+
+
+def _build_selection_bucket_meta(data: dict, track_id: str) -> dict[str, dict]:
+    buckets_df = data.get("buckets_df")
+    if buckets_df is None or len(buckets_df) == 0:
+        return {}
+    if "bucket_id" not in buckets_df.columns:
+        return {}
+
+    subset = buckets_df
+    if "track_id" in buckets_df.columns:
+        tid = str(track_id or "").strip().upper()
+        subset = buckets_df[
+            buckets_df["track_id"].astype(str).str.strip().str.upper() == tid
+        ].copy()
+    if len(subset) == 0:
+        return {}
+
+    out: dict[str, dict] = {}
+    for _, row in subset.iterrows():
+        bid = str(row.get("bucket_id", "") or "").strip()
+        if not bid:
+            continue
+        p_raw = pd.to_numeric(row.get("priority", 99), errors="coerce")
+        out[bid] = {
+            "priority": int(p_raw) if pd.notna(p_raw) else 99,
+            "parent_bucket_id": str(row.get("parent_bucket_id", "") or "").strip(),
+            "requirement_mode": _infer_requirement_mode(row),
+        }
+    return out
+
+
+def _order_buckets_allocator_style(
+    bucket_ids: list[str],
+    bucket_meta: dict[str, dict],
+) -> list[str]:
+    unique = [str(b).strip() for b in bucket_ids if str(b).strip()]
+    unique = list(dict.fromkeys(unique))
+    unique.sort(key=lambda b: (bucket_meta.get(b, {}).get("priority", 99), b))
+    if len(unique) <= 1:
+        return unique
+
+    parent_order: list[str] = []
+    grouped: dict[str, dict[str, list[str]]] = {}
+    for bid in unique:
+        meta = bucket_meta.get(bid, {})
+        parent = str(meta.get("parent_bucket_id", "") or "").strip()
+        if parent not in grouped:
+            grouped[parent] = {"non_elective": [], "elective_pool": []}
+            parent_order.append(parent)
+        mode = str(meta.get("requirement_mode", "") or "").strip().lower()
+        if mode == "credits_pool":
+            grouped[parent]["elective_pool"].append(bid)
+        else:
+            grouped[parent]["non_elective"].append(bid)
+
+    ordered: list[str] = []
+    for parent in parent_order:
+        ordered.extend(grouped[parent]["non_elective"])
+        ordered.extend(grouped[parent]["elective_pool"])
+    return ordered
+
+
+def _select_assignable_buckets_allocator_style(
+    candidate_bucket_ids: list[str],
+    virtual_remaining: dict[str, int],
+    picks_per_bucket: dict[str, int],
+    enforce_bucket_cap: bool,
+    max_per_bucket: int,
+    allowed_pairs: set[frozenset[str]],
+    bucket_meta: dict[str, dict],
+) -> list[str]:
+    ordered = _order_buckets_allocator_style(candidate_bucket_ids, bucket_meta)
+    assigned: list[str] = []
+    for bid in ordered:
+        if virtual_remaining.get(bid, 0) <= 0:
+            continue
+        if enforce_bucket_cap and picks_per_bucket.get(bid, 0) >= max_per_bucket:
+            continue
+        if not assigned:
+            assigned.append(bid)
+            continue
+        pairwise_ok = all(
+            frozenset([existing, bid]) in allowed_pairs
+            for existing in assigned
+        )
+        if pairwise_ok:
+            assigned.append(bid)
+    return assigned
+
+
+def _bucket_virtual_consumption_units(bucket_id: str, candidate: dict, bucket_meta: dict[str, dict]) -> int:
+    mode = str(bucket_meta.get(bucket_id, {}).get("requirement_mode", "") or "").strip().lower()
+    if mode == "credits_pool":
+        return max(1, int(candidate.get("credits", 0) or 0))
+    return 1
+
+
 def _bucket_hierarchy_tier(candidate: dict) -> int:
+    """Deprecated compatibility wrapper; use _bucket_hierarchy_tier_v2."""
+    return _bucket_hierarchy_tier_v2(candidate, {}, {})
+
+
+def _build_parent_type_map(data: dict) -> dict[str, str]:
     """
-    Recommendation hierarchy override:
-    Tier 0 — all universal overlay buckets (BCC::*, MCC::*)
-    Tier 1 — everything else (major-specific requirements, electives)
+    Build parent bucket id -> type map from parent_buckets_df when available.
     """
-    pb = candidate.get("primary_bucket") or ""
-    if pb.startswith("BCC::") or pb.startswith("MCC::"):
-        return 0
-    local_id = _local_bucket_id(pb)
-    if local_id.startswith("BCC_") or local_id.startswith("MCC_"):
+    parent_buckets_df = data.get("parent_buckets_df")
+    if parent_buckets_df is None or len(parent_buckets_df) == 0:
+        return {}
+    if "parent_bucket_id" not in parent_buckets_df.columns:
+        return {}
+    out: dict[str, str] = {}
+    for _, row in parent_buckets_df.iterrows():
+        pid = str(row.get("parent_bucket_id", "") or "").strip().upper()
+        ptype = str(row.get("type", "") or "").strip().lower()
+        if pid and ptype:
+            out[pid] = ptype
+    return out
+
+
+def _build_bucket_track_required_map(data: dict, track_id: str) -> dict[str, str]:
+    """
+    Build runtime bucket_id -> track_required map for the current runtime track.
+    """
+    buckets_df = data.get("buckets_df")
+    if buckets_df is None or len(buckets_df) == 0:
+        return {}
+    if "bucket_id" not in buckets_df.columns or "track_id" not in buckets_df.columns:
+        return {}
+
+    tid = str(track_id or "").strip().upper()
+    subset = buckets_df[
+        buckets_df["track_id"].astype(str).str.strip().str.upper() == tid
+    ].copy()
+    if len(subset) == 0:
+        return {}
+
+    out: dict[str, str] = {}
+    for _, row in subset.iterrows():
+        bid = str(row.get("bucket_id", "") or "").strip()
+        track_req = str(row.get("track_required", "") or "").strip().upper()
+        if bid:
+            out[bid] = track_req
+    return out
+
+
+def _is_mcc_tier_1_candidate(parent_id: str, primary_bucket: str, local_id: str) -> bool:
+    if parent_id in _MCC_PARENT_FAMILY_IDS:
+        return True
+    if primary_bucket.startswith("MCC::"):
+        return True
+    if local_id.startswith("MCC_"):
+        return True
+    return False
+
+
+def _bucket_hierarchy_tier_v2(
+    candidate: dict,
+    parent_type_map: dict[str, str],
+    bucket_track_required_map: dict[str, str],
+) -> int:
+    """
+    Priority tiers:
+      1) MCC + BCC_REQUIRED only
+      2) major parent buckets
+      3) track/minor parent buckets
+      4) demoted BCC children (BCC_ETHICS/ANALYTICS/ENHANCE)
+
+    Unlockers remain an in-tier tie-break in the ranking key.
+    """
+    primary_bucket = str(candidate.get("primary_bucket", "") or "").strip().upper()
+    local_id = _local_bucket_id(primary_bucket).upper()
+    parent_id = str(candidate.get("primary_parent_bucket_id", "") or "").strip().upper()
+
+    # Tier 1: MCC family and BCC required child only.
+    if local_id == "BCC_REQUIRED" or _is_mcc_tier_1_candidate(parent_id, primary_bucket, local_id):
+        return 1
+
+    # Tier 4: explicitly demoted BCC children.
+    if local_id in _DEMOTED_BCC_CHILD_BUCKETS:
+        return 4
+
+    # Tier 2/3 via authoritative parent type when available.
+    parent_type = parent_type_map.get(parent_id, "")
+    if parent_type in {"track", "minor"}:
+        return 3
+    if parent_type == "major":
+        return 2
+
+    # Fallback: runtime track_required indicates track-scoped bucket.
+    # This keeps behavior stable even when parent_buckets_df is missing in test data.
+    track_required = bucket_track_required_map.get(primary_bucket, "")
+    if track_required:
+        return 3
+
+    # Unknown/legacy fallback.
+    return 2
+
+
+def _is_acco_major_context(data: dict, track_id: str) -> bool:
+    tid = str(track_id or "").strip().upper()
+    if tid == "ACCO_MAJOR":
+        return True
+    buckets_df = data.get("buckets_df")
+    if buckets_df is None or len(buckets_df) == 0:
+        return False
+    subset = buckets_df[
+        buckets_df.get("track_id", pd.Series(dtype=str))
+        .astype(str)
+        .str.strip()
+        .str.upper()
+        == tid
+    ].copy()
+    if len(subset) == 0:
+        return False
+    parent_match = (
+        subset.get("parent_bucket_id", pd.Series(dtype=str))
+        .astype(str)
+        .str.strip()
+        .str.upper()
+        == "ACCO_MAJOR"
+    ).any()
+    if parent_match:
+        return True
+    bucket_match = subset.get("bucket_id", pd.Series(dtype=str)).astype(str).str.upper().str.startswith("ACCO_MAJOR::").any()
+    return bool(bucket_match)
+
+
+def _accc_major_required_rank(candidate: dict, is_acco_context: bool) -> int:
+    if not is_acco_context:
+        return 1
+    warning_text = str(candidate.get("warning_text", "") or "").strip().lower()
+    if "required for acco major" in warning_text or "required for acco majors" in warning_text:
         return 0
     return 1
 
@@ -183,6 +437,7 @@ def _build_deterministic_recommendations(candidates: list[dict], max_recommendat
             "unlocks": cand.get("unlocks", []),
             "has_soft_requirement": cand.get("has_soft_requirement", False),
             "soft_tags": cand.get("soft_tags", []),
+            "warning_text": cand.get("warning_text"),
             "low_confidence": cand.get("low_confidence", False),
             "notes": cand.get("notes"),
         })
@@ -273,35 +528,83 @@ def run_recommendation_semester(
     for core_code in core_remaining_sem:
         core_prereq_blockers_sem |= _prereq_courses(data["prereq_map"].get(core_code, {"type": "none"}))
 
+    is_acco_context = _is_acco_major_context(data, track_id)
+    parent_type_map = _build_parent_type_map(data)
+    bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
     ranked_sem = sorted(
         non_manual_sem,
         key=lambda c: (
+            _bucket_hierarchy_tier_v2(c, parent_type_map, bucket_track_required_map),
+            _accc_major_required_rank(c, is_acco_context),
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
             _soft_tag_demote_penalty(c),
-            _bucket_hierarchy_tier(c),
             -c.get("multi_bucket_score", 0),
             c.get("prereq_level", 0),
             c["course_code"],
         ),
     )
-    # Greedy selection that respects bucket capacity: once a single-slot
-    # bucket is filled by a prior pick, skip subsequent courses whose
-    # buckets are ALL already virtually satisfied.
+    # Greedy selection that respects bucket capacity and spreads courses
+    # across semesters (base cap _MAX_PER_BUCKET_PER_SEM picks per bucket).
+    # The cap auto-relaxes when viable unmet buckets are too few to satisfy
+    # requested recommendation count.
     selected_sem = []
+    selection_bucket_meta = _build_selection_bucket_meta(data, track_id)
+    allowed_pairs = get_allowed_double_count_pairs(
+        data.get("buckets_df", pd.DataFrame()),
+        track_id=track_id,
+        double_count_policy_df=data.get("v2_double_count_policy_df"),
+    )
     virtual_remaining = {
         bid: rem.get("slots_remaining", 0)
         for bid, rem in alloc["remaining"].items()
     }
-    for cand in ranked_sem:
+    picks_per_bucket: dict[str, int] = {}
+    cap_relaxed = False
+    for idx, cand in enumerate(ranked_sem):
         if len(selected_sem) >= max_recs:
             break
+
+        remaining_slots_to_fill = max_recs - len(selected_sem)
+        remaining_candidates = ranked_sem[idx:]
+        viable_unmet_buckets: set[str] = set()
+        for rc in remaining_candidates:
+            viable_unmet_buckets.update(
+                _select_assignable_buckets_allocator_style(
+                    rc.get("fills_buckets", []),
+                    virtual_remaining,
+                    picks_per_bucket,
+                    enforce_bucket_cap=True,
+                    max_per_bucket=_MAX_PER_BUCKET_PER_SEM,
+                    allowed_pairs=allowed_pairs,
+                    bucket_meta=selection_bucket_meta,
+                )
+            )
+        if (not cap_relaxed) and (len(viable_unmet_buckets) < remaining_slots_to_fill):
+            cap_relaxed = True
+        enforce_bucket_cap = not cap_relaxed
+
         cand_buckets = cand.get("fills_buckets", [])
-        if not any(virtual_remaining.get(bid, 0) > 0 for bid in cand_buckets):
+        assigned_buckets = _select_assignable_buckets_allocator_style(
+            cand_buckets,
+            virtual_remaining,
+            picks_per_bucket,
+            enforce_bucket_cap=enforce_bucket_cap,
+            max_per_bucket=_MAX_PER_BUCKET_PER_SEM,
+            allowed_pairs=allowed_pairs,
+            bucket_meta=selection_bucket_meta,
+        )
+        if not assigned_buckets:
             continue
         selected_sem.append(cand)
-        for bid in cand_buckets:
+        for bid in assigned_buckets:
             if virtual_remaining.get(bid, 0) > 0:
-                virtual_remaining[bid] -= 1
+                consume = _bucket_virtual_consumption_units(
+                    bid,
+                    cand,
+                    selection_bucket_meta,
+                )
+                virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
+                picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
     for cand in selected_sem:
         cand["unlocks"] = get_direct_unlocks(cand["course_code"], reverse_map, limit=3)
 
@@ -355,3 +658,4 @@ def run_recommendation_semester(
         "projected_timeline": projected_timeline_sem,
         "projection_note": _PROJECTION_NOTE,
     }
+

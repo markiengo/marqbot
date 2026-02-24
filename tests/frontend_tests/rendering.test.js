@@ -56,6 +56,14 @@ describe("renderCard()", () => {
     expect(html).toContain("Commercial Banking: CB CORE");
   });
 
+  test("capitalizes hyphenated bucket labels in recommendation tags", () => {
+    const html = renderCard(
+      { ...baseCard, fills_buckets: ["ACCO_MAJOR::acco-choose-2"] },
+      { programLabelMap: new Map([["ACCO_MAJOR", "ACCO Major"]]) },
+    );
+    expect(html).toContain("ACCO Major: ACCO Choose 2");
+  });
+
   test("soft_tags render as warning-strip, not soft-warn", () => {
     const html = renderCard({ ...baseCard, soft_tags: ["schedule_uncertain"] });
     expect(html).toContain('class="warning-strip"');
@@ -75,6 +83,12 @@ describe("renderCard()", () => {
   test("warning-strip has role=alert", () => {
     const html = renderCard({ ...baseCard, soft_tags: ["schedule_uncertain"] });
     expect(html).toContain('role="alert"');
+  });
+
+  test("warning_text renders in warning-strip", () => {
+    const html = renderCard({ ...baseCard, warning_text: "Required for ACCO majors" });
+    expect(html).toContain('class="warning-strip"');
+    expect(html).toContain("Required for ACCO majors");
   });
 
   test("multi-bucket course renders multiple bucket tags", () => {

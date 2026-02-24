@@ -406,6 +406,34 @@ class TestServerTrackValidation:
         assert len(data.get("semesters", [])) == 4
         assert all(len(sem.get("recommendations", [])) <= 6 for sem in data["semesters"])
 
+    def test_fin_major_business_elective_pool_keeps_credit_target_and_sem3_capacity(self, client):
+        """
+        Regression: FINA-ELEC-4 must retain credit target semantics (12 credits)
+        and should not collapse to 0/0.
+        """
+        resp = self._post(
+            client,
+            completed_courses="FINA 3001, PHIL 1001, ENGL 1001, MATH 1450, BUAD 1560, INGS 1001",
+            in_progress_courses="MARK 3001, INSY 3001, BUAD 2001, LEAD 2000",
+            target_semester_primary="Fall 2026",
+            target_semester_count=3,
+            max_recommendations=6,
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert len(data.get("semesters", [])) == 3
+
+        for sem in data["semesters"]:
+            progress = sem.get("progress", {})
+            bucket = progress.get("FIN_MAJOR::FINA-ELEC-4")
+            assert bucket is not None
+            assert bucket.get("needed") == 12
+            assert bucket.get("slots_remaining", -1) >= 0
+
+        sem1_bucket = data["semesters"][0]["progress"]["FIN_MAJOR::FINA-ELEC-4"]
+        assert len(sem1_bucket.get("remaining_courses", [])) > 0
+
     def test_declared_majors_must_be_array(self, client):
         resp = client.post("/recommend", json={
             "completed_courses": "",
@@ -459,7 +487,7 @@ class TestServerTrackValidation:
         assert data["mode"] == "recommendations"
         assert data["selection_context"]["declared_majors"] == ["FIN_MAJOR"]
         assert data["selection_context"]["selected_track_id"] is None
-        assert "FIN_MAJOR::FIN_CORE" in data["progress"]
+        assert "FIN_MAJOR::FINA-REQ-CORE" in data["progress"]
 
     def test_declared_track_must_match_major(self, client, monkeypatch):
         import server
@@ -492,8 +520,8 @@ class TestServerTrackValidation:
         data = resp.get_json()
         assert data["mode"] == "recommendations"
         assert data["selection_context"]["selected_track_id"] == "CB_TRACK"
-        assert "FIN_MAJOR::FIN_CORE" in data["progress"]
-        assert "FIN_MAJOR::CB_CORE" in data["progress"]
+        assert "FIN_MAJOR::FINA-REQ-CORE" in data["progress"]
+        assert "FIN_MAJOR::COMMBANK-REQ-CORE" in data["progress"]
 
     def test_double_major_shares_bcc_once(self, client):
         resp = client.post("/recommend", json={
@@ -515,8 +543,8 @@ class TestServerTrackValidation:
         assert "ACCO_MAJOR::BCC_REQUIRED" not in progress_keys
 
         # Major-specific requirement buckets still remain separated.
-        assert "FIN_MAJOR::FIN_CORE" in progress_keys
-        assert "ACCO_MAJOR::ACCO_CORE_REQ" in progress_keys
+        assert "FIN_MAJOR::FINA-REQ-CORE" in progress_keys
+        assert "ACCO_MAJOR::ACCO-REQ-CORE" in progress_keys
 
     def test_programs_endpoint_returns_expected_shape(self, client):
         resp = client.get("/programs")
@@ -639,10 +667,12 @@ class TestSyntheticTrackSmoke:
         synth_buckets = pd.DataFrame([
             {"track_id": "SYNTH_TEST", "bucket_id": "ST_CORE", "bucket_label": "Synth Core",
              "priority": 1, "needed_count": 2, "needed_credits": None,
-             "min_level": None, "allow_double_count": False, "role": "core"},
+             "min_level": None, "allow_double_count": False, "role": "core",
+             "parent_bucket_priority": 2},
             {"track_id": "SYNTH_TEST", "bucket_id": "ST_ELEC", "bucket_label": "Synth Elective",
              "priority": 2, "needed_count": 1, "needed_credits": None,
-             "min_level": None, "allow_double_count": True, "role": "elective"},
+             "min_level": None, "allow_double_count": True, "role": "elective",
+             "parent_bucket_priority": 2},
         ])
         patched_buckets = pd.concat(
             [server._data["buckets_df"], synth_buckets], ignore_index=True,
@@ -717,4 +747,4 @@ class TestSyntheticTrackSmoke:
         data = resp.get_json()
         assert data["mode"] == "recommendations"
         assert "ST_CORE" not in data["progress"]
-        assert "FIN_MAJOR::FIN_CORE" in data["progress"]
+        assert "FIN_MAJOR::FINA-REQ-CORE" in data["progress"]

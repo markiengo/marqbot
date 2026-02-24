@@ -30,22 +30,41 @@ function humanCourseText(text) {
   return esc(String(text || ""));
 }
 
+function formatCourseNameLabel(name) {
+  const raw = String(name || "").trim();
+  if (!raw) return "";
+  return raw
+    .split(/\s+/)
+    .map(word => {
+      return word
+        .split("-")
+        .map(part => {
+          const trimmed = String(part || "");
+          if (!trimmed) return trimmed;
+          if (/^[A-Z0-9&]+$/.test(trimmed) && trimmed.length >= 2) {
+            return trimmed;
+          }
+          const lower = trimmed.toLowerCase();
+          return `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`;
+        })
+        .join("-");
+    })
+    .join(" ");
+}
+
 function minStandingWarning(minStanding) {
   const n = Number(minStanding);
-  if (!Number.isFinite(n)) return "standing requirement";
+  if (!Number.isFinite(n) || n <= 1) return "";
   switch (n) {
-    case 0:
-      return "";
-    case 1:
-      return "enrolled standing required";
     case 2:
       return "sophomore standing required";
     case 3:
       return "junior standing required";
     case 4:
+    case 5:
       return "senior standing required";
     default:
-      return "standing requirement (see catalog)";
+      return "";
   }
 }
 
@@ -59,7 +78,6 @@ function humanizeSoftWarningTag(tag, course = null) {
     major_restriction: "major restriction",
     admitted_program: "admitted program required",
     instructor_consent: "instructor consent required",
-    enrollment_requirement: "enrollment requirement",
     placement_required: "placement requirement",
     minimum_grade: "minimum grade requirement",
     minimum_gpa: "minimum GPA requirement",
@@ -67,6 +85,15 @@ function humanizeSoftWarningTag(tag, course = null) {
   }[key];
   if (mapped) return mapped;
   return key.replace(/_/g, " ");
+}
+
+function normalizeWarningTextMessages(warningText) {
+  const raw = String(warningText || "").trim();
+  if (!raw) return [];
+  return raw
+    .split(/[;|]/)
+    .map(s => s.trim())
+    .filter(Boolean);
 }
 
 function localBucketId(bucketId) {
@@ -224,15 +251,19 @@ export function renderCard(c, options = {}) {
     ? `<div class="unlocks-line">Unlocks: ${c.unlocks.map(esc).join(", ")}</div>` : "";
 
   const warningMessages = [];
+  if (c.warning_text) {
+    warningMessages.push(...normalizeWarningTextMessages(c.warning_text));
+  }
   if (Array.isArray(c.soft_tags) && c.soft_tags.length) {
     const normalized = [...new Set(c.soft_tags.map(tag => humanizeSoftWarningTag(tag, c)).filter(Boolean))];
     warningMessages.push(...normalized);
   }
+  const dedupedWarnings = [...new Set(warningMessages.filter(Boolean))];
   if (c.low_confidence) {
-    warningMessages.push("offering schedule may vary; confirm with registrar");
+    dedupedWarnings.push("offering schedule may vary; confirm with registrar");
   }
-  const warningStrip = warningMessages.length
-    ? `<div class="warning-strip" role="alert">\u26a0 Warning: ${warningMessages.map(esc).join(" \u00b7 ")}</div>`
+  const warningStrip = dedupedWarnings.length
+    ? `<div class="warning-strip" role="alert">\u26a0 Warning: ${dedupedWarnings.map(esc).join(" \u00b7 ")}</div>`
     : "";
 
   const courseNotes = c.notes
@@ -243,8 +274,9 @@ export function renderCard(c, options = {}) {
     : "rec-card-why";
 
   const codePart = `<span class="course-code">${esc(c.course_code || "")}</span>`;
+  const courseName = formatCourseNameLabel(c.course_name);
   const displayTitle = c.course_name
-    ? `${codePart}<span class="title-sep">\u2014</span><span class="course-name">${esc(c.course_name)}</span>`
+    ? `${codePart}<span class="title-sep">\u2014</span><span class="course-name">${esc(courseName)}</span>`
     : codePart;
 
   return `
@@ -408,7 +440,7 @@ export function renderSemesterPreviewHtml(data, index) {
   const rowHtml = rows.length
     ? rows.map((course) => {
       const code = esc(String(course.course_code || ""));
-      const name = esc(String(course.course_name || "Course"));
+      const name = esc(formatCourseNameLabel(course.course_name || "Course"));
       return `<div class="semester-preview-item"><div class="semester-preview-code">${code}</div><div class="semester-preview-name">${name}</div></div>`;
     }).join("")
     : `<div class="semester-preview-empty">No eligible courses for this semester.</div>`;

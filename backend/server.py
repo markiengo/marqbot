@@ -406,7 +406,7 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
     universal_program_ids = _universal_program_ids(data)
     program_scope = {major_id} | universal_program_ids
 
-    if len(v2_buckets) == 0 or len(v2_sub) == 0 or len(v2_map) == 0:
+    if len(v2_buckets) == 0 or len(v2_sub) == 0:
         return dict(data)
 
     buckets = v2_buckets.copy()
@@ -437,6 +437,29 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
     sub["bucket_id"] = sub["bucket_id"].astype(str).str.strip()
     sub["sub_bucket_id"] = sub["sub_bucket_id"].astype(str).str.strip()
     sub = sub.merge(bucket_keys, on=["program_id", "bucket_id"], how="inner")
+    sub["credits_required"] = pd.to_numeric(sub.get("credits_required"), errors="coerce")
+    requirement_mode = (
+        sub.get("requirement_mode", pd.Series(index=sub.index, dtype=str))
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    missing_mode = requirement_mode == ""
+    if missing_mode.any():
+        role_norm = (
+            sub.get("role", pd.Series(index=sub.index, dtype=str))
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.lower()
+        )
+        derived_mode = role_norm.map({"core": "required", "elective": "choose_n"}).fillna("required")
+        requirement_mode = requirement_mode.where(~missing_mode, derived_mode)
+    requirement_mode = requirement_mode.where(
+        requirement_mode.isin({"required", "choose_n", "credits_pool"}),
+        "required",
+    )
 
     bucket_labels = {
         (str(row.get("program_id", "")).strip().upper(), str(row.get("bucket_id", "")).strip()): str(
@@ -450,6 +473,17 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
         ).strip().upper()
         for _, row in buckets.iterrows()
     }
+    bucket_double_count_family = {}
+    for _, row in buckets.iterrows():
+        key = (
+            str(row.get("program_id", "")).strip().upper(),
+            str(row.get("bucket_id", "")).strip(),
+        )
+        track_req = str(row.get("track_required", "") or "").strip().upper()
+        family = str(row.get("double_count_family_id", "") or "").strip().upper()
+        if not family:
+            family = str(row.get("bucket_id", "") or "").strip().upper()
+        bucket_double_count_family[key] = family
 
     runtime_buckets = pd.DataFrame(
         {
@@ -458,9 +492,11 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
             "bucket_label": sub.get("sub_bucket_label", sub["sub_bucket_id"]),
             "priority": sub.get("priority", 99),
             "needed_count": sub.get("courses_required"),
+            "needed_credits": sub.get("credits_required"),
             "min_level": sub.get("min_level"),
             "allow_double_count": False,
             "role": sub.get("role", "").fillna(""),
+            "requirement_mode": requirement_mode,
             "parent_bucket_id": sub["bucket_id"],
             "parent_bucket_label": sub.apply(
                 lambda r: bucket_labels.get(
@@ -482,34 +518,67 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
                 ),
                 axis=1,
             ),
+            "double_count_family_id": sub.apply(
+                lambda r: bucket_double_count_family.get(
+                    (
+                        str(r.get("program_id", "")).strip().upper(),
+                        str(r.get("bucket_id", "")).strip(),
+                    ),
+                    str(r.get("bucket_id", "")).strip().upper(),
+                ),
+                axis=1,
+            ),
             "source_program_id": sub["program_id"],
             "source_parent_bucket_id": sub["bucket_id"],
         }
     )
 
     sub_keys = runtime_buckets[["source_program_id", "bucket_id"]].copy()
-    sub_keys = sub_keys.rename(
-        columns={
-            "source_program_id": "program_id",
-            "bucket_id": "sub_bucket_id",
-        }
-    ).drop_duplicates()
-    mappings = v2_map.copy()
-    mappings["program_id"] = mappings["program_id"].astype(str).str.strip().str.upper()
-    mappings["sub_bucket_id"] = mappings["sub_bucket_id"].astype(str).str.strip()
-    mappings["course_code"] = mappings["course_code"].astype(str).str.strip()
-    mappings = mappings.merge(sub_keys, on=["program_id", "sub_bucket_id"], how="inner")
+    sub_keys = sub_keys.rename(columns={"bucket_id": "source_bucket_id"}).drop_duplicates()
 
-    runtime_map = pd.DataFrame(
-        {
-            "track_id": major_id,
-            "course_code": mappings["course_code"],
-            "bucket_id": mappings["sub_bucket_id"],
-            "notes": mappings.get("notes"),
-            "source_program_id": mappings["program_id"],
-            "source_bucket_id": mappings["sub_bucket_id"],
-        }
-    )
+    runtime_source_map = data.get("course_bucket_map_df", pd.DataFrame()).copy()
+    if len(runtime_source_map) > 0 and {"track_id", "bucket_id", "course_code"}.issubset(runtime_source_map.columns):
+        runtime_source_map["track_id"] = runtime_source_map["track_id"].astype(str).str.strip().str.upper()
+        runtime_source_map["bucket_id"] = runtime_source_map["bucket_id"].astype(str).str.strip()
+        runtime_source_map["course_code"] = runtime_source_map["course_code"].astype(str).str.strip()
+        mappings = runtime_source_map.merge(
+            sub_keys,
+            left_on=["track_id", "bucket_id"],
+            right_on=["source_program_id", "source_bucket_id"],
+            how="inner",
+        )
+        runtime_map = pd.DataFrame(
+            {
+                "track_id": major_id,
+                "course_code": mappings["course_code"],
+                "bucket_id": mappings["bucket_id"],
+                "notes": mappings.get("notes"),
+                "source_program_id": mappings["track_id"],
+                "source_bucket_id": mappings["bucket_id"],
+            }
+        )
+    else:
+        legacy_sub_keys = sub_keys.rename(
+            columns={
+                "source_program_id": "program_id",
+                "source_bucket_id": "sub_bucket_id",
+            }
+        )
+        mappings = v2_map.copy()
+        mappings["program_id"] = mappings["program_id"].astype(str).str.strip().str.upper()
+        mappings["sub_bucket_id"] = mappings["sub_bucket_id"].astype(str).str.strip()
+        mappings["course_code"] = mappings["course_code"].astype(str).str.strip()
+        mappings = mappings.merge(legacy_sub_keys, on=["program_id", "sub_bucket_id"], how="inner")
+        runtime_map = pd.DataFrame(
+            {
+                "track_id": major_id,
+                "course_code": mappings["course_code"],
+                "bucket_id": mappings["sub_bucket_id"],
+                "notes": mappings.get("notes"),
+                "source_program_id": mappings["program_id"],
+                "source_bucket_id": mappings["sub_bucket_id"],
+            }
+        )
 
     merged = dict(data)
     merged["buckets_df"] = runtime_buckets
@@ -546,11 +615,21 @@ def _build_declared_plan_data_v2(
             "source_parent_bucket_id",
             buckets.get("parent_bucket_id", ""),
         ).fillna("").astype(str).str.strip().str.upper()
+        core_parent_alias = {
+            "BCC": "BCC",
+            "MCC": "MCC",
+            "BCC_CORE": "BCC",
+            "MCC_CORE": "MCC",
+            "MCC_FOUNDATION": "MCC",
+        }
+        source_parent_display = buckets["source_parent_bucket_id"].map(core_parent_alias).fillna(
+            buckets["source_parent_bucket_id"]
+        )
 
         is_overlay_bucket = buckets["source_program_id"].isin(universal_programs)
-        has_named_core_parent_bucket = is_overlay_bucket & buckets["source_parent_bucket_id"].isin({"BCC", "MCC"})
+        has_named_core_parent_bucket = is_overlay_bucket & source_parent_display.isin({"BCC", "MCC"})
         buckets.loc[has_named_core_parent_bucket, "bucket_id"] = (
-            buckets.loc[has_named_core_parent_bucket, "source_parent_bucket_id"].astype(str)
+            source_parent_display.loc[has_named_core_parent_bucket].astype(str)
             + "::"
             + buckets.loc[has_named_core_parent_bucket, "source_bucket_id"].astype(str)
         )
@@ -579,11 +658,14 @@ def _build_declared_plan_data_v2(
             how="left",
         )
         course_map["source_parent_bucket_id"] = course_map["source_parent_bucket_id"].fillna("").astype(str).str.upper()
+        source_parent_map_display = course_map["source_parent_bucket_id"].map(core_parent_alias).fillna(
+            course_map["source_parent_bucket_id"]
+        )
 
         is_overlay_map = course_map["source_program_id"].isin(universal_programs)
-        has_named_core_parent_map = is_overlay_map & course_map["source_parent_bucket_id"].isin({"BCC", "MCC"})
+        has_named_core_parent_map = is_overlay_map & source_parent_map_display.isin({"BCC", "MCC"})
         course_map.loc[has_named_core_parent_map, "bucket_id"] = (
-            course_map.loc[has_named_core_parent_map, "source_parent_bucket_id"].astype(str)
+            source_parent_map_display.loc[has_named_core_parent_map].astype(str)
             + "::"
             + course_map.loc[has_named_core_parent_map, "source_bucket_id"].astype(str)
         )
@@ -1072,15 +1154,21 @@ def get_courses():
             df[col] = None
     df = df[cols].dropna(subset=["course_code"])
     # Ensure JSON-safe numeric class level for frontend search ranking.
-    df["level"] = pd.to_numeric(df["level"], errors="coerce")
-    df["level"] = df["level"].apply(
-        lambda v: int(v) if pd.notna(v) else None
+    level_numeric = pd.to_numeric(df["level"], errors="coerce")
+    df["level"] = pd.Series(
+        [int(v) if pd.notna(v) else None for v in level_numeric],
+        index=df.index,
+        dtype=object,
     )
     # Ensure JSON-safe numeric ordering field for frontend search ranking.
-    df["prereq_level"] = pd.to_numeric(df["prereq_level"], errors="coerce")
-    df["prereq_level"] = df["prereq_level"].apply(
-        lambda v: int(v) if pd.notna(v) else None
+    prereq_numeric = pd.to_numeric(df["prereq_level"], errors="coerce")
+    df["prereq_level"] = pd.Series(
+        [int(v) if pd.notna(v) else None for v in prereq_numeric],
+        index=df.index,
+        dtype=object,
     )
+    # Convert to object dtype so None survives instead of being re-coerced to NaN.
+    df = df.astype(object).where(pd.notna(df), None)
     return jsonify({"courses": df.to_dict(orient="records")})
 
 

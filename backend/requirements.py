@@ -9,7 +9,6 @@ SOFT_WARNING_TAGS = {
     "admitted_program",
     "major_restriction",
     "standing_requirement",
-    "enrollment_requirement",
     "placement_required",
     "minimum_grade",
     "minimum_gpa",
@@ -28,19 +27,25 @@ BLOCKING_WARNING_THRESHOLD = 2
 
 def _build_parent_bucket_map(track_buckets_df: pd.DataFrame) -> dict[str, str]:
     """
-    Map runtime bucket_id -> parent bucket_id when available.
+    Map runtime bucket_id -> double-count family id.
 
-    In V2-derived runtime data, `parent_bucket_id` exists for sub-buckets.
-    In legacy data, this map is empty.
+    Preferred source is runtime `double_count_family_id` (track-aware family),
+    with fallback to `parent_bucket_id` for compatibility with legacy rows.
     """
-    if "parent_bucket_id" not in track_buckets_df.columns or "bucket_id" not in track_buckets_df.columns:
+    if "bucket_id" not in track_buckets_df.columns:
         return {}
     out: dict[str, str] = {}
+    has_family = "double_count_family_id" in track_buckets_df.columns
+    has_parent = "parent_bucket_id" in track_buckets_df.columns
+    if not has_family and not has_parent:
+        return out
     for _, row in track_buckets_df.iterrows():
         child = str(row.get("bucket_id", "") or "").strip()
-        parent = str(row.get("parent_bucket_id", "") or "").strip()
-        if child and parent:
-            out[child] = parent
+        family = str(row.get("double_count_family_id", "") or "").strip()
+        if not family:
+            family = str(row.get("parent_bucket_id", "") or "").strip()
+        if child and family:
+            out[child] = family
     return out
 
 
@@ -135,10 +140,10 @@ def _policy_pair_allowed(
     """
     Resolution precedence:
       1) sub_bucket <-> sub_bucket
-      2) bucket <-> bucket (using parent_bucket_id)
+      2) bucket <-> bucket (using double-count family id)
       3) no rule => hierarchy default:
-         - same parent bucket => DENY
-         - different parent bucket (or unknown parent) => ALLOW
+         - same family => DENY
+         - different family (or unknown family) => ALLOW
     """
     sub_key = _canon_node_pair("sub_bucket", bucket_a, "sub_bucket", bucket_b)
     if sub_key in policy_lookup:
@@ -168,11 +173,11 @@ def get_allowed_double_count_pairs(
     Return allowed bucket pairs for the current runtime track/program.
 
     Default behavior:
-    - same parent bucket => denied
-    - different parent buckets => allowed
+    - same double-count family => denied
+    - different families => allowed
 
     Policy overrides:
-    - sub-bucket rule > parent bucket rule > hierarchy default
+    - sub-bucket rule > family(bucket) rule > hierarchy default
     """
     if buckets_df is None or len(buckets_df) == 0:
         return set()

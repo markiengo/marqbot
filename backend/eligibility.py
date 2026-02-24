@@ -70,11 +70,18 @@ def get_course_eligible_buckets(
             min_lvl = int(min_lvl)
             if course_level is not None and course_level < min_lvl:
                 continue
+        priority_raw = pd.to_numeric(meta.get("priority", 99), errors="coerce")
+        parent_priority_raw = pd.to_numeric(
+            meta.get("parent_bucket_priority", 99),
+            errors="coerce",
+        )
 
         result.append({
             "bucket_id": bid,
             "label": str(meta.get("bucket_label", bid)),
-            "priority": int(meta.get("priority", 99)),
+            "priority": int(priority_raw) if pd.notna(priority_raw) else 99,
+            "parent_bucket_priority": int(parent_priority_raw) if pd.notna(parent_priority_raw) else 99,
+            "parent_bucket_id": str(meta.get("parent_bucket_id", "") or "").strip().upper(),
         })
 
     result.sort(key=lambda b: b["priority"])
@@ -203,6 +210,9 @@ def get_eligible_courses(
         course_notes = str(row.get("notes", "") or "")
         if not course_notes or course_notes == "nan":
             course_notes = None
+        warning_text = str(row.get("warning_text", "") or "").strip()
+        if not warning_text or warning_text.lower() == "nan":
+            warning_text = None
 
         # Bucket info
         eligible_buckets = get_course_eligible_buckets(
@@ -269,12 +279,15 @@ def get_eligible_courses(
             "primary_bucket": primary["bucket_id"] if primary else None,
             "primary_bucket_label": primary["label"] if primary else None,
             "primary_bucket_priority": primary["priority"] if primary else 99,
+            "primary_parent_bucket_priority": primary["parent_bucket_priority"] if primary else 99,
+            "primary_parent_bucket_id": primary["parent_bucket_id"] if primary else "",
             "fills_buckets": [b["bucket_id"] for b in eligible_buckets],
             "multi_bucket_score": multi_bucket_score,
             "prereq_check": prereq_check,
             "has_soft_requirement": has_soft_requirement,
             "soft_tags": warning_tags,
             "all_soft_tags": soft_tags,
+            "warning_text": warning_text,
             "manual_review": manual_review,
             "low_confidence": low_confidence,
             "notes": course_notes,

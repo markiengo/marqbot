@@ -1,4 +1,4 @@
-# MarqBot Data Model (v1.7.11)
+# MarqBot Data Model (v1.8.0)
 
 ## Canonical Workbook ERD (Mermaid)
 ```mermaid

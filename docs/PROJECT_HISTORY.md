@@ -591,6 +591,60 @@ Key outcomes:
 
 </details>
 
+<details>
+<summary><strong>v1.8.0 - Credits-Pool Runtime Integrity + Planning Capacity Fix</strong></summary>
+
+Window:
+1. 2026-02-24 model integrity and recommendation-capacity fix
+
+Why this version:
+1. This closes a model-to-runtime mismatch that could hide elective credit pools and artificially shrink multi-semester recommendations.
+
+Key outcomes:
+1. Preserved `credits_required` as runtime `needed_credits` in V2 conversion paths.
+2. Preserved `requirement_mode` in server-side major/track runtime projection.
+3. Fixed `FINA-ELEC-4`-style credits-pool buckets showing as `0/0` when they should be credit-based targets (for example `12`).
+4. Removed duplicate decision-doc alias and kept one canonical architecture rationale document.
+5. Updated release documentation to reflect `v1.8.0`.
+
+</details>
+
+<details>
+<summary><strong>v1.8.1 - Priority Documentation Refresh + Label Capitalization + Double-Major Elective Clarification</strong></summary>
+
+Window:
+1. 2026-02-24 follow-up governance and UI wording patch
+
+Why this version:
+1. Align user-facing docs and recommendation labels with the current runtime behavior and advisor policy.
+
+Key outcomes:
+1. Updated README recommendation hierarchy explanation to explicitly document the locked tier order and in-tier tie-break behavior.
+2. Clarified and validated cross-major elective sharing behavior (different parent families can share by default).
+3. Added backend regression coverage for required-child <-> elective-credits-pool cross-major sharing.
+4. Normalized frontend bucket label rendering for hyphenated child bucket IDs so recommendation labels are capitalized consistently.
+5. Removed duplicate decision-document alias and kept one canonical decision rationale file.
+
+</details>
+
+<details>
+<summary><strong>v1.8.2 - Recommender Selection Parity with Allocator (Strict Non-Elective-First)</strong></summary>
+
+Window:
+1. 2026-02-24 follow-up recommendation-selection correctness patch
+
+Why this version:
+1. Recommendation semester packing now follows the same bucket-assignment semantics as allocator, removing mismatches in same-family required vs elective pool routing.
+
+Key outcomes:
+1. Recommender selection now applies allocator-style same-family routing (`required`/`choose_n` before `credits_pool`).
+2. Pairwise double-count policy is respected during selection packing, not only in allocator.
+3. Credits-pool virtual consumption now uses course credits, keeping `credits_pool` semantics correct in recommendation packing.
+4. Added regression coverage for same-family non-elective-first selection behavior.
+5. Documentation updated to clarify credit-based elective pool meaning (for example `12` credits is typically `4` three-credit courses).
+
+</details>
+
 </details>
 
 ---
@@ -627,3 +681,6 @@ Key outcomes:
 29. `v1.7.9`: 2026-02-23 greedy bucket dedup, MCC/BCC tier parity, MCC label fix
 30. `v1.7.10`: 2026-02-24 parent/child model cutover + track-family governance
 31. `v1.7.11`: 2026-02-24 priority refactor + dynamic elective pools
+32. `v1.8.0`: 2026-02-24 credits-pool runtime integrity + planning capacity fix
+33. `v1.8.1`: 2026-02-24 priority doc refresh + label capitalization + double-major elective clarification
+34. `v1.8.2`: 2026-02-24 recommender selection parity with allocator (strict non-elective-first)

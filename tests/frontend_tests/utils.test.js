@@ -32,6 +32,11 @@ describe("bucketLabel()", () => {
     expect(bucketLabel("CB_CONC::CB_CORE", map)).toBe("Commercial Banking: CB CORE");
   });
 
+  test("capitalizes hyphenated bucket identifiers", () => {
+    expect(bucketLabel("ACCO_MAJOR::acco-choose-2")).toBe("ACCO Choose 2");
+    expect(bucketLabel("FIN_MAJOR::fina-req-core")).toBe("FINA REQ Core");
+  });
+
   test("MCC ESSV1 renders with correct capitalization", () => {
     expect(bucketLabel("MCC_ESSV1")).toBe("MCC ESSV1");
     expect(bucketLabel("MCC::MCC_ESSV1")).toBe("MCC ESSV1");

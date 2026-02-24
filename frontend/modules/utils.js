@@ -39,6 +39,7 @@ function prettifyIdentifier(value) {
     "CULM",
   ]);
   return raw
+    .replace(/[-\s]+/g, "_")
     .split("_")
     .filter(Boolean)
     .map(part => {

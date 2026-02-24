@@ -11,7 +11,12 @@ _REQUIRED_V2_SHEETS = {
     "buckets",
     "sub_buckets",
 }
-_CANONICAL_MAP_SHEET = "courses_all_buckets"
+_REQUIRED_PARENT_CHILD_SHEETS = {
+    "parent_buckets",
+    "child_buckets",
+}
+_CANONICAL_MAP_SHEET = "master_bucket_courses"
+_LEGACY_CANONICAL_MAP_SHEET = "courses_all_buckets"
 _LEGACY_MAP_SHEET = "course_sub_buckets"
 _DEFAULT_POLICY_COLUMNS = [
     "program_id",
@@ -23,6 +28,9 @@ _DEFAULT_POLICY_COLUMNS = [
 
 _TERM_CODE_RE = re.compile(r"^(?P<year>\d{4})(?P<term>FA|SP|SU)$", re.IGNORECASE)
 _SEMESTER_LABEL_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
+_ELECTIVE_PURGE_PATTERNS = ("ELEC", "BUS_ELEC", "ELECTIVE")
+_ELECTIVE_PURGE_RE = re.compile("|".join(re.escape(p) for p in _ELECTIVE_PURGE_PATTERNS), re.IGNORECASE)
+_DYNAMIC_ELECTIVE_POOL_TAG = "biz_elective"
 
 
 def _safe_bool_col(df: pd.DataFrame, col: str) -> pd.DataFrame:
@@ -105,6 +113,8 @@ def _normalize_v2_buckets_df(v2_buckets_df: pd.DataFrame) -> pd.DataFrame:
         out["priority"] = 99
     if "track_required" not in out.columns:
         out["track_required"] = ""
+    if "double_count_family_id" not in out.columns:
+        out["double_count_family_id"] = ""
     if "active" not in out.columns:
         out["active"] = True
 
@@ -112,6 +122,18 @@ def _normalize_v2_buckets_df(v2_buckets_df: pd.DataFrame) -> pd.DataFrame:
     out["bucket_id"] = out["bucket_id"].fillna("").astype(str).str.strip()
     out["bucket_label"] = out["bucket_label"].fillna("").astype(str).str.strip()
     out["track_required"] = out["track_required"].fillna("").astype(str).str.strip().str.upper()
+    out["double_count_family_id"] = (
+        out["double_count_family_id"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+    missing_family = out["double_count_family_id"] == ""
+    if missing_family.any():
+        out.loc[missing_family, "double_count_family_id"] = (
+            out.loc[missing_family, "bucket_id"].astype(str).str.upper()
+        )
     out["priority"] = pd.to_numeric(out["priority"], errors="coerce").fillna(99).astype(int)
     out = _safe_bool_col(out, "active")
     return out
@@ -131,6 +153,8 @@ def _normalize_v2_sub_buckets_df(v2_sub_buckets_df: pd.DataFrame) -> pd.DataFram
         out["priority"] = None
     if "role" not in out.columns:
         out["role"] = ""
+    if "requirement_mode" not in out.columns:
+        out["requirement_mode"] = ""
 
     out["program_id"] = out["program_id"].fillna("").astype(str).str.strip().str.upper()
     out["bucket_id"] = out["bucket_id"].fillna("").astype(str).str.strip()
@@ -146,6 +170,24 @@ def _normalize_v2_sub_buckets_df(v2_sub_buckets_df: pd.DataFrame) -> pd.DataFram
         out["courses_required"] = pd.to_numeric(out["courses_required"], errors="coerce")
     if "credits_required" in out.columns:
         out["credits_required"] = pd.to_numeric(out["credits_required"], errors="coerce")
+    out["requirement_mode"] = out["requirement_mode"].fillna("").astype(str).str.strip().str.lower()
+    missing_mode = out["requirement_mode"] == ""
+    if missing_mode.any():
+        out.loc[missing_mode, "requirement_mode"] = out.loc[missing_mode].apply(
+            lambda r: _map_role_to_requirement_mode(
+                r.get("role", ""),
+                r.get("courses_required"),
+                r.get("credits_required"),
+            ),
+            axis=1,
+        )
+    out["requirement_mode"] = out["requirement_mode"].where(
+        out["requirement_mode"].isin({"required", "choose_n", "credits_pool"}),
+        "required",
+    )
+    empty_role = out["role"].fillna("").astype(str).str.strip() == ""
+    if empty_role.any():
+        out.loc[empty_role, "role"] = out.loc[empty_role, "requirement_mode"].map(_map_requirement_mode_to_role)
     return out
 
 
@@ -165,6 +207,321 @@ def _normalize_v2_courses_all_buckets_df(v2_map_df: pd.DataFrame) -> pd.DataFram
     out["course_code"] = out["course_code"].fillna("").astype(str).str.strip()
     out["notes"] = out["notes"].fillna("").astype(str)
     return out
+
+
+def _normalize_parent_buckets_df(parent_buckets_df: pd.DataFrame) -> pd.DataFrame:
+    out = parent_buckets_df.copy()
+    if "parent_bucket_id" not in out.columns:
+        out["parent_bucket_id"] = ""
+    if "parent_bucket_label" not in out.columns:
+        out["parent_bucket_label"] = out["parent_bucket_id"]
+    if "type" not in out.columns:
+        out["type"] = "major"
+    if "parent_major" not in out.columns:
+        out["parent_major"] = ""
+    if "active" not in out.columns:
+        out["active"] = True
+    if "requires_primary_major" not in out.columns:
+        out["requires_primary_major"] = False
+    if "double_count_family_id" not in out.columns:
+        out["double_count_family_id"] = ""
+
+    out["parent_bucket_id"] = out["parent_bucket_id"].fillna("").astype(str).str.strip().str.upper()
+    out["parent_bucket_label"] = out["parent_bucket_label"].fillna("").astype(str).str.strip()
+    out["type"] = out["type"].fillna("major").astype(str).str.strip().str.lower()
+    out["type"] = out["type"].where(
+        out["type"].isin({"major", "track", "minor", "universal"}),
+        "major",
+    )
+    out["parent_major"] = out["parent_major"].fillna("").astype(str).str.strip().str.upper()
+    out["double_count_family_id"] = (
+        out["double_count_family_id"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+    missing_family = out["double_count_family_id"] == ""
+    if missing_family.any():
+        out.loc[missing_family, "double_count_family_id"] = out.loc[missing_family, "parent_bucket_id"]
+    out = _safe_bool_col(out, "active")
+    out = _safe_bool_col(out, "requires_primary_major")
+
+    # Normalize parent linkage by type.
+    out.loc[out["type"].isin({"major", "universal"}), "parent_major"] = ""
+    return out[
+        [
+            "parent_bucket_id",
+            "parent_bucket_label",
+            "type",
+            "parent_major",
+            "active",
+            "requires_primary_major",
+            "double_count_family_id",
+        ]
+    ]
+
+
+def _normalize_child_buckets_df(child_buckets_df: pd.DataFrame) -> pd.DataFrame:
+    out = child_buckets_df.copy()
+    if "parent_bucket_id" not in out.columns:
+        out["parent_bucket_id"] = ""
+    if "child_bucket_id" not in out.columns:
+        out["child_bucket_id"] = ""
+    if "child_bucket_label" not in out.columns:
+        out["child_bucket_label"] = out["child_bucket_id"]
+    if "requirement_mode" not in out.columns:
+        out["requirement_mode"] = "required"
+    if "courses_required" not in out.columns:
+        out["courses_required"] = None
+    if "credits_required" not in out.columns:
+        out["credits_required"] = None
+    if "min_level" not in out.columns:
+        out["min_level"] = None
+    if "notes" not in out.columns:
+        out["notes"] = ""
+
+    out["parent_bucket_id"] = out["parent_bucket_id"].fillna("").astype(str).str.strip().str.upper()
+    out["child_bucket_id"] = out["child_bucket_id"].fillna("").astype(str).str.strip().str.upper()
+    out["child_bucket_label"] = out["child_bucket_label"].fillna("").astype(str).str.strip()
+    out["requirement_mode"] = out["requirement_mode"].fillna("required").astype(str).str.strip().str.lower()
+    out["requirement_mode"] = out["requirement_mode"].where(
+        out["requirement_mode"].isin({"required", "choose_n", "credits_pool"}),
+        "required",
+    )
+    out["courses_required"] = pd.to_numeric(out["courses_required"], errors="coerce")
+    out["credits_required"] = pd.to_numeric(out["credits_required"], errors="coerce")
+    out["min_level"] = pd.to_numeric(out["min_level"], errors="coerce")
+    out["notes"] = out["notes"].fillna("").astype(str)
+    return out[
+        [
+            "parent_bucket_id",
+            "child_bucket_id",
+            "child_bucket_label",
+            "requirement_mode",
+            "courses_required",
+            "credits_required",
+            "min_level",
+            "notes",
+        ]
+    ]
+
+
+def _normalize_master_bucket_courses_df(master_df: pd.DataFrame) -> pd.DataFrame:
+    out = master_df.copy()
+    if "parent_bucket_id" not in out.columns:
+        out["parent_bucket_id"] = ""
+    if "child_bucket_id" not in out.columns:
+        out["child_bucket_id"] = ""
+    if "course_code" not in out.columns:
+        out["course_code"] = ""
+    if "notes" not in out.columns:
+        out["notes"] = ""
+
+    out["parent_bucket_id"] = out["parent_bucket_id"].fillna("").astype(str).str.strip().str.upper()
+    out["child_bucket_id"] = out["child_bucket_id"].fillna("").astype(str).str.strip().str.upper()
+    out["course_code"] = out["course_code"].fillna("").astype(str).str.strip()
+    out["notes"] = out["notes"].fillna("").astype(str)
+    return out[
+        [
+            "parent_bucket_id",
+            "child_bucket_id",
+            "course_code",
+            "notes",
+        ]
+    ]
+
+
+def _purge_elective_mappings(
+    child_buckets_df: pd.DataFrame,
+    master_bucket_courses_df: pd.DataFrame,
+) -> tuple[pd.DataFrame, int]:
+    """
+    Remove master mappings for elective-like child buckets.
+
+    Deletion targeting is keyed by child_bucket_id and matches the configured
+    elective patterns case-insensitively.
+    """
+    child_ids = (
+        child_buckets_df.get("child_bucket_id", pd.Series(dtype=str))
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+    purge_ids = set(child_ids[child_ids.str.contains(_ELECTIVE_PURGE_RE, na=False)].tolist())
+    map_child_ids = (
+        master_bucket_courses_df.get("child_bucket_id", pd.Series(dtype=str))
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+    purge_mask = map_child_ids.str.contains(_ELECTIVE_PURGE_RE, na=False)
+    if purge_ids:
+        purge_mask = purge_mask | map_child_ids.isin(purge_ids)
+    removed = int(purge_mask.sum())
+    return master_bucket_courses_df.loc[~purge_mask].copy(), removed
+
+
+def _map_requirement_mode_to_role(requirement_mode: str) -> str:
+    mode = str(requirement_mode or "").strip().lower()
+    if mode == "required":
+        return "core"
+    if mode in {"choose_n", "credits_pool"}:
+        return "elective"
+    return ""
+
+
+def _map_role_to_requirement_mode(role: str, courses_required, credits_required) -> str:
+    role_norm = str(role or "").strip().lower()
+    if pd.notna(credits_required) and float(credits_required) > 0:
+        return "credits_pool"
+    if role_norm == "core":
+        return "required"
+    if role_norm == "elective":
+        return "choose_n"
+    if pd.notna(courses_required) and float(courses_required) > 0:
+        return "choose_n"
+    return "required"
+
+
+def _convert_parent_child_model_to_v2(
+    parent_buckets_df: pd.DataFrame,
+    child_buckets_df: pd.DataFrame,
+    master_bucket_courses_df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Convert parent/child schema into V2-compatible frames consumed by runtime.
+    """
+    pb = _normalize_parent_buckets_df(parent_buckets_df)
+    cb = _normalize_child_buckets_df(child_buckets_df)
+    mbc = _normalize_master_bucket_courses_df(master_bucket_courses_df)
+
+    # Build V2 programs from parent buckets.
+    programs_rows = []
+    parent_meta: dict[str, dict] = {}
+    for _, row in pb.iterrows():
+        pid = str(row["parent_bucket_id"]).strip().upper()
+        ptype = str(row.get("type", "major") or "major").strip().lower()
+        parent_major = str(row.get("parent_major", "") or "").strip().upper()
+        family = str(row.get("double_count_family_id", "") or "").strip().upper()
+        active = bool(row.get("active", True))
+        req_primary = bool(row.get("requires_primary_major", False))
+        is_universal = ptype == "universal"
+
+        kind = "track" if ptype in {"track", "minor"} else "major"
+        program_parent = parent_major if kind == "track" else ""
+        programs_rows.append(
+            {
+                "program_id": pid,
+                "program_label": str(row.get("parent_bucket_label", pid) or pid).strip(),
+                "kind": kind,
+                "parent_major_id": program_parent,
+                "active": active,
+                "requires_primary_major": req_primary,
+                "applies_to_all": is_universal,
+            }
+        )
+        parent_meta[pid] = {
+            "type": ptype,
+            "parent_major": parent_major,
+            "double_count_family_id": family or pid,
+            "label": str(row.get("parent_bucket_label", pid) or pid).strip(),
+            "active": active,
+        }
+    programs_df = _normalize_programs_df(pd.DataFrame(programs_rows))
+
+    # Build V2 buckets by projecting each parent bucket into its owning major scope.
+    bucket_rows: list[dict] = []
+    child_rows: list[dict] = []
+    map_rows: list[dict] = []
+    parent_owner: dict[str, tuple[str, str]] = {}
+
+    for parent_id, meta in parent_meta.items():
+        ptype = meta["type"]
+        parent_major = meta["parent_major"]
+        family = str(meta.get("double_count_family_id", "") or "").strip().upper() or parent_id
+        active = bool(meta["active"])
+        label = str(meta["label"] or parent_id)
+
+        if ptype in {"track", "minor"}:
+            owner_program = parent_major or parent_id
+            track_required = parent_id
+            if not parent_major:
+                print(
+                    "[WARN] parent_buckets row for "
+                    f"'{parent_id}' has type='{ptype}' but empty parent_major. "
+                    "Track selection linkage may be incomplete."
+                )
+        else:
+            owner_program = parent_id
+            track_required = ""
+
+        parent_owner[parent_id] = (owner_program, track_required)
+        bucket_rows.append(
+            {
+                "program_id": owner_program,
+                "bucket_id": parent_id,
+                "bucket_label": label,
+                # Parent-tier priority only: BCC/MCC first, all others equal.
+                "priority": 1 if parent_id in {"BCC_CORE", "MCC_CORE", "MCC_FOUNDATION"} else 2,
+                "track_required": track_required,
+                "double_count_family_id": family,
+                "active": active,
+            }
+        )
+
+    child_lookup: dict[tuple[str, str], tuple[str, str]] = {}
+    for _, row in cb.iterrows():
+        parent_id = str(row.get("parent_bucket_id", "") or "").strip().upper()
+        if not parent_id:
+            continue
+        owner_program, track_required = parent_owner.get(parent_id, (parent_id, ""))
+        child_id = str(row.get("child_bucket_id", "") or "").strip().upper()
+        if not child_id:
+            continue
+        mode = str(row.get("requirement_mode", "required") or "required").strip().lower()
+        courses_required = row.get("courses_required")
+        credits_required = row.get("credits_required")
+        child_rows.append(
+            {
+                "program_id": owner_program,
+                "bucket_id": parent_id,
+                "sub_bucket_id": child_id,
+                "sub_bucket_label": str(row.get("child_bucket_label", child_id) or child_id).strip(),
+                "courses_required": courses_required,
+                "credits_required": credits_required,
+                "min_level": row.get("min_level"),
+                "role": _map_requirement_mode_to_role(mode),
+                "requirement_mode": mode,
+                # Priority intentionally omitted (NaN) so runtime derives deterministic order.
+                "priority": None,
+                "notes": str(row.get("notes", "") or "").strip(),
+            }
+        )
+        child_lookup[(parent_id, child_id)] = (owner_program, track_required)
+
+    for _, row in mbc.iterrows():
+        parent_id = str(row.get("parent_bucket_id", "") or "").strip().upper()
+        child_id = str(row.get("child_bucket_id", "") or "").strip().upper()
+        if not parent_id or not child_id:
+            continue
+        owner_program, _ = child_lookup.get((parent_id, child_id), parent_owner.get(parent_id, (parent_id, "")))
+        map_rows.append(
+            {
+                "program_id": owner_program,
+                "sub_bucket_id": child_id,
+                "course_code": str(row.get("course_code", "") or "").strip(),
+                "notes": str(row.get("notes", "") or "").strip(),
+            }
+        )
+
+    v2_buckets_df = _normalize_v2_buckets_df(pd.DataFrame(bucket_rows))
+    v2_sub_buckets_df = _normalize_v2_sub_buckets_df(pd.DataFrame(child_rows))
+    v2_courses_all_buckets_df = _normalize_v2_courses_all_buckets_df(pd.DataFrame(map_rows))
+
+    return programs_df, v2_buckets_df, v2_sub_buckets_df, v2_courses_all_buckets_df
 
 
 def _build_tracks_from_programs(programs_df: pd.DataFrame) -> pd.DataFrame:
@@ -239,6 +596,8 @@ def _overlay_course_prereqs(courses_df: pd.DataFrame, prereqs_df: pd.DataFrame) 
         out["prereq_concurrent"] = "none"
     if "prereq_level" not in out.columns:
         out["prereq_level"] = None
+    if "warning_text" not in out.columns:
+        out["warning_text"] = ""
 
     src_idx = src.set_index("course_code")
     if "prerequisites" in src_idx.columns:
@@ -249,10 +608,13 @@ def _overlay_course_prereqs(courses_df: pd.DataFrame, prereqs_df: pd.DataFrame) 
         out["prereq_concurrent"] = out["course_code"].map(src_idx["concurrent_with"]).fillna(out["prereq_concurrent"])
     if "min_standing" in src_idx.columns:
         out["prereq_level"] = out["course_code"].map(src_idx["min_standing"]).fillna(out["prereq_level"])
+    if "warning_text" in src_idx.columns:
+        out["warning_text"] = out["course_code"].map(src_idx["warning_text"]).fillna(out["warning_text"])
 
     out["prereq_hard"] = out["prereq_hard"].fillna("none").astype(str)
     out["prereq_soft"] = out["prereq_soft"].fillna("").astype(str)
     out["prereq_concurrent"] = out["prereq_concurrent"].fillna("none").astype(str)
+    out["warning_text"] = out["warning_text"].fillna("").astype(str)
     return out
 
 
@@ -423,13 +785,107 @@ def _overlay_course_offerings(courses_df: pd.DataFrame, offerings_df: pd.DataFra
     return out
 
 
+def _local_bucket_id(bucket_id: str) -> str:
+    raw = str(bucket_id or "").strip()
+    if "::" in raw:
+        return raw.split("::", 1)[1]
+    return raw
+
+
+def _dynamic_elective_bucket_mask(buckets_df: pd.DataFrame) -> pd.Series:
+    mode = (
+        buckets_df.get("requirement_mode", pd.Series(dtype=str))
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    local_id = buckets_df.get("bucket_id", pd.Series(dtype=str)).apply(_local_bucket_id).astype(str).str.upper()
+    return (mode == "credits_pool") & local_id.str.contains(_ELECTIVE_PURGE_RE, na=False)
+
+
+def _synthesize_dynamic_elective_pool_mappings(
+    courses_df: pd.DataFrame,
+    buckets_df: pd.DataFrame,
+    course_bucket_map_df: pd.DataFrame,
+) -> tuple[pd.DataFrame, int]:
+    """
+    Build dynamic mappings for credits_pool elective buckets from tagged courses.
+
+    Scope:
+      - runtime bucket requirement_mode == credits_pool
+      - local child bucket id contains ELEC|BUS_ELEC|ELECTIVE
+      - courses.elective_pool_tag == _DYNAMIC_ELECTIVE_POOL_TAG
+      - bucket min_level filter is respected
+    """
+    if len(buckets_df) == 0:
+        return course_bucket_map_df, 0
+    if "elective_pool_tag" not in courses_df.columns:
+        return course_bucket_map_df, 0
+    if "course_code" not in courses_df.columns:
+        return course_bucket_map_df, 0
+
+    dynamic_buckets = buckets_df[_dynamic_elective_bucket_mask(buckets_df)].copy()
+    if len(dynamic_buckets) == 0:
+        return course_bucket_map_df, 0
+
+    tagged = courses_df.copy()
+    tagged["course_code"] = tagged["course_code"].fillna("").astype(str).str.strip()
+    tagged["elective_pool_tag"] = (
+        tagged["elective_pool_tag"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    tagged["level"] = pd.to_numeric(tagged.get("level"), errors="coerce")
+    tagged = tagged[
+        (tagged["course_code"] != "")
+        & (tagged["elective_pool_tag"] == _DYNAMIC_ELECTIVE_POOL_TAG)
+    ][["course_code", "level"]].drop_duplicates()
+    if len(tagged) == 0:
+        return course_bucket_map_df, 0
+
+    new_rows: list[dict] = []
+    for _, bucket in dynamic_buckets.iterrows():
+        track_id = str(bucket.get("track_id", "") or "").strip().upper()
+        bucket_id = str(bucket.get("bucket_id", "") or "").strip()
+        if not track_id or not bucket_id:
+            continue
+
+        min_level = pd.to_numeric(bucket.get("min_level"), errors="coerce")
+        eligible = tagged
+        if pd.notna(min_level):
+            eligible = eligible[eligible["level"].fillna(-1) >= float(min_level)]
+        if len(eligible) == 0:
+            continue
+
+        for course_code in eligible["course_code"].tolist():
+            new_rows.append(
+                {
+                    "track_id": track_id,
+                    "course_code": str(course_code).strip(),
+                    "bucket_id": bucket_id,
+                    "notes": f"dynamic:elective_pool_tag={_DYNAMIC_ELECTIVE_POOL_TAG}",
+                }
+            )
+
+    if not new_rows:
+        return course_bucket_map_df, 0
+
+    synthesized_df = pd.DataFrame(new_rows)
+    merged = pd.concat([course_bucket_map_df.copy(), synthesized_df], ignore_index=True)
+    merged = merged.drop_duplicates(subset=["track_id", "bucket_id", "course_code"], keep="first")
+    return merged, len(synthesized_df)
+
+
 def _derive_runtime_from_v2(
     v2_buckets_df: pd.DataFrame,
     v2_sub_buckets_df: pd.DataFrame,
     v2_courses_all_buckets_df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Build runtime-compatible buckets/map from V2 model."""
-    if len(v2_sub_buckets_df) == 0 or len(v2_courses_all_buckets_df) == 0:
+    if len(v2_sub_buckets_df) == 0:
         empty_b = pd.DataFrame(
             columns=[
                 "track_id",
@@ -437,10 +893,13 @@ def _derive_runtime_from_v2(
                 "bucket_label",
                 "priority",
                 "needed_count",
+                "needed_credits",
                 "min_level",
                 "role",
+                "requirement_mode",
                 "parent_bucket_id",
                 "parent_bucket_label",
+                "double_count_family_id",
                 "track_required",
             ]
         )
@@ -448,6 +907,25 @@ def _derive_runtime_from_v2(
         return empty_b, empty_m
 
     parent_meta = v2_buckets_df[["program_id", "bucket_id", "bucket_label", "track_required"]].copy()
+    if "double_count_family_id" in v2_buckets_df.columns:
+        parent_meta["double_count_family_id"] = (
+            v2_buckets_df["double_count_family_id"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+    else:
+        parent_meta["double_count_family_id"] = ""
+    missing_family = parent_meta["double_count_family_id"] == ""
+    if missing_family.any():
+        parent_meta.loc[missing_family, "double_count_family_id"] = (
+            parent_meta.loc[missing_family, "bucket_id"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
     parent_meta = parent_meta.rename(
         columns={
             "bucket_id": "parent_bucket_id",
@@ -470,25 +948,37 @@ def _derive_runtime_from_v2(
     ).copy()
 
     # Recommendation hierarchy priority:
-    #   1) sub_buckets.priority (explicit control)
-    #   2) derived fallback from parent bucket priority + role + stable index
-    role_weight = (
-        merged_sub.get("role", "")
+    #   1) explicit sub-bucket priority when present
+    #   2) derived fallback from parent tier + requirement_mode + stable child order
+    requirement_mode = (
+        merged_sub.get("requirement_mode", "")
         .fillna("")
         .astype(str)
         .str.strip()
         .str.lower()
-        .map({"core": 0, "elective": 5})
-        .fillna(9)
-        .astype(int)
     )
+    missing_mode = requirement_mode == ""
+    if missing_mode.any():
+        role_fallback = (
+            merged_sub.get("role", "")
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.lower()
+        )
+        derived_mode = role_fallback.map({"core": "required", "elective": "choose_n"}).fillna("required")
+        requirement_mode = requirement_mode.where(~missing_mode, derived_mode)
+    requirement_weight = requirement_mode.map(
+        {"required": 0, "choose_n": 5, "credits_pool": 6}
+    ).fillna(9).astype(int)
+
     within_parent_index = merged_sub.groupby(["program_id", "bucket_id"]).cumcount()
     parent_priority = pd.to_numeric(
         merged_sub.get("parent_bucket_priority", 99),
         errors="coerce",
     ).fillna(99).astype(int)
 
-    derived_priority = (parent_priority * 100) + (role_weight * 10) + within_parent_index
+    derived_priority = (parent_priority * 100) + (requirement_weight * 10) + within_parent_index
     legacy_priority = pd.to_numeric(
         merged_sub.get("priority"),
         errors="coerce",
@@ -502,22 +992,35 @@ def _derive_runtime_from_v2(
             "bucket_label": merged_sub["sub_bucket_label"],
             "priority": effective_priority,
             "needed_count": merged_sub.get("courses_required"),
+            "needed_credits": merged_sub.get("credits_required"),
             "min_level": merged_sub.get("min_level"),
-            "role": merged_sub.get("role", "").fillna(""),
+            "role": requirement_mode.map(_map_requirement_mode_to_role),
+            "requirement_mode": requirement_mode,
             "parent_bucket_id": merged_sub["bucket_id"],
             "parent_bucket_label": merged_sub.get("parent_bucket_label", merged_sub["bucket_id"]),
+            "double_count_family_id": (
+                merged_sub.get("double_count_family_id", merged_sub["bucket_id"])
+                .fillna(merged_sub["bucket_id"])
+                .astype(str)
+                .str.strip()
+                .str.upper()
+            ),
+            "parent_bucket_priority": merged_sub.get("parent_bucket_priority", 99),
             "track_required": merged_sub.get("track_required", "").fillna("").astype(str).str.strip().str.upper(),
         }
     )
 
-    runtime_map = pd.DataFrame(
-        {
-            "track_id": v2_courses_all_buckets_df["program_id"],
-            "course_code": v2_courses_all_buckets_df["course_code"],
-            "bucket_id": v2_courses_all_buckets_df["sub_bucket_id"],
-            "notes": v2_courses_all_buckets_df.get("notes", "").fillna(""),
-        }
-    )
+    if len(v2_courses_all_buckets_df) == 0:
+        runtime_map = pd.DataFrame(columns=["track_id", "course_code", "bucket_id", "notes"])
+    else:
+        runtime_map = pd.DataFrame(
+            {
+                "track_id": v2_courses_all_buckets_df["program_id"],
+                "course_code": v2_courses_all_buckets_df["course_code"],
+                "bucket_id": v2_courses_all_buckets_df["sub_bucket_id"],
+                "notes": v2_courses_all_buckets_df.get("notes", "").fillna(""),
+            }
+        )
     return runtime_buckets, runtime_map
 
 
@@ -555,39 +1058,114 @@ def _load_v2_equivalencies(xl: pd.ExcelFile, sheet_set: set[str]) -> pd.DataFram
 
 
 def load_data(data_path: str) -> dict:
-    """Load workbook using strict V2 schema (no legacy sheet fallback)."""
+    """Load workbook using parent/child schema or legacy V2 compatibility schema."""
     xl = pd.ExcelFile(data_path)
     sheet_set = set(xl.sheet_names)
 
     if "courses" not in sheet_set:
         raise ValueError("Workbook must contain a 'courses' sheet.")
-    missing_v2 = sorted(_REQUIRED_V2_SHEETS - sheet_set)
-    if missing_v2:
-        raise ValueError(
-            "Workbook is missing required V2 sheet(s): "
-            + ", ".join(missing_v2)
-        )
-    map_sheet = (
-        _CANONICAL_MAP_SHEET
-        if _CANONICAL_MAP_SHEET in sheet_set
-        else _LEGACY_MAP_SHEET if _LEGACY_MAP_SHEET in sheet_set
-        else None
-    )
-    if not map_sheet:
-        raise ValueError(
-            "Workbook is missing required V2 sheet: "
-            f"'{_CANONICAL_MAP_SHEET}'."
-        )
+
+    has_parent_child = _REQUIRED_PARENT_CHILD_SHEETS.issubset(sheet_set)
+    map_sheet = None
 
     courses_df = xl.parse("courses")
-    v2_programs_df = _normalize_programs_df(xl.parse("programs"))
-    v2_buckets_df = _normalize_v2_buckets_df(xl.parse("buckets"))
-    v2_sub_buckets_df = _normalize_v2_sub_buckets_df(xl.parse("sub_buckets"))
-    v2_courses_all_buckets_df = _normalize_v2_courses_all_buckets_df(xl.parse(map_sheet))
+    parent_buckets_df = pd.DataFrame()
+    child_buckets_df = pd.DataFrame()
+    master_bucket_courses_df = pd.DataFrame()
+    elective_mappings_removed = 0
+
+    if has_parent_child:
+        map_sheet = (
+            _CANONICAL_MAP_SHEET
+            if _CANONICAL_MAP_SHEET in sheet_set
+            else _LEGACY_CANONICAL_MAP_SHEET if _LEGACY_CANONICAL_MAP_SHEET in sheet_set
+            else _LEGACY_MAP_SHEET if _LEGACY_MAP_SHEET in sheet_set
+            else None
+        )
+        if not map_sheet:
+            raise ValueError(
+                "Workbook is missing required parent/child map sheet: "
+                f"'{_CANONICAL_MAP_SHEET}'."
+            )
+
+        parent_buckets_df = _normalize_parent_buckets_df(xl.parse("parent_buckets"))
+        child_buckets_df = _normalize_child_buckets_df(xl.parse("child_buckets"))
+        if map_sheet == _CANONICAL_MAP_SHEET:
+            master_bucket_courses_df = _normalize_master_bucket_courses_df(xl.parse(map_sheet))
+        elif map_sheet == _LEGACY_CANONICAL_MAP_SHEET:
+            legacy_map = _normalize_v2_courses_all_buckets_df(xl.parse(map_sheet))
+            master_bucket_courses_df = _normalize_master_bucket_courses_df(
+                legacy_map.rename(
+                    columns={
+                        "program_id": "parent_bucket_id",
+                        "sub_bucket_id": "child_bucket_id",
+                    }
+                )
+            )
+        else:
+            legacy_map = _normalize_v2_courses_all_buckets_df(xl.parse(map_sheet))
+            master_bucket_courses_df = _normalize_master_bucket_courses_df(
+                legacy_map.rename(
+                    columns={
+                        "program_id": "parent_bucket_id",
+                        "sub_bucket_id": "child_bucket_id",
+                    }
+                )
+            )
+
+        master_bucket_courses_df, elective_mappings_removed = _purge_elective_mappings(
+            child_buckets_df,
+            master_bucket_courses_df,
+        )
+
+        (
+            v2_programs_df,
+            v2_buckets_df,
+            v2_sub_buckets_df,
+            v2_courses_all_buckets_df,
+        ) = _convert_parent_child_model_to_v2(
+            parent_buckets_df,
+            child_buckets_df,
+            master_bucket_courses_df,
+        )
+    else:
+        missing_v2 = sorted(_REQUIRED_V2_SHEETS - sheet_set)
+        if missing_v2:
+            raise ValueError(
+                "Workbook is missing required sheet(s): "
+                + ", ".join(missing_v2)
+            )
+        map_sheet = (
+            _LEGACY_CANONICAL_MAP_SHEET
+            if _LEGACY_CANONICAL_MAP_SHEET in sheet_set
+            else _LEGACY_MAP_SHEET if _LEGACY_MAP_SHEET in sheet_set
+            else None
+        )
+        if not map_sheet:
+            raise ValueError(
+                "Workbook is missing required map sheet: "
+                f"'{_CANONICAL_MAP_SHEET}' or '{_LEGACY_CANONICAL_MAP_SHEET}'."
+            )
+
+        v2_programs_df = _normalize_programs_df(xl.parse("programs"))
+        v2_buckets_df = _normalize_v2_buckets_df(xl.parse("buckets"))
+        v2_sub_buckets_df = _normalize_v2_sub_buckets_df(xl.parse("sub_buckets"))
+        v2_courses_all_buckets_df = _normalize_v2_courses_all_buckets_df(xl.parse(map_sheet))
+
     if "double_count_policy" in sheet_set:
         v2_double_count_policy_df = xl.parse("double_count_policy")
     else:
         v2_double_count_policy_df = pd.DataFrame(columns=_DEFAULT_POLICY_COLUMNS)
+    if (
+        "child_bucket_id_a" in v2_double_count_policy_df.columns
+        and "sub_bucket_id_a" not in v2_double_count_policy_df.columns
+    ):
+        v2_double_count_policy_df = v2_double_count_policy_df.rename(
+            columns={
+                "child_bucket_id_a": "sub_bucket_id_a",
+                "child_bucket_id_b": "sub_bucket_id_b",
+            }
+        )
 
     course_prereqs_df = xl.parse("course_prereqs") if "course_prereqs" in sheet_set else pd.DataFrame()
     course_offerings_df = xl.parse("course_offerings") if "course_offerings" in sheet_set else pd.DataFrame()
@@ -609,6 +1187,20 @@ def load_data(data_path: str) -> dict:
     courses_df["course_code"] = courses_df["course_code"].fillna("").astype(str).str.strip()
     courses_df["prereq_hard"] = courses_df.get("prereq_hard", pd.Series(dtype=str)).fillna("none")
     courses_df["prereq_soft"] = courses_df.get("prereq_soft", pd.Series(dtype=str)).fillna("")
+    courses_df["warning_text"] = courses_df.get("warning_text", pd.Series(dtype=str)).fillna("")
+    courses_df["elective_pool_tag"] = (
+        courses_df.get("elective_pool_tag", pd.Series(dtype=str))
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+
+    course_bucket_map_df, dynamic_mappings_added = _synthesize_dynamic_elective_pool_mappings(
+        courses_df,
+        buckets_df,
+        course_bucket_map_df,
+    )
 
     # Inject not_frequently_offered tag for courses offered in fewer than 3 of last 3 terms.
     if "offering_freq_last3" in courses_df.columns:
@@ -638,7 +1230,7 @@ def load_data(data_path: str) -> dict:
     orphaned_buckets = sorted(map_buckets - defined_buckets)
     if orphaned_buckets:
         print(
-            f"[WARN] {len(orphaned_buckets)} sub_bucket_id(s) in {map_sheet} not found in sub_buckets sheet: "
+            f"[WARN] {len(orphaned_buckets)} child bucket id(s) in {map_sheet} not found in child/sub-buckets sheet: "
             f"{orphaned_buckets}"
         )
 
@@ -650,7 +1242,20 @@ def load_data(data_path: str) -> dict:
             f"{sorted(unsupported)}"
         )
 
-    print("[INFO] Loaded strict V2 workbook model (no legacy sheet fallback).")
+    if has_parent_child:
+        print("[INFO] Loaded parent/child workbook model (with legacy runtime compatibility).")
+        if elective_mappings_removed > 0:
+            print(
+                "[INFO] Purged "
+                f"{elective_mappings_removed} elective-like row(s) from master_bucket_courses at load time."
+            )
+        if dynamic_mappings_added > 0:
+            print(
+                "[INFO] Added "
+                f"{dynamic_mappings_added} dynamic elective-pool mapping row(s) from courses.elective_pool_tag."
+            )
+    else:
+        print("[INFO] Loaded legacy V2 workbook model (compatibility mode).")
 
     return {
         "courses_df": courses_df,
@@ -661,6 +1266,10 @@ def load_data(data_path: str) -> dict:
         "catalog_codes": catalog_codes,
         "prereq_map": prereq_map,
         "v2_detected": True,
+        "parent_child_detected": has_parent_child,
+        "parent_buckets_df": parent_buckets_df,
+        "child_buckets_df": child_buckets_df,
+        "master_bucket_courses_df": master_bucket_courses_df,
         "v2_programs_df": v2_programs_df,
         "v2_buckets_df": v2_buckets_df,
         "v2_sub_buckets_df": v2_sub_buckets_df,

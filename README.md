@@ -1,9 +1,9 @@
 # MarqBot
-![Version](https://img.shields.io/badge/version-v1.7.11-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
+![Version](https://img.shields.io/badge/version-v1.8.2-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
 
 MarqBot is a Marquette degree-planning assistant for business students. It recommends next-term courses, explains requirement progress, and checks can-take eligibility from workbook-driven rules.
 
-Current release line: `v1.7.11` (latest local session build).
+Current release line: `v1.8.2` (latest local session build).
 
 ## Upcoming Patch Plan
 - Fix KPI cards for consistency and correctness across dashboard surfaces.
@@ -24,20 +24,29 @@ Current release line: `v1.7.11` (latest local session build).
 
 ### How recommendations work (simple)
 1. **Eligibility baseline**: Only courses you can actually take are considered (prereqs/standing/warnings checked).
-2. **Tiered priority**:
+2. **Tiered priority (locked order)**:
    - Tier 1: MCC + `BCC_REQUIRED`
    - Tier 2: selected major buckets
    - Tier 3: selected track buckets
    - Tier 4: demoted BCC children (`BCC_ETHICS`, `BCC_ANALYTICS`, `BCC_ENHANCE`)
-3. **Inside each tier**: Courses that unlock more future options are favored.
+3. **Inside each tier**:
+   - ACCO-only warning boost applies in-tier (`Required for ACCO majors`) and does not jump tiers.
+   - Unlockers and warning penalties act as tie-breakers, not top-level priority overrides.
 4. **Bucket diversity**: The engine avoids over-filling one bucket in one semester (soft cap with auto-relax when needed).
 5. **Carry-forward planning**: Semester N+1 assumes prior recommended semesters were completed.
+
+### Double-major sharing behavior
+- Courses can be shared across different major families by default.
+- This includes required children and elective-pool children across majors when mappings allow.
+- Same-family children still do not double count by default.
+- Track and parent-major families follow track-aware family rules; explicit policy rows can override defaults.
 
 ### Why this is student-friendly
 - Keeps foundational requirements visible early.
 - Prevents recommendations that are technically blocked.
 - Balances short-term progress with long-term unlock value.
 - Avoids confusing duplicate satisfaction within the same major family.
+- Keeps credit pools interpretable: `12 credits` typically means about `4` 3-credit courses, not `12` courses.
 
 ### Current academic scope
 - 7 business majors and 5 tracks in the workbook model.
@@ -79,16 +88,17 @@ Current release line: `v1.7.11` (latest local session build).
    - Tier, ACCO in-tier warning boost, unlockers, warning penalties, coverage, prereq level
 5. **Greedy pick loop with soft diversity cap**:
    - Default cap of 2 recommendations per bucket, auto-relaxed when diversity becomes too low.
+   - Selection uses allocator-style routing (same-family non-elective-first + pairwise double-count checks), so semester packing matches allocation behavior.
 6. **Allocate to progress with policy rules**:
    - Same-family default deny, cross-family default allow, explicit override precedence.
    - Same-family non-elective-first routing (`required` / `choose_n` before `credits_pool`).
+   - Cross-major elective sharing works through the same cross-family default allow.
 7. **Project across semesters**:
    - Recommendations are applied virtually to produce multi-semester outcomes.
 
 ### Data model and design docs
 - ERD and model notes: `docs/data_model.md`
 - Decision rationale and architecture choices: `docs/decision_explaination.md`
-- Quick alias link: `docs/decision_explanation.md`
 - Project release timeline: `docs/PROJECT_HISTORY.md`
 
 ### API endpoints
