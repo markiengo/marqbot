@@ -482,6 +482,51 @@ def _build_deterministic_recommendations(candidates: list[dict], max_recommendat
     return recs
 
 
+def _build_debug_trace(
+    ranked: list[dict],
+    selected_codes: set[str],
+    skipped_reasons: dict[str, str],
+    parent_type_map: dict,
+    bucket_track_required_map: dict,
+    bucket_parent_map: dict,
+    is_acco_context: bool,
+    core_prereq_blockers: set[str],
+    reverse_map: dict,
+    virtual_remaining_snapshot: dict[str, int],
+    debug_limit: int = 30,
+) -> list[dict]:
+    """Build human-readable debug trace for each ranked candidate."""
+    trace = []
+    for rank, c in enumerate(ranked[:debug_limit], start=1):
+        code = c["course_code"]
+        tier = _bucket_hierarchy_tier_v2(
+            c, parent_type_map, bucket_track_required_map, bucket_parent_map,
+        )
+        unlocks = get_direct_unlocks(code, reverse_map, limit=50)
+        fills = c.get("fills_buckets", [])
+        bucket_capacity = {
+            bid: virtual_remaining_snapshot.get(bid, 0) for bid in fills
+        }
+        trace.append({
+            "rank": rank,
+            "course_code": code,
+            "course_name": c.get("course_name", ""),
+            "selected": code in selected_codes,
+            "skip_reason": skipped_reasons.get(code),
+            "tier": tier,
+            "acco_boost": _accc_major_required_rank(c, is_acco_context),
+            "is_core_prereq_blocker": code in core_prereq_blockers,
+            "unlock_count": len(unlocks),
+            "unlocks": unlocks[:5],
+            "soft_tag_penalty": _soft_tag_demote_penalty(c),
+            "multi_bucket_score": c.get("multi_bucket_score", 0),
+            "prereq_level": c.get("prereq_level", 0),
+            "fills_buckets": fills,
+            "bucket_capacity": bucket_capacity,
+        })
+    return trace
+
+
 def run_recommendation_semester(
     completed: list[str],
     in_progress: list[str],
@@ -490,6 +535,8 @@ def run_recommendation_semester(
     max_recs: int,
     reverse_map: dict,
     track_id: str = DEFAULT_TRACK_ID,
+    debug: bool = False,
+    debug_limit: int = 30,
 ) -> dict:
     """Run the full recommendation pipeline for a single semester."""
     term = parse_term(target_semester_label)
@@ -571,6 +618,7 @@ def run_recommendation_semester(
             ),
             _accc_major_required_rank(c, is_acco_context),
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
+            -len(get_direct_unlocks(c["course_code"], reverse_map, limit=50)),
             _soft_tag_demote_penalty(c),
             -c.get("multi_bucket_score", 0),
             c.get("prereq_level", 0),
@@ -592,10 +640,14 @@ def run_recommendation_semester(
         bid: rem.get("slots_remaining", 0)
         for bid, rem in alloc["remaining"].items()
     }
+    virtual_remaining_snapshot = dict(virtual_remaining) if debug else {}
     picks_per_bucket: dict[str, int] = {}
     cap_relaxed = False
+    skipped_reasons: dict[str, str] = {}
     for idx, cand in enumerate(ranked_sem):
         if len(selected_sem) >= max_recs:
+            if debug:
+                skipped_reasons[cand["course_code"]] = "max_recs reached"
             break
 
         remaining_slots_to_fill = max_recs - len(selected_sem)
@@ -628,6 +680,8 @@ def run_recommendation_semester(
             bucket_meta=selection_bucket_meta,
         )
         if not assigned_buckets:
+            if debug:
+                skipped_reasons[cand["course_code"]] = "no assignable buckets (capacity full or diversity cap)"
             continue
         selected_sem.append(cand)
         for bid in assigned_buckets:
@@ -674,7 +728,7 @@ def run_recommendation_semester(
         track_id,
     )
 
-    return {
+    result = {
         "target_semester": target_semester_label,
         "recommendations": recommendations_sem,
         "requested_recommendations": max_recs,
@@ -688,4 +742,20 @@ def run_recommendation_semester(
         "projected_progress": projected_progress_sem,
         "projection_note": _PROJECTION_NOTE,
     }
+    if debug:
+        selected_code_set = {r["course_code"] for r in recommendations_sem}
+        result["debug"] = _build_debug_trace(
+            ranked_sem,
+            selected_code_set,
+            skipped_reasons,
+            parent_type_map,
+            bucket_track_required_map,
+            bucket_parent_map,
+            is_acco_context,
+            core_prereq_blockers_sem,
+            reverse_map,
+            virtual_remaining_snapshot,
+            debug_limit=debug_limit,
+        )
+    return result
 

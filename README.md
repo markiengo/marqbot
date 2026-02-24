@@ -1,15 +1,14 @@
 # MarqBot
-![Version](https://img.shields.io/badge/version-v1.8.2-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
+![Version](https://img.shields.io/badge/version-v1.8.3-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
 
 MarqBot is a Marquette degree-planning assistant for business students. It recommends next-term courses, explains requirement progress, and checks can-take eligibility from workbook-driven rules.
 
-Current release line: `v1.8.2` (latest local session build).
+Current release line: `v1.8.3`.
 
 ## Upcoming Patch Plan
-- Fix KPI cards for consistency and correctness across dashboard surfaces.
-- Add a visible credits counter for completed, in-progress, and remaining credits.
-- Configure student standings logic (freshman/sophomore/junior/senior) more explicitly in recommendations.
-- Fix non-elective child-bucket tie-break routing when one course can satisfy multiple non-elective children.
+- Investigate diversity-cap edge behavior with debug traces for multi-major overlap scenarios.
+- Add optional unlock-intensity explanation text in debug mode for non-technical review.
+- Add release automation for changelog tagging and GitHub release notes publishing.
 
 ## Guide
 
@@ -49,16 +48,15 @@ Current release line: `v1.8.2` (latest local session build).
 - Keeps credit pools interpretable: `12 credits` typically means about `4` 3-credit courses, not `12` courses.
 
 ### Current academic scope
-- 7 business majors and 5 tracks in the workbook model.
+- 7 business majors and 6 tracks in the workbook model.
 - Universal overlays:
   - `BCC_CORE` (Business Core Curriculum)
-  - `MCC_CORE` (Marquette Core Curriculum)
+  - `MCC_FOUNDATION` (Marquette Core Curriculum)
 
-### Future plans
-- fix kpi cards and add credits counter
-- add student status (standing)
-- fix child buckets double counting - which one it goes to
-- testing still shows inconsistent double-counting for elective and non-elective in same family bucket
+### Near-term focus
+- Validate diversity-cap behavior across dense multi-major plans.
+- Keep recommendation traces readable for advisor reviews.
+- Maintain deterministic routing between non-elective and elective children.
 
 ### Important note
 - MarqBot is a planning aid. Final enrollment decisions still belong to official advising and registration workflows.
@@ -103,9 +101,8 @@ Current release line: `v1.8.2` (latest local session build).
    - Recommendations are applied virtually to produce multi-semester outcomes.
 
 ### Data model and design docs
-- ERD and model notes: `docs/data_model.md`
-- Decision rationale and architecture choices: `docs/decision_explaination.md`
-- Project release timeline: `docs/PROJECT_HISTORY.md`
+- Product requirements and architecture: `PRD.md`
+- Release history and design decisions: `CHANGELOG.md`
 
 ### API endpoints
 - `GET /courses`
@@ -144,6 +141,6 @@ cmd /c npm test --silent
 <details open>
 <summary><strong>Part C (Roadmap Note)</strong></summary>
 
-- See `v4_roadmap.md` for long-range features and roadmap sequencing.
+- See **PRD.md -> Section 11 (Future Roadmap)** for long-range features and sequencing.
 
 </details>

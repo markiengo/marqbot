@@ -1291,6 +1291,8 @@ def recommend():
 
     requested_course_raw = body.get("requested_course") or None
     max_recs = max(1, min(6, int(body.get("max_recommendations", 3) or 3)))
+    debug_mode = bool(body.get("debug", False))
+    debug_limit = max(1, min(100, int(body.get("debug_limit", 30) or 30)))
 
     catalog_codes = effective_data["catalog_codes"]
 
@@ -1409,6 +1411,8 @@ def recommend():
                 max_recs,
                 _reverse_map,
                 track_id=effective_track_id,
+                debug=debug_mode,
+                debug_limit=debug_limit,
             )
         else:
             semester_payload = run_recommendation_semester(
@@ -1419,6 +1423,8 @@ def recommend():
                 max_recs,
                 _reverse_map,
                 track_id=effective_track_id,
+                debug=debug_mode,
+                debug_limit=debug_limit,
             )
         semesters_payload.append(semester_payload)
         completed_cursor = list(dict.fromkeys(
