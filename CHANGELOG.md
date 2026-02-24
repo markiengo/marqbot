@@ -8,19 +8,49 @@ Format per release:
 
 ---
 
+## [v1.9.0] - 2026-02-24
+
+### Changes
+- **BCC progress-aware decay (5-tier system)**: `_bucket_hierarchy_tier_v2()` now accepts
+  `bcc_decay_active` param. When `BCC_DECAY_ENABLED=true` (env flag, default off) and a student
+  has >=12 courses applied to BCC_REQUIRED, BCC_REQUIRED demotes from Tier 1 -> Tier 4 (below
+  track). Demoted BCC children (BCC_ETHICS/ANALYTICS/ENHANCE) shift from Tier 4 -> Tier 5.
+  `_count_bcc_required_done()` helper computes the done count from `build_progress_output`.
+- **Production hardening**: Added `GET /health` endpoint (`{"status":"ok","version":"1.9.0"}`),
+  `@app.after_request` security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy),
+  and manual token-bucket rate limiting on `/recommend` (10 req/min per IP, bypassed in TESTING
+  mode).
+- **Feedback infrastructure**: Added `POST /feedback` endpoint (validates course_code + rating,
+  rank/tier integer shape, and appends JSON lines to `FEEDBACK_PATH`, default `feedback.jsonl`).
+  Added `postFeedback()` to `frontend/modules/api.js`, feedback strip buttons to every
+  recommendation card in `renderCard()`, and click handlers in `app.js` with session_id
+  generation and double-submission guard.
+- **Gold dataset + advisor match eval**: Created `eval/advisor_gold.json` (14 freshman profiles
+  covering all active business majors, including BUAN as a secondary-major case). Created
+  `scripts/eval_advisor_match.py` (>=4/6 overlap case pass, >=80% passing-case release gate, hard
+  fail on zero-overlap profile). Added `tests/backend_tests/test_advisor_match.py` (offline
+  variant using Flask test client).
+- **Regression profiles expanded**: Added `TestFinMajorJuniorBccSaturated` and
+  `TestFinMajorSeniorBccFull` BCC-saturation profiles to `test_regression_profiles.py`.
+- **Test suite growth**: Backend 326 -> 376 (+50), Frontend 62 -> 98 (+36).
+
+### Design Decisions
+- BCC decay behind env flag (`BCC_DECAY_ENABLED`) for safe rollout: enable only after Advisor
+  Match baseline confirms >=80%.
+- 5-tier instead of 4-tier: decayed BCC_REQUIRED at Tier 4 (below track Tier 3) preserves major
+  course priority without disrupting existing tier semantics.
+- Demoted BCC children (BCC_ETHICS etc.) promoted from Tier 4 -> Tier 5: now always below decayed
+  BCC_REQUIRED, preserving relative ordering intent.
+- Rate limiting uses manual token bucket (no new deps) rather than Flask-Limiter.
+- Feedback uses append-only JSONL on a Render persistent disk (provision separately).
+
 ## [Unreleased]
 
 ### Changes
-- Added CI workflow at `.github/workflows/validate.yml` to run workbook validation, backend tests, and frontend tests on push/PR.
-- Added `/recommend` debug mode (`debug: true`, optional `debug_limit`) for per-course ranking trace output.
-- Added regression profile tests against the live workbook in `tests/backend_tests/test_regression_profiles.py`.
-- Updated recommender ranking tie-breaks to re-include unlock power.
-- Completed documentation consolidation into `PRD.md` and `CHANGELOG.md`.
+- No unreleased entries yet.
 
 ### Design Decisions
-- Keep recommendation behavior deterministic and traceable before making additional policy-level ranking changes.
-- Treat workbook correctness as a release gate, not a manual checklist.
-- Add explainability as a first-class operational feature so ranking disputes can be resolved from data and score components.
+- No unreleased entries yet.
 
 ---
 

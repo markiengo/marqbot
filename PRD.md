@@ -1,6 +1,6 @@
 # MarqBot Product Requirements Document
 
-**Version:** v1.8.3
+**Version:** v1.9.0
 **Last updated:** 2026-02-24
 
 ---
@@ -30,7 +30,7 @@ MarqBot is a deterministic degree-planning assistant for Marquette University bu
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Flask + pandas (Python 3.14) |
+| Backend | Flask + pandas (Python 3.12) |
 | Frontend | Vanilla JS modules + HTML/CSS |
 | Data source | `marquette_courses_full.xlsx` |
 | Deployment | Render (gunicorn) |
@@ -123,7 +123,7 @@ COURSES --has_offerings--> COURSE_OFFERINGS
 PARENT_BUCKETS --parent_major_ref--> PARENT_BUCKETS
 ```
 
-### 4.6 Audit Snapshot (v1.8.3)
+### 4.6 Audit Snapshot (v1.9.0)
 
 - 198 courses, 15 parent buckets, 47 child buckets, 289 mappings
 - 198 prereq rows, 198 offering rows, 0 policy override rows
@@ -171,7 +171,18 @@ Returns the selectable program catalog (excludes universal overlays).
 }
 ```
 
-### 5.3 `POST /recommend`
+### 5.3 `GET /health`
+
+Service liveness endpoint.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "version": "1.9.0"
+}
+```
+### 5.4 `POST /recommend`
 
 Main recommendation endpoint.
 
@@ -205,24 +216,23 @@ Main recommendation endpoint.
 **Response (success):**
 ```json
 {
-  "mode": "recommendation",
+  "mode": "recommendations",
   "recommendations": [...],
   "semesters": [
     {
-      "semester_label": "Fall 2026",
+      "target_semester": "Fall 2026",
       "recommendations": [
         {
           "course_code": "ECON 1103",
           "course_name": "Principles of Microeconomics",
-          "fills_buckets": ["BCC::BCC_REQUIRED"],
-          "rationale": "..."
+          "fills_buckets": ["BCC::BCC_REQUIRED"]
         }
       ],
       "eligible_count": 45,
       "debug": [...]
     }
   ],
-  "progress_maps": {...},
+  "current_progress": {...},
   "eligible_count": 45
 }
 ```
@@ -250,7 +260,7 @@ Main recommendation endpoint.
 
 **Error codes:** `INVALID_INPUT`, `INCONSISTENT_INPUT`, `PRIMARY_MAJOR_REQUIRED`, `SERVER_ERROR`
 
-### 5.4 `POST /can-take`
+### 5.5 `POST /can-take`
 
 Standalone eligibility check for a single course.
 
@@ -279,6 +289,37 @@ Standalone eligibility check for a single course.
 }
 ```
 
+### 5.6 `POST /feedback`
+
+Collects thumbs-up/down feedback for recommendation cards.
+
+**Request body:**
+```json
+{
+  "course_code": "ECON 1103",
+  "semester": "Fall 2026",
+  "rating": 1,
+  "rank": 1,
+  "tier": 1,
+  "fills_buckets": ["BCC::BCC_REQUIRED"],
+  "session_id": "abc12345",
+  "major": "FIN_MAJOR",
+  "track": ""
+}
+```
+
+**Validation:**
+- `course_code` must exist in catalog
+- `rating` must be `1` or `-1`
+- `rank` and `tier` must be integers
+
+**Response:**
+```json
+{
+  "ok": true
+}
+```
+
 ---
 
 ## 6. Recommendation Engine
@@ -287,11 +328,16 @@ Standalone eligibility check for a single course.
 
 1. **Eligibility filter:** Only courses the student can take (prereqs satisfied, standing met, warnings checked).
 2. **Tiered ranking (locked order):**
-   - Tier 1: MCC + `BCC_REQUIRED` (universal overlay required courses)
+   - Tier 1: MCC + `BCC_REQUIRED` (before decay)
    - Tier 2: Selected major buckets
-   - Tier 3: Selected track buckets
-   - Tier 4: Demoted BCC children (`BCC_ETHICS`, `BCC_ANALYTICS`, `BCC_ENHANCE`)
-3. **In-tier tie-breakers (sort key order):**
+   - Tier 3: Selected track/minor buckets
+   - Tier 4: decayed `BCC_REQUIRED`
+   - Tier 5: Demoted BCC children (`BCC_ETHICS`, `BCC_ANALYTICS`, `BCC_ENHANCE`)
+3. **BCC progress-aware decay (feature-flagged):**
+   - Controlled by `BCC_DECAY_ENABLED` (default `false`)
+   - Trigger: `>=12` applied courses in `BCC_REQUIRED` (distinct `completed + in-progress`)
+   - Effect: `BCC_REQUIRED` moves from Tier 1 to Tier 4
+4. **In-tier tie-breakers (sort key order):**
    - ACCO-major required boost (in-tier only, does not jump tiers)
    - Core prereq blocker status (courses that block many others rank higher)
    - Unlock power (number of courses this unlocks, descending)
@@ -299,11 +345,11 @@ Standalone eligibility check for a single course.
    - Multi-bucket coverage score (descending)
    - Prereq level (ascending -- lower prereq chains first)
    - Course code (alphabetical, deterministic tie-break)
-4. **Greedy pick loop with soft diversity cap:**
+5. **Greedy pick loop with soft diversity cap:**
    - Default: max 2 recommendations per bucket per semester
    - Auto-relaxes when remaining viable unmet buckets < remaining recommendation slots
    - Selection uses allocator-style routing: same-family non-elective-first (`required`/`choose_n` before `credits_pool`), pairwise double-count policy respected
-5. **Multi-semester projection:** Semester N+1 treats prior recommended semesters as completed.
+6. **Multi-semester projection:** Semester N+1 treats prior recommended semesters as completed.
 
 ### 6.2 Dynamic Elective Pools
 
@@ -383,10 +429,10 @@ Dynamic semester tiles (1-4 semesters). Each tile is expandable to a modal with 
 
 ### 9.2 Test Suites
 
-| Suite | Command | Count (v1.8.3) |
+| Suite | Command | Count (v1.9.0) |
 |-------|---------|----------------|
-| Backend | `python -m pytest tests/backend_tests -q` | 326 |
-| Frontend | `npm test` | 95 |
+| Backend | `python -m pytest tests/backend_tests -q` | 376 |
+| Frontend | `npm test` | 98 |
 
 ### 9.3 CI Pipeline
 
@@ -427,7 +473,8 @@ python backend/server.py  # http://localhost:5000
 
 | Version | Feature | Status |
 |---------|---------|--------|
-| v1.9.0 | Production hardening (security headers, rate limiting, health endpoint) | Planned |
+| v1.9.0 | BCC decay + advisor match gate + feedback + production hardening | Shipped |
+| v1.9.1 | Feedback analytics and release-note automation | Planned |
 | v2.0.0 | AI-assisted discovery (non-binding, post-validated by deterministic engine) | Planned |
 
 **Design constraint:** The deterministic engine remains source of truth. AI suggestions cannot override deterministic rule outputs.

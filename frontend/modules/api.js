@@ -29,3 +29,12 @@ export async function postCanTake(payload, url = "/can-take") {
   });
   return await res.json();
 }
+
+export async function postFeedback(payload, url = "/feedback") {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return await res.json();
+}

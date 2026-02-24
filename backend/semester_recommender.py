@@ -1,3 +1,4 @@
+import os
 import re
 import pandas as pd
 
@@ -21,6 +22,11 @@ _PROJECTION_NOTE = (
 )
 _DEMOTED_BCC_CHILD_BUCKETS = {"BCC_ETHICS", "BCC_ANALYTICS", "BCC_ENHANCE"}
 _MCC_PARENT_FAMILY_IDS = {"MCC", "MCC_CORE", "MCC_FOUNDATION"}
+
+# BCC progress-aware decay (v1.9).
+# Set BCC_DECAY_ENABLED=true in env to activate. Default off for safe rollout.
+_BCC_DECAY_ENABLED: bool = os.environ.get("BCC_DECAY_ENABLED", "false").lower() == "true"
+_BCC_DECAY_THRESHOLD: int = 12  # courses applied to BCC_REQUIRED before decay fires
 
 
 def normalize_semester_label(label: str) -> str:
@@ -307,13 +313,15 @@ def _bucket_hierarchy_tier_v2(
     parent_type_map: dict[str, str],
     bucket_track_required_map: dict[str, str],
     bucket_parent_map: dict[str, str],
+    bcc_decay_active: bool = False,
 ) -> int:
     """
-    Priority tiers:
-      1) MCC + BCC_REQUIRED only
+    Priority tiers (v1.9 5-tier system):
+      1) MCC + BCC_REQUIRED only (when not decayed)
       2) major parent buckets
       3) track/minor parent buckets
-      4) demoted BCC children (BCC_ETHICS/ANALYTICS/ENHANCE)
+      4) decayed BCC_REQUIRED (when bcc_decay_active=True)
+      5) demoted BCC children (BCC_ETHICS/ANALYTICS/ENHANCE)
 
     Unlockers remain an in-tier tie-break in the ranking key.
     """
@@ -335,13 +343,17 @@ def _bucket_hierarchy_tier_v2(
             parent_id = primary_parent_id
         parent_id = str(parent_id or "").strip().upper()
 
-        # Tier 1: MCC family and BCC required child only.
-        if local_id == "BCC_REQUIRED" or _is_mcc_tier_1_candidate(parent_id, bucket_id, local_id):
-            return 1
-
-        # Tier 4: explicitly demoted BCC children.
+        # Tier 5: explicitly demoted BCC children.
         if local_id in _DEMOTED_BCC_CHILD_BUCKETS:
-            return 4
+            return 5
+
+        # Tier 1 or 4: BCC_REQUIRED (position depends on decay state).
+        if local_id == "BCC_REQUIRED":
+            return 4 if bcc_decay_active else 1
+
+        # Tier 1: MCC family.
+        if _is_mcc_tier_1_candidate(parent_id, bucket_id, local_id):
+            return 1
 
         # Tier 2/3 via authoritative parent type when available.
         parent_type = parent_type_map.get(parent_id, "")
@@ -359,6 +371,21 @@ def _bucket_hierarchy_tier_v2(
         return 2
 
     return min(_tier_for_bucket(bid) for bid in bucket_ids)
+
+
+def _count_bcc_required_done(progress: dict) -> int:
+    """Count distinct applied courses (completed + in-progress) in BCC_REQUIRED."""
+    for bid, bucket_data in progress.items():
+        if _local_bucket_id(bid).upper() == "BCC_REQUIRED":
+            completed = bucket_data.get("completed_applied", []) or []
+            in_progress = bucket_data.get("in_progress_applied", []) or []
+            applied = {
+                str(code).strip().upper()
+                for code in (completed + in_progress)
+                if str(code).strip()
+            }
+            return len(applied)
+    return 0
 
 
 def _is_acco_major_context(data: dict, track_id: str) -> bool:
@@ -468,6 +495,7 @@ def _build_deterministic_recommendations(candidates: list[dict], max_recommendat
             "course_code": cand["course_code"],
             "course_name": cand.get("course_name", ""),
             "why": why,
+            "tier": cand.get("tier"),
             "prereq_check": cand.get("prereq_check", ""),
             "min_standing": cand.get("min_standing"),
             "requirement_bucket": cand.get("primary_bucket_label", ""),
@@ -494,6 +522,7 @@ def _build_debug_trace(
     reverse_map: dict,
     virtual_remaining_snapshot: dict[str, int],
     debug_limit: int = 30,
+    bcc_decay_active: bool = False,
 ) -> list[dict]:
     """Build human-readable debug trace for each ranked candidate."""
     trace = []
@@ -501,6 +530,7 @@ def _build_debug_trace(
         code = c["course_code"]
         tier = _bucket_hierarchy_tier_v2(
             c, parent_type_map, bucket_track_required_map, bucket_parent_map,
+            bcc_decay_active,
         )
         unlocks = get_direct_unlocks(code, reverse_map, limit=50)
         fills = c.get("fills_buckets", [])
@@ -603,6 +633,13 @@ def run_recommendation_semester(
     for core_code in core_remaining_sem:
         core_prereq_blockers_sem |= _prereq_courses(data["prereq_map"].get(core_code, {"type": "none"}))
 
+    # BCC progress-aware decay: demote BCC_REQUIRED to Tier 4 once student
+    # has >= _BCC_DECAY_THRESHOLD applied courses (completed + in-progress).
+    bcc_decay_active = False
+    if _BCC_DECAY_ENABLED:
+        bcc_courses_done = _count_bcc_required_done(progress_sem)
+        bcc_decay_active = bcc_courses_done >= _BCC_DECAY_THRESHOLD
+
     is_acco_context = _is_acco_major_context(data, track_id)
     parent_type_map = _build_parent_type_map(data)
     bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
@@ -615,6 +652,7 @@ def run_recommendation_semester(
                 parent_type_map,
                 bucket_track_required_map,
                 bucket_parent_map,
+                bcc_decay_active,
             ),
             _accc_major_required_rank(c, is_acco_context),
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
@@ -694,6 +732,13 @@ def run_recommendation_semester(
                 virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
                 picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
     for cand in selected_sem:
+        cand["tier"] = _bucket_hierarchy_tier_v2(
+            cand,
+            parent_type_map,
+            bucket_track_required_map,
+            bucket_parent_map,
+            bcc_decay_active,
+        )
         cand["unlocks"] = get_direct_unlocks(cand["course_code"], reverse_map, limit=3)
 
     recommendations_sem = _build_deterministic_recommendations(selected_sem, len(selected_sem))
@@ -756,6 +801,6 @@ def run_recommendation_semester(
             reverse_map,
             virtual_remaining_snapshot,
             debug_limit=debug_limit,
+            bcc_decay_active=bcc_decay_active,
         )
     return result
-

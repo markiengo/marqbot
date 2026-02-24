@@ -238,6 +238,9 @@ export function renderPlanContextHtml(selectionContext, programLabelMap = null) 
 
 export function renderCard(c, options = {}) {
   const programLabelMap = options.programLabelMap || null;
+  const rank = options.rank ?? 0;
+  const semester = options.semester ?? "";
+  const tier = Number.isFinite(Number(c.tier)) ? Number(c.tier) : 0;
 
   const bucketIds = c.fills_buckets || [];
   const bucketTags = bucketIds.map((bid, idx) => {
@@ -279,6 +282,8 @@ export function renderCard(c, options = {}) {
     ? `${codePart}<span class="title-sep">\u2014</span><span class="course-name">${esc(courseName)}</span>`
     : codePart;
 
+  const feedbackStrip = `<div class="feedback-strip" data-course="${esc(c.course_code || "")}" data-semester="${esc(semester)}" data-rank="${rank}" data-tier="${tier}" data-fills="${esc(bucketIds.join(","))}"><button class="fb-btn fb-up" aria-label="Helpful">\uD83D\uDC4D</button><button class="fb-btn fb-down" aria-label="Not helpful">\uD83D\uDC4E</button></div>`;
+
   return `
     <div class="rec-card">
       <div class="rec-card-header">
@@ -292,6 +297,7 @@ export function renderCard(c, options = {}) {
       <div class="prereq-line">${prereqHtml}</div>
       ${unlocksHtml}
       ${warningStrip}${courseNotes}
+      ${feedbackStrip}
     </div>`;
 }
 
@@ -348,7 +354,7 @@ export function renderSemesterHtml(data, index, requestedCount, options = {}) {
     }
     const semesterLabel = data.target_semester || "";
     html += `<div class="section-title section-title-semester">Semester ${index}: Recommended for ${esc(semesterLabel)}</div>`;
-    html += `<div class="rec-cards">` + data.recommendations.map(c => renderCard(c, options)).join("") + `</div>`;
+    html += `<div class="rec-cards">` + data.recommendations.map((c, i) => renderCard(c, { ...options, rank: i + 1, semester: semesterLabel })).join("") + `</div>`;
   }
 
   if (data.in_progress_note) {

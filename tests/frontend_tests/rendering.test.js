@@ -106,6 +106,31 @@ describe("renderCard()", () => {
     expect(html).not.toContain("overlap-note");
     expect(html).not.toContain("Counts toward");
   });
+
+  test("renders feedback-strip with data attributes", () => {
+    const html = renderCard({ ...baseCard, tier: 3 }, { rank: 2, semester: "Fall 2026" });
+    expect(html).toContain('class="feedback-strip"');
+    expect(html).toContain('data-course="FINA 3001"');
+    expect(html).toContain('data-semester="Fall 2026"');
+    expect(html).toContain('data-rank="2"');
+    expect(html).toContain('data-tier="3"');
+    expect(html).toContain('data-fills="CORE"');
+  });
+
+  test("feedback-strip contains up and down buttons", () => {
+    const html = renderCard(baseCard, { rank: 1, semester: "Spring 2026" });
+    expect(html).toContain('class="fb-btn fb-up"');
+    expect(html).toContain('class="fb-btn fb-down"');
+    expect(html).toContain('aria-label="Helpful"');
+    expect(html).toContain('aria-label="Not helpful"');
+  });
+
+  test("feedback-strip present even without rank/semester options", () => {
+    const html = renderCard(baseCard);
+    expect(html).toContain('class="feedback-strip"');
+    expect(html).toContain('data-rank="0"');
+    expect(html).toContain('data-tier="0"');
+  });
 });
 
 describe("renderErrorHtml()", () => {

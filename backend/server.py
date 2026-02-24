@@ -1,6 +1,11 @@
 ﻿import os
 import sys
+import json
+import time
+import uuid
 import threading
+from collections import defaultdict
+from datetime import datetime, timezone
 
 # Ensure backend/ is on sys.path so sibling imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -42,6 +47,28 @@ elif not os.path.isabs(DATA_PATH):
     DATA_PATH = os.path.join(PROJECT_ROOT, DATA_PATH)
 _data_lock = threading.Lock()
 _data_mtime = None
+
+# ── Feedback storage ───────────────────────────────────────────────────────
+FEEDBACK_PATH: str = os.environ.get("FEEDBACK_PATH", "feedback.jsonl")
+_feedback_lock = threading.Lock()
+
+# ── Rate limiting (manual token bucket, 10 req/min per IP) ────────────────
+_RATE_LIMIT_MAX = 10
+_RATE_LIMIT_WINDOW = 60  # seconds
+_rate_limit_lock = threading.Lock()
+_rate_limit_tracker: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_rate_limit(ip: str) -> bool:
+    """Return True if request is allowed, False if rate-limited."""
+    now = time.time()
+    with _rate_limit_lock:
+        timestamps = _rate_limit_tracker[ip]
+        _rate_limit_tracker[ip] = [t for t in timestamps if now - t < _RATE_LIMIT_WINDOW]
+        if len(_rate_limit_tracker[ip]) >= _RATE_LIMIT_MAX:
+            return False
+        _rate_limit_tracker[ip].append(now)
+        return True
 
 
 def _data_file_mtime(path: str):
@@ -113,6 +140,22 @@ def _refresh_data_if_needed() -> None:
 
 
 # â”€â”€ Input validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Security headers ──────────────────────────────────────────────────────
+@app.after_request
+def _add_security_headers(response):
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "same-origin"
+    return response
+
+
+# ── Health endpoint ────────────────────────────────────────────────────────
+@app.route("/health", methods=["GET"])
+def health_endpoint():
+    return jsonify({"status": "ok", "version": "1.9.0"})
+
+
+# ── Input validation ──────────────────────────────────────────────────────
 def _validate_recommend_body(body):
     """Returns (error_code, message) on invalid input, (None, None) on success."""
     if body is None:
@@ -1219,6 +1262,12 @@ def get_programs():
 
 @app.route("/recommend", methods=["POST"])
 def recommend():
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    if not app.config.get("TESTING") and not _check_rate_limit(client_ip):
+        return jsonify({
+            "mode": "error",
+            "error": {"error_code": "RATE_LIMITED", "message": "Too many requests. Please wait before submitting again."},
+        }), 429
     _refresh_data_if_needed()
     if not _data:
         return jsonify({"mode": "error", "error": {"error_code": "SERVER_ERROR", "message": "Data not loaded."}}), 500
@@ -1544,6 +1593,64 @@ def can_take_endpoint():
         "unsupported_prereq_format": result["unsupported_prereq_format"],
         "next_best_alternatives": [],
     })
+
+
+@app.route("/feedback", methods=["POST"])
+def feedback_endpoint():
+    """Collect thumbs-up/thumbs-down feedback for a recommended course."""
+    _refresh_data_if_needed()
+    body = request.get_json(force=True, silent=True) or {}
+
+    course_code_raw = str(body.get("course_code") or "").strip()
+    rating = body.get("rating")
+
+    # Validate course_code
+    course_code = normalize_code(course_code_raw)
+    catalog = (_data or {}).get("catalog_codes", set())
+    if not course_code or course_code not in catalog:
+        return jsonify({"error": "course_code not in catalog", "field": "course_code"}), 400
+
+    # Validate rating
+    if rating not in (1, -1):
+        return jsonify({"error": "rating must be 1 or -1", "field": "rating"}), 400
+
+    rank_raw = body.get("rank", 0)
+    try:
+        rank_val = int(rank_raw or 0)
+    except (TypeError, ValueError):
+        return jsonify({"error": "rank must be an integer", "field": "rank"}), 400
+
+    tier_raw = body.get("tier", 0)
+    try:
+        tier_val = int(tier_raw or 0)
+    except (TypeError, ValueError):
+        return jsonify({"error": "tier must be an integer", "field": "tier"}), 400
+
+    fills = body.get("fills_buckets")
+    if isinstance(fills, list):
+        fills_val = [str(v).strip() for v in fills if str(v).strip()]
+    else:
+        fills_val = []
+
+    record = {
+        "event_id": str(uuid.uuid4()),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "session_id": str(body.get("session_id") or ""),
+        "course_code": course_code,
+        "semester": str(body.get("semester") or ""),
+        "rating": rating,
+        "rank": rank_val,
+        "fills_buckets": fills_val,
+        "tier": tier_val,
+        "major": str(body.get("major") or ""),
+        "track": str(body.get("track") or ""),
+    }
+
+    with _feedback_lock:
+        with open(FEEDBACK_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record) + "\n")
+
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

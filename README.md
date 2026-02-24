@@ -1,14 +1,14 @@
 # MarqBot
-![Version](https://img.shields.io/badge/version-v1.8.3-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
+![Version](https://img.shields.io/badge/version-v1.9.0-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
 
 MarqBot is a Marquette degree-planning assistant for business students. It recommends next-term courses, explains requirement progress, and checks can-take eligibility from workbook-driven rules.
 
-Current release line: `v1.8.3`.
+Current release line: `v1.9.0`.
 
 ## Upcoming Patch Plan
-- Investigate diversity-cap edge behavior with debug traces for multi-major overlap scenarios.
-- Add optional unlock-intensity explanation text in debug mode for non-technical review.
-- Add release automation for changelog tagging and GitHub release notes publishing.
+- Validate advisor-match quality across larger freshman and sophomore profile sets.
+- Add lightweight feedback analytics report endpoint for internal review.
+- Add release automation for changelog tagging and GitHub release note publishing.
 
 ## Guide
 
@@ -20,14 +20,16 @@ Current release line: `v1.8.3`.
 - Shows progress by requirement buckets.
 - Lets students check a specific class in **Can I Take This Next Semester?**.
 - Shows warnings for standing, major declaration, and low offering confidence.
+- Captures quick thumbs-up/down feedback on each recommendation card.
 
 ### How recommendations work (simple)
 1. **Eligibility baseline**: Only courses you can actually take are considered (prereqs/standing/warnings checked).
 2. **Tiered priority (locked order)**:
-   - Tier 1: MCC + `BCC_REQUIRED`
+   - Tier 1: MCC + `BCC_REQUIRED` (before BCC decay threshold)
    - Tier 2: selected major buckets
    - Tier 3: selected track buckets
-   - Tier 4: BCC sub-groups (`BCC_ETHICS`, `BCC_ANALYTICS`, `BCC_ENHANCE`)
+   - Tier 4: decayed `BCC_REQUIRED` (when `BCC_DECAY_ENABLED=true` and `>=12/18` BCC_REQUIRED courses are applied)
+   - Tier 5: demoted BCC sub-groups (`BCC_ETHICS`, `BCC_ANALYTICS`, `BCC_ENHANCE`)
 3. **Inside each tier**:
    - ACCO-only warning boost applies in-tier (`Required for ACCO majors`) and does not jump tiers.
    - Unlockers and warning penalties act as tie-breakers, not top-level priority overrides.
@@ -57,6 +59,7 @@ Current release line: `v1.8.3`.
 - Validate diversity-cap behavior across dense multi-major plans.
 - Keep recommendation traces readable for advisor reviews.
 - Maintain deterministic routing between non-elective and elective children.
+- Use feedback data to identify low-confidence recommendation patterns.
 
 ### Important note
 - MarqBot is a planning aid. Final enrollment decisions still belong to official advising and registration workflows.
@@ -107,8 +110,10 @@ Current release line: `v1.8.3`.
 ### API endpoints
 - `GET /courses`
 - `GET /programs`
+- `GET /health`
 - `POST /recommend`
 - `POST /can-take`
+- `POST /feedback`
 
 ### Local setup
 ```powershell
@@ -130,11 +135,13 @@ Open `http://localhost:5000`.
 .\.venv\Scripts\python.exe -m pytest tests/backend_tests -q
 cmd /c npm test --silent
 ```
+Current local baseline: backend `376` passing, frontend `98` passing.
 
 ### Render dashboard settings
 - Build command: `pip install -r requirements.txt`
 - Start command: `gunicorn --chdir backend server:app --bind 0.0.0.0:$PORT`
 - Service root must be repo root (where `requirements.txt` exists).
+- For feedback persistence on Render, mount a persistent disk and set `FEEDBACK_PATH=/data/feedback.jsonl`.
 
 </details>
 
@@ -142,5 +149,6 @@ cmd /c npm test --silent
 <summary><strong>Part C (Roadmap Note)</strong></summary>
 
 - See **PRD.md -> Section 11 (Future Roadmap)** for long-range features and sequencing.
+- For every release, update `PRD.md`, `README.md`, and `CHANGELOG.md`, then sync the latest GitHub release notes from those docs.
 
 </details>

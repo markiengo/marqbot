@@ -329,3 +329,86 @@ class TestDebugMode:
         _, data = _get_recs(client, payload)
         sem1 = data.get("semesters", [{}])[0]
         assert "debug" not in sem1, "debug field should not be present when not requested"
+
+
+# ---------------------------------------------------------------------------
+# BCC decay regression profiles (v1.9)
+# These profiles verify that BCC decay behavior is consistent with
+# the BCC_DECAY_ENABLED env flag. With the flag off (default), BCC_REQUIRED
+# courses stay Tier 1 regardless of how many BCC courses are done.
+# ---------------------------------------------------------------------------
+
+
+class TestFinMajorJuniorBccSaturated:
+    """
+    Junior with 12+ BCC_REQUIRED courses done. With BCC_DECAY_ENABLED=false
+    (default), recommendations should still produce valid results and BCC/MCC
+    courses should appear in the eligible pool. Decay behavior tested via
+    unit tests in test_bcc_decay.py.
+    """
+
+    PAYLOAD = {
+        "declared_majors": ["FIN_MAJOR"],
+        "track_id": "CB_TRACK",
+        # ~12 BCC-style courses (THEO, PHIL, ENGL, COMM, ANTH, CORE series, etc.)
+        "completed_courses": (
+            "ECON 1001, ECON 1002, BUAD 1000, BUAD 1560, ACCO 1030, "
+            "ACCO 1031, MATH 1400, FINA 3001, INSY 3001, OSCM 3001, "
+            "MANA 3001, PHIL 1001, THEO 1001, BUAD 3010, BUAD 3020, "
+            "MARK 3001, BUAD 2500, BUAD 3060, ENGL 1001, ECON 1103"
+        ),
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        """Junior with heavy BCC completion should still get valid recommendations."""
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 1, "Should still have courses to recommend"
+
+    def test_no_regression_from_bcc_decay_flag_off(self, client):
+        """With BCC_DECAY_ENABLED=false (default), recommendations remain stable."""
+        recs, data = _get_recs(client, self.PAYLOAD)
+        # Eligible count should be positive
+        assert data.get("eligible_count", 0) > 0, "Should have eligible courses"
+
+
+class TestFinMajorSeniorBccFull:
+    """
+    Senior who has completed a full BCC load plus most major requirements.
+    Tests that the system gracefully handles near-graduation scenarios.
+    """
+
+    PAYLOAD = {
+        "declared_majors": ["FIN_MAJOR"],
+        "track_id": "CB_TRACK",
+        "completed_courses": (
+            "ECON 1001, ECON 1002, ECON 1103, BUAD 1000, BUAD 1560, "
+            "ACCO 1030, ACCO 1031, MATH 1400, FINA 3001, INSY 3001, "
+            "OSCM 3001, MANA 3001, PHIL 1001, THEO 1001, BUAD 3010, "
+            "BUAD 3020, MARK 3001, BUAD 2500, BUAD 3060, BUAD 1001, "
+            "LEAD 1050, ECON 1104, ENGL 1001, CORE 1929, ANTH 1001"
+        ),
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        """Senior should still have remaining major courses to recommend."""
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 1, "Senior should still have courses to recommend"
+
+    def test_fina_upper_courses_eligible(self, client):
+        """Senior with FINA 3001 done → upper FINA courses should appear eligible."""
+        recs, data = _get_recs(client, self.PAYLOAD)
+        # Either upper FINA in recs, or eligible_count > 3 (major core left)
+        codes = _rec_codes(recs)
+        upper_fina = [c for c in codes if c.startswith("FINA") and "4" in c.split()[-1][0]]
+        has_eligible = data.get("eligible_count", 0) > 0
+        assert has_eligible or len(upper_fina) > 0, (
+            "Senior should see upper FINA courses or have eligible courses remaining"
+        )

@@ -1,0 +1,212 @@
+[
+  {
+    "id": "fin_freshman_001",
+    "description": "FIN_MAJOR freshman, Fall 2026, minimal completed (ECON 1001, ECON 1002, BUAD 1000 — treated as not-in-catalog, effective zero credit)",
+    "profile": {
+      "declared_majors": ["FIN_MAJOR"],
+      "track_id": "",
+      "completed_courses": "ECON 1001, ECON 1002, BUAD 1000",
+      "in_progress_courses": "",
+      "target_semester_primary": "Fall 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
+    "notes": "Effective zero-credit FIN freshman (catalog-based). All recs should be BCC/MCC tier 1."
+  },
+  {
+    "id": "fin_freshman_002",
+    "description": "FIN_MAJOR freshman, Spring 2026, zero completed",
+    "profile": {
+      "declared_majors": ["FIN_MAJOR"],
+      "track_id": "",
+      "completed_courses": "",
+      "in_progress_courses": "",
+      "target_semester_primary": "Spring 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
+    "notes": "Absolute zero-credit FIN freshman. All top-6 should be BCC/MCC (tier 1)."
+  },
+  {
+    "id": "acco_freshman_001",
+    "description": "ACCO_MAJOR freshman, Fall 2026, minimal completed",
+    "profile": {
+      "declared_majors": ["ACCO_MAJOR"],
+      "track_id": "",
+      "completed_courses": "ECON 1001, BUAD 1000",
+      "in_progress_courses": "",
+      "target_semester_primary": "Fall 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
+    "notes": "ACCO freshman sees same BCC/MCC tier-1 courses as FIN freshman."
+  },
+  {
+    "id": "acco_freshman_002",
+    "description": "ACCO_MAJOR freshman, Spring 2026, zero completed",
+    "profile": {
+      "declared_majors": ["ACCO_MAJOR"],
+      "track_id": "",
+      "completed_courses": "",
+      "in_progress_courses": "",
+      "target_semester_primary": "Spring 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
+    "notes": "Zero-credit ACCO freshman. Same BCC/MCC pattern as FIN."
+  },
+  {
+    "id": "aim_freshman_001",
+    "description": "AIM_MAJOR freshman, Fall 2026, minimal completed",
+    "profile": {
+      "declared_majors": ["AIM_MAJOR"],
+      "track_id": "",
+      "completed_courses": "ECON 1001, BUAD 1000",
+      "in_progress_courses": "",
+      "target_semester_primary": "Fall 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
+    "notes": "AIM freshman. Same BCC/MCC tier-1 universal courses."
+  },
+  {
+    "id": "aim_freshman_002",
+    "description": "AIM_MAJOR freshman, Spring 2026, zero completed",
+    "profile": {
+      "declared_majors": ["AIM_MAJOR"],
+      "track_id": "",
+      "completed_courses": "",
+      "in_progress_courses": "",
+      "target_semester_primary": "Spring 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
+    "notes": "Zero-credit AIM freshman."
+  },
+  {
+    "id": "hure_freshman_001",
+    "description": "HURE_MAJOR freshman, Fall 2026, minimal completed",
+    "profile": {
+      "declared_majors": ["HURE_MAJOR"],
+      "track_id": "",
+      "completed_courses": "ECON 1001, BUAD 1000",
+      "in_progress_courses": "",
+      "target_semester_primary": "Fall 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
+    "notes": "HURE freshman. BCC/MCC gateway is universal across all business majors."
+  },
+  {
+    "id": "hure_freshman_002",
+    "description": "HURE_MAJOR freshman, Spring 2026, zero completed",
+    "profile": {
+      "declared_majors": ["HURE_MAJOR"],
+      "track_id": "",
+      "completed_courses": "",
+      "in_progress_courses": "",
+      "target_semester_primary": "Spring 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
+    "notes": "Zero-credit HURE freshman."
+  },
+  {
+    "id": "oscm_freshman_001",
+    "description": "OSCM_MAJOR freshman, Fall 2026, minimal completed",
+    "profile": {
+      "declared_majors": ["OSCM_MAJOR"],
+      "track_id": "",
+      "completed_courses": "ECON 1001, BUAD 1000",
+      "in_progress_courses": "",
+      "target_semester_primary": "Fall 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "MANA 3001"],
+    "notes": "OSCM freshman sees MANA 3001 instead of ANTH 1001 due to major-specific MCC routing."
+  },
+  {
+    "id": "oscm_freshman_002",
+    "description": "OSCM_MAJOR freshman, Spring 2026, zero completed",
+    "profile": {
+      "declared_majors": ["OSCM_MAJOR"],
+      "track_id": "",
+      "completed_courses": "",
+      "in_progress_courses": "",
+      "target_semester_primary": "Spring 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "MANA 3001"],
+    "notes": "Zero-credit OSCM freshman."
+  },
+  {
+    "id": "insy_freshman_001",
+    "description": "INSY_MAJOR freshman, Fall 2026, minimal completed",
+    "profile": {
+      "declared_majors": ["INSY_MAJOR"],
+      "track_id": "",
+      "completed_courses": "ECON 1001, BUAD 1000",
+      "in_progress_courses": "",
+      "target_semester_primary": "Fall 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "MANA 3001"],
+    "notes": "INSY freshman sees MANA 3001 in top-6 due to major-specific MCC routing."
+  },
+  {
+    "id": "insy_freshman_002",
+    "description": "INSY_MAJOR freshman, Spring 2026, zero completed",
+    "profile": {
+      "declared_majors": ["INSY_MAJOR"],
+      "track_id": "",
+      "completed_courses": "",
+      "in_progress_courses": "",
+      "target_semester_primary": "Spring 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "MANA 3001"],
+    "notes": "Zero-credit INSY freshman."
+  },
+  {
+    "id": "buan_freshman_001",
+    "description": "BUAN_MAJOR + FIN_MAJOR freshman, Fall 2026, minimal completed",
+    "profile": {
+      "declared_majors": ["FIN_MAJOR", "BUAN_MAJOR"],
+      "track_id": "",
+      "completed_courses": "ECON 1001, BUAD 1000",
+      "in_progress_courses": "",
+      "target_semester_primary": "Fall 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
+    "notes": "BUAN requires a primary major; freshman baseline uses FIN+BUAN and should remain BCC/MCC heavy."
+  },
+  {
+    "id": "buan_freshman_002",
+    "description": "BUAN_MAJOR + FIN_MAJOR freshman, Spring 2026, zero completed",
+    "profile": {
+      "declared_majors": ["FIN_MAJOR", "BUAN_MAJOR"],
+      "track_id": "",
+      "completed_courses": "",
+      "in_progress_courses": "",
+      "target_semester_primary": "Spring 2026",
+      "target_semester_count": 1,
+      "max_recommendations": 6
+    },
+    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
+    "notes": "Zero-credit FIN+BUAN freshman baseline."
+  }
+]
