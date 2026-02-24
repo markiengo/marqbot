@@ -1,54 +1,38 @@
-# MarqBot Data Model (v1.6)
+# MarqBot Data Model (v1.7.11)
 
-## Visual ERD (Mermaid)
+## Canonical Workbook ERD (Mermaid)
 ```mermaid
 erDiagram
-    PROGRAMS ||--o{ BUCKETS : owns
-    PROGRAMS ||--o{ SUB_BUCKETS : owns
-    PROGRAMS ||--o{ COURSES_ALL_BUCKETS : scopes
-    PROGRAMS ||--o{ DOUBLE_COUNT_POLICY : scopes
-
-    BUCKETS ||--o{ SUB_BUCKETS : contains
-    SUB_BUCKETS ||--o{ COURSES_ALL_BUCKETS : maps
-    COURSES ||--o{ COURSES_ALL_BUCKETS : assigned_to
+    PARENT_BUCKETS ||--o{ CHILD_BUCKETS : owns
+    CHILD_BUCKETS ||--o{ MASTER_BUCKET_COURSES : maps
+    COURSES ||--o{ MASTER_BUCKET_COURSES : satisfies
     COURSES ||--o| COURSE_PREREQS : has
     COURSES ||--o| COURSE_OFFERINGS : has
-    COURSES ||--o{ COURSE_EQUIVALENCIES : grouped_in
+    PARENT_BUCKETS ||--o{ DOUBLE_COUNT_POLICY : scopes
 
-    PROGRAMS {
-        string program_id
-        string program_label
-        string kind
-        string parent_major_id
+    PARENT_BUCKETS {
+        string parent_bucket_id
+        string parent_bucket_label
+        string type
+        string parent_major
         boolean active
         boolean requires_primary_major
-        boolean applies_to_all
     }
 
-    BUCKETS {
-        string program_id
-        string bucket_id
-        string bucket_label
-        int priority
-        string track_required
-        boolean active
-    }
-
-    SUB_BUCKETS {
-        string program_id
-        string bucket_id
-        string sub_bucket_id
-        string sub_bucket_label
+    CHILD_BUCKETS {
+        string parent_bucket_id
+        string child_bucket_id
+        string child_bucket_label
+        string requirement_mode
         int courses_required
         int credits_required
         int min_level
-        string role
-        int priority
+        string notes
     }
 
-    COURSES_ALL_BUCKETS {
-        string program_id
-        string sub_bucket_id
+    MASTER_BUCKET_COURSES {
+        string parent_bucket_id
+        string child_bucket_id
         string course_code
         string notes
     }
@@ -58,6 +42,10 @@ erDiagram
         string course_name
         int credits
         int level
+        string prereq_hard
+        string prereq_soft
+        string warning_text
+        string elective_pool_tag
         boolean offered_fall
         boolean offered_spring
         boolean offered_summer
@@ -80,31 +68,46 @@ erDiagram
         boolean semester_col_3
     }
 
-    COURSE_EQUIVALENCIES {
-        string equiv_group_id
-        string course_code
-        string course_name
-        string program_scope
-        boolean active
-    }
-
     DOUBLE_COUNT_POLICY {
         string program_id
-        string sub_bucket_id_a
-        string sub_bucket_id_b
+        string node_type_a
+        string node_id_a
+        string node_type_b
+        string node_id_b
         boolean allow_double_count
         string reason
     }
 ```
 
-## Marquette Style Notes
-- Primary color: `#003366` (Marquette navy)
-- Accent color: `#FFCC00` (Marquette gold)
-- Use navy for headers and relationship labels; use gold for highlights/callouts in rendered docs.
-- Keep neutral backgrounds and high-contrast text for print/export readability.
+## Runtime Model Flow (Mermaid)
+```mermaid
+flowchart TD
+    A[Workbook Sheets] --> B[data_loader normalization]
+    B --> C[Runtime buckets_df]
+    B --> D[Runtime course_bucket_map_df]
+    B --> E[courses_df + prereq_map]
+    E --> F[eligibility candidate filter]
+    C --> F
+    D --> F
+    F --> G[semester_recommender ranking]
+    C --> H[allocator progress assignment]
+    D --> H
+    G --> I[/recommend response]
+    H --> I
+    H --> J[/programs progress overlays]
+```
 
-## Relationship Notes
-- `BCC_CORE` and `MCC_CORE` are modeled as universal programs (`applies_to_all=true`) and are auto-included at runtime.
-- `courses_all_buckets` remains structurally unchanged in v1.6 for stability.
-- `double_count_policy` now stores only sub-bucket pair exceptions by program scope.
-- `course_offerings` uses dynamic literal semester headers in the workbook (for example `Fall 2025`); the ERD shows generic `semester_col_*` placeholders for Mermaid compatibility.
+## Model Notes
+- `parent_buckets.type='universal'` rows are auto-included when `active=true` (for example `BCC_CORE`, `MCC_CORE`).
+- Tracks stay selectable as independent parent buckets, but `parent_major` links them to allowed major selection in UI and API.
+- `requirement_mode` drives bucket behavior:
+  - `required`: fixed specific courses
+  - `choose_n`: choose-count lists
+  - `credits_pool`: credit-based pools
+- Dynamic business electives are intentionally not hard-mapped in `master_bucket_courses`:
+  - runtime synthesis uses `courses.elective_pool_tag == "biz_elective"`
+  - only for elective-like child IDs matching `ELEC|BUS_ELEC|ELECTIVE`
+  - bucket `min_level` is enforced
+- Same-family no-double-count remains default. Cross-family remains default allow. Explicit `double_count_policy` rows override defaults.
+- Same-family routing prefers non-elective children (`required`, `choose_n`) before `credits_pool` children to avoid elective leakage.
+- `course_equivalencies` is currently out of active governance and not part of the canonical planning model in this release line.

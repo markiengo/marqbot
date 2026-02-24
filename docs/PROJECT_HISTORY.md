@@ -550,6 +550,47 @@ Key outcomes:
 
 </details>
 
+<details>
+<summary><strong>v1.7.10 - Parent/Child Model Cutover + Track-Family Governance</strong></summary>
+
+Window:
+1. 2026-02-24 backend model refactor batch
+
+Why this version:
+1. Canonical workbook model moved to parent/child buckets while preserving API contracts.
+
+Key outcomes:
+1. Added canonical workbook sheets: `parent_buckets`, `child_buckets`, `master_bucket_courses`.
+2. Kept one-release compatibility loading for legacy sheet names.
+3. Introduced track-aware double-count family semantics so major and attached track can share governance defaults.
+4. Preserved policy override precedence (sub-bucket override, then family override, then default rule).
+5. Kept `/programs` and `/recommend` payload contracts stable for frontend compatibility.
+
+</details>
+
+<details>
+<summary><strong>v1.7.11 - Priority Refactor + Dynamic Elective Pools</strong></summary>
+
+Window:
+1. 2026-02-24 recommendation behavior and data-governance refinement batch
+
+Why this version:
+1. Recommendation priorities and elective handling were aligned to advisor policy without reintroducing hardcoded exceptions.
+
+Key outcomes:
+1. Locked recommendation hierarchy to:
+   - MCC + `BCC_REQUIRED`
+   - major buckets
+   - selected track buckets
+   - demoted BCC children (`BCC_ETHICS`, `BCC_ANALYTICS`, `BCC_ENHANCE`)
+2. Kept unlockers and ACCO warning boosts as in-tier tie-breakers only.
+3. Replaced hard bucket diversity behavior with soft-cap auto-relax behavior.
+4. Introduced dynamic elective pool synthesis from `courses.elective_pool_tag == biz_elective` for elective-like credits pools.
+5. Added same-family non-elective-first routing so required/choose buckets win before elective pool capture.
+6. Added reproducible workbook backfill script for elective pool tags and refreshed documentation set.
+
+</details>
+
 </details>
 
 ---
@@ -584,3 +625,5 @@ Key outcomes:
 27. `v1.7.7`: 2026-02-22 already-satisfied bucket exclusion fix
 28. `v1.7.8`: 2026-02-22 scalable semester planning and rec cap
 29. `v1.7.9`: 2026-02-23 greedy bucket dedup, MCC/BCC tier parity, MCC label fix
+30. `v1.7.10`: 2026-02-24 parent/child model cutover + track-family governance
+31. `v1.7.11`: 2026-02-24 priority refactor + dynamic elective pools
