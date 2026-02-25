@@ -141,8 +141,9 @@ Current local baseline: backend `366` passing; frontend utility tests, lint, and
 
 ### Render dashboard settings
 - Runtime: `Docker`
-- Dockerfile: `./Dockerfile` (multi-stage build compiles `frontend/out` and runs Gunicorn)
+- Dockerfile: `./infra/docker/Dockerfile` (multi-stage build compiles `frontend/out` and runs Gunicorn)
 - Service root must be repo root (where `requirements.txt` exists).
+- Infra layout notes: `infra/README.md`
 
 </details>
 

@@ -2,7 +2,7 @@ services:
   - type: web
     name: marqbot
     runtime: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./infra/docker/Dockerfile
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"
