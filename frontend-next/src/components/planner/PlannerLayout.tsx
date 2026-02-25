@@ -118,7 +118,7 @@ export function PlannerLayout() {
                   </h2>
                   <p className="text-sm text-ink-faint mt-1 max-w-sm">
                     Select your major in the panel to the left, add your completed
-                    courses, then hit "Get Recommendations" to unlock your
+                    courses, then hit &ldquo;Get Recommendations&rdquo; to unlock your
                     personalized semester plan.
                   </p>
                 </div>
@@ -142,7 +142,7 @@ export function PlannerLayout() {
                     Ready to plan
                   </h2>
                   <p className="text-sm text-ink-faint mt-1">
-                    Click "Get Recommendations" to see your semester plan.
+                    Click &ldquo;Get Recommendations&rdquo; to see your semester plan.
                   </p>
                 </div>
               </div>

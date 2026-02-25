@@ -32,7 +32,7 @@ export function ProgressDashboard({ onViewDetails }: ProgressDashboardProps) {
   return (
     <div className="h-full min-h-0 rounded-2xl border border-border-subtle bg-gradient-to-br from-[#0f2a52]/70 to-[#10284a]/55 p-4 space-y-3">
       <p className="text-xs font-semibold text-white/95">
-        Double-check this with your "Graduation Checklist" in Checkmarq
+        Double-check this with your &ldquo;Graduation Checklist&rdquo; in Checkmarq
       </p>
 
       <h2 className="text-4xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
