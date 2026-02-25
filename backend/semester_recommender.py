@@ -1,3 +1,4 @@
+import os
 import re
 import pandas as pd
 
@@ -19,6 +20,8 @@ _MAX_PER_BUCKET_PER_SEM = 2
 _PROJECTION_NOTE = (
     "Projected progress below assumes you complete these recommendations."
 )
+_DEMOTED_BCC_CHILD_BUCKETS = {"BCC_ETHICS", "BCC_ANALYTICS", "BCC_ENHANCE"}
+_MCC_PARENT_FAMILY_IDS = {"MCC", "MCC_CORE", "MCC_FOUNDATION"}
 _BCC_DECAY_THRESHOLD: int = 12  # courses applied to BCC_REQUIRED before decay fires
 
 
@@ -628,8 +631,10 @@ def run_recommendation_semester(
 
     # BCC progress-aware decay: demote BCC_REQUIRED to Tier 4 once student
     # has >= _BCC_DECAY_THRESHOLD applied courses (completed + in-progress).
+    # Currently off by default; enable via BCC_DECAY_ENABLED env var.
+    _bcc_decay_enabled = os.environ.get("BCC_DECAY_ENABLED", "false").lower() == "true"
     bcc_decay_active = False
-    if _BCC_DECAY_ENABLED:
+    if _bcc_decay_enabled:
         bcc_courses_done = _count_bcc_required_done(progress_sem)
         bcc_decay_active = bcc_courses_done >= _BCC_DECAY_THRESHOLD
 

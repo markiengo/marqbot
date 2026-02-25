@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import time
 import threading
@@ -34,10 +34,10 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# â”€â”€ Paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Paths ─────────────────────────────────────────────────────────────────────
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
-_NEXT_OUT = os.path.join(PROJECT_ROOT, "frontend-next", "out")
+_NEXT_OUT = os.path.join(PROJECT_ROOT, "frontend", "out")
 # Frontend convergence: only serve the Next.js static export.
 FRONTEND_DIR = _NEXT_OUT
 _DEFAULT_DATA_PATH = os.path.join(PROJECT_ROOT, "marquette_courses_full.xlsx")
@@ -51,7 +51,7 @@ else:
 _data_lock = threading.Lock()
 _data_mtime = None
 
-# ── Rate limiting (manual token bucket, 10 req/min per IP) ────────────────
+# -- Rate limiting (manual token bucket, 10 req/min per IP) ----------------
 _RATE_LIMIT_MAX = 10
 _RATE_LIMIT_WINDOW = 60  # seconds
 _rate_limit_lock = threading.Lock()
@@ -82,7 +82,7 @@ def _frontend_missing_response():
         "mode": "error",
         "error": {
             "error_code": "FRONTEND_NOT_BUILT",
-            "message": "Frontend build not found. Run `npm run build` in `frontend-next/`.",
+            "message": "Frontend build not found. Run `npm run build` in `frontend/`.",
         },
     }), 503
 
@@ -90,7 +90,7 @@ def _frontend_missing_response():
 def _frontend_ready() -> bool:
     return os.path.isfile(os.path.join(FRONTEND_DIR, "index.html"))
 
-# â”€â”€ Startup data load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Startup data load ──────────────────────────────────────────────────────────
 try:
     _data = load_data(DATA_PATH)
     _data_mtime = _data_file_mtime(DATA_PATH)
@@ -164,8 +164,8 @@ def _refresh_data_if_needed() -> None:
         print(f"[WARN] Data reload check failed: {exc}", file=sys.stderr)
 
 
-# â”€â”€ Input validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# ── Security headers ──────────────────────────────────────────────────────
+# ── Input validation ───────────────────────────────────────────────────────────
+# -- Security headers ------------------------------------------------------
 @app.after_request
 def _add_security_headers(response):
     response.headers["X-Frame-Options"] = "DENY"
@@ -174,7 +174,7 @@ def _add_security_headers(response):
     return response
 
 
-# ── Health endpoint ────────────────────────────────────────────────────────
+# -- Health endpoint --------------------------------------------------------
 @app.route("/health", methods=["GET"])
 def health_endpoint():
     return jsonify({
@@ -184,7 +184,7 @@ def health_endpoint():
     })
 
 
-# ── Input validation ──────────────────────────────────────────────────────
+# -- Input validation ------------------------------------------------------
 def _validate_recommend_body(body):
     """Returns (error_code, message) on invalid input, (None, None) on success."""
     if body is None:
@@ -604,6 +604,16 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
             "source_parent_bucket_id": sub["bucket_id"],
         }
     )
+
+    # When a track is selected, drop "No Concentration" sub-buckets whose label
+    # duplicates a track-specific sub-bucket (same label + same credits target).
+    if selected_track and len(runtime_buckets) > 0:
+        tr = runtime_buckets["track_required"].fillna("").astype(str).str.strip().str.upper()
+        lbl = runtime_buckets["bucket_label"].fillna("").astype(str).str.strip()
+        track_labels = set(lbl[tr == selected_track])
+        if track_labels:
+            is_dup = (tr == "") & lbl.isin(track_labels) & (lbl != "")
+            runtime_buckets = runtime_buckets[~is_dup].copy()
 
     sub_keys = runtime_buckets[["source_program_id", "bucket_id"]].copy()
     sub_keys = sub_keys.rename(columns={"bucket_id": "source_bucket_id"}).drop_duplicates()
@@ -1201,7 +1211,7 @@ def _promote_inferred_in_progress_prereqs_to_completed(completed, in_progress, a
     return promoted_completed, remaining_in_progress
 
 
-# â”€â”€ 500 handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── 500 handler ────────────────────────────────────────────────────────────────
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
     return jsonify({
@@ -1213,7 +1223,7 @@ def handle_unexpected_error(e):
     }), 500
 
 
-# â”€â”€ Routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Routes ─────────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
     if not _frontend_ready():
@@ -1632,7 +1642,7 @@ def can_take_endpoint():
         "next_best_alternatives": [],
     })
 
-# ── Canonical API routes for Next.js frontend ────────────────────────
+# -- Canonical API routes for Next.js frontend ------------------------
 # `/courses` is intentionally left to SPA routing.
 app.add_url_rule("/api/health", endpoint="api_health", view_func=health_endpoint, methods=["GET"])
 app.add_url_rule("/api/courses", endpoint="api_courses", view_func=get_courses, methods=["GET"])
@@ -1641,13 +1651,13 @@ app.add_url_rule("/api/recommend", endpoint="api_recommend", view_func=recommend
 app.add_url_rule("/api/can-take", endpoint="api_can_take", view_func=can_take_endpoint, methods=["POST"])
 
 
-# ── API catch-all (404 for unknown /api/* routes) ───────────────────
+# -- API catch-all (404 for unknown /api/* routes) -------------------
 @app.route("/api/<path:rest>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 def api_catch_all(rest):
     return jsonify({"error": f"/api/{rest} not found"}), 404
 
 
-# ── SPA catch-all (must be last) ─────────────────────────────────────
+# -- SPA catch-all (must be last) -------------------------------------
 # Serves static files from the frontend build directory; falls back to
 # index.html for client-side routes like /planner, /onboarding, etc.
 @app.route("/<path:filename>")
@@ -1659,7 +1669,7 @@ def frontend_files(filename):
     if safe_path.endswith("/"):
         safe_path = safe_path[:-1]
 
-    # Static assets (js, css, images) → 404 if not found
+    # Static assets (js, css, images) ? 404 if not found
     if "." in safe_path.rsplit("/", 1)[-1]:
         try:
             return send_from_directory(FRONTEND_DIR, safe_path)

@@ -582,7 +582,7 @@ class TestServerTrackValidation:
         assert majors["OSCM_MAJOR"] == "OSCM Major"
 
     def test_courses_endpoint_levels_are_json_safe(self, client):
-        resp = client.get("/courses")
+        resp = client.get("/api/courses")
         assert resp.status_code == 200
         raw = resp.get_data(as_text=True)
         assert "NaN" not in raw
@@ -638,6 +638,24 @@ class TestServerTrackValidation:
         assert resp.status_code == 400
         data = resp.get_json()
         assert data["error"]["error_code"] == "UNKNOWN_TRACK"
+
+    def test_track_specific_bucket_replaces_track_neutral_duplicate(self, client):
+        """When a track is selected, the 'No Concentration' parent is dropped so
+        its sub-buckets don't duplicate the track-specific ones."""
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": ["AIM_MAJOR"],
+            "track_id": "AIM_FINTECH_TRACK",
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        progress_keys = set(data.get("progress", {}).keys())
+        # The track-specific sub-bucket should be present.
+        assert "AIM_MAJOR::AIM-FINTECH-ELEC-UPPER-15" in progress_keys
+        # The 'No Concentration' elective sub-bucket should NOT be present.
+        assert "AIM_MAJOR::AIM-ELEC-UPPER-15" not in progress_keys
 
 
 # ── 5. End-to-end smoke test — synthetic track through /recommend ────────────
