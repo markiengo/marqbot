@@ -3,6 +3,7 @@ services:
     name: marqbot
     runtime: docker
     dockerfilePath: ./infra/docker/Dockerfile
+    dockerContext: .
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"

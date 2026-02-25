@@ -1,5 +1,3 @@
-"use client";
-
 import { Sora, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
