@@ -52,9 +52,52 @@ Format per release:
   - Removed frontend feedback wiring and API helper.
   - Removed backend `POST /feedback` endpoint and feedback file-writing logic.
   - Removed feedback backend test suite.
+- **Next.js frontend (`frontend-next/`)**: Complete migration from vanilla JS SPA to Next.js 16 +
+  TypeScript + Tailwind CSS 4 with App Router and static export.
+  - 53 source files across `src/lib/`, `src/context/`, `src/hooks/`, `src/components/`, `src/app/`.
+  - Dark navy theme with gold/blue accents, glassmorphic cards, atmospheric CSS orb backgrounds.
+  - Routes: `/` landing, `/onboarding` 3-step wizard, `/planner` main app, `/courses`, `/saved`,
+    `/ai-advisor` coming-soon pages.
+  - Fonts: Sora (headings) + Plus Jakarta Sans (body) via `next/font/google`.
+  - Framer Motion (via `motion/react`) for page transitions and micro-interactions.
+  - React Context + useReducer for state, localStorage session persistence.
+- **Planner crash fixes**: `loadCourses()` now unwraps Flask `{courses: [...]}` wrapper.
+  `loadPrograms()` maps `major_id`/`track_id` to frontend `id` field. Defensive `Array.isArray`
+  guard in `RESTORE_SESSION` reducer.
+- **Request payload contract**: `useRecommendations` and `useCanTake` hooks now send
+  `completed_courses`/`in_progress_courses` as comma-delimited strings (matching backend
+  `normalize_input`). `declared_majors` omitted when empty. `track_id` only sent when a real track
+  is selected (no more `FIN_MAJOR` major-as-track fallback).
+- **Backend input tolerance**: Added `_coerce_course_list()` helper so `/recommend` and `/can-take`
+  accept both comma-delimited strings and JSON arrays for course lists.
+- **Error handling**: `postRecommend`/`postCanTake` parse backend error JSON for user-friendly
+  messages. Invalid-input response now returns HTTP 400 (was 200).
+- **Route hardening**: Added `/api/<path>` catch-all returning JSON 404. SPA catch-all now returns
+  404 for missing static assets instead of serving `index.html`.
+- **Planner 2x2 layout**: Full-viewport quad grid on desktop (>1200px) — TL: profile inputs +
+  submit, TR: progress + degree summary, BL: preferences + can-take, BR: recommendations.
+  Responsive: 2-col tablet, single-col mobile. New `PreferencesPanel` component extracted from
+  `InputSidebar`.
+- **Empty state UX**: "Pick your major to get started" card shown in recommendations quad when no
+  major selected. Get Recommendations button disabled with inline hint until major is chosen.
+- **Coming Soon pages**: Redesigned `PlaceholderPage` to full-viewport immersive experience with
+  blurred background image, dark gradient overlay, staggered motion animations, and gold badge.
+- **Performance**: Memoized `excludeSet`/`defaultMatches` in `MultiSelect`. Added stale-request
+  cancellation via `useRef` counter in recommendation and can-take hooks.
+- **ESLint fix**: Downgraded from ESLint 10 to 9 for `eslint-config-next` compatibility. Replaced
+  broken `FlatCompat` bridge with native flat config import. Fixed `SingleSelect` lint error.
+- **Cleanup**: Deleted `.xlsx.bak` backups, stray `nul` file. Updated `.gitignore` for Next.js
+  build artifacts.
 
 ### Design Decisions
 - Feedback controls added UI noise without improving core recommendation quality for students.
+- Next.js chosen for SEO-friendly landing page, file-based routing, and static export compatibility
+  with existing Flask serving.
+- Dark navy theme aligns with Marquette branding while differentiating from generic light SaaS UIs.
+- 2x2 planner grid maximizes information density on desktop — all four concern areas visible without
+  scrolling the page.
+- Backend accepts both string and array formats for course lists to be tolerant of client variations.
+- Stale-request cancellation prevents race conditions when users rapidly re-submit recommendations.
 
 ---
 

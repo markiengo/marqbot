@@ -1,0 +1,98 @@
+"use client";
+
+import { useAppContext } from "@/context/AppContext";
+import {
+  SEMESTER_OPTIONS,
+  SEMESTER_COUNT_OPTIONS,
+  MAX_RECS_OPTIONS,
+} from "@/lib/constants";
+
+export function PreferencesStep() {
+  const { state, dispatch } = useAppContext();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
+          Preferences
+        </h2>
+        <p className="text-sm text-ink-muted mt-1">
+          Tell us about your target semester and how many recommendations you
+          want.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {/* Target semester */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-ink-secondary">
+            Target semester
+          </label>
+          <select
+            value={state.targetSemester}
+            onChange={(e) =>
+              dispatch({ type: "SET_TARGET_SEMESTER", payload: e.target.value })
+            }
+            className="w-full px-3 py-2.5 bg-surface-input border border-border-medium rounded-xl text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40"
+          >
+            {SEMESTER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Semester count */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-ink-secondary">
+            How many semesters to plan?
+          </label>
+          <div className="flex gap-2">
+            {SEMESTER_COUNT_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() =>
+                  dispatch({ type: "SET_SEMESTER_COUNT", payload: o.value })
+                }
+                className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                  state.semesterCount === o.value
+                    ? "bg-gold text-navy-dark"
+                    : "bg-surface-card text-ink-secondary hover:bg-surface-hover border border-border-subtle"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Max recommendations */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-ink-secondary">
+            Courses per semester
+          </label>
+          <div className="flex gap-2">
+            {MAX_RECS_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() =>
+                  dispatch({ type: "SET_MAX_RECS", payload: o.value })
+                }
+                className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                  state.maxRecs === o.value
+                    ? "bg-gold text-navy-dark"
+                    : "bg-surface-card text-ink-secondary hover:bg-surface-hover border border-border-subtle"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

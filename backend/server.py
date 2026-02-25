@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import pandas as pd
 from flask import Flask, jsonify, request, send_from_directory
+from werkzeug.exceptions import NotFound
 from dotenv import load_dotenv
 
 from normalizer import normalize_code, normalize_input
@@ -36,7 +37,8 @@ app = Flask(__name__)
 # â”€â”€ Paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
-FRONTEND_DIR = os.path.join(PROJECT_ROOT, "frontend")
+_NEXT_OUT = os.path.join(PROJECT_ROOT, "frontend-next", "out")
+FRONTEND_DIR = _NEXT_OUT if os.path.isdir(_NEXT_OUT) else os.path.join(PROJECT_ROOT, "frontend")
 _DEFAULT_DATA_PATH = os.path.join(PROJECT_ROOT, "marquette_courses_full.xlsx")
 _env_data_path = os.environ.get("DATA_PATH")
 if not _env_data_path:
@@ -770,6 +772,16 @@ def _build_unknown_major_error(major_id: str):
     }
 
 
+def _coerce_course_list(raw_value) -> str:
+    """Accept either a comma-delimited string or a JSON array of course codes.
+    Always returns a comma-delimited string suitable for ``normalize_input``."""
+    if raw_value is None:
+        return ""
+    if isinstance(raw_value, list):
+        return ", ".join(str(item) for item in raw_value if item)
+    return str(raw_value)
+
+
 def _normalize_declared_majors(raw_value):
     if raw_value is None:
         return None, None
@@ -1188,11 +1200,6 @@ def index():
     return send_from_directory(FRONTEND_DIR, "index.html")
 
 
-@app.route("/<path:filename>")
-def frontend_files(filename):
-    return send_from_directory(FRONTEND_DIR, filename)
-
-
 @app.route("/courses", methods=["GET"])
 def get_courses():
     _refresh_data_if_needed()
@@ -1311,8 +1318,8 @@ def recommend():
     effective_track_id = selection["effective_track_id"]
     track_warning = selection["track_warning"]
 
-    completed_raw = str(body.get("completed_courses", "") or "")
-    in_progress_raw = str(body.get("in_progress_courses", "") or "")
+    completed_raw = _coerce_course_list(body.get("completed_courses"))
+    in_progress_raw = _coerce_course_list(body.get("in_progress_courses"))
     target_semester_primary = str(
         body.get("target_semester_primary")
         or body.get("target_semester")
@@ -1366,7 +1373,7 @@ def recommend():
                 "invalid_courses": comp_result["invalid"] + ip_result["invalid"],
                 "not_in_catalog": comp_result["not_in_catalog"] + ip_result["not_in_catalog"],
             },
-        })
+        }), 400
 
     completed = comp_result["valid"]
     in_progress = ip_result["valid"]
@@ -1548,8 +1555,8 @@ def can_take_endpoint():
 
     # Normalize completed / in-progress course lists (same logic as /recommend)
     catalog_codes = _data["catalog_codes"]
-    comp_result = normalize_input(str(body.get("completed_courses", "") or ""), catalog_codes)
-    ip_result = normalize_input(str(body.get("in_progress_courses", "") or ""), catalog_codes)
+    comp_result = normalize_input(_coerce_course_list(body.get("completed_courses")), catalog_codes)
+    ip_result = normalize_input(_coerce_course_list(body.get("in_progress_courses")), catalog_codes)
     completed = comp_result["valid"]
     in_progress = ip_result["valid"]
 
@@ -1601,6 +1608,40 @@ def can_take_endpoint():
         "unsupported_prereq_format": result["unsupported_prereq_format"],
         "next_best_alternatives": [],
     })
+
+# ── /api/* aliases for Next.js frontend ──────────────────────────────
+# The Next.js frontend fetches /api/courses, /api/programs, etc.
+# These aliases forward to the existing route handlers.
+app.add_url_rule("/api/health", endpoint="api_health", view_func=health_endpoint, methods=["GET"])
+app.add_url_rule("/api/courses", endpoint="api_courses", view_func=get_courses, methods=["GET"])
+app.add_url_rule("/api/programs", endpoint="api_programs", view_func=get_programs, methods=["GET"])
+app.add_url_rule("/api/recommend", endpoint="api_recommend", view_func=recommend, methods=["POST"])
+app.add_url_rule("/api/can-take", endpoint="api_can_take", view_func=can_take_endpoint, methods=["POST"])
+
+
+# ── API catch-all (404 for unknown /api/* routes) ───────────────────
+@app.route("/api/<path:rest>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+def api_catch_all(rest):
+    return jsonify({"error": f"/api/{rest} not found"}), 404
+
+
+# ── SPA catch-all (must be last) ─────────────────────────────────────
+# Serves static files from the frontend build directory; falls back to
+# index.html for client-side routes like /planner, /onboarding, etc.
+@app.route("/<path:filename>")
+def frontend_files(filename):
+    # Static assets (js, css, images) → 404 if not found
+    if "." in filename.rsplit("/", 1)[-1]:
+        try:
+            return send_from_directory(FRONTEND_DIR, filename)
+        except NotFound:
+            return "", 404
+    # Client-side routes (no extension) → serve SPA index.html
+    try:
+        return send_from_directory(FRONTEND_DIR, filename)
+    except NotFound:
+        return send_from_directory(FRONTEND_DIR, "index.html")
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
