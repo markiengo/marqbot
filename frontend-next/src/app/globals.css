@@ -156,8 +156,12 @@ h1, h2, h3, h4, h5, h6 {
   height: calc(100vh - 4rem);
   padding: 10px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .planner-grid {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: auto;
