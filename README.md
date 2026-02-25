@@ -78,7 +78,7 @@ Current release line: `v1.9.0`.
 - Eligibility: `backend/eligibility.py`
 - Recommender: `backend/semester_recommender.py`
 - Double-count policy logic: `backend/requirements.py`
-- Frontend app: `frontend-next/src`
+- Frontend app: `frontend/src`
 
 ### Recommendation mechanism (technical)
 1. **Load and normalize workbook**:
@@ -117,7 +117,7 @@ Current release line: `v1.9.0`.
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-cd frontend-next
+cd frontend
 npm ci
 ```
 
@@ -125,22 +125,23 @@ npm ci
 ```powershell
 .\.venv\Scripts\python.exe scripts/run_local.py
 ```
-`scripts/run_local.py` auto-builds `frontend-next/out` when missing, then starts Flask.
+`scripts/run_local.py` auto-builds `frontend/out` when missing, then starts Flask.
 
 Open `http://localhost:5000`.
 
 ### Validation and tests
 ```powershell
 .\.venv\Scripts\python.exe scripts/validate_track.py --all
-.\.venv\Scripts\python.exe -m pytest tests/backend_tests -q
-cd frontend-next && npm run lint
-cd frontend-next && npm run build
+.\.venv\Scripts\python.exe -m pytest tests/backend -q
+cd frontend && npm run test
+cd frontend && npm run lint
+cd frontend && npm run build
 ```
-Current local baseline: backend `365` passing; Next build succeeds.
+Current local baseline: backend `366` passing; frontend utility tests, lint, and build succeed.
 
 ### Render dashboard settings
 - Runtime: `Docker`
-- Dockerfile: `./Dockerfile` (multi-stage build compiles `frontend-next/out` and runs Gunicorn)
+- Dockerfile: `./Dockerfile` (multi-stage build compiles `frontend/out` and runs Gunicorn)
 - Service root must be repo root (where `requirements.txt` exists).
 
 </details>

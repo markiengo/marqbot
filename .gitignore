@@ -24,7 +24,7 @@ v34_*_output.txt
 backups/*.xlsx
 
 # Next.js build artifacts
-frontend-next/.next/
-frontend-next/out/
-frontend-next/tsconfig.tsbuildinfo
-frontend-next/nul
+frontend/.next/
+frontend/out/
+frontend/tsconfig.tsbuildinfo
+frontend/nul

@@ -605,15 +605,46 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
         }
     )
 
-    # When a track is selected, drop "No Concentration" sub-buckets whose label
-    # duplicates a track-specific sub-bucket (same label + same credits target).
+    # When a track is selected, drop track-neutral duplicates only when a
+    # track-specific sub-bucket has the same requirement signature.
     if selected_track and len(runtime_buckets) > 0:
-        tr = runtime_buckets["track_required"].fillna("").astype(str).str.strip().str.upper()
-        lbl = runtime_buckets["bucket_label"].fillna("").astype(str).str.strip()
-        track_labels = set(lbl[tr == selected_track])
-        if track_labels:
-            is_dup = (tr == "") & lbl.isin(track_labels) & (lbl != "")
-            runtime_buckets = runtime_buckets[~is_dup].copy()
+        track_required = (
+            runtime_buckets.get("track_required", "")
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+        label = runtime_buckets.get("bucket_label", "").fillna("").astype(str).str.strip()
+        mode = runtime_buckets.get("requirement_mode", "").fillna("").astype(str).str.strip().str.lower()
+        needed_count = pd.to_numeric(runtime_buckets.get("needed_count"), errors="coerce")
+        needed_credits = pd.to_numeric(runtime_buckets.get("needed_credits"), errors="coerce")
+
+        def _norm_num(value):
+            if pd.isna(value):
+                return None
+            return float(value)
+
+        row_keys = [
+            (
+                str(label.iloc[idx]),
+                str(mode.iloc[idx]),
+                _norm_num(needed_count.iloc[idx]),
+                _norm_num(needed_credits.iloc[idx]),
+            )
+            for idx in range(len(runtime_buckets))
+        ]
+        track_keys = {
+            row_keys[idx]
+            for idx in range(len(runtime_buckets))
+            if track_required.iloc[idx] == selected_track and row_keys[idx][0]
+        }
+        if track_keys:
+            is_dup = [
+                (track_required.iloc[idx] == "") and (row_keys[idx] in track_keys)
+                for idx in range(len(runtime_buckets))
+            ]
+            runtime_buckets = runtime_buckets[[not flag for flag in is_dup]].copy()
 
     sub_keys = runtime_buckets[["source_program_id", "bucket_id"]].copy()
     sub_keys = sub_keys.rename(columns={"bucket_id": "source_bucket_id"}).drop_duplicates()

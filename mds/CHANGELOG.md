@@ -40,7 +40,7 @@ Format per release:
 - **Gold dataset + advisor match eval**: Created `eval/advisor_gold.json` (14 freshman profiles
   covering all active business majors, including BUAN as a secondary-major case). Created
   `scripts/eval_advisor_match.py` (>=4/6 overlap case pass, >=80% passing-case release gate, hard
-  fail on zero-overlap profile). Added `tests/backend_tests/test_advisor_match.py` (offline
+  fail on zero-overlap profile). Added `tests/backend/test_advisor_match.py` (offline
   variant using Flask test client).
 - **Regression profiles expanded**: Added `TestFinMajorJuniorBccSaturated` and
   `TestFinMajorSeniorBccFull` BCC-saturation profiles to `test_regression_profiles.py`.
@@ -64,7 +64,7 @@ Format per release:
   - Removed frontend feedback wiring and API helper.
   - Removed backend `POST /feedback` endpoint and feedback file-writing logic.
   - Removed feedback backend test suite.
-- **Next.js frontend (`frontend-next/`)**: Complete migration from vanilla JS SPA to Next.js 16 +
+- **Next.js frontend (`frontend/`)**: Complete migration from vanilla JS SPA to Next.js 16 +
   TypeScript + Tailwind CSS 4 with App Router and static export.
   - 53 source files across `src/lib/`, `src/context/`, `src/hooks/`, `src/components/`, `src/app/`.
   - Dark navy theme with gold/blue accents, glassmorphic cards, atmospheric CSS orb backgrounds.
