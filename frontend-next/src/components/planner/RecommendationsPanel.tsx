@@ -5,15 +5,16 @@ import { motion, AnimatePresence } from "motion/react";
 import type { RecommendationResponse } from "@/lib/types";
 import { getProgramLabelMap } from "@/lib/rendering";
 import { esc } from "@/lib/utils";
-import { CourseCard } from "./CourseCard";
+import { CourseRow } from "./CourseRow";
 import { SemesterSelector } from "./SemesterSelector";
-import { SemesterPreview } from "./SemesterPreview";
 import { SemesterModal } from "./SemesterModal";
 
 interface RecommendationsPanelProps {
   data: RecommendationResponse | null;
   requestedCount: number;
 }
+
+const PREVIEW_ROW_LIMIT = 6;
 
 export function RecommendationsPanel({
   data,
@@ -30,7 +31,6 @@ export function RecommendationsPanel({
 
   if (!data) return null;
 
-  // Error mode
   if (data.mode === "error") {
     return (
       <div className="bg-bad-light rounded-2xl p-5 border border-bad/20">
@@ -52,7 +52,7 @@ export function RecommendationsPanel({
 
   if (semesters.length === 0) {
     return (
-      <div className="text-center py-12 text-ink-faint">
+      <div className="text-center py-10 text-ink-faint">
         <p>No recommendations available. Try submitting your courses.</p>
       </div>
     );
@@ -60,25 +60,14 @@ export function RecommendationsPanel({
 
   const activeSemester = semesters[selectedIdx] || semesters[0];
   const activeRecs = activeSemester?.recommendations || [];
+  const previewRows = activeRecs.slice(0, PREVIEW_ROW_LIMIT);
+  const hiddenCount = Math.max(0, activeRecs.length - PREVIEW_ROW_LIMIT);
 
   return (
-    <div className="space-y-6">
-      {/* Plan context */}
-      {data.selection_context && (
-        <div className="bg-gold/10 rounded-xl p-4 text-sm">
-          <span className="font-semibold text-gold">Plan Context: </span>
-          <span className="text-ink-secondary">
-            {data.selection_context.declared_major_labels?.join(", ") || "No majors"}
-            {data.selection_context.selected_track_label &&
-              ` \u2022 ${data.selection_context.selected_track_label}`}
-          </span>
-        </div>
-      )}
-
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Semester selector sidebar */}
+    <div className="h-full min-h-0 rounded-2xl border border-border-subtle bg-gradient-to-br from-[#0f2a52]/70 to-[#10284a]/55 p-2">
+      <div className="h-full min-h-0 flex flex-col lg:flex-row gap-2">
         {semesters.length > 1 && (
-          <div className="lg:w-56 shrink-0">
+          <div className="lg:w-72 shrink-0">
             <SemesterSelector
               semesters={semesters}
               selectedIndex={selectedIdx}
@@ -88,19 +77,17 @@ export function RecommendationsPanel({
           </div>
         )}
 
-        {/* Active semester cards */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-ink-secondary">
+        <div className="flex-1 min-w-0 min-h-0 rounded-xl border border-border-medium bg-[#0b2143]/70 p-2 flex flex-col">
+          <div className="flex items-center justify-between gap-2 mb-2 px-1">
+            <h3 className="text-3xl font-bold font-[family-name:var(--font-sora)] text-gold leading-tight">
               Semester {selectedIdx + 1}
-              {activeSemester.target_semester &&
-                ` \u2014 ${activeSemester.target_semester}`}
+              {activeSemester.target_semester && ` - ${activeSemester.target_semester}`}
             </h3>
-            {semesters.length <= 1 && activeRecs.length > 0 && (
+            {activeRecs.length > 0 && (
               <button
                 type="button"
                 onClick={() => setModalIdx(selectedIdx)}
-                className="text-xs text-gold hover:underline cursor-pointer"
+                className="text-xs font-semibold text-gold hover:underline cursor-pointer"
               >
                 Expand
               </button>
@@ -110,20 +97,14 @@ export function RecommendationsPanel({
           <AnimatePresence mode="wait">
             <motion.div
               key={selectedIdx}
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-3"
+              exit={{ opacity: 0, x: -12 }}
+              transition={{ duration: 0.16 }}
+              className="space-y-1.5"
             >
-              {activeRecs.length > 0 ? (
-                activeRecs.map((c) => (
-                  <CourseCard
-                    key={c.course_code}
-                    course={c}
-                    programLabelMap={programLabelMap}
-                  />
-                ))
+              {previewRows.length > 0 ? (
+                previewRows.map((c) => <CourseRow key={c.course_code} course={c} />)
               ) : (
                 <p className="text-sm text-ink-faint italic py-8 text-center">
                   No eligible courses for this semester.
@@ -131,28 +112,15 @@ export function RecommendationsPanel({
               )}
             </motion.div>
           </AnimatePresence>
-        </div>
 
-        {/* Semester previews (right) */}
-        {semesters.length > 1 && (
-          <div className="hidden xl:block w-48 shrink-0 space-y-4">
-            {semesters
-              .filter((_, i) => i !== selectedIdx)
-              .map((sem, i) => {
-                const origIdx = i >= selectedIdx ? i + 1 : i;
-                return (
-                  <SemesterPreview
-                    key={origIdx}
-                    semester={sem}
-                    index={origIdx}
-                  />
-                );
-              })}
-          </div>
-        )}
+          {hiddenCount > 0 && (
+            <p className="text-xs text-ink-faint mt-2 px-1">
+              +{hiddenCount} more course{hiddenCount !== 1 ? "s" : ""}. Use Expand to view details.
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* Modal */}
       <SemesterModal
         open={modalIdx !== null}
         onClose={() => setModalIdx(null)}

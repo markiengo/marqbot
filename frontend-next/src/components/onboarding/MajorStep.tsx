@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { Chip } from "@/components/shared/Chip";
 import { MAX_MAJORS } from "@/lib/constants";
@@ -12,6 +13,88 @@ export function MajorStep() {
 
   const selectedMajorIds = [...state.selectedMajors];
   const atLimit = selectedMajorIds.length >= MAX_MAJORS;
+
+  const [query, setQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Filter majors by search query
+  const filtered = majors.filter(
+    (m) =>
+      !state.selectedMajors.has(m.id) &&
+      m.label.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  const selectMajor = useCallback(
+    (id: string) => {
+      if (!atLimit) {
+        dispatch({ type: "ADD_MAJOR", payload: id });
+        setQuery("");
+        setIsOpen(false);
+        inputRef.current?.focus();
+      }
+    },
+    [atLimit, dispatch],
+  );
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isOpen || filtered.length === 0) {
+      if (e.key === "ArrowDown" || e.key === "Enter") {
+        setIsOpen(true);
+        e.preventDefault();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setHighlightIdx((i) => Math.min(i + 1, filtered.length - 1));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setHighlightIdx((i) => Math.max(i - 1, 0));
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (filtered[highlightIdx]) {
+          selectMajor(filtered[highlightIdx].id);
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        setIsOpen(false);
+        break;
+    }
+  };
+
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (!listRef.current) return;
+    const highlighted = listRef.current.children[highlightIdx] as HTMLElement;
+    if (highlighted) {
+      highlighted.scrollIntoView({ block: "nearest" });
+    }
+  }, [highlightIdx]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        inputRef.current &&
+        !inputRef.current.contains(target) &&
+        listRef.current &&
+        !listRef.current.parentElement?.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // Determine available tracks for selected majors
   const availableTracks = tracks.filter((t) =>
@@ -47,33 +130,64 @@ export function MajorStep() {
         </AnimatePresence>
       </div>
 
-      {/* Major grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {majors.map((m) => {
-          const isSelected = state.selectedMajors.has(m.id);
-          return (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => {
-                if (isSelected) {
-                  dispatch({ type: "REMOVE_MAJOR", payload: m.id });
-                } else if (!atLimit) {
-                  dispatch({ type: "ADD_MAJOR", payload: m.id });
-                }
-              }}
-              disabled={!isSelected && atLimit}
-              className={`px-4 py-3 rounded-xl text-sm font-medium text-left transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                isSelected
-                  ? "bg-gold text-navy-dark shadow-sm"
-                  : "bg-surface-card text-ink-secondary hover:bg-surface-hover border border-border-subtle"
-              }`}
+      {/* Searchable combobox */}
+      {!atLimit && (
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setHighlightIdx(0);
+              setIsOpen(true);
+            }}
+            onFocus={() => setIsOpen(true)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search majors..."
+            className="w-full px-3 py-2.5 bg-surface-input border border-border-medium rounded-xl text-sm text-ink-primary placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-gold/40"
+            role="combobox"
+            aria-expanded={isOpen}
+            aria-autocomplete="list"
+            aria-controls="major-listbox"
+          />
+
+          {isOpen && filtered.length > 0 && (
+            <div
+              ref={listRef}
+              id="major-listbox"
+              role="listbox"
+              className="absolute z-20 w-full mt-1 max-h-60 overflow-y-auto bg-surface-card border border-border-medium rounded-xl shadow-lg"
             >
-              {m.label}
-            </button>
-          );
-        })}
-      </div>
+              {filtered.map((m, idx) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="option"
+                  aria-selected={idx === highlightIdx}
+                  onClick={() => selectMajor(m.id)}
+                  className={`w-full text-left px-4 py-2.5 text-sm cursor-pointer transition-colors ${
+                    idx === highlightIdx
+                      ? "bg-gold/15 text-gold"
+                      : "text-ink-secondary hover:bg-surface-hover"
+                  }`}
+                >
+                  {m.label}
+                  {m.requires_primary_major && (
+                    <span className="text-xs text-ink-faint ml-2">(requires primary)</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {isOpen && query && filtered.length === 0 && (
+            <div className="absolute z-20 w-full mt-1 bg-surface-card border border-border-medium rounded-xl shadow-lg px-4 py-3 text-sm text-ink-faint">
+              No majors match &ldquo;{query}&rdquo;
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Track selector */}
       {availableTracks.length > 0 && (

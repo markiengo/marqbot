@@ -13,45 +13,42 @@ export function DegreeSummary({ currentProgress, programLabelMap }: DegreeSummar
   const entries = sortProgressEntries(currentProgress);
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-ink-secondary uppercase tracking-wider">
+    <div className="h-full min-h-0 rounded-2xl border border-border-subtle bg-gradient-to-br from-[#0f2a52]/70 to-[#10284a]/55 p-3 flex flex-col">
+      <h3 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-gold uppercase tracking-wide px-1 pb-2">
         Degree Summary
       </h3>
-      <div className="space-y-2">
+
+      <div className="rounded-xl border border-border-subtle bg-[#0b2143]/70 flex-1 min-h-0 overflow-y-auto">
         {entries.map(([bid, prog]) => {
           const needed = Number(prog.needed || 0);
-          const done = Number(prog.completed_done || 0);
+          const done = Number(prog.completed_done || prog.done_count || 0);
           const inProg = Number(prog.in_progress_increment || 0);
           const label = compactKpiBucketLabel(
             prog.label || bucketLabel(bid, programLabelMap),
           );
           const satisfied = prog.satisfied || (needed > 0 && done >= needed);
-          const pct = needed > 0 ? Math.min(100, ((done + inProg) / needed) * 100) : 0;
+          const highlightBcc = bid.includes("BCC_REQUIRED");
 
           return (
-            <div key={bid} className={`${satisfied ? "opacity-60" : ""}`}>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-ink-secondary truncate mr-2">{label}</span>
-                <span className="text-ink-faint shrink-0">
-                  {done}
-                  {inProg > 0 && `+${inProg}`}/{needed}
-                  {satisfied && " \u2713"}
-                </span>
-              </div>
-              <div className="h-1.5 bg-surface-hover rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-ok rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (done / Math.max(1, needed)) * 100)}%` }}
-                />
-              </div>
-              {inProg > 0 && (
-                <div className="h-1.5 bg-surface-hover rounded-full overflow-hidden mt-0.5">
-                  <div
-                    className="h-full bg-gold rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              )}
+            <div
+              key={bid}
+              className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border-subtle/40 last:border-b-0"
+            >
+              <span
+                className={`text-base leading-tight ${
+                  highlightBcc
+                    ? "text-gold font-semibold"
+                    : satisfied
+                      ? "text-ink-faint"
+                      : "text-ink-secondary"
+                }`}
+              >
+                {label}
+              </span>
+              <span className="text-base shrink-0 text-ink-faint">
+                {done}
+                {inProg > 0 && <span className="text-gold">+{inProg}</span>}/{needed}
+              </span>
             </div>
           );
         })}

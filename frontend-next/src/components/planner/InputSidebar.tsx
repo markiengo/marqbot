@@ -3,7 +3,6 @@
 import { AnimatePresence } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { MultiSelect } from "@/components/shared/MultiSelect";
-import { PasteFallback } from "@/components/shared/PasteFallback";
 import { Button } from "@/components/shared/Button";
 import { Chip } from "@/components/shared/Chip";
 import { MAX_MAJORS } from "@/lib/constants";
@@ -16,10 +15,6 @@ interface InputSidebarProps {
 export function InputSidebar({ onSubmit, loading }: InputSidebarProps) {
   const { state, dispatch } = useAppContext();
 
-  const courseNameMap = new Map(
-    state.courses.map((c) => [c.course_code, c.course_name]),
-  );
-
   const majors = state.programs.majors;
   const tracks = state.programs.tracks;
   const selectedMajorIds = [...state.selectedMajors];
@@ -29,9 +24,14 @@ export function InputSidebar({ onSubmit, loading }: InputSidebarProps) {
 
   return (
     <div className="space-y-5 h-full overflow-y-auto pr-1">
-      <h3 className="text-sm font-semibold text-ink-secondary uppercase tracking-wider">
-        Your Profile
-      </h3>
+      <div>
+        <h3 className="text-sm font-semibold text-gold uppercase tracking-wider">
+          Your Profile
+        </h3>
+        <p className="text-[11px] text-ink-faint mt-0.5">
+          Fill in exactly as your transcript for the most accurate results.
+        </p>
+      </div>
 
       {/* Majors */}
       <div className="space-y-2">
@@ -114,12 +114,7 @@ export function InputSidebar({ onSubmit, loading }: InputSidebarProps) {
           onAdd={(code) => dispatch({ type: "ADD_COMPLETED", payload: code })}
           onRemove={(code) => dispatch({ type: "REMOVE_COMPLETED", payload: code })}
           placeholder="Add completed..."
-          resolveLabel={(code) => courseNameMap.get(code) || code}
-        />
-        <PasteFallback
-          courses={state.courses}
-          onAdd={(code) => dispatch({ type: "ADD_COMPLETED", payload: code })}
-          label="Paste list"
+          resolveLabel={(code) => code}
         />
       </div>
 
@@ -135,12 +130,7 @@ export function InputSidebar({ onSubmit, loading }: InputSidebarProps) {
           onAdd={(code) => dispatch({ type: "ADD_IN_PROGRESS", payload: code })}
           onRemove={(code) => dispatch({ type: "REMOVE_IN_PROGRESS", payload: code })}
           placeholder="Add in-progress..."
-          resolveLabel={(code) => courseNameMap.get(code) || code}
-        />
-        <PasteFallback
-          courses={state.courses}
-          onAdd={(code) => dispatch({ type: "ADD_IN_PROGRESS", payload: code })}
-          label="Paste list"
+          resolveLabel={(code) => code}
         />
       </div>
 

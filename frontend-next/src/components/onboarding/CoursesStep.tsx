@@ -2,14 +2,9 @@
 
 import { useAppContext } from "@/context/AppContext";
 import { MultiSelect } from "@/components/shared/MultiSelect";
-import { PasteFallback } from "@/components/shared/PasteFallback";
 
 export function CoursesStep() {
   const { state, dispatch } = useAppContext();
-
-  const courseNameMap = new Map(
-    state.courses.map((c) => [c.course_code, c.course_name]),
-  );
 
   return (
     <div className="space-y-6">
@@ -35,12 +30,7 @@ export function CoursesStep() {
           onAdd={(code) => dispatch({ type: "ADD_COMPLETED", payload: code })}
           onRemove={(code) => dispatch({ type: "REMOVE_COMPLETED", payload: code })}
           placeholder="Search completed courses..."
-          resolveLabel={(code) => courseNameMap.get(code) || code}
-        />
-        <PasteFallback
-          courses={state.courses}
-          onAdd={(code) => dispatch({ type: "ADD_COMPLETED", payload: code })}
-          label="Paste completed course list"
+          resolveLabel={(code) => code}
         />
       </div>
 
@@ -56,12 +46,7 @@ export function CoursesStep() {
           onAdd={(code) => dispatch({ type: "ADD_IN_PROGRESS", payload: code })}
           onRemove={(code) => dispatch({ type: "REMOVE_IN_PROGRESS", payload: code })}
           placeholder="Search in-progress courses..."
-          resolveLabel={(code) => courseNameMap.get(code) || code}
-        />
-        <PasteFallback
-          courses={state.courses}
-          onAdd={(code) => dispatch({ type: "ADD_IN_PROGRESS", payload: code })}
-          label="Paste in-progress course list"
+          resolveLabel={(code) => code}
         />
       </div>
     </div>
