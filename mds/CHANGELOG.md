@@ -8,6 +8,21 @@ Format per release:
 
 ---
 
+## [v1.9.2] - 2026-02-25
+
+### Changes
+- Improved planner responsiveness so recommendation and eligibility requests return faster on larger plans.
+- Fixed deployment packaging so Render consistently serves both backend APIs and the latest frontend build from one service.
+- Added a single local run command (`python scripts/run_local.py`) that auto-builds the frontend export when needed.
+- Archived older one-time migration and investigation scripts under `scripts/archive/` to keep active maintenance scripts easier to navigate.
+- Removed duplicate root-level `PRD.md` and `CHANGELOG.md`; canonical product and release docs are now under `mds/`.
+
+### Design Decisions
+- Kept behavior-preserving refactors focused on runtime speed and operational reliability.
+- Moved historical scripts to archive instead of permanently deleting them so prior migration history remains available.
+
+---
+
 ## [v1.9.1] - 2026-02-25
 
 ### Changes

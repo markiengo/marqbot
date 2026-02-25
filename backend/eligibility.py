@@ -117,6 +117,10 @@ def get_course_eligible_buckets(
     courses_df: pd.DataFrame,
     buckets_df: pd.DataFrame,
     track_id: str = DEFAULT_TRACK_ID,
+    *,
+    _course_bucket_index: dict[str, list[str]] | None = None,
+    _bucket_meta: dict[str, dict] | None = None,
+    _course_level_index: dict[str, int | None] | None = None,
 ) -> list[dict]:
     """
     Returns all {bucket_id, label, priority} dicts for a given course,
@@ -125,27 +129,50 @@ def get_course_eligible_buckets(
     Double-count eligibility is not tracked here — it is gated solely by
     bucket-level allow_double_count (see allocator.py).
     """
-    track_map = course_bucket_map_df[
-        (course_bucket_map_df["track_id"] == track_id)
-        & (course_bucket_map_df["course_code"] == course_code)
-    ]
+    if _course_level_index is not None:
+        course_level = _course_level_index.get(course_code)
+    else:
+        course_rows = courses_df[courses_df["course_code"] == course_code]
+        course_level = None
+        if len(course_rows) > 0:
+            lvl = course_rows.iloc[0].get("level")
+            if lvl is not None and not (isinstance(lvl, float) and pd.isna(lvl)):
+                course_level = int(lvl)
 
-    course_rows = courses_df[courses_df["course_code"] == course_code]
-    course_level = None
-    if len(course_rows) > 0:
-        lvl = course_rows.iloc[0].get("level")
-        if lvl is not None and not (isinstance(lvl, float) and pd.isna(lvl)):
-            course_level = int(lvl)
+    bucket_meta = _bucket_meta
+    if bucket_meta is None:
+        bucket_meta = {}
+        track_bucket_rows = buckets_df[buckets_df["track_id"] == track_id]
+        for _, row in track_bucket_rows.iterrows():
+            bid = str(row.get("bucket_id", "") or "").strip()
+            if not bid:
+                continue
+            bucket_meta[bid] = {
+                "bucket_label": str(row.get("bucket_label", bid)),
+                "priority": row.get("priority", 99),
+                "parent_bucket_priority": row.get("parent_bucket_priority", 99),
+                "parent_bucket_id": str(row.get("parent_bucket_id", "") or "").strip().upper(),
+                "double_count_family_id": str(row.get("double_count_family_id", "") or "").strip(),
+                "requirement_mode": str(row.get("requirement_mode", "") or "").strip().lower(),
+                "min_level": row.get("min_level"),
+            }
 
-    bucket_meta = {
-        row["bucket_id"]: row
-        for _, row in buckets_df[buckets_df["track_id"] == track_id].iterrows()
-    }
+    if _course_bucket_index is not None:
+        bucket_ids = _course_bucket_index.get(course_code, [])
+    else:
+        track_map = course_bucket_map_df[
+            (course_bucket_map_df["track_id"] == track_id)
+            & (course_bucket_map_df["course_code"] == course_code)
+        ]
+        bucket_ids = []
+        for _, row in track_map.iterrows():
+            bid = str(row.get("bucket_id", "") or "").strip()
+            if bid and bid not in bucket_ids:
+                bucket_ids.append(bid)
 
     result = []
     seen_bucket_ids: set[str] = set()
-    for _, row in track_map.iterrows():
-        bid = row["bucket_id"]
+    for bid in bucket_ids:
         if bid in seen_bucket_ids:
             continue
         meta = bucket_meta.get(bid)
@@ -229,6 +256,65 @@ def get_eligible_courses(
         "Summer": "offered_summer",
     }.get(target_term, "offered_fall")
 
+    track_key = str(track_id or "").strip().upper()
+
+    # Build per-request indexes to avoid repeated dataframe scans in the loop below.
+    course_bucket_index: dict[str, list[str]] = {}
+    if (
+        course_bucket_map_df is not None
+        and len(course_bucket_map_df) > 0
+        and {"track_id", "course_code", "bucket_id"}.issubset(course_bucket_map_df.columns)
+    ):
+        track_map = course_bucket_map_df[
+            course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
+        ]
+        for _, map_row in track_map.iterrows():
+            code = str(map_row.get("course_code", "") or "").strip()
+            bid = str(map_row.get("bucket_id", "") or "").strip()
+            if not code or not bid:
+                continue
+            bucket_ids = course_bucket_index.setdefault(code, [])
+            if bid not in bucket_ids:
+                bucket_ids.append(bid)
+
+    bucket_meta: dict[str, dict] = {}
+    if (
+        buckets_df is not None
+        and len(buckets_df) > 0
+        and "bucket_id" in buckets_df.columns
+    ):
+        if "track_id" in buckets_df.columns:
+            track_bucket_rows = buckets_df[
+                buckets_df["track_id"].astype(str).str.strip().str.upper() == track_key
+            ]
+        else:
+            track_bucket_rows = buckets_df
+        for _, bucket_row in track_bucket_rows.iterrows():
+            bid = str(bucket_row.get("bucket_id", "") or "").strip()
+            if not bid:
+                continue
+            bucket_meta[bid] = {
+                "bucket_label": str(bucket_row.get("bucket_label", bid)),
+                "priority": bucket_row.get("priority", 99),
+                "parent_bucket_priority": bucket_row.get("parent_bucket_priority", 99),
+                "parent_bucket_id": str(bucket_row.get("parent_bucket_id", "") or "").strip().upper(),
+                "double_count_family_id": str(bucket_row.get("double_count_family_id", "") or "").strip(),
+                "requirement_mode": str(bucket_row.get("requirement_mode", "") or "").strip().lower(),
+                "min_level": bucket_row.get("min_level"),
+            }
+
+    course_level_index: dict[str, int | None] = {}
+    if courses_df is not None and len(courses_df) > 0 and "course_code" in courses_df.columns:
+        for _, course_row in courses_df.iterrows():
+            code = str(course_row.get("course_code", "") or "").strip()
+            if not code or code in course_level_index:
+                continue
+            lvl = course_row.get("level")
+            if lvl is not None and not (isinstance(lvl, float) and pd.isna(lvl)):
+                course_level_index[code] = int(lvl)
+            else:
+                course_level_index[code] = None
+
     results = []
 
     for _, row in courses_df.iterrows():
@@ -307,7 +393,14 @@ def get_eligible_courses(
 
         # Bucket info
         eligible_buckets = get_course_eligible_buckets(
-            code, course_bucket_map_df, courses_df, buckets_df, track_id=track_id
+            code,
+            course_bucket_map_df,
+            courses_df,
+            buckets_df,
+            track_id=track_id,
+            _course_bucket_index=course_bucket_index,
+            _bucket_meta=bucket_meta,
+            _course_level_index=course_level_index,
         )
 
         if not eligible_buckets and not manual_review:

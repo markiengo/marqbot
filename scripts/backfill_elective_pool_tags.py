@@ -9,10 +9,10 @@ Default behavior:
 import argparse
 import os
 import re
-import shutil
 import sys
 
 import pandas as pd
+from workbook_io import backup_sibling, load_workbook_sheets, write_workbook
 
 
 DEFAULT_WORKBOOK = os.path.abspath(
@@ -50,25 +50,12 @@ def _subject_prefix(course_code: str) -> str:
     return m.group(1).strip().upper()
 
 
-def _load_workbook_sheets(path: str) -> tuple[list[str], dict[str, pd.DataFrame]]:
-    xl = pd.ExcelFile(path)
-    order = list(xl.sheet_names)
-    sheets = {name: xl.parse(name) for name in order}
-    return order, sheets
-
-
-def _write_workbook(path: str, order: list[str], sheets: dict[str, pd.DataFrame]) -> None:
-    with pd.ExcelWriter(path, engine="openpyxl") as writer:
-        for sheet_name in order:
-            sheets.get(sheet_name, pd.DataFrame()).to_excel(writer, sheet_name=sheet_name, index=False)
-
-
 def backfill(path: str, dry_run: bool = False, tag_value: str = DEFAULT_TAG) -> None:
     abs_path = os.path.abspath(path)
     if not os.path.exists(abs_path):
         sys.exit(f"[ERROR] Workbook not found: {abs_path}")
 
-    order, sheets = _load_workbook_sheets(abs_path)
+    order, sheets = load_workbook_sheets(abs_path)
     if "courses" not in sheets:
         sys.exit("[ERROR] Workbook must contain a 'courses' sheet.")
 
@@ -95,12 +82,11 @@ def backfill(path: str, dry_run: bool = False, tag_value: str = DEFAULT_TAG) -> 
         print("[DRY RUN] No file changes were written.")
         return
 
-    backup_path = f"{abs_path}.bak"
-    shutil.copy2(abs_path, backup_path)
+    backup_path = backup_sibling(abs_path)
     print(f"[INFO] Backup created: {backup_path}")
 
     sheets["courses"] = courses
-    _write_workbook(abs_path, order, sheets)
+    write_workbook(abs_path, order, sheets)
     print(f"[DONE] Backfilled elective_pool_tag in: {abs_path}")
 
 
@@ -121,4 +107,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     main()
-

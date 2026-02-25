@@ -12,14 +12,14 @@ Usage:
 
 import argparse
 import os
-import shutil
 import sys
 
 try:
     import openpyxl
-    import pandas as pd
 except ImportError as e:
-    sys.exit(f"Missing dependency: {e}. Run: pip install openpyxl pandas")
+    sys.exit(f"Missing dependency: {e}. Run: pip install openpyxl")
+
+from workbook_io import backup_sibling
 
 
 DEFAULT_WORKBOOK = os.path.join(
@@ -73,11 +73,10 @@ def find_deprecated_cols(courses_ws) -> list[int]:
 
 def backup_workbook(path: str) -> str:
     """Create/overwrite sibling .bak copy before destructive edits."""
-    backup_path = f"{path}.bak"
     try:
-        shutil.copy2(path, backup_path)
+        backup_path = backup_sibling(path)
     except Exception as exc:
-        sys.exit(f"[ERROR] Failed to create backup '{backup_path}': {exc}")
+        sys.exit(f"[ERROR] Failed to create backup for '{path}': {exc}")
     print(f"[INFO] Backup created: {backup_path}")
     return backup_path
 

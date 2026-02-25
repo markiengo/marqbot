@@ -157,6 +157,23 @@ def allocate_courses(
     ].copy()
     track_map = _expand_map_with_equivalencies(track_map, equivalencies_df, track_key)
 
+    # Pre-index course<->bucket mappings once to avoid repeated dataframe scans.
+    course_bucket_index: dict[str, list[str]] = {}
+    bucket_course_index: dict[str, list[str]] = {}
+    for _, row in track_map.iterrows():
+        course_code = str(row.get("course_code", "") or "").strip()
+        bucket_id = str(row.get("bucket_id", "") or "").strip()
+        if not course_code or not bucket_id:
+            continue
+
+        per_course = course_bucket_index.setdefault(course_code, [])
+        if bucket_id not in per_course:
+            per_course.append(bucket_id)
+
+        per_bucket = bucket_course_index.setdefault(bucket_id, [])
+        if course_code not in per_bucket:
+            per_bucket.append(course_code)
+
     # Allowed double-count pairs from policy engine (or legacy fallback).
     allowed_pairs = get_allowed_double_count_pairs(
         track_buckets,
@@ -195,32 +212,27 @@ def allocate_courses(
             "credits_used": 0,
         }
 
-    def get_course_row(course_code: str):
-        rows = courses_df[courses_df["course_code"] == course_code]
-        return rows.iloc[0] if len(rows) > 0 else None
+    course_credits_index: dict[str, int] = {}
+    course_level_index: dict[str, int | None] = {}
+    for _, row in courses_df.iterrows():
+        code = str(row.get("course_code", "") or "").strip()
+        if not code or code in course_credits_index:
+            continue
+        credits = _safe_int(row.get("credits"), 3)
+        course_credits_index[code] = credits if credits is not None else 3
+        course_level_index[code] = _safe_int(row.get("level"))
 
     def get_course_credits(course_code: str) -> int:
-        row = get_course_row(course_code)
-        if row is not None:
-            return _safe_int(row.get("credits"), 3)
-        return 3
+        return course_credits_index.get(course_code, 3)
 
     def get_course_level(course_code: str) -> int | None:
-        row = get_course_row(course_code)
-        if row is not None:
-            return _safe_int(row.get("level"))
-        return None
+        return course_level_index.get(course_code)
 
     def get_eligible_buckets_for_course(course_code: str) -> list[dict]:
-        rows = track_map[track_map["course_code"] == course_code]
         result = []
-        seen: set[str] = set()
         course_level = get_course_level(course_code)
 
-        for _, row in rows.iterrows():
-            bid = str(row.get("bucket_id", ""))
-            if not bid or bid in seen:
-                continue
+        for bid in course_bucket_index.get(course_code, []):
             if bid not in bucket_meta:
                 continue
             min_lvl = bucket_meta[bid].get("min_level")
@@ -228,7 +240,6 @@ def allocate_courses(
                 continue
             mode = str(bucket_meta.get(bid, {}).get("requirement_mode", "") or "").strip().lower()
             result.append({"bucket_id": bid, "requirement_mode": mode})
-            seen.add(bid)
 
         # Base deterministic order.
         result.sort(
@@ -420,7 +431,7 @@ def allocate_courses(
         needed_val = (
             meta["needed_count"] if meta["needed_count"] is not None else meta["needed_credits"]
         )
-        bucket_courses = track_map[track_map["bucket_id"] == bid]["course_code"].tolist()
+        bucket_courses = bucket_course_index.get(bid, [])
         remaining_courses = [c for c in bucket_courses if c not in completed_set and c not in in_progress_set]
         remaining[bid] = {
             "needed": needed_val,

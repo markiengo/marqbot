@@ -22,6 +22,8 @@ import json
 import os
 import sys
 
+from advisor_match_common import is_case_pass, score_against_gold
+
 try:
     import requests
 except ImportError:
@@ -46,12 +48,8 @@ def score_profile(profile: dict, gold_top6: list[str], server_url: str) -> tuple
         print(f"  [ERROR] Server returned error: {data.get('error')}", file=sys.stderr)
         return 0, False
 
-    recs = data.get("recommendations", [])
-    actual_top6 = [r["course_code"] for r in recs[:6]]
-    gold_set = set(gold_top6)
-    actual_set = set(actual_top6)
-    overlap = len(actual_set & gold_set)
-    case_pass = overlap >= 4
+    overlap, _ = score_against_gold(data, gold_top6, limit=6)
+    case_pass = is_case_pass(overlap, min_overlap=4)
     return overlap, case_pass
 
 
