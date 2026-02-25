@@ -1,4 +1,3 @@
-import os
 import re
 import pandas as pd
 
@@ -20,12 +19,6 @@ _MAX_PER_BUCKET_PER_SEM = 2
 _PROJECTION_NOTE = (
     "Projected progress below assumes you complete these recommendations."
 )
-_DEMOTED_BCC_CHILD_BUCKETS = {"BCC_ETHICS", "BCC_ANALYTICS", "BCC_ENHANCE"}
-_MCC_PARENT_FAMILY_IDS = {"MCC", "MCC_CORE", "MCC_FOUNDATION"}
-
-# BCC progress-aware decay (v1.9).
-# Set BCC_DECAY_ENABLED=true in env to activate. Default off for safe rollout.
-_BCC_DECAY_ENABLED: bool = os.environ.get("BCC_DECAY_ENABLED", "false").lower() == "true"
 _BCC_DECAY_THRESHOLD: int = 12  # courses applied to BCC_REQUIRED before decay fires
 
 

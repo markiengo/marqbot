@@ -2,7 +2,6 @@
 import sys
 import time
 import threading
-from collections import defaultdict
 
 # Ensure backend/ is on sys.path so sibling imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -38,7 +37,8 @@ app = Flask(__name__)
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 _NEXT_OUT = os.path.join(PROJECT_ROOT, "frontend-next", "out")
-FRONTEND_DIR = _NEXT_OUT if os.path.isdir(_NEXT_OUT) else os.path.join(PROJECT_ROOT, "frontend")
+# Frontend convergence: only serve the Next.js static export.
+FRONTEND_DIR = _NEXT_OUT
 _DEFAULT_DATA_PATH = os.path.join(PROJECT_ROOT, "marquette_courses_full.xlsx")
 _env_data_path = os.environ.get("DATA_PATH")
 if not _env_data_path:
@@ -74,6 +74,20 @@ def _data_file_mtime(path: str):
         return os.path.getmtime(path)
     except OSError:
         return None
+
+
+def _frontend_missing_response():
+    return jsonify({
+        "mode": "error",
+        "error": {
+            "error_code": "FRONTEND_NOT_BUILT",
+            "message": "Frontend build not found. Run `npm run build` in `frontend-next/`.",
+        },
+    }), 503
+
+
+def _frontend_ready() -> bool:
+    return os.path.isfile(os.path.join(FRONTEND_DIR, "index.html"))
 
 # â”€â”€ Startup data load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 try:
@@ -162,7 +176,11 @@ def _add_security_headers(response):
 # ── Health endpoint ────────────────────────────────────────────────────────
 @app.route("/health", methods=["GET"])
 def health_endpoint():
-    return jsonify({"status": "ok", "version": "1.9.0"})
+    return jsonify({
+        "status": "ok",
+        "version": "1.9.0",
+        "frontend_ready": _frontend_ready(),
+    })
 
 
 # ── Input validation ──────────────────────────────────────────────────────
@@ -1197,10 +1215,14 @@ def handle_unexpected_error(e):
 # â”€â”€ Routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @app.route("/")
 def index():
-    return send_from_directory(FRONTEND_DIR, "index.html")
+    if not _frontend_ready():
+        return _frontend_missing_response()
+    try:
+        return send_from_directory(FRONTEND_DIR, "index.html")
+    except NotFound:
+        return _frontend_missing_response()
 
 
-@app.route("/courses", methods=["GET"])
 def get_courses():
     _refresh_data_if_needed()
     if not _data:
@@ -1609,9 +1631,8 @@ def can_take_endpoint():
         "next_best_alternatives": [],
     })
 
-# ── /api/* aliases for Next.js frontend ──────────────────────────────
-# The Next.js frontend fetches /api/courses, /api/programs, etc.
-# These aliases forward to the existing route handlers.
+# ── Canonical API routes for Next.js frontend ────────────────────────
+# `/courses` is intentionally left to SPA routing.
 app.add_url_rule("/api/health", endpoint="api_health", view_func=health_endpoint, methods=["GET"])
 app.add_url_rule("/api/courses", endpoint="api_courses", view_func=get_courses, methods=["GET"])
 app.add_url_rule("/api/programs", endpoint="api_programs", view_func=get_programs, methods=["GET"])
@@ -1630,17 +1651,35 @@ def api_catch_all(rest):
 # index.html for client-side routes like /planner, /onboarding, etc.
 @app.route("/<path:filename>")
 def frontend_files(filename):
+    if not _frontend_ready():
+        return _frontend_missing_response()
+
+    safe_path = filename.lstrip("/")
+    if safe_path.endswith("/"):
+        safe_path = safe_path[:-1]
+
     # Static assets (js, css, images) → 404 if not found
-    if "." in filename.rsplit("/", 1)[-1]:
+    if "." in safe_path.rsplit("/", 1)[-1]:
         try:
-            return send_from_directory(FRONTEND_DIR, filename)
+            return send_from_directory(FRONTEND_DIR, safe_path)
         except NotFound:
             return "", 404
-    # Client-side routes (no extension) → serve SPA index.html
+
+    # Client-side routes (no extension):
+    # resolve explicit file, export-style *.html, or folder index.html.
+    candidates = [
+        safe_path,
+        f"{safe_path}.html",
+        os.path.join(safe_path, "index.html"),
+    ]
+    for rel_path in candidates:
+        if rel_path and os.path.isfile(os.path.join(FRONTEND_DIR, rel_path)):
+            return send_from_directory(FRONTEND_DIR, rel_path)
+
     try:
-        return send_from_directory(FRONTEND_DIR, filename)
-    except NotFound:
         return send_from_directory(FRONTEND_DIR, "index.html")
+    except NotFound:
+        return _frontend_missing_response()
 
 
 if __name__ == "__main__":

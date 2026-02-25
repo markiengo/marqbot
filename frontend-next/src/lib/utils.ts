@@ -49,13 +49,6 @@ export function courseDisplayName(
   return mapLookup(courseNameByCode, normalized) || normalized;
 }
 
-export function replaceCourseCodesInText(
-  text: string | null | undefined,
-  _courseNameByCode: LabelStore = null,
-): string {
-  return String(text || "");
-}
-
 export function bucketLabel(
   bucketId: string,
   programLabelMap: LabelStore = null,
@@ -100,7 +93,6 @@ export function bucketLabel(
 
 export function colorizePrereq(
   str: string | null | undefined,
-  _courseNameByCode: LabelStore = null,
 ): string {
   if (!str) return "";
   const check = "\u2713";
@@ -125,7 +117,6 @@ export function colorizePrereq(
 
 export function formatCourseNotes(
   note: string | null | undefined,
-  _courseNameByCode: LabelStore = null,
 ): string {
   const txt = String(note || "");
   if (

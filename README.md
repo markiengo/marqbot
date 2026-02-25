@@ -68,7 +68,7 @@ Current release line: `v1.9.0`.
 
 ### Stack
 - Backend: Flask + pandas
-- Frontend: vanilla JS modules + HTML/CSS
+- Frontend: Next.js 16 + React 19 + TypeScript
 - Data source: `marquette_courses_full.xlsx`
 
 ### Key paths
@@ -78,6 +78,7 @@ Current release line: `v1.9.0`.
 - Eligibility: `backend/eligibility.py`
 - Recommender: `backend/semester_recommender.py`
 - Double-count policy logic: `backend/requirements.py`
+- Frontend app: `frontend-next/src`
 
 ### Recommendation mechanism (technical)
 1. **Load and normalize workbook**:
@@ -101,41 +102,45 @@ Current release line: `v1.9.0`.
    - Recommendations are applied virtually to produce multi-semester outcomes.
 
 ### Data model and design docs
-- Product requirements and architecture: `PRD.md`
-- Release history and design decisions: `CHANGELOG.md`
+- Product requirements and architecture: `mds/PRD.md`
+- Release history and design decisions: `mds/CHANGELOG.md`
 
 ### API endpoints
-- `GET /courses`
-- `GET /programs`
-- `GET /health`
-- `POST /recommend`
-- `POST /can-take`
+- `GET /api/courses`
+- `GET /api/programs`
+- `GET /api/health`
+- `POST /api/recommend`
+- `POST /api/can-take`
 
 ### Local setup
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-npm install
+cd frontend-next
+npm ci
 ```
 
 ### Run
 ```powershell
-.\.venv\Scripts\python.exe backend/server.py
+.\.venv\Scripts\python.exe scripts/run_local.py
 ```
+`scripts/run_local.py` auto-builds `frontend-next/out` when missing, then starts Flask.
+
 Open `http://localhost:5000`.
 
 ### Validation and tests
 ```powershell
 .\.venv\Scripts\python.exe scripts/validate_track.py --all
 .\.venv\Scripts\python.exe -m pytest tests/backend_tests -q
-cmd /c npm test --silent
+cd frontend-next && npm run lint
+cd frontend-next && npm run build
 ```
-Current local baseline: backend `365` passing, frontend `96` passing.
+Current local baseline: backend `365` passing; Next build succeeds.
 
 ### Render dashboard settings
-- Build command: `pip install -r requirements.txt`
-- Start command: `gunicorn --chdir backend server:app --bind 0.0.0.0:$PORT`
+- Runtime: `Docker`
+- Dockerfile: `./Dockerfile` (multi-stage build compiles `frontend-next/out` and runs Gunicorn)
 - Service root must be repo root (where `requirements.txt` exists).
 
 </details>
@@ -143,7 +148,7 @@ Current local baseline: backend `365` passing, frontend `96` passing.
 <details open>
 <summary><strong>Part C (Roadmap Note)</strong></summary>
 
-- See **PRD.md -> Section 11 (Future Roadmap)** for long-range features and sequencing.
-- For every release, update `PRD.md`, `README.md`, and `CHANGELOG.md`, then sync the latest GitHub release notes from those docs.
+- See **mds/PRD.md -> Section 11 (Future Roadmap)** for long-range features and sequencing.
+- For every release, update `mds/PRD.md`, `README.md`, and `mds/CHANGELOG.md`, then sync the latest GitHub release notes from those docs.
 
 </details>
