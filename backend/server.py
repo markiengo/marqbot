@@ -40,11 +40,14 @@ app = Flask(__name__)
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 FRONTEND_DIR = os.path.join(PROJECT_ROOT, "frontend")
-DATA_PATH = os.environ.get("DATA_PATH")
-if not DATA_PATH:
-    DATA_PATH = os.path.join(PROJECT_ROOT, "marquette_courses_full.xlsx")
-elif not os.path.isabs(DATA_PATH):
-    DATA_PATH = os.path.join(PROJECT_ROOT, DATA_PATH)
+_DEFAULT_DATA_PATH = os.path.join(PROJECT_ROOT, "marquette_courses_full.xlsx")
+_env_data_path = os.environ.get("DATA_PATH")
+if not _env_data_path:
+    DATA_PATH = _DEFAULT_DATA_PATH
+elif not os.path.isabs(_env_data_path):
+    DATA_PATH = os.path.join(PROJECT_ROOT, _env_data_path)
+else:
+    DATA_PATH = _env_data_path
 _data_lock = threading.Lock()
 _data_mtime = None
 
@@ -83,8 +86,20 @@ try:
     _data_mtime = _data_file_mtime(DATA_PATH)
     print(f"[OK] Loaded {len(_data['catalog_codes'])} courses from {DATA_PATH}")
 except FileNotFoundError:
-    print(f"[FATAL] Data file not found: {DATA_PATH}", file=sys.stderr)
-    sys.exit(1)
+    # Render safety: if DATA_PATH env var is stale, fall back to repo workbook.
+    if DATA_PATH != _DEFAULT_DATA_PATH and os.path.exists(_DEFAULT_DATA_PATH):
+        print(
+            f"[WARN] DATA_PATH not found ({DATA_PATH}); "
+            f"falling back to default workbook ({_DEFAULT_DATA_PATH}).",
+            file=sys.stderr,
+        )
+        DATA_PATH = _DEFAULT_DATA_PATH
+        _data = load_data(DATA_PATH)
+        _data_mtime = _data_file_mtime(DATA_PATH)
+        print(f"[OK] Loaded {len(_data['catalog_codes'])} courses from {DATA_PATH}")
+    else:
+        print(f"[FATAL] Data file not found: {DATA_PATH}", file=sys.stderr)
+        sys.exit(1)
 except Exception as exc:
     print(f"[FATAL] Failed to load data: {exc}", file=sys.stderr)
     sys.exit(1)
