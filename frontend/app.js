@@ -1,6 +1,6 @@
 ﻿import { esc } from "./modules/utils.js";
 import { saveSession, restoreSession } from "./modules/session.js";
-import { loadCourses, loadPrograms, postRecommend, postCanTake, postFeedback } from "./modules/api.js";
+import { loadCourses, loadPrograms, postRecommend, postCanTake } from "./modules/api.js";
 import {
   renderErrorHtml,
   renderCanTakeHtml,
@@ -929,51 +929,6 @@ function getSelectedMajorIds() {
   return Array.from(state.selectedMajors);
 }
 
-/* -- Feedback handlers ------------------------------------------------- */
-function generateSessionId() {
-  const major = [...state.selectedMajors].sort().join(",");
-  const completed = [...state.completed].sort().join(",");
-  try {
-    return btoa(major + completed).slice(0, 8);
-  } catch (_) {
-    return "anon";
-  }
-}
-
-function wireFeedbackHandlers(container) {
-  if (!container) return;
-  const sessionId = generateSessionId();
-  container.querySelectorAll(".feedback-strip").forEach(strip => {
-    const course = strip.dataset.course;
-    const semester = strip.dataset.semester;
-    const rank = parseInt(strip.dataset.rank, 10) || 0;
-    const tier = parseInt(strip.dataset.tier, 10) || 0;
-    const fillsBuckets = String(strip.dataset.fills || "")
-      .split(",")
-      .map(v => String(v || "").trim())
-      .filter(Boolean);
-    strip.querySelectorAll(".fb-btn").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        if (strip.classList.contains("fb-submitted")) return;
-        const rating = btn.classList.contains("fb-up") ? 1 : -1;
-        strip.classList.add("fb-submitted");
-        strip.querySelectorAll(".fb-btn").forEach(b => { b.disabled = true; });
-        postFeedback({
-          course_code: course,
-          semester,
-          rating,
-          rank,
-          fills_buckets: fillsBuckets,
-          tier,
-          session_id: sessionId,
-          major: [...state.selectedMajors][0] || "",
-          track: state.selectedTrack || "",
-        }).catch(() => {});
-      });
-    });
-  });
-}
-
 /* -- Result dispatcher ------------------------------------------------- */
 function renderResults(data) {
   state.lastRecommendationData = null;
@@ -1020,7 +975,6 @@ function renderResults(data) {
     `;
     wireSemesterInteractions();
     populateProgressDashboard(data);
-    wireFeedbackHandlers(resultsEl);
   }
 }
 

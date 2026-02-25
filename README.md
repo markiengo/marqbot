@@ -7,7 +7,6 @@ Current release line: `v1.9.0`.
 
 ## Upcoming Patch Plan
 - Validate advisor-match quality across larger freshman and sophomore profile sets.
-- Add lightweight feedback analytics report endpoint for internal review.
 - Add release automation for changelog tagging and GitHub release note publishing.
 
 ## Guide
@@ -20,7 +19,6 @@ Current release line: `v1.9.0`.
 - Shows progress by requirement buckets.
 - Lets students check a specific class in **Can I Take This Next Semester?**.
 - Shows warnings for standing, major declaration, and low offering confidence.
-- Captures quick thumbs-up/down feedback on each recommendation card.
 
 ### How recommendations work (simple)
 1. **Eligibility baseline**: Only courses you can actually take are considered (prereqs/standing/warnings checked).
@@ -59,7 +57,6 @@ Current release line: `v1.9.0`.
 - Validate diversity-cap behavior across dense multi-major plans.
 - Keep recommendation traces readable for advisor reviews.
 - Maintain deterministic routing between non-elective and elective children.
-- Use feedback data to identify low-confidence recommendation patterns.
 
 ### Important note
 - MarqBot is a planning aid. Final enrollment decisions still belong to official advising and registration workflows.
@@ -113,7 +110,6 @@ Current release line: `v1.9.0`.
 - `GET /health`
 - `POST /recommend`
 - `POST /can-take`
-- `POST /feedback`
 
 ### Local setup
 ```powershell
@@ -135,13 +131,12 @@ Open `http://localhost:5000`.
 .\.venv\Scripts\python.exe -m pytest tests/backend_tests -q
 cmd /c npm test --silent
 ```
-Current local baseline: backend `376` passing, frontend `98` passing.
+Current local baseline: backend `365` passing, frontend `96` passing.
 
 ### Render dashboard settings
 - Build command: `pip install -r requirements.txt`
 - Start command: `gunicorn --chdir backend server:app --bind 0.0.0.0:$PORT`
 - Service root must be repo root (where `requirements.txt` exists).
-- For feedback persistence on Render, mount a persistent disk and set `FEEDBACK_PATH=/data/feedback.jsonl`.
 
 </details>
 

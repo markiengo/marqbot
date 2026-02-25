@@ -289,37 +289,6 @@ Standalone eligibility check for a single course.
 }
 ```
 
-### 5.6 `POST /feedback`
-
-Collects thumbs-up/down feedback for recommendation cards.
-
-**Request body:**
-```json
-{
-  "course_code": "ECON 1103",
-  "semester": "Fall 2026",
-  "rating": 1,
-  "rank": 1,
-  "tier": 1,
-  "fills_buckets": ["BCC::BCC_REQUIRED"],
-  "session_id": "abc12345",
-  "major": "FIN_MAJOR",
-  "track": ""
-}
-```
-
-**Validation:**
-- `course_code` must exist in catalog
-- `rating` must be `1` or `-1`
-- `rank` and `tier` must be integers
-
-**Response:**
-```json
-{
-  "ok": true
-}
-```
-
 ---
 
 ## 6. Recommendation Engine
@@ -431,8 +400,8 @@ Dynamic semester tiles (1-4 semesters). Each tile is expandable to a modal with 
 
 | Suite | Command | Count (v1.9.0) |
 |-------|---------|----------------|
-| Backend | `python -m pytest tests/backend_tests -q` | 376 |
-| Frontend | `npm test` | 98 |
+| Backend | `python -m pytest tests/backend_tests -q` | 365 |
+| Frontend | `npm test` | 96 |
 
 ### 9.3 CI Pipeline
 
@@ -473,7 +442,7 @@ python backend/server.py  # http://localhost:5000
 
 | Version | Feature | Status |
 |---------|---------|--------|
-| v1.9.0 | BCC decay + advisor match gate + feedback + production hardening | Shipped |
+| v1.9.0 | BCC decay + advisor match gate + production hardening | Shipped |
 | v1.9.1 | Feedback analytics and release-note automation | Planned |
 | v2.0.0 | AI-assisted discovery (non-binding, post-validated by deterministic engine) | Planned |
 

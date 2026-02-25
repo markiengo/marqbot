@@ -47,10 +47,14 @@ Format per release:
 ## [Unreleased]
 
 ### Changes
-- No unreleased entries yet.
+- Removed recommendation-card feedback feature end-to-end:
+  - Removed feedback buttons from card rendering.
+  - Removed frontend feedback wiring and API helper.
+  - Removed backend `POST /feedback` endpoint and feedback file-writing logic.
+  - Removed feedback backend test suite.
 
 ### Design Decisions
-- No unreleased entries yet.
+- Feedback controls added UI noise without improving core recommendation quality for students.
 
 ---
 
