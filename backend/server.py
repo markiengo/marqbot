@@ -2,6 +2,7 @@
 import sys
 import time
 import threading
+from collections import defaultdict
 
 # Ensure backend/ is on sys.path so sibling imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
