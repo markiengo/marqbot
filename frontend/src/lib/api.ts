@@ -9,6 +9,7 @@ const MAJOR_LABEL_OVERRIDES: Record<string, string> = {
   "IS Major": "Information Systems",
   "BUAN Major": "Business Analytics",
   "OSCM Major": "Operations & Supply Chain Management",
+  "HURE Major": "Human Resources",
   "AIM Major": "AIM - Accerlerating Ingenuinty in Markets",
 };
 
