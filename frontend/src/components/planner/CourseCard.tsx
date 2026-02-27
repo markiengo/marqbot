@@ -53,17 +53,17 @@ export function CourseCard({ course, programLabelMap }: CourseCardProps) {
       <div className="mb-3">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <span className="font-semibold text-[#7ab3ff] text-sm">
+            <span className="font-semibold text-[#7ab3ff] text-base">
               {esc(c.course_code || "")}
             </span>
             {courseName && (
               <>
                 <span className="text-ink-faint mx-1.5">&mdash;</span>
-                <span className="text-ink-primary text-sm">{esc(courseName)}</span>
+                <span className="text-ink-primary text-base">{esc(courseName)}</span>
               </>
             )}
           </div>
-          <span className="text-xs text-ink-faint shrink-0">
+          <span className="text-sm text-ink-faint shrink-0">
             {c.credits || 3} cr
           </span>
         </div>
@@ -93,7 +93,7 @@ export function CourseCard({ course, programLabelMap }: CourseCardProps) {
       {/* Why recommendation */}
       {c.why && (
         <p
-          className={`text-xs leading-relaxed mb-2 ${
+          className={`text-sm leading-relaxed mb-2 ${
             c.why.startsWith("This course advances your")
               ? "text-gold-dark font-medium"
               : "text-ink-muted"
@@ -106,28 +106,28 @@ export function CourseCard({ course, programLabelMap }: CourseCardProps) {
       {/* Prerequisites */}
       {prereqHtml && (
         <div
-          className="text-xs text-ink-secondary mb-2"
+          className="text-sm text-ink-secondary mb-2"
           dangerouslySetInnerHTML={{ __html: prereqHtml }}
         />
       )}
 
       {/* Unlocks */}
       {c.unlocks && c.unlocks.length > 0 && (
-        <p className="text-xs text-ink-faint mb-2">
+        <p className="text-sm text-ink-faint mb-2">
           Unlocks: {c.unlocks.map(esc).join(", ")}
         </p>
       )}
 
       {/* Warnings */}
       {dedupedWarnings.length > 0 && (
-        <div className="bg-warn-light rounded-lg px-3 py-2 text-xs text-warn">
-          \u26a0 {dedupedWarnings.map(esc).join(" \u00b7 ")}
+        <div className="bg-bad-light rounded-lg px-3 py-2 text-sm text-bad">
+          {dedupedWarnings.map((w) => `Warning: ${esc(w)}`).join(" \u00b7 ")}
         </div>
       )}
 
       {/* Notes */}
       {c.notes && (
-        <p className="text-xs text-ink-faint mt-2 italic">
+        <p className="text-sm text-ink-faint mt-2 italic">
           {formatCourseNotes(c.notes)}
         </p>
       )}

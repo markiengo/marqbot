@@ -151,7 +151,7 @@ h1, h2, h3, h4, h5, h6 {
   100% { transform: translate(30px, -20px) scale(1.05); }
 }
 
-/* ── Planner 2x2 grid ────────────────────────────────────────────── */
+/* ── Planner dual-column layout ─────────────────────────────────── */
 .planner-shell {
   height: calc(100vh - 4rem);
   padding: 8px;
@@ -159,17 +159,16 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
 }
-.planner-grid {
+.planner-columns {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: auto;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   height: 100%;
   overflow-y: auto;
 }
-.planner-quad {
+.planner-panel {
   background: rgba(18, 33, 63, 0.8);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(141, 170, 224, 0.18);
@@ -178,29 +177,24 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
 }
 
-/* Desktop 2x2: >1200px */
-@media (min-width: 1200px) {
-  .planner-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-    grid-template-rows: 1fr 1fr;
+/* Desktop >=1024px: 45/55 side-by-side */
+@media (min-width: 1024px) {
+  .planner-columns {
+    flex-direction: row;
     overflow: hidden;
   }
-  .planner-quad-tl { grid-area: 1 / 1 / 2 / 2; overflow-y: auto; }
-  .planner-quad-tr { grid-area: 1 / 2 / 2 / 3; }
-  .planner-quad-bl { grid-area: 2 / 1 / 3 / 2; }
-  .planner-quad-br { grid-area: 2 / 2 / 3 / 3; }
-}
-
-/* Tablet: 900–1200px — stacked 2-column */
-@media (min-width: 900px) and (max-width: 1199px) {
-  .planner-grid {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
+  .planner-left {
+    flex: 0 0 45%;
+    max-width: 45%;
+    min-height: 0;
+    overflow-y: auto;
   }
-  .planner-quad-tl { grid-area: 1 / 1 / 2 / 2; }
-  .planner-quad-tr { grid-area: 1 / 2 / 2 / 3; }
-  .planner-quad-bl { grid-area: 2 / 1 / 3 / 2; }
-  .planner-quad-br { grid-area: 2 / 2 / 3 / 3; }
+  .planner-right {
+    flex: 0 0 55%;
+    max-width: 55%;
+    min-height: 0;
+    overflow: hidden;
+  }
 }
 
-/* Mobile <900px — single column (default grid above) */
+/* Tablet/Mobile <1024px — stack vertically (default flex-column) */

@@ -32,7 +32,7 @@ export function SemesterSelector({
           <motion.div
             key={idx}
             whileHover={{ y: -1 }}
-            className={`relative flex-1 min-h-[72px] max-h-[160px] rounded-xl border transition-colors ${
+            className={`relative flex-1 min-h-0 rounded-xl border transition-colors ${
               active
                 ? "bg-gradient-to-br from-[#344738]/65 to-[#223e5d]/70 border-gold"
                 : "bg-[#14325b]/55 border-border-medium"

@@ -10,7 +10,7 @@ const MAJOR_LABEL_OVERRIDES: Record<string, string> = {
   "BUAN Major": "Business Analytics",
   "OSCM Major": "Operations & Supply Chain Management",
   "HURE Major": "Human Resources",
-  "AIM Major": "AIM - Accerlerating Ingenuinty in Markets",
+  "AIM Major": "AIM - Accelerating Ingenuity in Markets",
 };
 
 export async function loadCourses(): Promise<Course[]> {
@@ -56,6 +56,18 @@ export async function postRecommend(
     const body = await res.json().catch(() => null);
     throw new Error(body?.error?.message || `Recommendation request failed: ${res.status}`);
   }
+  return res.json();
+}
+
+export async function postValidatePrereqs(
+  payload: Record<string, unknown>,
+): Promise<{ inconsistencies: { course_code: string; prereqs_in_progress: string[] }[] }> {
+  const res = await fetch(`${API_BASE}/api/validate-prereqs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return { inconsistencies: [] };
   return res.json();
 }
 

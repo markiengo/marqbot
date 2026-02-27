@@ -38,15 +38,15 @@ export function SemesterModal({
       <div className="space-y-6">
         {/* Warnings */}
         {semester.not_in_catalog_warning && semester.not_in_catalog_warning.length > 0 && (
-          <div className="bg-warn-light rounded-xl p-3 text-xs text-warn">
+          <div className="bg-bad-light rounded-xl p-3 text-sm text-bad">
             Warning: Some courses not found in catalog:{" "}
             {semester.not_in_catalog_warning.map(esc).join(", ")}
           </div>
         )}
 
         {(semester.eligible_count || 0) < requestedCount && recs.length > 0 && (
-          <div className="bg-warn-light rounded-xl p-3 text-xs text-warn">
-            You requested {requestedCount}, but only {semester.eligible_count}{" "}
+          <div className="bg-bad-light rounded-xl p-3 text-sm text-bad">
+            Warning: You requested {requestedCount}, but only {semester.eligible_count}{" "}
             eligible course(s) match for this term.
           </div>
         )}
@@ -63,14 +63,14 @@ export function SemesterModal({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-ink-faint italic">
+          <p className="text-base text-ink-faint italic">
             No recommendations for this semester.
           </p>
         )}
 
         {/* In-progress note */}
         {semester.in_progress_note && (
-          <p className="text-xs text-warn">
+          <p className="text-sm text-bad">
             Warning: {esc(semester.in_progress_note)}
           </p>
         )}
@@ -78,14 +78,14 @@ export function SemesterModal({
         {/* Projected progress */}
         {semesterProgress && Object.keys(semesterProgress).length > 0 && (
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gold uppercase tracking-wider">
+            <h3 className="text-base font-semibold text-gold uppercase tracking-wider">
               Projected Progress
             </h3>
-            <p className="text-xs text-ink-faint">
+            <p className="text-sm text-ink-faint">
               Progress bars show completed courses applied to each requirement bucket.
             </p>
             {semester.projection_note && (
-              <p className="text-xs text-ink-faint">{esc(semester.projection_note)}</p>
+              <p className="text-sm text-ink-faint">{esc(semester.projection_note)}</p>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {sortProgressEntries(semesterProgress).map(
@@ -105,7 +105,7 @@ export function SemesterModal({
                       key={bid}
                       className="rounded-xl border border-border-subtle/60 bg-[#0e2a52]/45 p-3"
                     >
-                      <div className="flex justify-between items-baseline gap-3 text-xs mb-2">
+                      <div className="flex justify-between items-baseline gap-3 text-sm mb-2">
                         <span className="text-ink-primary font-semibold leading-tight">{label}</span>
                         <span className="text-ink-faint shrink-0 font-semibold">
                           {done}
@@ -129,7 +129,7 @@ export function SemesterModal({
                         </div>
                       </div>
                       {ipCodes.length > 0 && (
-                        <p className="text-xs text-ink-faint mt-1.5 leading-snug">
+                        <p className="text-sm text-ink-faint mt-1.5 leading-snug">
                           + {ipCodes.join(", ")} in progress
                         </p>
                       )}

@@ -3,8 +3,25 @@
 import { useEffect, useRef } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { STORAGE_KEY } from "@/lib/constants";
-import { readLocalStorage, writeLocalStorage } from "./useLocalStorage";
 import type { SessionSnapshot } from "@/lib/types";
+
+function readLocalStorage<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalStorage(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore storage errors (private mode / quota exceeded)
+  }
+}
 
 export function useSession() {
   const { state, dispatch } = useAppContext();
@@ -34,7 +51,7 @@ export function useSession() {
         maxRecs: state.maxRecs,
         canTake: state.canTakeQuery,
         declaredMajors: [...state.selectedMajors],
-        declaredTrack: state.selectedTrack || "",
+        declaredTracks: state.selectedTracks,
         activeNavTab: state.activeNavTab,
         onboardingComplete: state.onboardingComplete,
         lastRecommendationData: state.lastRecommendationData,
@@ -52,7 +69,7 @@ export function useSession() {
     state.maxRecs,
     state.canTakeQuery,
     state.selectedMajors,
-    state.selectedTrack,
+    state.selectedTracks,
     state.activeNavTab,
     state.onboardingComplete,
     state.lastRecommendationData,

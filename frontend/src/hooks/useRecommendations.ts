@@ -27,7 +27,7 @@ export function useRecommendations() {
         max_recommendations: Number(state.maxRecs) || 3,
       };
       if (majors.length > 0) payload.declared_majors = majors;
-      if (state.selectedTrack) payload.track_id = state.selectedTrack;
+      if (state.selectedTracks.length > 0) payload.track_ids = state.selectedTracks;
 
       const data: RecommendationResponse = await postRecommend(payload);
       if (id !== reqId.current) return null; // stale
@@ -46,7 +46,7 @@ export function useRecommendations() {
     } finally {
       if (id === reqId.current) setLoading(false);
     }
-  }, [state.completed, state.inProgress, state.targetSemester, state.semesterCount, state.maxRecs, state.selectedMajors, state.selectedTrack, dispatch]);
+  }, [state.completed, state.inProgress, state.targetSemester, state.semesterCount, state.maxRecs, state.selectedMajors, state.selectedTracks, dispatch]);
 
   return {
     data: state.lastRecommendationData,

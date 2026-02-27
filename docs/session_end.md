@@ -11,12 +11,13 @@ Use this checklist at the end of every coding session. Keep updates user-friendl
   - Anything removed/renamed (if applicable)
 - Avoid internal implementation details.
 
-### README.md (only if needed)
+### README.md 
 Update README if you added:
 - A new feature or workflow
 - New setup steps / environment variables
 - New commands (dev, test, build)
 - New pages/flows that users should know exist
+- Update the badges
 
 ## 2) Commit locally
 - Commit changes locally before pushing.

@@ -16,6 +16,7 @@ const nextConfig = {
         { source: "/api/programs", destination: "http://localhost:5000/api/programs" },
         { source: "/api/recommend", destination: "http://localhost:5000/api/recommend" },
         { source: "/api/can-take", destination: "http://localhost:5000/api/can-take" },
+        { source: "/api/validate-prereqs", destination: "http://localhost:5000/api/validate-prereqs" },
         { source: "/api/health", destination: "http://localhost:5000/api/health" },
       ];
     },

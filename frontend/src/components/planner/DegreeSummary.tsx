@@ -14,7 +14,7 @@ export function DegreeSummary({ currentProgress, programLabelMap }: DegreeSummar
 
   return (
     <div className="h-full min-h-0 rounded-2xl border border-border-subtle bg-gradient-to-br from-[#0f2a52]/70 to-[#10284a]/55 p-2 flex flex-col">
-      <h3 className="text-sm md:text-base font-bold font-[family-name:var(--font-sora)] text-gold uppercase tracking-wide px-1 pb-1">
+      <h3 className="text-base md:text-lg font-bold font-[family-name:var(--font-sora)] text-gold uppercase tracking-wide px-1 pb-1">
         Degree Summary
       </h3>
 
@@ -32,20 +32,20 @@ export function DegreeSummary({ currentProgress, programLabelMap }: DegreeSummar
           return (
             <div
               key={bid}
-              className="flex items-center justify-between gap-2 px-2 py-1 border-b border-border-subtle/40 last:border-b-0"
+              className="flex items-center justify-between gap-2 px-2 py-1.5 border-b border-border-subtle/40 last:border-b-0"
             >
               <span
-                className={`text-[11px] leading-tight ${
+                className={`text-[13px] leading-tight ${
                   highlightBcc
                     ? "text-gold font-semibold"
                     : satisfied
-                      ? "text-ink-faint"
+                      ? "text-ok"
                       : "text-ink-secondary"
                 }`}
               >
                 {label}
               </span>
-              <span className="text-[11px] shrink-0 text-ink-faint">
+              <span className="text-[13px] shrink-0 text-ink-faint">
                 {done}
                 {inProg > 0 && <span className="text-gold">+{inProg}</span>}/{needed}
               </span>

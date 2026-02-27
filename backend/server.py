@@ -2,13 +2,15 @@ import os
 import sys
 import time
 import threading
-from collections import defaultdict
+import hashlib
+import json
+from collections import OrderedDict, defaultdict
 
 # Ensure backend/ is on sys.path so sibling imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import pandas as pd
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, g, jsonify, request, send_from_directory
 from werkzeug.exceptions import NotFound
 from dotenv import load_dotenv
 
@@ -56,6 +58,87 @@ _RATE_LIMIT_MAX = 10
 _RATE_LIMIT_WINDOW = 60  # seconds
 _rate_limit_lock = threading.Lock()
 _rate_limit_tracker: dict[str, list[float]] = defaultdict(list)
+
+
+def _env_float(name: str, default: float, minimum: float = 0.0) -> float:
+    raw = os.environ.get(name, "")
+    try:
+        return max(minimum, float(raw))
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_int(name: str, default: int, minimum: int = 1) -> int:
+    raw = os.environ.get(name, "")
+    try:
+        return max(minimum, int(raw))
+    except (TypeError, ValueError):
+        return default
+
+
+_SLOW_REQUEST_LOG_MS = _env_float("SLOW_REQUEST_LOG_MS", 750.0, minimum=0.0)
+_REQUEST_CACHE_SIZE = _env_int("REQUEST_CACHE_SIZE", 128, minimum=1)
+
+
+class _LruResponseCache:
+    """Thread-safe bounded in-memory cache for JSON-serializable responses."""
+
+    def __init__(self, max_size: int):
+        self.max_size = max(1, int(max_size))
+        self._lock = threading.Lock()
+        self._items: OrderedDict[str, dict] = OrderedDict()
+
+    def get(self, key: str):
+        with self._lock:
+            if key not in self._items:
+                return None
+            value = self._items.pop(key)
+            self._items[key] = value
+            return value
+
+    def set(self, key: str, value: dict) -> None:
+        with self._lock:
+            if key in self._items:
+                self._items.pop(key)
+            self._items[key] = value
+            while len(self._items) > self.max_size:
+                self._items.popitem(last=False)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._items.clear()
+
+
+_recommend_response_cache = _LruResponseCache(_REQUEST_CACHE_SIZE)
+_can_take_response_cache = _LruResponseCache(_REQUEST_CACHE_SIZE)
+
+
+def _cache_enabled() -> bool:
+    return not app.config.get("TESTING", False)
+
+
+def _stable_payload_hash(payload) -> str:
+    normalized = payload if payload is not None else {}
+    encoded = json.dumps(
+        normalized,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _data_version_tag() -> str:
+    return "none" if _data_mtime is None else str(_data_mtime)
+
+
+def _request_cache_key(prefix: str, payload) -> str:
+    return f"{prefix}:{_data_version_tag()}:{_stable_payload_hash(payload)}"
+
+
+def _clear_request_caches() -> None:
+    _recommend_response_cache.clear()
+    _can_take_response_cache.clear()
 
 
 def _check_rate_limit(ip: str) -> bool:
@@ -153,6 +236,7 @@ def _reload_data_if_changed(force: bool = False) -> bool:
         _data = new_data
         _reverse_map = new_reverse_map
         _data_mtime = latest_mtime if latest_mtime is not None else candidate_mtime
+        _clear_request_caches()
         print(f"[OK] Reloaded {len(new_data['catalog_codes'])} courses from {DATA_PATH}")
         return True
 
@@ -166,11 +250,26 @@ def _refresh_data_if_needed() -> None:
 
 # ── Input validation ───────────────────────────────────────────────────────────
 # -- Security headers ------------------------------------------------------
+@app.before_request
+def _start_request_timer():
+    g._request_start_time = time.perf_counter()
+
+
 @app.after_request
 def _add_security_headers(response):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "same-origin"
+
+    started = getattr(g, "_request_start_time", None)
+    if started is not None:
+        duration_ms = (time.perf_counter() - started) * 1000.0
+        if duration_ms >= _SLOW_REQUEST_LOG_MS:
+            endpoint = request.endpoint or "unknown"
+            print(
+                f"[SLOW] {request.method} {request.path} "
+                f"endpoint={endpoint} status={response.status_code} duration_ms={duration_ms:.1f}"
+            )
     return response
 
 
@@ -702,7 +801,7 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
 def _build_declared_plan_data_v2(
     data: dict,
     declared_majors: list[str],
-    selected_track_id: str | None,
+    selected_track_ids: list[str],
     catalog_df: pd.DataFrame,
 ) -> dict:
     """Build synthetic merged runtime view from V2 model for declared majors."""
@@ -717,7 +816,7 @@ def _build_declared_plan_data_v2(
     all_maps = []
 
     for major_id in declared_majors:
-        major_track = selected_track_id if track_parent.get(selected_track_id or "", "") == major_id else None
+        major_track = next((t for t in selected_track_ids if track_parent.get(t, "") == major_id), None)
         major_data = _build_single_major_data_v2(data, major_id, major_track)
         buckets = major_data["buckets_df"].copy()
         course_map = major_data["course_bucket_map_df"].copy()
@@ -1015,13 +1114,21 @@ def _resolve_program_selection(body, data: dict):
                 },
             }, 400)
 
-    selected_track_id = None
-    raw_track = body.get("track_id", None)
-    if raw_track not in (None, "", "__NONE__"):
-        selected_track_id = str(raw_track).strip().upper()
+    # Support track_ids (array) and legacy track_id (single) — normalise to list.
+    selected_track_ids = []
+    raw_track_ids = body.get("track_ids", None)
+    if raw_track_ids is None:
+        raw_single = body.get("track_id", None)
+        raw_track_ids = [raw_single] if raw_single not in (None, "", "__NONE__") else []
+
+    seen_parent_majors: set[str] = set()
+    for raw_track in (raw_track_ids or []):
+        if raw_track in (None, "", "__NONE__"):
+            continue
+        t_id = str(raw_track).strip().upper()
         if using_v2_catalog:
-            selected_track_id = alias_map.get(selected_track_id, selected_track_id)
-        track_row = selectable_catalog_df[selectable_catalog_df["track_id"] == selected_track_id]
+            t_id = alias_map.get(t_id, t_id)
+        track_row = selectable_catalog_df[selectable_catalog_df["track_id"] == t_id]
         if len(track_row) == 0:
             return None, (_build_unknown_track_error(str(raw_track).strip()), 400)
         track_row = track_row.iloc[0]
@@ -1030,7 +1137,7 @@ def _resolve_program_selection(body, data: dict):
                 "mode": "error",
                 "error": {
                     "error_code": "INVALID_INPUT",
-                    "message": f"track_id '{selected_track_id}' is not a track.",
+                    "message": f"track_id '{t_id}' is not a track.",
                 },
             }, 400)
         parent_major_id = str(track_row.get("parent_major_id", "") or "").strip().upper()
@@ -1040,38 +1147,50 @@ def _resolve_program_selection(body, data: dict):
                 "error": {
                     "error_code": "TRACK_MAJOR_MISMATCH",
                     "message": (
-                        f"Track '{_program_label(selected_track_id)}' does not belong to declared majors "
+                        f"Track '{_program_label(t_id)}' does not belong to declared majors "
                         f"{[_program_label(mid) for mid in declared_majors]}."
                     ),
                 },
             }, 400)
+        if parent_major_id in seen_parent_majors:
+            return None, ({
+                "mode": "error",
+                "error": {
+                    "error_code": "DUPLICATE_TRACK_MAJOR",
+                    "message": "Cannot select two tracks for the same major.",
+                },
+            }, 400)
+        seen_parent_majors.add(parent_major_id)
         if not track_row.get("active", True):
             warnings.append(
-                f"Track '{_program_label(selected_track_id)}' is not yet published (active=0). "
+                f"Track '{_program_label(t_id)}' is not yet published (active=0). "
                 "Results may be incomplete."
             )
+        selected_track_ids.append(t_id)
 
-    selected_program_ids = list(dict.fromkeys(
-        declared_majors + ([selected_track_id] if selected_track_id else [])
-    ))
+    selected_program_ids = list(dict.fromkeys(declared_majors + selected_track_ids))
     if using_v2_catalog:
         effective_data = _build_declared_plan_data_v2(
             data,
             declared_majors,
-            selected_track_id,
+            selected_track_ids,
             catalog_df,
         )
     else:
         effective_data = _build_declared_plan_data(data, selected_program_ids, catalog_df)
     selected_program_labels = [_program_label(pid) for pid in selected_program_ids]
     declared_major_labels = [_program_label(mid) for mid in declared_majors]
-    selected_track_label = _program_label(selected_track_id) if selected_track_id else None
+    selected_track_label = (
+        _program_label(selected_track_ids[0]) if len(selected_track_ids) == 1
+        else (", ".join(_program_label(t) for t in selected_track_ids) if selected_track_ids else None)
+    )
 
     return {
         "mode": "declared",
         "declared_majors": declared_majors,
         "declared_major_labels": declared_major_labels,
-        "selected_track_id": selected_track_id,
+        "selected_track_id": selected_track_ids[0] if len(selected_track_ids) == 1 else None,
+        "selected_track_ids": selected_track_ids,
         "selected_track_label": selected_track_label,
         "selected_program_ids": selected_program_ids,
         "selected_program_labels": selected_program_labels,
@@ -1359,6 +1478,12 @@ def recommend():
             "error": {"error_code": err_code, "message": err_msg},
         }), 400
 
+    cache_key = _request_cache_key("recommend", body)
+    if _cache_enabled():
+        cached = _recommend_response_cache.get(cache_key)
+        if cached is not None:
+            return jsonify(cached)
+
     # Recommendations require an explicit major selection from the UI.
     # Keep backward-compatible track-only calls only when a track_id is provided.
     declared_majors_raw = body.get("declared_majors", None)
@@ -1484,11 +1609,6 @@ def recommend():
         effective_track_id,
     )
 
-    try:
-        target_term = parse_term(target_semester_primary)
-    except ValueError:
-        target_term = "Fall"
-
     requested_course = None
     if requested_course_raw:
         requested_course = normalize_code(str(requested_course_raw).strip())
@@ -1502,16 +1622,6 @@ def recommend():
                     "not_in_catalog": [requested_course],
                 },
             })
-
-    if requested_course:
-        result = check_can_take(
-            requested_course,
-            effective_data["courses_df"],
-            completed,
-            in_progress,
-            target_term,
-            effective_data["prereq_map"],
-        )
 
     explicit_labels = [
         target_semester_secondary,
@@ -1587,6 +1697,8 @@ def recommend():
             response["program_warnings"] = selection["program_warnings"]
     if track_warning:
         response["track_warning"] = track_warning
+    if _cache_enabled():
+        _recommend_response_cache.set(cache_key, response)
     return jsonify(response)
 
 @app.route("/can-take", methods=["POST"])
@@ -1600,13 +1712,19 @@ def can_take_endpoint():
     if not body:
         return jsonify({"mode": "can_take", "error": "Invalid JSON body."}), 400
 
+    cache_key = _request_cache_key("can_take", body)
+    if _cache_enabled():
+        cached = _can_take_response_cache.get(cache_key)
+        if cached is not None:
+            return jsonify(cached)
+
     requested_course_raw = str(body.get("requested_course") or "").strip()
     if not requested_course_raw:
         return jsonify({"mode": "can_take", "error": "requested_course is required."}), 400
 
     requested_course = normalize_code(requested_course_raw)
     if not requested_course or requested_course not in _data["catalog_codes"]:
-        return jsonify({
+        response_payload = {
             "mode": "can_take",
             "requested_course": requested_course or requested_course_raw,
             "can_take": False,
@@ -1615,7 +1733,10 @@ def can_take_endpoint():
             "not_offered_this_term": False,
             "unsupported_prereq_format": False,
             "next_best_alternatives": [],
-        })
+        }
+        if _cache_enabled():
+            _can_take_response_cache.set(cache_key, response_payload)
+        return jsonify(response_payload)
 
     # Normalize completed / in-progress course lists (same logic as /recommend)
     catalog_codes = _data["catalog_codes"]
@@ -1662,7 +1783,7 @@ def can_take_endpoint():
         effective_data["prereq_map"],
     )
 
-    return jsonify({
+    response_payload = {
         "mode": "can_take",
         "requested_course": requested_course,
         "can_take": result["can_take"],
@@ -1671,7 +1792,30 @@ def can_take_endpoint():
         "not_offered_this_term": result["not_offered_this_term"],
         "unsupported_prereq_format": result["unsupported_prereq_format"],
         "next_best_alternatives": [],
-    })
+    }
+    if _cache_enabled():
+        _can_take_response_cache.set(cache_key, response_payload)
+    return jsonify(response_payload)
+
+@app.route("/validate-prereqs", methods=["POST"])
+def validate_prereqs_endpoint():
+    """Lightweight prereq inconsistency check used by the onboarding CoursesStep."""
+    _refresh_data_if_needed()
+    if not _data:
+        return jsonify({"inconsistencies": []}), 200
+
+    body = request.get_json(force=True, silent=True) or {}
+    catalog_codes = _data["catalog_codes"]
+    comp_result = normalize_input(_coerce_course_list(body.get("completed_courses")), catalog_codes)
+    ip_result = normalize_input(_coerce_course_list(body.get("in_progress_courses")), catalog_codes)
+    completed = comp_result["valid"]
+    in_progress = ip_result["valid"]
+
+    inconsistencies = find_inconsistent_completed_courses(
+        completed, in_progress, _data["prereq_map"]
+    )
+    return jsonify({"inconsistencies": inconsistencies})
+
 
 # -- Canonical API routes for Next.js frontend ------------------------
 # `/courses` is intentionally left to SPA routing.
@@ -1680,6 +1824,7 @@ app.add_url_rule("/api/courses", endpoint="api_courses", view_func=get_courses, 
 app.add_url_rule("/api/programs", endpoint="api_programs", view_func=get_programs, methods=["GET"])
 app.add_url_rule("/api/recommend", endpoint="api_recommend", view_func=recommend, methods=["POST"])
 app.add_url_rule("/api/can-take", endpoint="api_can_take", view_func=can_take_endpoint, methods=["POST"])
+app.add_url_rule("/api/validate-prereqs", endpoint="api_validate_prereqs", view_func=validate_prereqs_endpoint, methods=["POST"])
 
 
 # -- API catch-all (404 for unknown /api/* routes) -------------------

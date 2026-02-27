@@ -8,6 +8,28 @@ Format per release:
 
 ---
 
+## [v1.9.3] - 2026-02-27
+
+### Changes
+- Redesigned planner to a 45/55 dual-column layout: Progress on the left, Recommendations on the right.
+- Merged Profile and Preferences into one side-by-side modal (edit pencil icon in the header).
+- Added "Get Recommendations" button inside the modal — it auto-closes and fetches your plan.
+- Moved "Can I Take This?" inline above the semester tabs for quicker access.
+- Removed the left sidebar — all settings now live in the Profile & Preferences modal.
+- Enlarged text in semester detail views for easier reading.
+- Standardized all warnings to red for clearer visibility (removed yellow warning icons).
+- Completed degree buckets now show in green in the Degree Summary.
+- Scaled up progress ring, KPI cards, and degree summary for the wider layout.
+- Semester tab buttons auto-adapt height based on how many semesters are shown.
+
+### Design Decisions
+- 45/55 split gives recommendations more horizontal space since they contain the most detail, while progress and degree summary benefit from full vertical height.
+- Merging profile and preferences into one modal reduces clicks and keeps the main viewport focused on results.
+- Inline Can-I-Take above semester tabs is contextually closer to the recommendations it relates to.
+- Red-only warnings are simpler to scan than mixed yellow/red severity levels.
+
+---
+
 ## [v1.9.2] - 2026-02-25
 
 ### Changes

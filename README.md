@@ -1,6 +1,5 @@
 # MarqBot
-
-![Version](https://img.shields.io/badge/version-v1.9.2-003366?style=for-the-badge\&logo=bookstack\&logoColor=ffcc00)
+![Version](https://img.shields.io/badge/version-v1.9.3-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
 ![Audience](https://img.shields.io/badge/audience-students%20%26%20advisors-0A7E8C?style=for-the-badge)
 
 MarqBot is a course-planning helper for Marquette business students.
@@ -34,7 +33,7 @@ It helps students understand where they are in their degree and what classes to 
 * `scripts/` — Helper scripts for local development
 * `tests/` — Automated backend and frontend tests
 * `infra/` — Deployment and hosting configuration
-* `mds/` — Planning documents and release notes
+* `docs/` — Planning documents and release notes
 * `eval/` — Evaluation assets for recommendation quality
 
 ---
@@ -146,7 +145,7 @@ python scripts/run_local.py
 # Quick Troubleshooting
 
 * **`python` not found**
-  Reinstall Python and make sure “Add Python to PATH” is checked.
+  Reinstall Python and make sure "Add Python to PATH" is checked.
 
 * **`npm` not found**
   Install Node.js (LTS), then reopen your terminal.
@@ -170,7 +169,7 @@ python scripts/run_local.py
 2. Select your major (and track, if applicable)
 3. Enter completed and in-progress courses
 4. Review recommended courses
-5. Use “Can I Take This Next Semester?” to check a specific class
+5. Use "Can I Take This Next Semester?" to check a specific class
 6. Adjust inputs and compare outcomes
 
 ---

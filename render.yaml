@@ -4,6 +4,17 @@ services:
     runtime: docker
     dockerfilePath: ./infra/docker/Dockerfile
     dockerContext: .
+    healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: GUNICORN_TIMEOUT
+        value: "90"
+      - key: GUNICORN_GRACEFUL_TIMEOUT
+        value: "30"
+      - key: REQUEST_CACHE_SIZE
+        value: "128"
+      - key: SLOW_REQUEST_LOG_MS
+        value: "750"

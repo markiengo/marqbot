@@ -112,7 +112,7 @@ export interface SessionSnapshot {
   maxRecs: string;
   canTake: string;
   declaredMajors: string[];
-  declaredTrack: string;
+  declaredTracks: string[];
   activeNavTab: string;
   onboardingComplete?: boolean;
   lastRecommendationData?: RecommendationResponse | null;
@@ -125,7 +125,7 @@ export interface AppState {
   completed: Set<string>;
   inProgress: Set<string>;
   selectedMajors: Set<string>;
-  selectedTrack: string | null;
+  selectedTracks: string[];
   targetSemester: string;
   semesterCount: string;
   maxRecs: string;

@@ -22,4 +22,4 @@ COPY backend ./backend
 COPY marquette_courses_full.xlsx ./marquette_courses_full.xlsx
 COPY --from=frontend_builder /app/frontend/out ./frontend/out
 
-CMD ["sh", "-c", "gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB_CONCURRENCY:-2} --timeout 120"]
+CMD ["sh", "-c", "gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB_CONCURRENCY:-1} --timeout ${GUNICORN_TIMEOUT:-90} --graceful-timeout ${GUNICORN_GRACEFUL_TIMEOUT:-30}"]

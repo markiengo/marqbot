@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { WizardLayout } from "@/components/onboarding/WizardLayout";
 import { MajorStep } from "@/components/onboarding/MajorStep";
@@ -14,6 +15,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const courses = useCourses();
   const programs = usePrograms();
+  const [prereqWarning, setPrereqWarning] = useState(false);
   const {
     currentStep,
     stepIndex,
@@ -48,7 +50,7 @@ export default function OnboardingPage() {
   return (
     <WizardLayout currentStep={stepIndex} totalSteps={totalSteps}>
       {currentStep === "majors" && <MajorStep />}
-      {currentStep === "courses" && <CoursesStep />}
+      {currentStep === "courses" && <CoursesStep onWarningChange={setPrereqWarning} />}
       {currentStep === "preferences" && <PreferencesStep />}
 
       {/* Secondary-only warning */}
@@ -77,7 +79,7 @@ export default function OnboardingPage() {
               variant="primary"
               size="lg"
               onClick={next}
-              disabled={!canProceed()}
+              disabled={!canProceed() || (currentStep === "courses" && prereqWarning)}
             >
               Continue
             </Button>
