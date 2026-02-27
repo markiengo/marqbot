@@ -31,7 +31,7 @@ export function CTASection() {
             <div className="pt-1">
               <Link href="/onboarding">
                 <Button variant="gold" size="lg" className="shadow-[0_0_18px_rgba(255,204,0,0.18)]">
-                  Get Started Free
+                  Get Started Only
                 </Button>
               </Link>
             </div>
