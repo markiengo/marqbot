@@ -53,7 +53,7 @@ export default function OnboardingPage() {
 
       {/* Secondary-only warning */}
       {currentStep === "majors" && onlySecondary() && (
-        <div className="bg-warn-light rounded-xl p-3 mt-4 text-sm text-warn">
+        <div className="bg-warn-light rounded-xl p-4 mt-4 text-base text-warn">
           This major must be paired with a primary major. Please add a primary major to continue.
         </div>
       )}
@@ -62,19 +62,20 @@ export default function OnboardingPage() {
       <div className="flex items-center justify-between mt-8 pt-6 border-t border-border-subtle">
         <div>
           {!isFirst && (
-            <Button variant="ghost" onClick={back}>
+            <Button variant="ghost" size="lg" onClick={back}>
               Back
             </Button>
           )}
         </div>
         <div>
           {isLast ? (
-            <Button variant="gold" onClick={handleFinish}>
+            <Button variant="gold" size="lg" onClick={handleFinish}>
               Start Planning
             </Button>
           ) : (
             <Button
               variant="primary"
+              size="lg"
               onClick={next}
               disabled={!canProceed()}
             >

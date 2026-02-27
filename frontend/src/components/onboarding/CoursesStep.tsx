@@ -9,10 +9,10 @@ export function CoursesStep() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
+        <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
           What courses have you taken?
         </h2>
-        <p className="text-sm text-ink-muted mt-1">
+        <p className="text-base text-ink-muted mt-1">
           Add your completed and in-progress courses so we can give accurate
           recommendations. You can skip this and add them later.
         </p>

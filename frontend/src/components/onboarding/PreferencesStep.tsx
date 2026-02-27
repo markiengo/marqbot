@@ -13,10 +13,10 @@ export function PreferencesStep() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
+        <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
           Preferences
         </h2>
-        <p className="text-sm text-ink-muted mt-1">
+        <p className="text-base text-ink-muted mt-1">
           Tell us about your target semester and how many recommendations you
           want.
         </p>
@@ -25,7 +25,7 @@ export function PreferencesStep() {
       <div className="space-y-4">
         {/* Target semester */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-ink-secondary">
+          <label className="text-base font-medium text-ink-secondary">
             Target semester
           </label>
           <select
@@ -33,7 +33,7 @@ export function PreferencesStep() {
             onChange={(e) =>
               dispatch({ type: "SET_TARGET_SEMESTER", payload: e.target.value })
             }
-            className="w-full px-3 py-2.5 bg-surface-input border border-border-medium rounded-xl text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40"
+            className="w-full px-4 py-3 bg-surface-input border border-border-medium rounded-xl text-base text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40"
           >
             {SEMESTER_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -45,7 +45,7 @@ export function PreferencesStep() {
 
         {/* Semester count */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-ink-secondary">
+          <label className="text-base font-medium text-ink-secondary">
             How many semesters to plan?
           </label>
           <div className="flex gap-2">
@@ -56,7 +56,7 @@ export function PreferencesStep() {
                 onClick={() =>
                   dispatch({ type: "SET_SEMESTER_COUNT", payload: o.value })
                 }
-                className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                className={`flex-1 px-4 py-3 rounded-xl text-base font-medium transition-all cursor-pointer ${
                   state.semesterCount === o.value
                     ? "bg-gold text-navy-dark"
                     : "bg-surface-card text-ink-secondary hover:bg-surface-hover border border-border-subtle"
@@ -70,7 +70,7 @@ export function PreferencesStep() {
 
         {/* Max recommendations */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-ink-secondary">
+          <label className="text-base font-medium text-ink-secondary">
             Courses per semester
           </label>
           <div className="flex gap-2">
@@ -81,7 +81,7 @@ export function PreferencesStep() {
                 onClick={() =>
                   dispatch({ type: "SET_MAX_RECS", payload: o.value })
                 }
-                className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                className={`flex-1 px-4 py-3 rounded-xl text-base font-medium transition-all cursor-pointer ${
                   state.maxRecs === o.value
                     ? "bg-gold text-navy-dark"
                     : "bg-surface-card text-ink-secondary hover:bg-surface-hover border border-border-subtle"

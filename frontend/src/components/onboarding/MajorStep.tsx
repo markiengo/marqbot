@@ -102,12 +102,12 @@ export function MajorStep() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
+        <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
           What&apos;s your major?
         </h2>
-        <p className="text-sm text-ink-muted mt-1">
+        <p className="text-base text-ink-muted mt-1">
           Select up to {MAX_MAJORS} majors. This determines which requirement
           buckets we track.
         </p>
@@ -145,7 +145,7 @@ export function MajorStep() {
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder="Search majors..."
-            className="w-full px-3 py-2.5 bg-surface-input border border-border-medium rounded-xl text-sm text-ink-primary placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-gold/40"
+            className="w-full px-4 py-3 bg-surface-input border border-border-medium rounded-xl text-base text-ink-primary placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-gold/40"
             role="combobox"
             aria-expanded={isOpen}
             aria-autocomplete="list"
@@ -166,7 +166,7 @@ export function MajorStep() {
                   role="option"
                   aria-selected={idx === highlightIdx}
                   onClick={() => selectMajor(m.id)}
-                  className={`w-full text-left px-4 py-2.5 text-sm cursor-pointer transition-colors ${
+                  className={`w-full text-left px-4 py-3 text-base cursor-pointer transition-colors ${
                     idx === highlightIdx
                       ? "bg-gold/15 text-gold"
                       : "text-ink-secondary hover:bg-surface-hover"
@@ -192,7 +192,7 @@ export function MajorStep() {
       {/* Track selector */}
       {availableTracks.length > 0 && (
         <div className="space-y-2">
-          <label className="text-sm font-medium text-ink-secondary">
+          <label className="text-base font-medium text-ink-secondary">
             Select a track (optional)
           </label>
           <select
@@ -200,7 +200,7 @@ export function MajorStep() {
             onChange={(e) =>
               dispatch({ type: "SET_TRACK", payload: e.target.value || null })
             }
-            className="w-full px-3 py-2.5 bg-surface-input border border-border-medium rounded-xl text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40"
+            className="w-full px-4 py-3 bg-surface-input border border-border-medium rounded-xl text-base text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40"
           >
             <option value="">Default track</option>
             {availableTracks.map((t) => (
