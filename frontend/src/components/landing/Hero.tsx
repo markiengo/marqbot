@@ -66,24 +66,16 @@ export function Hero() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3"
+            className="flex items-center justify-center"
           >
             <Link href="/onboarding">
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   variant="gold"
                   size="lg"
-                  className="shadow-[0_0_16px_rgba(255,204,0,0.2)] hover:shadow-[0_0_22px_rgba(255,204,0,0.28)] transition-shadow"
+                  className="min-w-[220px] shadow-[0_0_16px_rgba(255,204,0,0.2)] hover:shadow-[0_0_22px_rgba(255,204,0,0.28)] transition-shadow"
                 >
                   Get Started
-                </Button>
-              </motion.div>
-            </Link>
-
-            <Link href="/planner">
-              <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                <Button variant="secondary" size="lg" className="border-white/20">
-                  Jump to Planner
                 </Button>
               </motion.div>
             </Link>
