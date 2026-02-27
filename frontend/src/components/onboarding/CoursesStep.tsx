@@ -7,7 +7,7 @@ export function CoursesStep() {
   const { state, dispatch } = useAppContext();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div>
         <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
           What courses have you taken?
@@ -19,7 +19,7 @@ export function CoursesStep() {
       </div>
 
       {/* Completed courses */}
-      <div className="space-y-2">
+      <div className="space-y-2 pt-1">
         <label className="text-sm font-medium text-ink-secondary">
           Completed courses
         </label>
