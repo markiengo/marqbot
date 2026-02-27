@@ -7,13 +7,14 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
-  size?: "default" | "large";
+  size?: "default" | "large" | "planner-detail";
   children: React.ReactNode;
 }
 
 const sizeClasses = {
   default: "max-w-2xl w-full max-h-[85vh]",
   large: "w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] max-w-none",
+  "planner-detail": "w-full max-w-[95vw] max-h-[90vh] md:max-w-[70vw] md:max-h-[70vh]",
 };
 
 export function Modal({ open, onClose, title, size = "default", children }: ModalProps) {

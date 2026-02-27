@@ -32,7 +32,7 @@ export function SemesterModal({
     <Modal
       open={open}
       onClose={onClose}
-      size="large"
+      size="planner-detail"
       title={`Semester ${index + 1}${semester.target_semester ? ` \u2014 ${semester.target_semester}` : ""}`}
     >
       <div className="space-y-6">

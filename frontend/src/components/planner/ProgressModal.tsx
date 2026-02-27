@@ -27,7 +27,7 @@ export function ProgressModal({
   const notes = (assumptionNotes || []).filter(Boolean);
 
   return (
-    <Modal open={open} onClose={onClose} size="large" title="Degree Progress">
+    <Modal open={open} onClose={onClose} size="planner-detail" title="Degree Progress">
       <div className="space-y-8">
         {/* Top section: ring + credit metrics */}
         <div className="flex flex-col sm:flex-row items-center gap-8">
