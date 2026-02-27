@@ -9,7 +9,7 @@ const MAJOR_LABEL_OVERRIDES: Record<string, string> = {
   "IS Major": "Information Systems",
   "BUAN Major": "Business Analytics",
   "OSCM Major": "Operations & Supply Chain Management",
-  "AIM Major": "Applied Investment Management",
+  "AIM Major": "AIM - Accerlerating Ingenuinty in Markets",
 };
 
 export async function loadCourses(): Promise<Course[]> {
@@ -25,11 +25,13 @@ export async function loadPrograms(): Promise<ProgramsData> {
   const data = await res.json();
   return {
     majors: (data.majors ?? []).map((m: Record<string, unknown>) => {
+      const majorId = String(m.major_id || m.id || "");
       const rawLabel = String(m.label || m.major_id || m.id || "");
       return {
-        id: m.major_id ?? m.id,
+        id: majorId,
         label: MAJOR_LABEL_OVERRIDES[rawLabel] || rawLabel,
-        requires_primary_major: Boolean(m.requires_primary_major),
+        requires_primary_major:
+          majorId === "AIM_MAJOR" ? true : Boolean(m.requires_primary_major),
       };
     }),
     tracks: (data.tracks ?? []).map((t: Record<string, unknown>) => ({

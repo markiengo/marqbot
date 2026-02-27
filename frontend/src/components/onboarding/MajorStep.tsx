@@ -174,7 +174,7 @@ export function MajorStep() {
                 >
                   {m.label}
                   {m.requires_primary_major && (
-                    <span className="text-xs text-ink-faint ml-2">(requires primary)</span>
+                    <span className="text-xs font-medium text-ink-faint ml-2">(requires primary)</span>
                   )}
                 </button>
               ))}
