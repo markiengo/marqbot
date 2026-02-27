@@ -137,11 +137,14 @@ export function filterCourses(
 ): Course[] {
   const q = query.toLowerCase().trim();
   if (!q) return [];
+  const tokens = q.split(/\s+/).filter(Boolean);
   return courses
     .filter(
-      (c) =>
-        !excludeSet.has(c.course_code) &&
-        c.course_code.toLowerCase().includes(q),
+      (c) => {
+        if (excludeSet.has(c.course_code)) return false;
+        const haystack = `${c.course_code ?? ""} ${c.course_name ?? ""}`.toLowerCase();
+        return tokens.every((token) => haystack.includes(token));
+      },
     )
     .sort((a, b) => {
       const aLevel = Number(a?.level);

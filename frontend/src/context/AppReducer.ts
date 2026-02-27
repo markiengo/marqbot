@@ -6,7 +6,7 @@ export type AppAction =
   | { type: "SET_PROGRAMS"; payload: ProgramsData }
   | { type: "ADD_MAJOR"; payload: string }
   | { type: "REMOVE_MAJOR"; payload: string }
-  | { type: "SET_TRACK"; payload: string | null }
+  | { type: "SET_TRACK"; payload: { majorId: string; trackId: string | null } }
   | { type: "ADD_COMPLETED"; payload: string }
   | { type: "REMOVE_COMPLETED"; payload: string }
   | { type: "ADD_IN_PROGRESS"; payload: string }
@@ -26,7 +26,7 @@ export const initialState: AppState = {
   completed: new Set<string>(),
   inProgress: new Set<string>(),
   selectedMajors: new Set<string>(),
-  selectedTrack: null,
+  selectedTracks: [],
   targetSemester: DEFAULT_SEMESTER,
   semesterCount: DEFAULT_SEMESTER_COUNT,
   maxRecs: DEFAULT_MAX_RECS,
@@ -54,11 +54,24 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "REMOVE_MAJOR": {
       const next = new Set(state.selectedMajors);
       next.delete(action.payload);
-      return { ...state, selectedMajors: next };
+      // Also clear any track whose parent_major_id matches the removed major
+      const nextTracks = state.selectedTracks.filter((tid) => {
+        const tr = state.programs.tracks.find((t) => t.id === tid);
+        return tr?.parent_major_id !== action.payload;
+      });
+      return { ...state, selectedMajors: next, selectedTracks: nextTracks };
     }
 
-    case "SET_TRACK":
-      return { ...state, selectedTrack: action.payload };
+    case "SET_TRACK": {
+      const { majorId, trackId } = action.payload;
+      // Remove any existing track for this major, then add the new one
+      const filtered = state.selectedTracks.filter((tid) => {
+        const tr = state.programs.tracks.find((t) => t.id === tid);
+        return tr?.parent_major_id !== majorId;
+      });
+      const nextTracks = trackId ? [...filtered, trackId] : filtered;
+      return { ...state, selectedTracks: nextTracks };
+    }
 
     case "ADD_COMPLETED": {
       const nextCompleted = new Set(state.completed);
@@ -132,13 +145,19 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const selectedMajors = new Set(
         (snap.declaredMajors || []).filter(Boolean),
       );
+      // Support new declaredTracks array; fall back to legacy declaredTrack string
+      const selectedTracks = Array.isArray(snap.declaredTracks)
+        ? snap.declaredTracks.filter(Boolean)
+        : (snap as unknown as { declaredTrack?: string }).declaredTrack
+          ? [(snap as unknown as { declaredTrack: string }).declaredTrack]
+          : [];
 
       return {
         ...state,
         completed,
         inProgress,
         selectedMajors,
-        selectedTrack: snap.declaredTrack || null,
+        selectedTracks,
         targetSemester: snap.targetSemester || DEFAULT_SEMESTER,
         semesterCount: snap.semesterCount || DEFAULT_SEMESTER_COUNT,
         maxRecs: snap.maxRecs || DEFAULT_MAX_RECS,
@@ -151,7 +170,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     }
 
     case "MARK_ONBOARDING_COMPLETE":
-      return { ...state, onboardingComplete: true };
+      return { ...state, onboardingComplete: true, lastRecommendationData: null };
 
     default:
       return state;

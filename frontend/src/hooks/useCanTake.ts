@@ -28,7 +28,8 @@ export function useCanTake() {
           target_semester: state.targetSemester,
         };
         if (majors.length > 0) payload.declared_majors = majors;
-        if (state.selectedTrack) payload.track_id = state.selectedTrack;
+        if (state.selectedTracks.length > 0) payload.track_ids = state.selectedTracks;
+        if (state.selectedTracks.length === 1) payload.track_id = state.selectedTracks[0];
 
         const result = await postCanTake(payload);
         if (id !== reqId.current) return null;
@@ -43,7 +44,7 @@ export function useCanTake() {
         if (id === reqId.current) setLoading(false);
       }
     },
-    [state.completed, state.inProgress, state.targetSemester, state.selectedMajors, state.selectedTrack],
+    [state.completed, state.inProgress, state.targetSemester, state.selectedMajors, state.selectedTracks],
   );
 
   return { data, loading, error, checkCanTake };

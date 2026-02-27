@@ -1,10 +1,49 @@
 "use client";
 
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { MultiSelect } from "@/components/shared/MultiSelect";
+import { postValidatePrereqs } from "@/lib/api";
 
-export function CoursesStep() {
+interface CoursesStepProps {
+  onWarningChange?: (hasWarning: boolean) => void;
+}
+
+export function CoursesStep({ onWarningChange }: CoursesStepProps) {
   const { state, dispatch } = useAppContext();
+  const [inconsistencies, setInconsistencies] = useState<
+    { course_code: string; prereqs_in_progress: string[] }[]
+  >([]);
+
+  // Stable ref so the check callback doesn't depend on the parent's callback identity
+  const onWarningChangeRef = useRef(onWarningChange);
+  useEffect(() => {
+    onWarningChangeRef.current = onWarningChange;
+  }, [onWarningChange]);
+
+  const check = useCallback(async () => {
+    if (state.completed.size === 0 || state.inProgress.size === 0) {
+      setInconsistencies([]);
+      onWarningChangeRef.current?.(false);
+      return;
+    }
+    try {
+      const result = await postValidatePrereqs({
+        completed_courses: [...state.completed].join(", "),
+        in_progress_courses: [...state.inProgress].join(", "),
+      });
+      setInconsistencies(result.inconsistencies);
+      onWarningChangeRef.current?.(result.inconsistencies.length > 0);
+    } catch {
+      setInconsistencies([]);
+      onWarningChangeRef.current?.(false);
+    }
+  }, [state.completed, state.inProgress]);
+
+  useEffect(() => {
+    const timer = setTimeout(check, 400);
+    return () => clearTimeout(timer);
+  }, [check]);
 
   return (
     <div className="space-y-3">
@@ -49,6 +88,26 @@ export function CoursesStep() {
           resolveLabel={(code) => code}
         />
       </div>
+
+      {/* Prereq inconsistency warning */}
+      {inconsistencies.length > 0 && (
+        <div className="bg-bad-light rounded-xl p-4 text-sm text-bad">
+          <p className="font-semibold mb-1">
+            Some completed courses have prerequisites still in-progress:
+          </p>
+          <ul className="list-disc list-inside space-y-0.5">
+            {inconsistencies.map((i) => (
+              <li key={i.course_code}>
+                <span className="font-medium">{i.course_code}</span> needs:{" "}
+                {i.prereqs_in_progress.join(", ")}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs opacity-80">
+            Move these to in-progress, or remove the courses that list them as prerequisites.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
