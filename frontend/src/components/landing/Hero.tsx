@@ -85,7 +85,7 @@ export function Hero() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.4 }}
-            className="text-xs text-ink-faint"
+            className="text-[17px] text-ink-faint"
           >
             No sign-up required &middot; Works instantly
           </motion.p>
