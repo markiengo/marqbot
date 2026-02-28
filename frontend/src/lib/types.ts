@@ -56,6 +56,10 @@ export interface BucketProgress {
   in_progress_applied?: string[];
   satisfied?: boolean;
   label?: string;
+  requirement_mode?: string;
+  needed_count?: number;
+  completed_courses?: number;
+  in_progress_courses?: number;
 }
 
 export interface SelectionContext {

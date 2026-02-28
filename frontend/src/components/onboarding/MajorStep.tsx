@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useId, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { Chip } from "@/components/shared/Chip";
 import {
@@ -40,26 +40,6 @@ export function MajorStep() {
     tracks.forEach((t) => map.set(t.id, t));
     return map;
   }, [tracks]);
-  const tracksByMajor = useMemo(() => {
-    const map = new Map<string, (typeof tracks)>();
-    tracks.forEach((t) => {
-      const parent = String(t.parent_major_id || "").trim().toUpperCase();
-      if (!parent) return;
-      const existing = map.get(parent);
-      if (existing) existing.push(t);
-      else map.set(parent, [t]);
-    });
-    return map;
-  }, [tracks]);
-  const selectedTrackByMajor = useMemo(() => {
-    const map = new Map<string, string>();
-    state.selectedTracks.forEach((trackId) => {
-      const track = trackById.get(trackId);
-      const parent = String(track?.parent_major_id || "").trim().toUpperCase();
-      if (parent) map.set(parent, trackId);
-    });
-    return map;
-  }, [state.selectedTracks, trackById]);
 
   const selectedMajorBaseCodes = useMemo(
     () => new Set(selectedMajorIds.map((id) => id.replace("_MAJOR", ""))),
@@ -76,16 +56,28 @@ export function MajorStep() {
 
   // Discovery tracks (MCC_DISC children)
   const discoveryTracks = useMemo(
-    () => tracksByMajor.get(DISC_MAJOR_ID) ?? [],
-    [tracksByMajor],
+    () => tracks.filter((t) => String(t.parent_major_id || "").trim().toUpperCase() === DISC_MAJOR_ID),
+    [tracks],
   );
-  const selectedDiscoveryTrackId = selectedTrackByMajor.get(DISC_MAJOR_ID) ?? "";
-  const selectedDiscoveryTrack = discoveryTracks.find((t) => t.id === selectedDiscoveryTrackId);
-
-  // Majors with tracks (excluding discovery)
-  const majorsWithTracks = useMemo(
-    () => selectedMajorIds.filter((id) => (tracksByMajor.get(id) ?? []).length > 0),
-    [selectedMajorIds, tracksByMajor],
+  const programTracks = useMemo(
+    () => tracks.filter((t) => String(t.parent_major_id || "").trim().toUpperCase() !== DISC_MAJOR_ID),
+    [tracks],
+  );
+  const selectedProgramTracks = useMemo(
+    () =>
+      state.selectedTracks
+        .map((trackId) => trackById.get(trackId))
+        .filter(
+          (track): track is NonNullable<typeof track> =>
+            track !== undefined &&
+            track !== null &&
+            String(track.parent_major_id || "").trim().toUpperCase() !== DISC_MAJOR_ID,
+        ),
+    [state.selectedTracks, trackById],
+  );
+  const availableProgramTracks = useMemo(
+    () => programTracks.filter((t) => !state.selectedTracks.includes(t.id)),
+    [programTracks, state.selectedTracks],
   );
 
   // ── Major combobox state ─────────────────────────────────────────────────────
@@ -101,14 +93,22 @@ export function MajorStep() {
   const [minorHighlightIdx, setMinorHighlightIdx] = useState(0);
   const minorInputRef = useRef<HTMLInputElement>(null);
   const minorListRef = useRef<HTMLDivElement>(null);
-
-  // ── Track combobox state (keyed by majorId, reused for DISC_MAJOR_ID) ───────
   const [trackQuery, setTrackQuery] = useState<Record<string, string>>({});
   const [trackOpen, setTrackOpen] = useState<Record<string, boolean>>({});
-  const [trackRuleWarning, setTrackRuleWarning] = useState<string | null>(null);
   const trackInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const trackListRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const trackComboId = useId();
+  const trackComboId = "legacy-track";
+  const majorsWithTracks: string[] = [];
+  const tracksForMajor = useCallback(
+    (_majorId: string) => [] as (typeof tracks),
+    [],
+  );
+  const currentTrackForMajor = useCallback((_majorId: string) => "", []);
+  const selectedDiscoveryTrack = undefined as (typeof tracks)[number] | undefined;
+  const selectTrack = useCallback((_majorId: string, _trackId: string) => {}, []);
+
+  // ── Track combobox state (keyed by majorId, reused for DISC_MAJOR_ID) ───────
+  const [trackRuleWarning, setTrackRuleWarning] = useState<string | null>(null);
 
   const majorById = useMemo(() => {
     const map = new Map<string, (typeof majors)[number]>();
@@ -154,24 +154,14 @@ export function MajorStep() {
     },
     [atMinorLimit, dispatch],
   );
-  const tracksForMajor = useCallback(
-    (majorId: string) => tracksByMajor.get(majorId) ?? tracks.filter((t) => t.id.startsWith(majorId)),
-    [tracksByMajor, tracks],
-  );
-  const currentTrackForMajor = useCallback(
-    (majorId: string) => selectedTrackByMajor.get(majorId) ?? "",
-    [selectedTrackByMajor],
-  );
-  const selectTrack = useCallback(
-    (majorId: string, trackId: string) => {
+  const addStandaloneTrack = useCallback(
+    (trackId: string) => {
       if (trackId === AIM_CFA_TRACK_ID && !hasFinanceMajor) {
         setTrackRuleWarning(AIM_CFA_FINANCE_RULE_MSG);
         return;
       }
       setTrackRuleWarning(null);
-      dispatch({ type: "SET_TRACK", payload: { majorId, trackId } });
-      setTrackOpen((o) => ({ ...o, [majorId]: false }));
-      setTrackQuery((q) => ({ ...q, [majorId]: "" }));
+      dispatch({ type: "ADD_TRACK", payload: trackId });
     },
     [dispatch, hasFinanceMajor],
   );
@@ -200,20 +190,6 @@ export function MajorStep() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const target = e.target as Node;
-      Object.keys(trackOpen).forEach((mid) => {
-        if (!trackOpen[mid]) return;
-        const inputEl = trackInputRefs.current[mid];
-        const listEl = trackListRefs.current[mid];
-        if (inputEl && !inputEl.contains(target) && listEl && !listEl.parentElement?.contains(target))
-          setTrackOpen((o) => ({ ...o, [mid]: false }));
-      });
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [trackOpen]);
 
   // Scroll highlighted major item into view
   useEffect(() => {
@@ -310,6 +286,44 @@ export function MajorStep() {
       </div>
 
       {/* ── 2. Minors ─────────────────────────────────────────────────────────── */}
+      <div>
+        <SectionLabel title="Track / Concentration" sub="optional separate program" />
+        <div className="flex flex-wrap gap-1.5 min-h-[26px] mb-1.5">
+          <AnimatePresence mode="popLayout">
+            {selectedProgramTracks.map((track) => (
+              <Chip
+                key={track.id}
+                label={track.label}
+                variant="navy"
+                onRemove={() => dispatch({ type: "REMOVE_TRACK", payload: track.id })}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+        <select
+          onChange={(e) => {
+            if (e.target.value) {
+              addStandaloneTrack(e.target.value);
+              e.target.value = "";
+            }
+          }}
+          defaultValue=""
+          className={inputCls}
+        >
+          <option value="">Add track or concentration...</option>
+          {availableProgramTracks.map((track) => (
+            <option key={track.id} value={track.id}>
+              {track.label}
+            </option>
+          ))}
+        </select>
+        {effectiveTrackRuleWarning && (
+          <div className="bg-bad-light rounded-xl p-3 text-xs text-bad mt-2">
+            {effectiveTrackRuleWarning}
+          </div>
+        )}
+      </div>
+
       {minors.length > 0 && (
         <div>
           <SectionLabel title="Minor(s)" sub="optional" />
@@ -396,8 +410,9 @@ export function MajorStep() {
       )}
 
       {/* ── 3. Concentration / Track ──────────────────────────────────────────── */}
-      <div>
-        <SectionLabel title="Concentration / Track" sub="optional" />
+      {false && (
+        <div>
+          <SectionLabel title="Concentration / Track" sub="optional" />
         {effectiveTrackRuleWarning && (
           <div className="bg-bad-light rounded-xl p-3 text-xs text-bad mb-2">
             {effectiveTrackRuleWarning}
@@ -485,7 +500,8 @@ export function MajorStep() {
             })}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* ── 4. Discovery Theme ────────────────────────────────────────────────── */}
       {discoveryTracks.length > 0 && (

@@ -48,6 +48,31 @@ export function RecommendationsPanel({
     );
   }
 
+  const currentProgress = data.current_progress;
+  const allSatisfied =
+    !!currentProgress &&
+    Object.values(currentProgress)
+      .filter((p) => (p.needed ?? 0) > 0)
+      .every((p) => p.satisfied);
+
+  if (allSatisfied) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-4 rounded-xl border border-gold/30 bg-[#0c2348]/55 p-8 text-center">
+        <div className="text-5xl">🎓</div>
+        <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-gold">
+          You&apos;ve Graduated!
+        </h2>
+        <p className="text-ink-secondary text-sm max-w-xs">
+          All degree requirements are satisfied. Congratulations on completing
+          your Marquette business degree!
+        </p>
+        <p className="text-[10px] text-ink-faint/60 mt-1">
+          Note: ESSV2, WRIT, and Discovery courses are not yet considered.
+        </p>
+      </div>
+    );
+  }
+
   const activeSemester = semesters[selectedIdx] || semesters[0];
   const activeRecs = activeSemester?.recommendations || [];
   const courseCount = Math.max(1, Math.min(6, activeRecs.length || 1));
@@ -109,11 +134,33 @@ export function RecommendationsPanel({
                   activeRecs.map((c) => (
                     <CourseRow key={c.course_code} course={c} courseCount={courseCount} />
                   ))
-                ) : (
-                  <p className="text-[14px] text-ink-faint italic py-4 text-center leading-[1.3]">
-                    No eligible courses for this semester.
-                  </p>
-                )}
+                ) : (() => {
+                  const pp = activeSemester.projected_progress;
+                  const projectedGrad =
+                    !!pp &&
+                    Object.values(pp)
+                      .filter((b) => (b.needed ?? 0) > 0)
+                      .every((b) => b.satisfied);
+                  return projectedGrad ? (
+                    <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
+                      <div className="text-4xl">🎓</div>
+                      <p className="text-[15px] font-semibold text-gold">
+                        You will have graduated!
+                      </p>
+                      <p className="text-xs text-ink-faint max-w-xs leading-relaxed">
+                        Based on your current plan, all tracked degree requirements
+                        will be satisfied by this point.
+                      </p>
+                      <p className="text-[10px] text-ink-faint/60 mt-1">
+                        Note: ESSV2, WRIT, and Discovery courses are not yet considered.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[14px] text-ink-faint italic py-4 text-center leading-[1.3]">
+                      No eligible courses for this semester.
+                    </p>
+                  );
+                })()}
               </motion.div>
             </AnimatePresence>
           </div>

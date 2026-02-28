@@ -378,6 +378,40 @@ class TestServerTrackValidation:
         projected_done = sum(v.get("done_count", 0) for v in sem1["projected_progress"].values())
         assert projected_done >= baseline_done
 
+    def test_credit_bucket_progress_uses_credits_not_course_counts(self, client):
+        resp = self._post(
+            client,
+            in_progress_courses="MANA 4010",
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+
+        current_bucket = data["current_progress"]["FIN_MAJOR::FINA-ELEC-4"]
+        assert current_bucket["completed_done"] == 3
+        assert current_bucket["in_progress_increment"] == 3
+        assert current_bucket["assumed_done"] == 6
+
+        semester_bucket = data["semesters"][0]["progress"]["FIN_MAJOR::FINA-ELEC-4"]
+        assert semester_bucket["completed_done"] == 3
+        assert semester_bucket["done_count"] == 3
+        assert semester_bucket["in_progress_increment"] == 3
+
+    def test_required_bucket_progress_uses_credit_totals(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "FINA 4075, AIM 4470",
+            "in_progress_courses": "AIM 4996",
+            "target_semester_primary": "Fall 2026",
+            "track_ids": ["AIM_FINTECH_TRACK"],
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+
+        current_bucket = data["current_progress"]["AIM_FINTECH_TRACK::AIM-FINTECH-REQ-CORE"]
+        assert current_bucket["needed"] == 18
+        assert current_bucket["completed_done"] == 6
+        assert current_bucket["in_progress_increment"] == 3
+        assert current_bucket["assumed_done"] == 9
+
     def test_optional_third_semester_is_generated(self, client):
         resp = self._post(
             client,
@@ -490,7 +524,7 @@ class TestServerTrackValidation:
         assert data["selection_context"]["selected_track_id"] is None
         assert "FIN_MAJOR::FINA-REQ-CORE" in data["progress"]
 
-    def test_declared_track_must_match_major(self, client, monkeypatch):
+    def test_track_parent_major_metadata_does_not_gate_selection(self, client, monkeypatch):
         import server
 
         patched_programs = server._data["v2_programs_df"].copy()
@@ -506,9 +540,10 @@ class TestServerTrackValidation:
             "declared_majors": ["FIN_MAJOR"],
             "track_id": "CB",
         })
-        assert resp.status_code == 400
+        assert resp.status_code == 200
         data = resp.get_json()
-        assert data["error"]["error_code"] == "TRACK_MAJOR_MISMATCH"
+        assert data["mode"] == "recommendations"
+        assert data["selection_context"]["selected_program_ids"] == ["FIN_MAJOR", "CB_TRACK"]
 
     def test_aim_cfa_track_requires_finance_major(self, client):
         """AIM CFA track requires FIN_MAJOR specifically, not just any primary major."""
@@ -535,7 +570,34 @@ class TestServerTrackValidation:
         assert data["mode"] == "recommendations"
         assert data["selection_context"]["selected_track_id"] == "CB_TRACK"
         assert "FIN_MAJOR::FINA-REQ-CORE" in data["progress"]
-        assert "FIN_MAJOR::COMMBANK-REQ-CORE" in data["progress"]
+        assert "CB_TRACK::COMMBANK-REQ-CORE" in data["progress"]
+
+    def test_track_only_selection_is_allowed(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "track_ids": ["CB_TRACK"],
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert data["selection_context"]["selected_program_ids"] == ["CB_TRACK"]
+        assert "CB_TRACK::COMMBANK-REQ-CORE" in data["progress"]
+
+    def test_hure_track_progress_stays_separate_from_major(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": ["HURE_MAJOR"],
+            "track_id": "HURE_LEAD_TRACK",
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert data["selection_context"]["selected_track_id"] == "HURE_LEAD_TRACK"
+        assert "HURE_MAJOR::HURE-REQ-CORE" in data["progress"]
+        assert "HURE_LEAD_TRACK::BUSLEAD-REQ-CORE" in data["progress"]
+        assert "HURE_MAJOR::BUSLEAD-REQ-CORE" not in data["progress"]
 
     def test_double_major_shares_bcc_once(self, client):
         resp = client.post("/recommend", json={
@@ -667,12 +729,240 @@ class TestServerTrackValidation:
         assert data["mode"] == "recommendations"
         progress_keys = set(data.get("progress", {}).keys())
         # The track-specific sub-bucket should be present.
-        assert "AIM_MAJOR::AIM-FINTECH-ELEC-UPPER-15" in progress_keys
+        assert "AIM_FINTECH_TRACK::AIM-FINTECH-ELEC-UPPER-15" in progress_keys
         # The base major's elective bucket also remains (separate parent).
         assert "AIM_MAJOR::AIM-ELEC-UPPER-15" in progress_keys
         # Core requirements from both base major and track appear.
         assert "AIM_MAJOR::AIM-REQ-CORE" in progress_keys
-        assert "AIM_MAJOR::AIM-FINTECH-REQ-CORE" in progress_keys
+        assert "AIM_FINTECH_TRACK::AIM-FINTECH-REQ-CORE" in progress_keys
+
+    def test_aim_pcib_core_mapping_matches_curated_list(self):
+        import server
+
+        sub = server._data["v2_sub_buckets_df"].copy()
+        sub["program_id"] = sub["program_id"].astype(str).str.strip().str.upper()
+        sub["sub_bucket_id"] = sub["sub_bucket_id"].astype(str).str.strip().str.upper()
+        row = sub[
+            (sub["program_id"] == "AIM_IB_TRACK")
+            & (sub["sub_bucket_id"] == "AIM-PCIB-REQ-CORE")
+        ]
+        assert len(row) == 1
+        assert int(row.iloc[0]["courses_required"]) == 6
+
+        mappings = server._data["v2_courses_all_buckets_df"].copy()
+        mappings["program_id"] = mappings["program_id"].astype(str).str.strip().str.upper()
+        mappings["sub_bucket_id"] = mappings["sub_bucket_id"].astype(str).str.strip().str.upper()
+        actual = set(
+            mappings[
+                (mappings["program_id"] == "AIM_IB_TRACK")
+                & (mappings["sub_bucket_id"] == "AIM-PCIB-REQ-CORE")
+            ]["course_code"].astype(str).str.strip().tolist()
+        )
+        assert actual == {
+            "ACCO 4080",
+            "AIM 4310",
+            "AIM 4470",
+            "AIM 4996",
+            "FINA 4081",
+            "MARK 4094",
+        }
+
+    def test_aim_major_buckets_match_curated_list(self):
+        import server
+
+        sub = server._data["v2_sub_buckets_df"].copy()
+        sub["program_id"] = sub["program_id"].astype(str).str.strip().str.upper()
+        sub["sub_bucket_id"] = sub["sub_bucket_id"].astype(str).str.strip().str.upper()
+        mappings = server._data["v2_courses_all_buckets_df"].copy()
+        mappings["program_id"] = mappings["program_id"].astype(str).str.strip().str.upper()
+        mappings["sub_bucket_id"] = mappings["sub_bucket_id"].astype(str).str.strip().str.upper()
+
+        core_row = sub[
+            (sub["program_id"] == "AIM_MAJOR")
+            & (sub["sub_bucket_id"] == "AIM-REQ-CORE")
+        ]
+        assert len(core_row) == 1
+        assert int(core_row.iloc[0]["courses_required"]) == 5
+        core_actual = set(
+            mappings[
+                (mappings["program_id"] == "AIM_MAJOR")
+                & (mappings["sub_bucket_id"] == "AIM-REQ-CORE")
+            ]["course_code"].astype(str).str.strip().tolist()
+        )
+        assert core_actual == {
+            "ACCO 4080",
+            "AIM 4400",
+            "AIM 4440",
+            "AIM 4470",
+            "AIM 4996",
+        }
+
+        choose_row = sub[
+            (sub["program_id"] == "AIM_MAJOR")
+            & (sub["sub_bucket_id"] == "AIM-CHOOSE-1")
+        ]
+        assert len(choose_row) == 1
+        assert int(choose_row.iloc[0]["courses_required"]) == 1
+        choose_actual = set(
+            mappings[
+                (mappings["program_id"] == "AIM_MAJOR")
+                & (mappings["sub_bucket_id"] == "AIM-CHOOSE-1")
+            ]["course_code"].astype(str).str.strip().tolist()
+        )
+        assert choose_actual == {
+            "ACCO 4050",
+            "AIM 4320",
+            "AIM 4931",
+            "AIM 4995",
+            "BUAN 3065",
+            "ECON 4060",
+            "ENTP 4010",
+            "FINA 4002",
+            "HURE 4101",
+            "INSY 4053",
+            "INSY 4054",
+            "MANA 3034",
+            "MANA 3035",
+            "MARK 4094",
+            "OSCM 4060",
+            "REAL 3001",
+        }
+
+    def test_aim_cfa_buckets_exclude_5000_level_alternatives(self):
+        import server
+
+        sub = server._data["v2_sub_buckets_df"].copy()
+        sub["program_id"] = sub["program_id"].astype(str).str.strip().str.upper()
+        sub["sub_bucket_id"] = sub["sub_bucket_id"].astype(str).str.strip().str.upper()
+        mappings = server._data["v2_courses_all_buckets_df"].copy()
+        mappings["program_id"] = mappings["program_id"].astype(str).str.strip().str.upper()
+        mappings["sub_bucket_id"] = mappings["sub_bucket_id"].astype(str).str.strip().str.upper()
+
+        elective_row = sub[
+            (sub["program_id"] == "AIM_CFA_TRACK")
+            & (sub["sub_bucket_id"] == "AIM-CFA-ELEC-UPPER")
+        ]
+        assert len(elective_row) == 1
+        assert int(elective_row.iloc[0]["credits_required"]) == 9
+
+        core_actual = set(
+            mappings[
+                (mappings["program_id"] == "AIM_CFA_TRACK")
+                & (mappings["sub_bucket_id"] == "AIM-CFA-REQ-CORE")
+            ]["course_code"].astype(str).str.strip().tolist()
+        )
+        assert core_actual == {
+            "ACCO 3001",
+            "ACCO 4080",
+            "AIM 4310",
+            "AIM 4320",
+            "AIM 4330",
+            "AIM 4470",
+            "AIM 4996",
+            "FINA 4065",
+            "FINA 4075",
+        }
+
+        intl_actual = set(
+            mappings[
+                (mappings["program_id"] == "AIM_CFA_TRACK")
+                & (mappings["sub_bucket_id"] == "AIM-CFA-INTL-CHOOSE-1")
+            ]["course_code"].astype(str).str.strip().tolist()
+        )
+        assert intl_actual == {
+            "ACCO 4040",
+            "ACCOI 4931",
+            "ECON 4040",
+            "ECON 4044",
+            "ECON 4045",
+            "ECON 4046",
+            "ECON 4080",
+            "FINA 4040",
+            "FINAI 4931",
+            "INBUI 4931",
+        }
+        assert "ACCO 5040" not in intl_actual
+        assert "FINA 5040" not in intl_actual
+
+    def test_aim_fintech_core_matches_curated_list(self):
+        import server
+
+        sub = server._data["v2_sub_buckets_df"].copy()
+        sub["program_id"] = sub["program_id"].astype(str).str.strip().str.upper()
+        sub["sub_bucket_id"] = sub["sub_bucket_id"].astype(str).str.strip().str.upper()
+        row = sub[
+            (sub["program_id"] == "AIM_FINTECH_TRACK")
+            & (sub["sub_bucket_id"] == "AIM-FINTECH-REQ-CORE")
+        ]
+        assert len(row) == 1
+        assert int(row.iloc[0]["courses_required"]) == 6
+
+        mappings = server._data["v2_courses_all_buckets_df"].copy()
+        mappings["program_id"] = mappings["program_id"].astype(str).str.strip().str.upper()
+        mappings["sub_bucket_id"] = mappings["sub_bucket_id"].astype(str).str.strip().str.upper()
+        actual = set(
+            mappings[
+                (mappings["program_id"] == "AIM_FINTECH_TRACK")
+                & (mappings["sub_bucket_id"] == "AIM-FINTECH-REQ-CORE")
+            ]["course_code"].astype(str).str.strip().tolist()
+        )
+        assert actual == {
+            "AIM 4410",
+            "AIM 4420",
+            "AIM 4430",
+            "AIM 4470",
+            "AIM 4996",
+            "FINA 4075",
+        }
+
+    def test_aim_4410_prereqs_keep_major_restriction_without_senior_standing(self):
+        import server
+
+        courses = server._data["courses_df"].copy()
+        courses["course_code"] = courses["course_code"].astype(str).str.strip().str.upper()
+        row = courses[courses["course_code"] == "AIM 4410"]
+        assert len(row) == 1
+        assert str(row.iloc[0]["prereq_hard"]).strip() == "FINA 4075"
+        soft_tags = {
+            tag.strip()
+            for tag in str(row.iloc[0]["prereq_soft"]).replace(";", ",").split(",")
+            if tag.strip()
+        }
+        assert "major_restriction" in soft_tags
+        assert float(row.iloc[0]["prereq_level"]) == 0.0
+
+    def test_all_aim_courses_require_aim_major_and_have_no_standing_prereqs(self):
+        import server
+
+        courses = server._data["courses_df"].copy()
+        courses["course_code"] = courses["course_code"].astype(str).str.strip().str.upper()
+        aim_rows = courses[courses["course_code"].str.startswith("AIM ")]
+        assert len(aim_rows) > 0
+
+        for _, row in aim_rows.iterrows():
+            course_code = str(row["course_code"]).strip()
+            prereq_level = float(row.get("prereq_level") or 0.0)
+            soft_tags = {
+                tag.strip()
+                for tag in str(row.get("prereq_soft") or "").replace(";", ",").split(",")
+                if tag.strip()
+            }
+            assert prereq_level == 0.0, course_code
+            assert "major_restriction" in soft_tags, course_code
+            assert "standing_requirement" not in soft_tags, course_code
+
+    def test_multiple_tracks_with_same_parent_major_are_allowed(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "track_ids": ["CB_TRACK", "FP_TRACK"],
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["mode"] == "recommendations"
+        assert data["selection_context"]["selected_program_ids"] == ["CB_TRACK", "FP_TRACK"]
+        assert "CB_TRACK::COMMBANK-REQ-CORE" in data["progress"]
+        assert "FP_TRACK::FINPLAN-REQ-CORE" in data["progress"]
 
 
 # ── 5. End-to-end smoke test — synthetic track through /recommend ────────────

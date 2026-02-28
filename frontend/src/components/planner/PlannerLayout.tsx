@@ -22,6 +22,7 @@ export function PlannerLayout() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
+  const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
 
   // Auto-fetch once when arriving fresh from onboarding with no existing recs
   useEffect(() => {
@@ -29,20 +30,19 @@ export function PlannerLayout() {
       didAutoFetch.current ||
       !state.onboardingComplete ||
       state.lastRecommendationData ||
-      state.selectedMajors.size === 0 ||
+      !hasProgram ||
       state.courses.length === 0 ||
       loading
     ) return;
     didAutoFetch.current = true;
     fetchRecommendations();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.onboardingComplete, state.lastRecommendationData, state.selectedMajors.size, state.courses.length]);
+  }, [state.onboardingComplete, state.lastRecommendationData, hasProgram, state.courses.length]);
 
   const programLabelMap = data?.selection_context
     ? getProgramLabelMap(data.selection_context)
     : undefined;
 
-  const hasMajor = state.selectedMajors.size > 0;
   const majorLabelById = useMemo(() => {
     const map = new Map<string, string>();
     state.programs.majors.forEach((m) => map.set(m.id, m.label));
@@ -60,20 +60,22 @@ export function PlannerLayout() {
   const trackLabels = state.selectedTracks
     .map((tid) => trackLabelById.get(tid))
     .filter(Boolean) as string[];
+  const primaryProgramLabel =
+    majorLabels.length > 0 ? majorLabels.join(" & ") : trackLabels.join(" & ");
   const modalSemester =
     semesterModalIdx !== null ? data?.semesters?.[semesterModalIdx] ?? null : null;
 
   return (
     <div className="planner-shell">
       {/* ── Header bar ────────────────────────────────────────────── */}
-      {hasMajor ? (
+      {hasProgram ? (
         <div className="px-4 py-2 mb-2 rounded-xl bg-surface-card/60 border border-border-subtle/50 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-sm text-ink-faint shrink-0">Planning for: </span>
             <span className="text-sm font-semibold font-[family-name:var(--font-sora)] text-gold truncate">
-              {majorLabels.join(" & ")}
+              {primaryProgramLabel}
             </span>
-            {trackLabels.length > 0 && (
+            {majorLabels.length > 0 && trackLabels.length > 0 && (
               <span className="text-sm text-ink-secondary truncate">
                 &bull; {trackLabels.join(" & ")}
               </span>
@@ -94,7 +96,7 @@ export function PlannerLayout() {
             variant="gold"
             size="sm"
             onClick={fetchRecommendations}
-            disabled={loading || !hasMajor}
+            disabled={loading || !hasProgram}
             className="shrink-0"
           >
             {loading ? (
@@ -109,7 +111,7 @@ export function PlannerLayout() {
         </div>
       ) : (
         <div className="px-4 py-2 mb-2 rounded-xl bg-surface-card/60 border border-border-subtle/50 flex items-center justify-between gap-3">
-          <span className="text-sm text-ink-faint">No major selected</span>
+          <span className="text-sm text-ink-faint">No program selected</span>
           <button
             type="button"
             onClick={() => setProfileModalOpen(true)}
@@ -169,7 +171,7 @@ export function PlannerLayout() {
               </div>
             )}
 
-            {!hasMajor && !data && (
+            {!hasProgram && !data && (
               <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8 space-y-4">
                 <div className="w-16 h-16 bg-gold/10 rounded-2xl flex items-center justify-center">
                   <svg className="w-8 h-8 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -183,10 +185,10 @@ export function PlannerLayout() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                    Pick your major to get started
+                    Pick your program to get started
                   </h2>
                   <p className="text-sm text-ink-faint mt-1 max-w-sm">
-                    Click the edit icon in the header to select your major, add your
+                    Click the edit icon in the header to select your major or track, add your
                     completed courses, then hit &ldquo;Get Recommendations&rdquo; to
                     unlock your personalized semester plan.
                   </p>
@@ -194,7 +196,7 @@ export function PlannerLayout() {
               </div>
             )}
 
-            {hasMajor && !data && !loading && (
+            {hasProgram && !data && !loading && (
               <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8 space-y-4">
                 <div className="w-16 h-16 bg-surface-card rounded-2xl flex items-center justify-center border border-border-subtle">
                   <svg className="w-8 h-8 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor">

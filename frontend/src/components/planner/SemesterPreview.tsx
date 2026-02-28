@@ -39,11 +39,24 @@ export function SemesterPreview({ semester, index }: SemesterPreviewProps) {
             </div>
           ))}
         </div>
-      ) : (
-        <p className="text-xs text-ink-faint italic">
-          No eligible courses for this semester.
-        </p>
-      )}
+      ) : (() => {
+        const pp = semester.projected_progress;
+        const projectedGrad =
+          !!pp &&
+          Object.values(pp)
+            .filter((b) => (b.needed ?? 0) > 0)
+            .every((b) => b.satisfied);
+        return projectedGrad ? (
+          <div className="flex items-center gap-1.5 text-xs">
+            <span>🎓</span>
+            <span className="text-gold font-medium">Graduated</span>
+          </div>
+        ) : (
+          <p className="text-xs text-ink-faint italic">
+            No eligible courses for this semester.
+          </p>
+        );
+      })()}
     </div>
   );
 }

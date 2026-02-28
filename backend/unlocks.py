@@ -36,6 +36,39 @@ def build_reverse_prereq_map(
     return reverse
 
 
+def compute_chain_depths(
+    reverse_map: dict[str, list[str]],
+) -> dict[str, int]:
+    """
+    Compute the longest downstream prerequisite chain depth for every course.
+
+    A course with no downstream dependents has depth 0.
+    FINA 3001 -> FINA 4075 -> AIM 4410 -> AIM 4420 -> AIM 4430
+    gives FINA 3001 depth 4.
+
+    Computed once at data load. O(V+E) with memoization.
+    """
+    memo: dict[str, int] = {}
+    in_stack: set[str] = set()
+
+    def _depth(course: str) -> int:
+        if course in memo:
+            return memo[course]
+        if course in in_stack:
+            return 0  # cycle guard
+        in_stack.add(course)
+        children = reverse_map.get(course, [])
+        result = (1 + max(_depth(c) for c in children)) if children else 0
+        in_stack.discard(course)
+        memo[course] = result
+        return result
+
+    for course in reverse_map:
+        _depth(course)
+
+    return memo
+
+
 def get_direct_unlocks(
     course_code: str,
     reverse_map: dict[str, list[str]],

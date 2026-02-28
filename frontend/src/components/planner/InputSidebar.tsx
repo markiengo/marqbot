@@ -7,7 +7,6 @@ import { MultiSelect } from "@/components/shared/MultiSelect";
 import { Chip } from "@/components/shared/Chip";
 import {
   MAX_MAJORS,
-  MAX_MINORS,
   AIM_CFA_TRACK_ID,
   AIM_CFA_FINANCE_RULE_MSG,
   FIN_MAJOR_ID,
@@ -25,17 +24,12 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
   const minors = state.programs.minors;
   const selectedMajorIds = useMemo(() => [...state.selectedMajors], [state.selectedMajors]);
   const hasFinanceMajor = state.selectedMajors.has(FIN_MAJOR_ID);
-  const selectedMajorBaseCodes = useMemo(
-    () => new Set(selectedMajorIds.map((id) => id.replace("_MAJOR", ""))),
-    [selectedMajorIds],
-  );
-  const minorLabelById = useMemo(() => {
-    const map = new Map<string, string>();
-    minors.forEach((m) => map.set(m.id, m.label));
-    return map;
-  }, [minors]);
   const discoveryThemeTracks = useMemo(
     () => tracks.filter((t) => String(t.parent_major_id || "").trim().toUpperCase() === "MCC_DISC"),
+    [tracks],
+  );
+  const programTracks = useMemo(
+    () => tracks.filter((t) => String(t.parent_major_id || "").trim().toUpperCase() !== "MCC_DISC"),
     [tracks],
   );
   const majorLabelById = useMemo(() => {
@@ -76,6 +70,22 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
     });
     return map;
   }, [state.selectedTracks, trackById]);
+  const selectedProgramTracks = useMemo(
+    () =>
+      state.selectedTracks
+        .map((trackId) => trackById.get(trackId))
+        .filter(
+          (track): track is NonNullable<typeof track> =>
+            track !== undefined &&
+            track !== null &&
+            String(track.parent_major_id || "").trim().toUpperCase() !== "MCC_DISC",
+        ),
+    [state.selectedTracks, trackById],
+  );
+  const availableProgramTracks = useMemo(
+    () => programTracks.filter((t) => !state.selectedTracks.includes(t.id)),
+    [programTracks, state.selectedTracks],
+  );
   const tracksForMajor = useCallback(
     (majorId: string) => tracksByMajor.get(majorId) ?? tracks.filter((t) => t.id.startsWith(majorId)),
     [tracksByMajor, tracks],
@@ -106,6 +116,14 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
     dispatch({ type: "SET_TRACK", payload: { majorId, trackId } });
     setTrackOpen((prev) => ({ ...prev, [majorId]: false }));
     setTrackQuery((prev) => ({ ...prev, [majorId]: "" }));
+  }, [dispatch, hasFinanceMajor]);
+  const addStandaloneTrack = useCallback((trackId: string) => {
+    if (trackId === AIM_CFA_TRACK_ID && !hasFinanceMajor) {
+      setTrackRuleWarning(AIM_CFA_FINANCE_RULE_MSG);
+      return;
+    }
+    setTrackRuleWarning(null);
+    dispatch({ type: "ADD_TRACK", payload: trackId });
   }, [dispatch, hasFinanceMajor]);
 
   // Close track dropdowns on outside click
@@ -189,6 +207,41 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
         )}
       </div>
 
+      <div className="space-y-2">
+        <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+          Track / Concentration
+        </label>
+        <div className="flex flex-wrap gap-1.5 min-h-[24px] min-w-0">
+          <AnimatePresence mode="popLayout">
+            {selectedProgramTracks.map((track) => (
+              <Chip
+                key={track.id}
+                label={track.label}
+                variant="navy"
+                onRemove={() => dispatch({ type: "REMOVE_TRACK", payload: track.id })}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+        <select
+          onChange={(e) => {
+            if (e.target.value) {
+              addStandaloneTrack(e.target.value);
+              e.target.value = "";
+            }
+          }}
+          defaultValue=""
+          className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
+        >
+          <option value="">Add track or concentration...</option>
+          {availableProgramTracks.map((track) => (
+            <option key={track.id} value={track.id}>
+              {track.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Per-major track selectors - chip + combobox */}
       {effectiveTrackRuleWarning && (
         <div className="bg-bad-light rounded-lg px-2 py-1.5 text-xs text-bad">
@@ -196,7 +249,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
         </div>
       )}
 
-      {selectedMajorIds.map((majorId) => {
+      {false && selectedMajorIds.map((majorId) => {
         const mt = tracksForMajor(majorId);
         if (mt.length === 0) return null;
         const majorLabel = majorLabelById.get(majorId) ?? majorId;

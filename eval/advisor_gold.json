@@ -41,8 +41,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "ACCO freshman sees same BCC/MCC tier-1 courses as FIN freshman."
+    "expected_top6": ["ACCO 1030", "ECON 1103", "INSY 3001", "BUAD 1001", "MARK 3001", "OSCM 3001"],
+    "notes": "ACCO freshman. Chain-depth scoring favors BCC_REQUIRED gateway courses (ACCO 1030, BUAD 1001) that unlock long prereq chains."
   },
   {
     "id": "acco_freshman_002",
@@ -56,8 +56,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "Zero-credit ACCO freshman. Same BCC/MCC pattern as FIN."
+    "expected_top6": ["ACCO 1030", "ECON 1103", "INSY 3001", "BUAD 1001", "OSCM 3001", "MANA 3001"],
+    "notes": "Zero-credit ACCO freshman. Chain-depth scoring favors BCC_REQUIRED gateway courses."
   },
   {
     "id": "aim_freshman_001",
@@ -101,8 +101,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "HURE freshman. BCC/MCC gateway is universal across all business majors."
+    "expected_top6": ["ACCO 1030", "ECON 1103", "INSY 3001", "BUAD 1001", "MARK 3001", "OSCM 3001"],
+    "notes": "HURE freshman. Chain-depth scoring favors BCC_REQUIRED gateway courses."
   },
   {
     "id": "hure_freshman_002",
@@ -116,8 +116,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "Zero-credit HURE freshman."
+    "expected_top6": ["ACCO 1030", "ECON 1103", "INSY 3001", "BUAD 1001", "OSCM 3001", "MANA 3001"],
+    "notes": "Zero-credit HURE freshman. Chain-depth scoring favors BCC_REQUIRED gateway courses."
   },
   {
     "id": "oscm_freshman_001",

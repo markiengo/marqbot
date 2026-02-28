@@ -35,11 +35,13 @@ def test_reload_swaps_runtime_data_when_mtime_advances(monkeypatch):
     monkeypatch.setattr(server, "_data_file_mtime", lambda _path: 200.0)
     monkeypatch.setattr(server, "load_data", lambda _path: new_data)
     monkeypatch.setattr(server, "build_reverse_prereq_map", lambda _df, _map: {"new": True})
+    monkeypatch.setattr(server, "compute_chain_depths", lambda _rm: {"new_chain": 1})
 
     changed = server._reload_data_if_changed()
     assert changed is True
     assert server._data is new_data
     assert server._reverse_map == {"new": True}
+    assert server._chain_depths == {"new_chain": 1}
     assert server._data_mtime == 200.0
 
 

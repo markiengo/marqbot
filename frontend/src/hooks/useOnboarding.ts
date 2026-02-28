@@ -16,6 +16,7 @@ export function useOnboarding() {
 
   // Check if only secondary majors are selected (no primary)
   const onlySecondary = useCallback(() => {
+    if (state.selectedTracks.length > 0) return false;
     if (state.selectedMajors.size === 0) return false;
     const selectedIds = [...state.selectedMajors];
     const hasPrimary = selectedIds.some((id) => {
@@ -23,12 +24,13 @@ export function useOnboarding() {
       return m && !m.requires_primary_major;
     });
     return !hasPrimary;
-  }, [state.selectedMajors, state.programs.majors]);
+  }, [state.selectedMajors, state.selectedTracks.length, state.programs.majors]);
 
   const canProceed = useCallback(() => {
+    const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
     switch (currentStep) {
       case "majors":
-        return state.selectedMajors.size > 0 && !onlySecondary();
+        return hasProgram && !onlySecondary();
       case "courses":
         return true; // courses are optional
       case "preferences":
@@ -36,7 +38,7 @@ export function useOnboarding() {
       default:
         return false;
     }
-  }, [currentStep, state.selectedMajors.size, state.targetSemester, onlySecondary]);
+  }, [currentStep, state.selectedMajors.size, state.selectedTracks.length, state.targetSemester, onlySecondary]);
 
   const next = useCallback(() => {
     if (isLast || !canProceed()) return;

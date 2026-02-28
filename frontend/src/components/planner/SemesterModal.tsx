@@ -3,7 +3,7 @@
 import type { SemesterData, BucketProgress } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { CourseCard } from "./CourseCard";
-import { groupProgressByParent, compactKpiBucketLabel } from "@/lib/rendering";
+import { groupProgressByParent, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
 import { bucketLabel, esc } from "@/lib/utils";
 
 interface SemesterModalProps {
@@ -99,7 +99,7 @@ export function SemesterModal({
               Projected Progress
             </h3>
             <p className="text-sm text-ink-faint">
-              Progress bars show completed courses applied to each requirement bucket.
+              Progress bars show applied credits or course counts for each requirement bucket.
             </p>
             {semester.projection_note && (
               <p className="text-sm text-ink-faint">{esc(semester.projection_note)}</p>
@@ -112,15 +112,16 @@ export function SemesterModal({
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {group.entries.map(([bid, prog]: [string, BucketProgress]) => {
-                      const needed = Number(prog.needed || 0);
-                      const done = Number(prog.completed_done || prog.done_count || 0);
+                      const { done, inProg, needed, unit } = getBucketDisplay(prog);
                       const ipCodes = prog.in_progress_applied || [];
-                      const inProg = Number(prog.in_progress_increment || ipCodes.length || 0);
                       const label = compactKpiBucketLabel(
                         prog.label || bucketLabel(bid, programLabelMap),
                       );
-                      const donePct = needed > 0 ? (done / needed) * 100 : 0;
-                      const totalPct = needed > 0 ? ((done + inProg) / needed) * 100 : 0;
+                      const creditNeeded = Number(prog.needed || 0);
+                      const creditDone = Number(prog.completed_done ?? prog.done_count ?? 0);
+                      const creditInProg = Number(prog.in_progress_increment ?? 0);
+                      const donePct = creditNeeded > 0 ? (creditDone / creditNeeded) * 100 : 0;
+                      const totalPct = creditNeeded > 0 ? ((creditDone + creditInProg) / creditNeeded) * 100 : 0;
 
                       return (
                         <div
@@ -131,7 +132,7 @@ export function SemesterModal({
                             <span className="text-ink-primary font-semibold leading-tight">{label}</span>
                             <span className="text-ink-faint shrink-0 font-semibold">
                               {done}
-                              {inProg > 0 && <span className="text-gold">+{inProg}</span>}/{needed}
+                              {inProg > 0 && <span className="text-gold">+{inProg}</span>}/{needed} {unit}
                             </span>
                           </div>
                           <div className="h-2 bg-white/80 rounded-full overflow-hidden">
@@ -152,7 +153,7 @@ export function SemesterModal({
                           </div>
                           {ipCodes.length > 0 && (
                             <p className="text-sm text-ink-faint mt-1.5 leading-snug">
-                              + {ipCodes.join(", ")} in progress
+                              In progress courses: {ipCodes.join(", ")}
                             </p>
                           )}
                         </div>

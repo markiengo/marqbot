@@ -21,10 +21,10 @@ from validators import (
     expand_completed_with_prereqs_with_provenance,
     expand_in_progress_with_prereqs,
 )
-from unlocks import build_reverse_prereq_map
+from unlocks import build_reverse_prereq_map, compute_chain_depths
 from eligibility import check_can_take, parse_term
 from data_loader import load_data
-from allocator import allocate_courses
+from allocator import allocate_courses, get_applied_bucket_progress_units
 from semester_recommender import (
     SEM_RE,
     normalize_semester_label,
@@ -207,6 +207,7 @@ except Exception as exc:
     sys.exit(1)
 
 _reverse_map = build_reverse_prereq_map(_data["courses_df"], _data["prereq_map"])
+_chain_depths = compute_chain_depths(_reverse_map)
 
 
 def _reload_data_if_changed(force: bool = False) -> bool:
@@ -215,7 +216,7 @@ def _reload_data_if_changed(force: bool = False) -> bool:
 
     Returns True when a reload occurred, else False.
     """
-    global _data, _reverse_map, _data_mtime
+    global _data, _reverse_map, _chain_depths, _data_mtime
 
     candidate_mtime = _data_file_mtime(DATA_PATH)
     if not force:
@@ -238,12 +239,14 @@ def _reload_data_if_changed(force: bool = False) -> bool:
                 new_data["courses_df"],
                 new_data["prereq_map"],
             )
+            new_chain_depths = compute_chain_depths(new_reverse_map)
         except Exception as exc:
             print(f"[WARN] Data reload failed; keeping previous dataset: {exc}", file=sys.stderr)
             return False
 
         _data = new_data
         _reverse_map = new_reverse_map
+        _chain_depths = new_chain_depths
         _data_mtime = latest_mtime if latest_mtime is not None else candidate_mtime
         _clear_request_caches()
         print(f"[OK] Reloaded {len(new_data['catalog_codes'])} courses from {DATA_PATH}")
@@ -870,27 +873,22 @@ def _build_declared_plan_data_v2(
     """Build synthetic merged runtime view from V2 model for declared majors and minors."""
     declared_minors = declared_minors or []
     label_map = {str(r["track_id"]): str(r["track_label"] or r["track_id"]) for _, r in catalog_df.iterrows()}
-    track_parent = {
-        str(r["track_id"]): str(r.get("parent_major_id", "") or "").strip().upper()
-        for _, r in catalog_df[catalog_df["kind"] == "track"].iterrows()
-    }
     universal_programs = _universal_program_ids(data)
 
     all_buckets = []
     all_maps = []
 
-    for major_id in declared_majors:
-        major_track = next((t for t in selected_track_ids if track_parent.get(t, "") == major_id), None)
-        major_data = _build_single_major_data_v2(data, major_id, major_track)
-        buckets = major_data["buckets_df"].copy()
-        course_map = major_data["course_bucket_map_df"].copy()
+    def _append_program(program_id: str):
+        program_data = _build_single_major_data_v2(data, program_id, None)
+        buckets = program_data["buckets_df"].copy()
+        course_map = program_data["course_bucket_map_df"].copy()
 
         # Filter Discovery theme overlay buckets.
         buckets, course_map = _apply_discovery_theme_filter(
             buckets, course_map, universal_programs, discovery_theme
         )
 
-        buckets["source_program_id"] = buckets.get("source_program_id", major_id).fillna(major_id).astype(str).str.strip().str.upper()
+        buckets["source_program_id"] = buckets.get("source_program_id", program_id).fillna(program_id).astype(str).str.strip().str.upper()
         buckets["source_bucket_id"] = buckets.get("source_bucket_id", buckets["bucket_id"]).fillna("").astype(str)
         buckets["source_parent_bucket_id"] = buckets.get(
             "source_parent_bucket_id",
@@ -898,6 +896,10 @@ def _build_declared_plan_data_v2(
         ).fillna("").astype(str).str.strip().str.upper()
         source_parent_display = buckets["source_parent_bucket_id"].map(_CORE_PARENT_ALIAS).fillna(
             buckets["source_parent_bucket_id"]
+        )
+        source_owner_id = source_parent_display.where(
+            source_parent_display != "",
+            buckets["source_program_id"],
         )
 
         is_overlay_bucket = buckets["source_program_id"].isin(universal_programs)
@@ -913,15 +915,20 @@ def _build_declared_plan_data_v2(
             + buckets.loc[is_overlay_bucket & ~has_named_core_parent_bucket, "source_bucket_id"].astype(str)
         )
         buckets.loc[~is_overlay_bucket, "bucket_id"] = (
-            major_id + "::" + buckets.loc[~is_overlay_bucket, "source_bucket_id"].astype(str)
+            source_owner_id.loc[~is_overlay_bucket].astype(str)
+            + "::"
+            + buckets.loc[~is_overlay_bucket, "source_bucket_id"].astype(str)
         )
-        buckets.loc[~is_overlay_bucket, "bucket_label"] = (
-            f"{label_map.get(major_id, major_id)}: "
-            + buckets.loc[~is_overlay_bucket, "bucket_label"].astype(str)
+        buckets.loc[~is_overlay_bucket, "bucket_label"] = buckets.loc[~is_overlay_bucket].apply(
+            lambda r: (
+                f"{label_map.get(str(r.get('source_parent_bucket_id', '') or r.get('source_program_id', '')), str(r.get('source_parent_bucket_id', '') or r.get('source_program_id', '')))}: "
+                f"{str(r.get('bucket_label', r.get('source_bucket_id', '')))}"
+            ),
+            axis=1,
         )
         buckets["track_id"] = PHASE5_PLAN_TRACK_ID
 
-        course_map["source_program_id"] = course_map.get("source_program_id", major_id).fillna(major_id).astype(str).str.strip().str.upper()
+        course_map["source_program_id"] = course_map.get("source_program_id", program_id).fillna(program_id).astype(str).str.strip().str.upper()
         course_map["source_bucket_id"] = course_map.get("source_bucket_id", course_map["bucket_id"]).fillna("").astype(str)
         parent_lookup = buckets[
             ["source_program_id", "source_bucket_id", "source_parent_bucket_id"]
@@ -934,6 +941,10 @@ def _build_declared_plan_data_v2(
         course_map["source_parent_bucket_id"] = course_map["source_parent_bucket_id"].fillna("").astype(str).str.upper()
         source_parent_map_display = course_map["source_parent_bucket_id"].map(_CORE_PARENT_ALIAS).fillna(
             course_map["source_parent_bucket_id"]
+        )
+        source_owner_map_id = source_parent_map_display.where(
+            source_parent_map_display != "",
+            course_map["source_program_id"],
         )
 
         is_overlay_map = course_map["source_program_id"].isin(universal_programs)
@@ -949,83 +960,23 @@ def _build_declared_plan_data_v2(
             + course_map.loc[is_overlay_map & ~has_named_core_parent_map, "source_bucket_id"].astype(str)
         )
         course_map.loc[~is_overlay_map, "bucket_id"] = (
-            major_id + "::" + course_map.loc[~is_overlay_map, "source_bucket_id"].astype(str)
+            source_owner_map_id.loc[~is_overlay_map].astype(str)
+            + "::"
+            + course_map.loc[~is_overlay_map, "source_bucket_id"].astype(str)
         )
         course_map["track_id"] = PHASE5_PLAN_TRACK_ID
 
         all_buckets.append(buckets)
         all_maps.append(course_map)
+
+    for major_id in declared_majors:
+        _append_program(major_id)
+
+    for track_id in selected_track_ids:
+        _append_program(track_id)
 
     for minor_id in declared_minors:
-        minor_data = _build_single_major_data_v2(data, minor_id, None)
-        buckets = minor_data["buckets_df"].copy()
-        course_map = minor_data["course_bucket_map_df"].copy()
-
-        buckets["source_program_id"] = buckets.get("source_program_id", minor_id).fillna(minor_id).astype(str).str.strip().str.upper()
-        buckets["source_bucket_id"] = buckets.get("source_bucket_id", buckets["bucket_id"]).fillna("").astype(str)
-        buckets["source_parent_bucket_id"] = buckets.get(
-            "source_parent_bucket_id",
-            buckets.get("parent_bucket_id", ""),
-        ).fillna("").astype(str).str.strip().str.upper()
-        source_parent_display = buckets["source_parent_bucket_id"].map(_CORE_PARENT_ALIAS).fillna(
-            buckets["source_parent_bucket_id"]
-        )
-
-        is_overlay_bucket = buckets["source_program_id"].isin(universal_programs)
-        has_named_core_parent_bucket = is_overlay_bucket & source_parent_display.isin({"BCC", "MCC"})
-        buckets.loc[has_named_core_parent_bucket, "bucket_id"] = (
-            source_parent_display.loc[has_named_core_parent_bucket].astype(str)
-            + "::"
-            + buckets.loc[has_named_core_parent_bucket, "source_bucket_id"].astype(str)
-        )
-        buckets.loc[is_overlay_bucket & ~has_named_core_parent_bucket, "bucket_id"] = (
-            buckets.loc[is_overlay_bucket & ~has_named_core_parent_bucket, "source_program_id"].astype(str)
-            + "::"
-            + buckets.loc[is_overlay_bucket & ~has_named_core_parent_bucket, "source_bucket_id"].astype(str)
-        )
-        buckets.loc[~is_overlay_bucket, "bucket_id"] = (
-            minor_id + "::" + buckets.loc[~is_overlay_bucket, "source_bucket_id"].astype(str)
-        )
-        buckets.loc[~is_overlay_bucket, "bucket_label"] = (
-            f"{label_map.get(minor_id, minor_id)}: "
-            + buckets.loc[~is_overlay_bucket, "bucket_label"].astype(str)
-        )
-        buckets["track_id"] = PHASE5_PLAN_TRACK_ID
-
-        course_map["source_program_id"] = course_map.get("source_program_id", minor_id).fillna(minor_id).astype(str).str.strip().str.upper()
-        course_map["source_bucket_id"] = course_map.get("source_bucket_id", course_map["bucket_id"]).fillna("").astype(str)
-        parent_lookup = buckets[
-            ["source_program_id", "source_bucket_id", "source_parent_bucket_id"]
-        ].drop_duplicates()
-        course_map = course_map.merge(
-            parent_lookup,
-            on=["source_program_id", "source_bucket_id"],
-            how="left",
-        )
-        course_map["source_parent_bucket_id"] = course_map["source_parent_bucket_id"].fillna("").astype(str).str.upper()
-        source_parent_map_display = course_map["source_parent_bucket_id"].map(_CORE_PARENT_ALIAS).fillna(
-            course_map["source_parent_bucket_id"]
-        )
-
-        is_overlay_map = course_map["source_program_id"].isin(universal_programs)
-        has_named_core_parent_map = is_overlay_map & source_parent_map_display.isin({"BCC", "MCC"})
-        course_map.loc[has_named_core_parent_map, "bucket_id"] = (
-            source_parent_map_display.loc[has_named_core_parent_map].astype(str)
-            + "::"
-            + course_map.loc[has_named_core_parent_map, "source_bucket_id"].astype(str)
-        )
-        course_map.loc[is_overlay_map & ~has_named_core_parent_map, "bucket_id"] = (
-            course_map.loc[is_overlay_map & ~has_named_core_parent_map, "source_program_id"].astype(str)
-            + "::"
-            + course_map.loc[is_overlay_map & ~has_named_core_parent_map, "source_bucket_id"].astype(str)
-        )
-        course_map.loc[~is_overlay_map, "bucket_id"] = (
-            minor_id + "::" + course_map.loc[~is_overlay_map, "source_bucket_id"].astype(str)
-        )
-        course_map["track_id"] = PHASE5_PLAN_TRACK_ID
-
-        all_buckets.append(buckets)
-        all_maps.append(course_map)
+        _append_program(minor_id)
 
     merged = dict(data)
     if all_buckets:
@@ -1151,9 +1102,10 @@ def _resolve_program_selection(body, data: dict):
         }, 400)
 
     discovery_theme = str(body.get("discovery_theme") or "").strip().upper() or None
+    raw_track_ids = body.get("track_ids", None)
 
     # Single-program path (backward compatibility input shape).
-    if declared_majors is None:
+    if declared_majors is None and raw_track_ids is None and not declared_minors:
         raw_track_id = str(body.get("track_id", DEFAULT_TRACK_ID) or DEFAULT_TRACK_ID).strip().upper()
         track_warning = None
         # V2 mode: body.track_id is optional track selection, not major ID.
@@ -1194,16 +1146,30 @@ def _resolve_program_selection(body, data: dict):
                         f"Track '{_program_label(selected_track_id)}' is not yet published (active=0). "
                         "Results may be incomplete."
                     )
+                effective_data = _build_single_major_data_v2(data, selected_track_id, None)
+                return {
+                    "mode": "legacy",
+                    "declared_majors": None,
+                    "declared_major_labels": None,
+                    "selected_track_id": selected_track_id,
+                    "selected_track_label": _program_label(selected_track_id),
+                    "selected_program_ids": [selected_track_id],
+                    "selected_program_labels": [_program_label(selected_track_id)],
+                    "program_warnings": [],
+                    "track_warning": track_warning,
+                    "effective_track_id": selected_track_id,
+                    "effective_data": effective_data,
+                }, None
 
-            effective_data = _build_single_major_data_v2(data, major_id, selected_track_id)
+            effective_data = _build_single_major_data_v2(data, major_id, None)
             return {
                 "mode": "legacy",
                 "declared_majors": None,
                 "declared_major_labels": None,
-                "selected_track_id": selected_track_id,
-                "selected_track_label": _program_label(selected_track_id) if selected_track_id else None,
-                "selected_program_ids": [major_id] + ([selected_track_id] if selected_track_id else []),
-                "selected_program_labels": [_program_label(major_id)] + ([_program_label(selected_track_id)] if selected_track_id else []),
+                "selected_track_id": None,
+                "selected_track_label": None,
+                "selected_program_ids": [major_id],
+                "selected_program_labels": [_program_label(major_id)],
                 "program_warnings": [],
                 "track_warning": track_warning,
                 "effective_track_id": major_id,
@@ -1237,6 +1203,12 @@ def _resolve_program_selection(body, data: dict):
             "effective_track_id": track_id,
             "effective_data": data,
         }, None
+
+    if raw_track_ids is None:
+        raw_single = body.get("track_id", None)
+        raw_track_ids = [raw_single] if raw_single not in (None, "", "__NONE__") else []
+
+    declared_majors = declared_majors or []
 
     # Declared majors path.
     if len(selectable_catalog_df) == 0:
@@ -1300,12 +1272,6 @@ def _resolve_program_selection(body, data: dict):
 
     # Support track_ids (array) and legacy track_id (single) — normalise to list.
     selected_track_ids = []
-    raw_track_ids = body.get("track_ids", None)
-    if raw_track_ids is None:
-        raw_single = body.get("track_id", None)
-        raw_track_ids = [raw_single] if raw_single not in (None, "", "__NONE__") else []
-
-    seen_parent_majors: set[str] = set()
     for raw_track in (raw_track_ids or []):
         if raw_track in (None, "", "__NONE__"):
             continue
@@ -1324,18 +1290,6 @@ def _resolve_program_selection(body, data: dict):
                     "message": f"track_id '{t_id}' is not a track.",
                 },
             }, 400)
-        parent_major_id = str(track_row.get("parent_major_id", "") or "").strip().upper()
-        if parent_major_id and parent_major_id not in declared_majors:
-            return None, ({
-                "mode": "error",
-                "error": {
-                    "error_code": "TRACK_MAJOR_MISMATCH",
-                    "message": (
-                        f"Track '{_program_label(t_id)}' does not belong to declared majors "
-                        f"{[_program_label(mid) for mid in declared_majors]}."
-                    ),
-                },
-            }, 400)
         if t_id == AIM_CFA_TRACK_ID and FIN_MAJOR_ID not in declared_majors:
             return None, ({
                 "mode": "error",
@@ -1344,15 +1298,6 @@ def _resolve_program_selection(body, data: dict):
                     "message": AIM_CFA_FINANCE_RULE_MSG,
                 },
             }, 400)
-        if parent_major_id in seen_parent_majors:
-            return None, ({
-                "mode": "error",
-                "error": {
-                    "error_code": "DUPLICATE_TRACK_MAJOR",
-                    "message": "Cannot select two tracks for the same major.",
-                },
-            }, 400)
-        seen_parent_majors.add(parent_major_id)
         if not track_row.get("active", True):
             warnings.append(
                 f"Track '{_program_label(t_id)}' is not yet published (active=0). "
@@ -1486,8 +1431,8 @@ def _build_current_progress(completed, in_progress, data, track_id):
         baseline = completed_only_alloc.get("applied_by_bucket", {}).get(bucket_id, {})
         assumed = assumed_alloc.get("applied_by_bucket", {}).get(bucket_id, {})
 
-        completed_done = len(baseline.get("completed_applied", []))
-        assumed_done = len(assumed.get("completed_applied", []))
+        completed_done = get_applied_bucket_progress_units(baseline)
+        assumed_done = get_applied_bucket_progress_units(assumed)
         in_progress_increment = max(0, assumed_done - completed_done)
 
         out[bucket_id] = {
@@ -1496,7 +1441,14 @@ def _build_current_progress(completed, in_progress, data, track_id):
             "completed_done": completed_done,
             "in_progress_increment": in_progress_increment,
             "assumed_done": assumed_done,
-            "satisfied": bool(assumed.get("satisfied", baseline.get("satisfied", False))),
+            "satisfied": bool(
+                (assumed.get("needed", baseline.get("needed")) or 0) > 0
+                and assumed_done >= (assumed.get("needed", baseline.get("needed")) or 0)
+            ),
+            "requirement_mode": (baseline.get("requirement_mode") or assumed.get("requirement_mode", "required")),
+            "needed_count": (baseline.get("needed_count") if baseline.get("needed_count") is not None else assumed.get("needed_count")),
+            "completed_courses": len(baseline.get("completed_applied", [])),
+            "in_progress_courses": len(baseline.get("in_progress_applied", [])),
         }
     return out
 
@@ -1693,17 +1645,21 @@ def recommend():
         if cached is not None:
             return jsonify(cached)
 
-    # Recommendations require an explicit major selection from the UI.
-    # Keep backward-compatible track-only calls only when a track_id is provided.
+    # Recommendations require at least one declared program from the UI.
     declared_majors_raw = body.get("declared_majors", None)
+    track_ids_raw = body.get("track_ids", None)
     track_raw = body.get("track_id", None)
-    has_track_context = str(track_raw).strip().upper() not in {"", "__NONE__", "NONE"}
+    has_track_context = False
+    if isinstance(track_ids_raw, list):
+        has_track_context = any(str(t).strip().upper() not in {"", "__NONE__", "NONE"} for t in track_ids_raw)
+    if not has_track_context:
+        has_track_context = str(track_raw).strip().upper() not in {"", "__NONE__", "NONE"}
     if declared_majors_raw is None and not has_track_context:
         return jsonify({
             "mode": "error",
             "error": {
                 "error_code": "INVALID_INPUT",
-                "message": "Select at least one major before requesting recommendations.",
+                "message": "Select at least one major or track before requesting recommendations.",
             },
         }), 400
 
@@ -1886,6 +1842,7 @@ def recommend():
                 debug=debug_mode,
                 debug_limit=debug_limit,
                 current_standing=current_standing,
+                chain_depths=_chain_depths,
             )
         else:
             semester_payload = run_recommendation_semester(
@@ -1899,6 +1856,7 @@ def recommend():
                 debug=debug_mode,
                 debug_limit=debug_limit,
                 current_standing=current_standing,
+                chain_depths=_chain_depths,
             )
         semesters_payload.append(semester_payload)
         # Accumulate recommended course credits for the next semester's standing projection.
@@ -1923,7 +1881,7 @@ def recommend():
         "not_in_catalog_warning": not_in_catalog_warn if not_in_catalog_warn else None,
         "error": None,
     }
-    if selection["mode"] == "declared":
+    if selection["mode"] in {"declared", "legacy"}:
         response["selection_context"] = {
             "declared_majors": selection["declared_majors"],
             "declared_major_labels": selection["declared_major_labels"],

@@ -4,7 +4,9 @@ import {
   DEFAULT_SEMESTER,
   DEFAULT_SEMESTER_COUNT,
   DEFAULT_MAX_RECS,
+  AIM_MAJOR_ID,
   AIM_CFA_TRACK_ID,
+  AIM_TRACK_PROGRAM_IDS,
   FIN_MAJOR_ID,
 } from "@/lib/constants";
 
@@ -13,7 +15,9 @@ export type AppAction =
   | { type: "SET_PROGRAMS"; payload: ProgramsData }
   | { type: "ADD_MAJOR"; payload: string }
   | { type: "REMOVE_MAJOR"; payload: string }
+  | { type: "ADD_TRACK"; payload: string }
   | { type: "SET_TRACK"; payload: { majorId: string; trackId: string | null } }
+  | { type: "REMOVE_TRACK"; payload: string }
   | { type: "ADD_MINOR"; payload: string }
   | { type: "REMOVE_MINOR"; payload: string }
   | { type: "SET_DISCOVERY_THEME"; payload: string }
@@ -52,6 +56,22 @@ export const initialState: AppState = {
   lastRequestedCount: 3,
 };
 
+function isAimTrackProgram(trackId: string): boolean {
+  return AIM_TRACK_PROGRAM_IDS.includes(trackId as (typeof AIM_TRACK_PROGRAM_IDS)[number]);
+}
+
+function sanitizeAimProgramSelections(
+  selectedMajors: Set<string>,
+  selectedTracks: string[],
+): { selectedMajors: Set<string>; selectedTracks: string[] } {
+  const nextMajors = new Set(selectedMajors);
+  const nextTracks = selectedTracks.slice();
+  if (nextTracks.some(isAimTrackProgram)) {
+    nextMajors.delete(AIM_MAJOR_ID);
+  }
+  return { selectedMajors: nextMajors, selectedTracks: nextTracks };
+}
+
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "SET_COURSES":
@@ -63,17 +83,17 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "ADD_MAJOR": {
       const next = new Set(state.selectedMajors);
       next.add(action.payload);
-      return { ...state, selectedMajors: next };
+      let nextTracks = state.selectedTracks.slice();
+      if (action.payload === AIM_MAJOR_ID) {
+        nextTracks = nextTracks.filter((tid) => !isAimTrackProgram(tid));
+      }
+      return { ...state, selectedMajors: next, selectedTracks: nextTracks };
     }
 
     case "REMOVE_MAJOR": {
       const next = new Set(state.selectedMajors);
       next.delete(action.payload);
-      // Also clear any track whose parent_major_id matches the removed major
-      let nextTracks = state.selectedTracks.filter((tid) => {
-        const tr = state.programs.tracks.find((t) => t.id === tid);
-        return tr?.parent_major_id !== action.payload;
-      });
+      let nextTracks = state.selectedTracks.slice();
       // AIM CFA track requires Finance major.
       if (action.payload === FIN_MAJOR_ID) {
         nextTracks = nextTracks.filter((tid) => tid !== AIM_CFA_TRACK_ID);
@@ -81,19 +101,45 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, selectedMajors: next, selectedTracks: nextTracks };
     }
 
+    case "ADD_TRACK": {
+      const trackId = action.payload;
+      if (trackId === AIM_CFA_TRACK_ID && !state.selectedMajors.has(FIN_MAJOR_ID)) {
+        return state;
+      }
+      if (state.selectedTracks.includes(trackId)) {
+        return state;
+      }
+      const nextTracks = [...state.selectedTracks, trackId];
+      const nextMajors = new Set(state.selectedMajors);
+      if (isAimTrackProgram(trackId)) {
+        nextMajors.delete(AIM_MAJOR_ID);
+      }
+      return { ...state, selectedMajors: nextMajors, selectedTracks: nextTracks };
+    }
+
     case "SET_TRACK": {
       const { majorId, trackId } = action.payload;
       if (trackId === AIM_CFA_TRACK_ID && !state.selectedMajors.has(FIN_MAJOR_ID)) {
         return state;
       }
-      // Remove any existing track for this major, then add the new one
+      // Discovery and other single-slot selectors replace the existing track in that family.
       const filtered = state.selectedTracks.filter((tid) => {
         const tr = state.programs.tracks.find((t) => t.id === tid);
         return tr?.parent_major_id !== majorId;
       });
       const nextTracks = trackId ? [...filtered, trackId] : filtered;
-      return { ...state, selectedTracks: nextTracks };
+      const nextMajors = new Set(state.selectedMajors);
+      if (trackId && isAimTrackProgram(trackId)) {
+        nextMajors.delete(AIM_MAJOR_ID);
+      }
+      return { ...state, selectedMajors: nextMajors, selectedTracks: nextTracks };
     }
+
+    case "REMOVE_TRACK":
+      return {
+        ...state,
+        selectedTracks: state.selectedTracks.filter((tid) => tid !== action.payload),
+      };
 
     case "ADD_MINOR": {
       const next = new Set(state.selectedMinors);
@@ -191,19 +237,26 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         : (snap as unknown as { declaredTrack?: string }).declaredTrack
           ? [(snap as unknown as { declaredTrack: string }).declaredTrack]
           : [];
-      const sanitizedTracks = selectedTracks.filter(
+      const filteredTracks = selectedTracks.filter(
         (tid) => tid !== AIM_CFA_TRACK_ID || selectedMajors.has(FIN_MAJOR_ID),
       );
+      const {
+        selectedMajors: sanitizedMajors,
+        selectedTracks: sanitizedTracks,
+      } = sanitizeAimProgramSelections(selectedMajors, filteredTracks);
 
       const selectedMinors = new Set(
         (snap.declaredMinors || []).filter(Boolean),
       );
+      const selectionWasSanitized =
+        sanitizedMajors.size !== selectedMajors.size ||
+        sanitizedTracks.length !== selectedTracks.length;
 
       return {
         ...state,
         completed,
         inProgress,
-        selectedMajors,
+        selectedMajors: sanitizedMajors,
         selectedTracks: sanitizedTracks,
         selectedMinors,
         discoveryTheme: snap.discoveryTheme || "",
@@ -214,7 +267,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         canTakeQuery: snap.canTake || "",
         activeNavTab: snap.activeNavTab || "plan",
         onboardingComplete: snap.onboardingComplete || false,
-        lastRecommendationData: snap.lastRecommendationData || null,
+        lastRecommendationData: selectionWasSanitized ? null : (snap.lastRecommendationData || null),
         lastRequestedCount: Number(snap.lastRequestedCount) || state.lastRequestedCount,
       };
     }

@@ -3,7 +3,7 @@
 import type { CreditKpiMetrics, BucketProgress } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { ProgressRing } from "./ProgressRing";
-import { groupProgressByParent, compactKpiBucketLabel } from "@/lib/rendering";
+import { groupProgressByParent, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
 import { bucketLabel } from "@/lib/utils";
 
 interface ProgressModalProps {
@@ -111,16 +111,17 @@ export function ProgressModal({
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {group.entries.map(([bid, prog]) => {
-                      const needed = Number(prog.needed || 0);
-                      const done = Number(prog.completed_done || prog.done_count || 0);
+                      const { done, inProg, needed, unit } = getBucketDisplay(prog);
                       const ipCodes = prog.in_progress_applied || [];
-                      const inProg = Number(prog.in_progress_increment || ipCodes.length || 0);
                       const label = compactKpiBucketLabel(
                         prog.label || bucketLabel(bid, programLabelMap),
                       );
-                      const pct = needed > 0 ? (done / needed) * 100 : 0;
-                      const totalPct = needed > 0 ? ((done + inProg) / needed) * 100 : 0;
-                      const satisfied = prog.satisfied || (needed > 0 && done >= needed);
+                      const creditNeeded = Number(prog.needed || 0);
+                      const creditDone = Number(prog.completed_done ?? prog.done_count ?? 0);
+                      const creditInProg = Number(prog.in_progress_increment ?? 0);
+                      const pct = creditNeeded > 0 ? (creditDone / creditNeeded) * 100 : 0;
+                      const totalPct = creditNeeded > 0 ? ((creditDone + creditInProg) / creditNeeded) * 100 : 0;
+                      const satisfied = prog.satisfied || (creditNeeded > 0 && creditDone >= creditNeeded);
 
                       return (
                         <div
@@ -136,7 +137,7 @@ export function ProgressModal({
                               {inProg > 0 && (
                                 <span className="text-gold">+{inProg}</span>
                               )}
-                              /{needed}
+                              /{needed} {unit}
                               {satisfied && (
                                 <span className="text-ok ml-1">(Done)</span>
                               )}
@@ -160,7 +161,7 @@ export function ProgressModal({
                           </div>
                           {ipCodes.length > 0 && (
                             <p className="text-xs text-gold/70 mt-1.5">
-                              In progress: {ipCodes.join(", ")}
+                              In progress courses: {ipCodes.join(", ")}
                             </p>
                           )}
                         </div>

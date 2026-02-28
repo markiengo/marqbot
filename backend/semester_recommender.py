@@ -7,7 +7,12 @@ from requirements import (
     get_allowed_double_count_pairs,
     get_buckets_by_role,
 )
-from allocator import allocate_courses, _safe_int, _infer_requirement_mode
+from allocator import (
+    allocate_courses,
+    get_applied_bucket_progress_units,
+    _safe_int,
+    _infer_requirement_mode,
+)
 from unlocks import get_direct_unlocks, get_blocking_warnings
 from eligibility import get_eligible_courses, parse_term
 
@@ -425,19 +430,49 @@ def _accc_major_required_rank(candidate: dict, is_acco_context: bool) -> int:
     return 1
 
 
+def _compute_satisfied(applied: dict, assumed_done_credits: int) -> bool:
+    """Bucket is satisfied when either its course-count OR its credit
+    threshold is met (whichever comes first).  Covers buckets that
+    define both requirements."""
+    needed_count = applied.get("needed_count")
+    needed_credits = applied.get("needed") or 0
+
+    if needed_count is not None and needed_count > 0:
+        total_courses = (
+            len(applied.get("completed_applied", []))
+            + len(applied.get("in_progress_applied", []))
+        )
+        if total_courses >= needed_count:
+            return True
+
+    if needed_credits > 0:
+        return assumed_done_credits >= needed_credits
+
+    return False
+
+
 def build_progress_output(allocation: dict, course_bucket_map_df: pd.DataFrame) -> dict:
     progress = {}
     for bid, applied in allocation["applied_by_bucket"].items():
         remaining = allocation["remaining"].get(bid, {})
+        completed_done = get_applied_bucket_progress_units(applied)
+        assumed_done = get_applied_bucket_progress_units(applied, include_in_progress=True)
+        in_progress_increment = max(0, assumed_done - completed_done)
         progress[bid] = {
             "label": applied.get("label", bid),
             "needed": applied.get("needed"),
             "completed_applied": applied["completed_applied"],
             "in_progress_applied": applied["in_progress_applied"],
-            "done_count": len(applied["completed_applied"]),
-            "satisfied": applied["satisfied"],
+            "completed_done": completed_done,
+            "done_count": completed_done,
+            "in_progress_increment": in_progress_increment,
+            "satisfied": _compute_satisfied(applied, assumed_done),
             "remaining_courses": remaining.get("remaining_courses", []),
             "slots_remaining": remaining.get("slots_remaining", 0),
+            "requirement_mode": applied.get("requirement_mode", "required"),
+            "needed_count": applied.get("needed_count"),
+            "completed_courses": len(applied.get("completed_applied", [])),
+            "in_progress_courses": len(applied.get("in_progress_applied", [])),
         }
     return progress
 
@@ -559,6 +594,25 @@ def _build_debug_trace(
     return trace
 
 
+def _candidate_program_ids(
+    candidate: dict,
+    bucket_parent_map: dict[str, str],
+    parent_type_map: dict[str, str],
+) -> set[str]:
+    """Extract major/track parent IDs that a candidate course fills."""
+    programs: set[str] = set()
+    for bid in candidate.get("fills_buckets", []):
+        parent = bucket_parent_map.get(str(bid), "")
+        if not parent:
+            continue
+        if parent_type_map.get(parent, "") in ("major", "track"):
+            programs.add(parent)
+    return programs
+
+
+_PROGRAM_BALANCE_THRESHOLD = 2
+
+
 def run_recommendation_semester(
     completed: list[str],
     in_progress: list[str],
@@ -570,6 +624,7 @@ def run_recommendation_semester(
     debug: bool = False,
     debug_limit: int = 30,
     current_standing: int = 1,
+    chain_depths: dict[str, int] | None = None,
 ) -> dict:
     """Run the full recommendation pipeline for a single semester."""
     term = parse_term(target_semester_label)
@@ -652,6 +707,7 @@ def run_recommendation_semester(
     parent_type_map = _build_parent_type_map(data)
     bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
     bucket_parent_map = _build_bucket_parent_map(data, track_id)
+    _chain = chain_depths or {}
     ranked_sem = sorted(
         non_manual_sem,
         key=lambda c: (
@@ -663,9 +719,10 @@ def run_recommendation_semester(
             ),
             _accc_major_required_rank(c, is_acco_context),
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
+            -_chain.get(c["course_code"], 0),
+            -c.get("multi_bucket_score", 0),
             -len(get_direct_unlocks(c["course_code"], reverse_map, limit=50)),
             _soft_tag_demote_penalty(c),
-            -c.get("multi_bucket_score", 0),
             c.get("prereq_level", 0),
             c["course_code"],
         ),
@@ -687,6 +744,8 @@ def run_recommendation_semester(
     }
     virtual_remaining_snapshot = dict(virtual_remaining) if debug else {}
     picks_per_bucket: dict[str, int] = {}
+    picks_per_program: dict[str, int] = {}
+    deferred_for_balance: list[dict] = []
     cap_relaxed = False
     skipped_reasons: dict[str, str] = {}
     for idx, cand in enumerate(ranked_sem):
@@ -728,7 +787,52 @@ def run_recommendation_semester(
             if debug:
                 skipped_reasons[cand["course_code"]] = "no assignable buckets (capacity full or diversity cap)"
             continue
+
+        # Program balance gate: defer if this program is over-represented.
+        cand_programs = _candidate_program_ids(cand, bucket_parent_map, parent_type_map)
+        if cand_programs and picks_per_program:
+            active_programs = set(picks_per_program.keys()) | cand_programs
+            min_global = min(picks_per_program.get(p, 0) for p in active_programs)
+            cand_min = min(picks_per_program.get(p, 0) for p in cand_programs)
+            if cand_min >= min_global + _PROGRAM_BALANCE_THRESHOLD:
+                deferred_for_balance.append(cand)
+                if debug:
+                    skipped_reasons[cand["course_code"]] = "program balance deferral"
+                continue
+
         selected_sem.append(cand)
+        for prog in cand_programs:
+            picks_per_program[prog] = picks_per_program.get(prog, 0) + 1
+        for bid in assigned_buckets:
+            if virtual_remaining.get(bid, 0) > 0:
+                consume = _bucket_virtual_consumption_units(
+                    bid,
+                    cand,
+                    selection_bucket_meta,
+                )
+                virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
+                picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
+
+    # Second pass: fill remaining slots from deferred candidates.
+    for cand in deferred_for_balance:
+        if len(selected_sem) >= max_recs:
+            break
+        cand_buckets = cand.get("fills_buckets", [])
+        assigned_buckets = _select_assignable_buckets_allocator_style(
+            cand_buckets,
+            virtual_remaining,
+            picks_per_bucket,
+            enforce_bucket_cap=False,
+            max_per_bucket=_MAX_PER_BUCKET_PER_SEM,
+            allowed_pairs=allowed_pairs,
+            bucket_meta=selection_bucket_meta,
+        )
+        if not assigned_buckets:
+            continue
+        selected_sem.append(cand)
+        cand_programs = _candidate_program_ids(cand, bucket_parent_map, parent_type_map)
+        for prog in cand_programs:
+            picks_per_program[prog] = picks_per_program.get(prog, 0) + 1
         for bid in assigned_buckets:
             if virtual_remaining.get(bid, 0) > 0:
                 consume = _bucket_virtual_consumption_units(

@@ -1,5 +1,5 @@
 import type { BucketProgress } from "@/lib/types";
-import { groupProgressByParent, compactKpiBucketLabel } from "@/lib/rendering";
+import { groupProgressByParent, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
 import { bucketLabel } from "@/lib/utils";
 
 interface DegreeSummaryProps {
@@ -27,13 +27,11 @@ export function DegreeSummary({ currentProgress, programLabelMap }: DegreeSummar
               </span>
             </div>
             {group.entries.map(([bid, prog]) => {
-              const needed = Number(prog.needed || 0);
-              const done = Number(prog.completed_done || prog.done_count || 0);
-              const inProg = Number(prog.in_progress_increment || 0);
+              const { done, inProg, needed, unit } = getBucketDisplay(prog);
               const label = compactKpiBucketLabel(
                 prog.label || bucketLabel(bid, programLabelMap),
               );
-              const satisfied = prog.satisfied || (needed > 0 && done >= needed);
+              const satisfied = prog.satisfied || (Number(prog.needed || 0) > 0 && Number(prog.completed_done ?? prog.done_count ?? 0) >= Number(prog.needed || 0));
               const highlightBcc = bid.includes("BCC_REQUIRED");
 
               return (
@@ -54,7 +52,7 @@ export function DegreeSummary({ currentProgress, programLabelMap }: DegreeSummar
                   </span>
                   <span className="text-[13px] shrink-0 text-ink-faint">
                     {done}
-                    {inProg > 0 && <span className="text-gold">+{inProg}</span>}/{needed}
+                    {inProg > 0 && <span className="text-gold">+{inProg}</span>}/{needed} {unit}
                   </span>
                 </div>
               );

@@ -31,6 +31,19 @@ def _infer_requirement_mode(row: pd.Series) -> str:
     return "required"
 
 
+def get_applied_bucket_progress_units(
+    applied_bucket: dict,
+    *,
+    include_in_progress: bool = False,
+) -> int:
+    """Return bucket progress in credit units for all response payloads."""
+    completed_units = _safe_int(applied_bucket.get("credits_applied"), 0) or 0
+    if not include_in_progress:
+        return completed_units
+    in_progress_units = _safe_int(applied_bucket.get("in_progress_credits_applied"), 0) or 0
+    return completed_units + in_progress_units
+
+
 def _expand_map_with_equivalencies(
     track_map: pd.DataFrame,
     equivalencies_df: pd.DataFrame,
@@ -152,14 +165,15 @@ def allocate_courses(
     track_buckets = buckets_df[
         buckets_df["track_id"].astype(str).str.strip().str.upper() == track_key
     ].copy()
-    track_map = course_bucket_map_df[
+    base_track_map = course_bucket_map_df[
         course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
     ].copy()
-    track_map = _expand_map_with_equivalencies(track_map, equivalencies_df, track_key)
+    track_map = _expand_map_with_equivalencies(base_track_map, equivalencies_df, track_key)
 
     # Pre-index course<->bucket mappings once to avoid repeated dataframe scans.
     course_bucket_index: dict[str, list[str]] = {}
     bucket_course_index: dict[str, list[str]] = {}
+    base_bucket_course_index: dict[str, list[str]] = {}
     for _, row in track_map.iterrows():
         course_code = str(row.get("course_code", "") or "").strip()
         bucket_id = str(row.get("bucket_id", "") or "").strip()
@@ -171,6 +185,15 @@ def allocate_courses(
             per_course.append(bucket_id)
 
         per_bucket = bucket_course_index.setdefault(bucket_id, [])
+        if course_code not in per_bucket:
+            per_bucket.append(course_code)
+
+    for _, row in base_track_map.iterrows():
+        course_code = str(row.get("course_code", "") or "").strip()
+        bucket_id = str(row.get("bucket_id", "") or "").strip()
+        if not course_code or not bucket_id:
+            continue
+        per_bucket = base_bucket_course_index.setdefault(bucket_id, [])
         if course_code not in per_bucket:
             per_bucket.append(course_code)
 
@@ -304,6 +327,25 @@ def allocate_courses(
             return max(0, meta["needed_credits"] - meta["credits_used"])
         return 0
 
+    def progress_needed_credits(bid: str) -> int:
+        meta = bucket_meta[bid]
+        needed_credits = meta.get("needed_credits")
+        if needed_credits is not None:
+            return max(0, int(needed_credits))
+
+        needed_count = meta.get("needed_count")
+        if needed_count is None:
+            return 0
+
+        mapped_courses = base_bucket_course_index.get(bid, [])
+        if (
+            str(meta.get("requirement_mode", "") or "").strip().lower() == "required"
+            and len(mapped_courses) == int(needed_count)
+        ):
+            return sum(get_course_credits(code) for code in mapped_courses)
+
+        return max(0, int(needed_count) * 3)
+
     def is_full(bid: str) -> bool:
         return slots_remaining(bid) <= 0
 
@@ -312,6 +354,7 @@ def allocate_courses(
             "completed_applied": [],
             "in_progress_applied": [],
             "credits_applied": 0,
+            "in_progress_credits_applied": 0,
             "satisfied": False,
         }
         for bid in bucket_meta
@@ -401,6 +444,7 @@ def allocate_courses(
     # in multiple same-parent buckets simultaneously (visual double-count bug).
     for course_code in in_progress:
         eligible_buckets = get_eligible_buckets_for_course(course_code)
+        credits = get_course_credits(course_code)
         ip_assigned_to: list[str] = []
         for bucket_info in eligible_buckets:
             bid = bucket_info["bucket_id"]
@@ -409,6 +453,7 @@ def allocate_courses(
                 continue
             if not ip_assigned_to:
                 applied[bid]["in_progress_applied"].append(course_code)
+                applied[bid]["in_progress_credits_applied"] += credits
                 ip_assigned_to.append(bid)
             else:
                 pairwise_ok = all(
@@ -417,6 +462,7 @@ def allocate_courses(
                 )
                 if pairwise_ok:
                     applied[bid]["in_progress_applied"].append(course_code)
+                    applied[bid]["in_progress_credits_applied"] += credits
                     ip_assigned_to.append(bid)
 
     # Step 4: remaining view.
@@ -453,7 +499,10 @@ def allocate_courses(
         applied_by_bucket[bid] = {
             **applied[bid],
             "label": meta["label"],
-            "needed": needed_val,
+            "needed": progress_needed_credits(bid),
+            "is_credit_based": meta["needed_count"] is None,
+            "needed_count": meta["needed_count"],
+            "requirement_mode": meta["requirement_mode"],
         }
 
     return {

@@ -195,6 +195,28 @@ export function compactKpiBucketLabel(label: string): string {
     .trim();
 }
 
+export function getBucketDisplay(prog: BucketProgress): {
+  done: number;
+  inProg: number;
+  needed: number;
+  unit: "cr" | "courses";
+} {
+  if (prog.requirement_mode === "credits_pool") {
+    return {
+      done: prog.completed_done ?? prog.done_count ?? 0,
+      inProg: prog.in_progress_increment ?? 0,
+      needed: prog.needed ?? 0,
+      unit: "cr",
+    };
+  }
+  return {
+    done: prog.completed_courses ?? 0,
+    inProg: prog.in_progress_courses ?? 0,
+    needed: prog.needed_count ?? prog.needed ?? 0,
+    unit: "courses",
+  };
+}
+
 export function buildCourseCreditMap(courses: Course[]): Map<string, number> {
   const map = new Map<string, number>();
   (Array.isArray(courses) ? courses : []).forEach((course) => {

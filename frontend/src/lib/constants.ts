@@ -43,7 +43,15 @@ export const DEFAULT_MAX_RECS = "3";
 export const MAX_MAJORS = 3;
 export const MAX_MINORS = 2;
 
+export const AIM_MAJOR_ID = "AIM_MAJOR";
 export const FIN_MAJOR_ID = "FIN_MAJOR";
 export const AIM_CFA_TRACK_ID = "AIM_CFA_TRACK";
+export const AIM_FINTECH_TRACK_ID = "AIM_FINTECH_TRACK";
+export const AIM_IB_TRACK_ID = "AIM_IB_TRACK";
+export const AIM_TRACK_PROGRAM_IDS = [
+  AIM_CFA_TRACK_ID,
+  AIM_FINTECH_TRACK_ID,
+  AIM_IB_TRACK_ID,
+] as const;
 export const AIM_CFA_FINANCE_RULE_MSG =
   "Students in the AIM CFA: Investments Concentration must also have a declared primary major in Finance.";

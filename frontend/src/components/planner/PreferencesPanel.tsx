@@ -15,7 +15,7 @@ interface PreferencesPanelProps {
 
 export function PreferencesPanel({ onSubmit, loading }: PreferencesPanelProps) {
   const { state, dispatch } = useAppContext();
-  const hasMajor = state.selectedMajors.size > 0;
+  const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
 
   return (
     <div className="space-y-4">
@@ -116,7 +116,7 @@ export function PreferencesPanel({ onSubmit, loading }: PreferencesPanelProps) {
           variant="gold"
           size="md"
           onClick={onSubmit}
-          disabled={loading || !hasMajor}
+          disabled={loading || !hasProgram}
           className="w-full"
         >
           {loading ? (
@@ -128,9 +128,9 @@ export function PreferencesPanel({ onSubmit, loading }: PreferencesPanelProps) {
             "Get Recommendations"
           )}
         </Button>
-        {!hasMajor && (
+        {!hasProgram && (
           <p className="text-xs text-ink-faint text-center mt-2">
-            Select a major above to get started
+            Select a major or track above to get started
           </p>
         )}
       </div>

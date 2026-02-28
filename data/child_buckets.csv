@@ -4,10 +4,10 @@ ACCO_MAJOR,acco-choose-2,Choose 2,choose_n,2.0,,3000.0,
 ACCO_MAJOR,acco-elec-2,2 Business Electives (6 credits),credits_pool,,6.0,3000.0,Elective pool intentionally unmapped for now.
 AIM_CFA_TRACK,aim-cfa-req-core,AIM CFA Core,required,9.0,,,
 AIM_CFA_TRACK,aim-cfa-intl-choose-1,International Choose 1,choose_n,1.0,,3000.0,
-AIM_CFA_TRACK,aim-cfa-elec-upper,Upper Division Business Electives (9-15 credits),credits_pool,,9.0,3000.0,Minimum 9 credits; elective pool intentionally unmapped for now.
+AIM_CFA_TRACK,aim-cfa-elec-upper,Upper Division Business Electives (9 credits),credits_pool,,9.0,3000.0,Elective pool intentionally unmapped for now.
 AIM_FINTECH_TRACK,aim-fintech-req-core,AIM FinTech Core,required,6.0,,,
 AIM_FINTECH_TRACK,aim-fintech-elec-upper-15,Upper Division Business Electives (15 credits),credits_pool,,15.0,3000.0,Elective pool intentionally unmapped for now.
-AIM_IB_TRACK,aim-pcib-req-core,AIM PCIB Core,required,11.0,,,
+AIM_IB_TRACK,aim-pcib-req-core,AIM PCIB Core,required,6.0,,,
 AIM_IB_TRACK,aim-pcib-elec-upper-15,Upper Division Business Electives (15 credits),credits_pool,,15.0,3000.0,Elective pool intentionally unmapped for now.
 AIM_MAJOR,aim-req-core,AIM Core Requirements,required,5.0,,,
 AIM_MAJOR,aim-choose-1,AIM Choose 1,choose_n,1.0,,3000.0,

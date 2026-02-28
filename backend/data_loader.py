@@ -451,7 +451,7 @@ def _convert_parent_child_model_to_v2(
         }
     programs_df = _normalize_programs_df(pd.DataFrame(programs_rows))
 
-    # Build V2 buckets by projecting each parent bucket into its owning major scope.
+    # Build V2 buckets with majors/tracks/minors as standalone programs.
     bucket_rows: list[dict] = []
     child_rows: list[dict] = []
     map_rows: list[dict] = []
@@ -465,14 +465,8 @@ def _convert_parent_child_model_to_v2(
         label = str(meta["label"] or parent_id)
 
         if ptype == "track":
-            owner_program = parent_major or parent_id
-            track_required = parent_id
-            if not parent_major:
-                print(
-                    "[WARN] parent_buckets row for "
-                    f"'{parent_id}' has type='{ptype}' but empty parent_major. "
-                    "Track selection linkage may be incomplete."
-                )
+            owner_program = parent_id
+            track_required = ""
         elif ptype == "minor":
             owner_program = parent_id   # minor owns its own bucket scope
             track_required = ""          # no track_required linkage
