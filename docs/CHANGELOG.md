@@ -32,10 +32,21 @@ Format per release:
 - Added `docs/data_model.md` — a Mermaid ER diagram showing all 7 data entities and their relationships.
 - Updated `.claude/CLAUDE.md` with backend module structure, `requires_primary_major` rules, v2 bucket coexistence behavior, and new "Never Do" guidelines.
 
+**Bug fix — standing gate deadlock in multi-semester recommendations**
+- Fixed `running_credits` initialization to include in-progress course credits alongside completed credits.
+- Previously, in-progress courses counted for prereq eligibility but not for academic standing, causing students to remain at Sophomore standing far longer than expected and blocking all Junior/Senior courses in later semesters.
+- Triple-major scenarios (e.g., INSY + FIN + BUAN) now correctly advance standing and fill semesters 3–6.
+
+**Data — deactivated buckets without course mappings**
+- Deactivated `MCC_ESSV2` (Engaging Social Systems & Values 2) — no verified course data yet.
+- Deactivated `MCC_DISC` and all 5 Discovery Theme tracks (BNJ, CB, CMI, EOH, IC) — no course mappings injected yet. Fixes `validate_track.py` CI failure.
+
 ### Design Decisions
 - Audit followed `docs/code_audit.md` (severity S0–S3) and `docs/file_cleanup.md` (delete/archive/keep classification) playbooks end-to-end.
 - Test fixes update expectations to match current data (v1.9.6–v1.9.8 changes), not behavior changes.
 - README targets students, not developers — no setup/install/Docker sections.
+- Standing fix aligns credit counting with prereq treatment: if in-progress courses are assumed complete for eligibility, they should count toward standing too.
+- Bucket deactivation is a data-readiness gate — flipping `active` back to `True` re-enables instantly once course mappings are injected.
 
 ---
 
