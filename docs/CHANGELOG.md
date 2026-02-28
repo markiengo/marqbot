@@ -8,6 +8,37 @@ Format per release:
 
 ---
 
+## [v1.9.9] - 2026-02-28
+
+### Changes
+
+**Code audit and cleanup**
+- Removed duplicate helper functions across backend modules; shared logic now lives in one place.
+- Deleted unused `courseDisplayName` utility from the frontend.
+- Fixed "Get Started Only" button typo on the landing page (now reads "Get Started").
+- Archived 4 one-time migration scripts that were cluttering the active scripts folder.
+- Deleted `data/README.csv`; replaced with a proper data model diagram at `docs/data_model.md`.
+- Added `coverage/` to `.gitignore`.
+
+**Test suite fixes — all tests now pass**
+- Fixed 9 backend tests that were failing due to outdated expectations (AIM primary major requirement, updated course labels, changed prerequisite chains).
+- Fixed 4 frontend lint errors by moving a component definition out of a render function.
+
+**README rewrite**
+- Rewrote `README.md` as a student-friendly intro to MarqBot with a casual, approachable tone.
+- Added an inline data model diagram (Mermaid) and links to upcoming features.
+
+**Documentation**
+- Added `docs/data_model.md` — a Mermaid ER diagram showing all 7 data entities and their relationships.
+- Updated `.claude/CLAUDE.md` with backend module structure, `requires_primary_major` rules, v2 bucket coexistence behavior, and new "Never Do" guidelines.
+
+### Design Decisions
+- Audit followed `docs/code_audit.md` (severity S0–S3) and `docs/file_cleanup.md` (delete/archive/keep classification) playbooks end-to-end.
+- Test fixes update expectations to match current data (v1.9.6–v1.9.8 changes), not behavior changes.
+- README targets students, not developers — no setup/install/Docker sections.
+
+---
+
 ## [v1.9.8] - 2026-02-28
 
 ### Changes
