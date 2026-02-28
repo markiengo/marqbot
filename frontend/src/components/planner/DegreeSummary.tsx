@@ -31,7 +31,9 @@ export function DegreeSummary({ currentProgress, programLabelMap }: DegreeSummar
               const label = compactKpiBucketLabel(
                 prog.label || bucketLabel(bid, programLabelMap),
               );
-              const satisfied = prog.satisfied || (Number(prog.needed || 0) > 0 && Number(prog.completed_done ?? prog.done_count ?? 0) >= Number(prog.needed || 0));
+              const satisfied = prog.satisfied
+                || ((prog.needed_count ?? 0) > 0 && (prog.completed_courses ?? 0) + (prog.in_progress_courses ?? 0) >= (prog.needed_count ?? 0))
+                || ((prog.needed ?? 0) > 0 && (prog.completed_done ?? prog.done_count ?? 0) >= (prog.needed ?? 0));
               const highlightBcc = bid.includes("BCC_REQUIRED");
 
               return (

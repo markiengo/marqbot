@@ -8,45 +8,41 @@ Format per release:
 
 ---
 
-## [v1.9.9] - 2026-02-28
+## [v2.0.0] - 2026-02-28
 
 ### Changes
 
-**Code audit and cleanup**
-- Removed duplicate helper functions across backend modules; shared logic now lives in one place.
-- Deleted unused `courseDisplayName` utility from the frontend.
-- Fixed "Get Started Only" button typo on the landing page (now reads "Get Started").
-- Archived 4 one-time migration scripts that were cluttering the active scripts folder.
-- Deleted `data/README.csv`; replaced with a proper data model diagram at `docs/data_model.md`.
-- Added `coverage/` to `.gitignore`.
+**Smarter recommendations — chain depth, multi-bucket scoring, and dual-major balance**
+- Courses that start long prerequisite chains now rank higher. FINA 3001 (depth 4 — unlocks a 5-semester sequence to AIM 4430) gets scheduled before standalone electives with no downstream dependencies.
+- Multi-bucket score is now prioritized over direct unlock count. A course counting toward your major, BCC, and a track requirement simultaneously ranks above one that only fills a single bucket.
+- Dual-major students now get balanced picks. If Finance already has 3 picks and INSY has 0, the next FINA course is deferred so INSY can catch up. No major gets starved.
+- Removed `hard_prereq_complex` tag from all courses with parseable prerequisites (~80 courses unblocked, including all INSY 4051-4055 core courses and AIM 4310-4430 track chain).
+- Lowered FINA 3001 standing gate from Senior (90 credits) to Sophomore (24 credits), unblocking the AIM FinTech chain much earlier in the plan.
 
-**Test suite fixes — all tests now pass**
-- Fixed 9 backend tests that were failing due to outdated expectations (AIM primary major requirement, updated course labels, changed prerequisite chains).
-- Fixed 4 frontend lint errors by moving a component definition out of a render function.
+**Graduation projection**
+- When a future semester has no eligible courses and all degree requirements are projected as satisfied, the planner now shows "You will have graduated!" instead of "No eligible courses."
+- Both the main semester view and the sidebar semester list display the graduation indicator.
+- Added a disclaimer: "ESSV2, WRIT, and Discovery courses are not yet considered."
 
-**README rewrite**
-- Rewrote `README.md` as a student-friendly intro to MarqBot with a casual, approachable tone.
-- Added an inline data model diagram (Mermaid) and links to upcoming features.
+**Bug fix — BCC progress satisfaction**
+- Fixed a bug where course-count buckets (like BCC Required: 18 courses) could show as unsatisfied even when all courses were completed, because the satisfaction check was comparing credits (52) against an estimated credit target (54) instead of using the actual course count (18/18).
+- Satisfaction now uses OR logic: if either the course-count OR credit threshold is met, the bucket is satisfied.
 
-**Documentation**
-- Added `docs/data_model.md` — a Mermaid ER diagram showing all 7 data entities and their relationships.
-- Updated `.claude/CLAUDE.md` with backend module structure, `requires_primary_major` rules, v2 bucket coexistence behavior, and new "Never Do" guidelines.
+**"How Marqbot Recommends Courses" — rewrite**
+- Updated the explainer modal to match the actual 7-step algorithm: Eligibility Filter, Requirement Tiers, Prereq Blocker Priority, Chain Depth, Multi-Bucket Score, Direct Unlockers, Program Diversity.
 
-**Bug fix — standing gate deadlock in multi-semester recommendations**
-- Fixed `running_credits` initialization to include in-progress course credits alongside completed credits.
-- Previously, in-progress courses counted for prereq eligibility but not for academic standing, causing students to remain at Sophomore standing far longer than expected and blocking all Junior/Senior courses in later semesters.
-- Triple-major scenarios (e.g., INSY + FIN + BUAN) now correctly advance standing and fill semesters 3–6.
-
-**Data — deactivated buckets without course mappings**
-- Deactivated `MCC_ESSV2` (Engaging Social Systems & Values 2) — no verified course data yet.
-- Deactivated `MCC_DISC` and all 5 Discovery Theme tracks (BNJ, CB, CMI, EOH, IC) — no course mappings injected yet. Fixes `validate_track.py` CI failure.
+**Code audit and cleanup (from prior session)**
+- Removed duplicate helper functions, dead frontend utility, button typo fix, archived migration scripts.
+- Fixed 9 backend test expectations + 4 frontend lint errors. All 377 tests pass.
+- Rewrote README as a student-friendly intro. Added `docs/data_model.md`.
+- Fixed standing gate deadlock in multi-semester recommendations.
+- Deactivated MCC_ESSV2, MCC_DISC, and all 5 Discovery Theme tracks until course data is injected.
 
 ### Design Decisions
-- Audit followed `docs/code_audit.md` (severity S0–S3) and `docs/file_cleanup.md` (delete/archive/keep classification) playbooks end-to-end.
-- Test fixes update expectations to match current data (v1.9.6–v1.9.8 changes), not behavior changes.
-- README targets students, not developers — no setup/install/Docker sections.
-- Standing fix aligns credit counting with prereq treatment: if in-progress courses are assumed complete for eligibility, they should count toward standing too.
-- Bucket deactivation is a data-readiness gate — flipping `active` back to `True` re-enables instantly once course mappings are injected.
+- Chain depth is computed once at startup via memoized recursive traversal (O(V+E), ~300 courses). No per-request cost.
+- Program balance uses a threshold of 2: a program must have ≥ min_picks + 2 before deferral kicks in. Single-major students see no change.
+- Satisfaction OR logic ensures that mixed-unit buckets (both course-count and credit targets) don't falsely block graduation projection.
+- `hard_prereq_complex` removal was a data cleanup — the prereq parser already handles "or" prereqs correctly; the tag was a leftover TODO from data migration.
 
 ---
 

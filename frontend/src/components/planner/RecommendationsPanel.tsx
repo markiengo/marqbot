@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import type { RecommendationResponse } from "@/lib/types";
+import type { RecommendationResponse, BucketProgress } from "@/lib/types";
 import { esc } from "@/lib/utils";
 import { CourseRow } from "./CourseRow";
 import { SemesterSelector } from "./SemesterSelector";
@@ -136,11 +136,26 @@ export function RecommendationsPanel({
                   ))
                 ) : (() => {
                   const pp = activeSemester.projected_progress;
+                  const isBucketSatisfied = (b: BucketProgress): boolean => {
+                    if (b.satisfied) return true;
+                    // Client-side OR logic: course-count OR credit threshold
+                    const nc = b.needed_count ?? 0;
+                    if (nc > 0) {
+                      const total = (b.completed_courses ?? 0) + (b.in_progress_courses ?? 0);
+                      if (total >= nc) return true;
+                    }
+                    const needed = b.needed ?? 0;
+                    if (needed > 0) {
+                      const done = (b.completed_done ?? b.done_count ?? 0) + (b.in_progress_increment ?? 0);
+                      if (done >= needed) return true;
+                    }
+                    return false;
+                  };
                   const projectedGrad =
                     !!pp &&
                     Object.values(pp)
-                      .filter((b) => (b.needed ?? 0) > 0)
-                      .every((b) => b.satisfied);
+                      .filter((b) => (b.needed ?? 0) > 0 || (b.needed_count ?? 0) > 0)
+                      .every(isBucketSatisfied);
                   return projectedGrad ? (
                     <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
                       <div className="text-4xl">🎓</div>

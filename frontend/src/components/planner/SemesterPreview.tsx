@@ -1,4 +1,4 @@
-import type { SemesterData } from "@/lib/types";
+import type { SemesterData, BucketProgress } from "@/lib/types";
 import { formatCourseNameLabel } from "@/lib/rendering";
 
 interface SemesterPreviewProps {
@@ -41,11 +41,19 @@ export function SemesterPreview({ semester, index }: SemesterPreviewProps) {
         </div>
       ) : (() => {
         const pp = semester.projected_progress;
+        const isSat = (b: BucketProgress): boolean => {
+          if (b.satisfied) return true;
+          const nc = b.needed_count ?? 0;
+          if (nc > 0 && (b.completed_courses ?? 0) + (b.in_progress_courses ?? 0) >= nc) return true;
+          const needed = b.needed ?? 0;
+          if (needed > 0 && (b.completed_done ?? b.done_count ?? 0) + (b.in_progress_increment ?? 0) >= needed) return true;
+          return false;
+        };
         const projectedGrad =
           !!pp &&
           Object.values(pp)
-            .filter((b) => (b.needed ?? 0) > 0)
-            .every((b) => b.satisfied);
+            .filter((b) => (b.needed ?? 0) > 0 || (b.needed_count ?? 0) > 0)
+            .every(isSat);
         return projectedGrad ? (
           <div className="flex items-center gap-1.5 text-xs">
             <span>🎓</span>

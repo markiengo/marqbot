@@ -95,12 +95,19 @@ Global Rules:
 - `semester_recommender.py`: Multi-semester recommendation engine. Imports shared helpers from `allocator`.
 - `eligibility.py`: Course eligibility filtering (prereqs, standing gates, offering checks).
 - `requirements.py`: Bucket/role lookups, constants (`DEFAULT_TRACK_ID`, `SOFT_WARNING_TAGS`).
-- `unlocks.py`: Reverse prereq graph for "unlock power" scoring.
+- `unlocks.py`: Reverse prereq graph, `compute_chain_depths()` for transitive prereq chain scoring, `get_direct_unlocks()` for 1-level unlock counts, `get_blocking_warnings()` for core blocker alerts.
 - `validators.py`: Prereq chain expansion, input validation.
 - `normalizer.py`: Course code normalization.
 - `prereq_parser.py`: Prerequisite string parsing.
 - `data_loader.py`: CSV data loading with v2 parent/child model support.
 - Do not duplicate helper functions across modules; import from the canonical source.
+
+# Recommendation Algorithm
+- Ranking key order (in `semester_recommender.py`): bucket_tier → acco_boost → core_prereq_blocker → chain_depth → multi_bucket_score → direct_unlocks → soft_tag_penalty → prereq_level → lexical tiebreak.
+- `compute_chain_depths()` runs once at startup and on data reload; passed to `run_recommendation_semester()` via `chain_depths` kwarg.
+- Program balance deferral threshold is `_PROGRAM_BALANCE_THRESHOLD = 2`. Deferred candidates get a second pass after the main greedy loop.
+- Bucket satisfaction uses OR logic: if either course-count or credit threshold is met, the bucket is satisfied (`_compute_satisfied()` in `semester_recommender.py`).
+- `hard_prereq_complex` tag should only exist on courses with genuinely unparseable prerequisites. All courses with parseable prereqs (type = single, and, or, none) must NOT have this tag.
 
 # Performance Rules
 - Workbook parsing is expensive: load once at startup and refresh via controlled reload path only.
