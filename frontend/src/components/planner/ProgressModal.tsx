@@ -3,7 +3,7 @@
 import type { CreditKpiMetrics, BucketProgress } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { ProgressRing } from "./ProgressRing";
-import { sortProgressEntries, compactKpiBucketLabel } from "@/lib/rendering";
+import { groupProgressByParent, compactKpiBucketLabel } from "@/lib/rendering";
 import { bucketLabel } from "@/lib/utils";
 
 interface ProgressModalProps {
@@ -23,7 +23,7 @@ export function ProgressModal({
   assumptionNotes,
   programLabelMap,
 }: ProgressModalProps) {
-  const entries = currentProgress ? sortProgressEntries(currentProgress) : [];
+  const groups = groupProgressByParent(currentProgress, programLabelMap);
   const notes = (assumptionNotes || []).filter(Boolean);
 
   return (
@@ -97,69 +97,78 @@ export function ProgressModal({
           </span>
         </div>
 
-        {/* Bucket breakdown */}
-        {entries.length > 0 && (
+        {/* Bucket breakdown — grouped by program */}
+        {groups.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-gold uppercase tracking-wider">
               Requirement Breakdown
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {entries.map(([bid, prog]) => {
-                const needed = Number(prog.needed || 0);
-                const done = Number(prog.completed_done || prog.done_count || 0);
-                const ipCodes = prog.in_progress_applied || [];
-                const inProg = Number(prog.in_progress_increment || ipCodes.length || 0);
-                const label = compactKpiBucketLabel(
-                  prog.label || bucketLabel(bid, programLabelMap),
-                );
-                const pct = needed > 0 ? (done / needed) * 100 : 0;
-                const totalPct = needed > 0 ? ((done + inProg) / needed) * 100 : 0;
-                const satisfied = prog.satisfied || (needed > 0 && done >= needed);
+            <div className="space-y-6">
+              {groups.map((group) => (
+                <div key={group.parentId} className="space-y-3">
+                  <h4 className="text-xs font-semibold text-gold/70 uppercase tracking-wider border-b border-border-subtle/30 pb-1">
+                    {group.label}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {group.entries.map(([bid, prog]) => {
+                      const needed = Number(prog.needed || 0);
+                      const done = Number(prog.completed_done || prog.done_count || 0);
+                      const ipCodes = prog.in_progress_applied || [];
+                      const inProg = Number(prog.in_progress_increment || ipCodes.length || 0);
+                      const label = compactKpiBucketLabel(
+                        prog.label || bucketLabel(bid, programLabelMap),
+                      );
+                      const pct = needed > 0 ? (done / needed) * 100 : 0;
+                      const totalPct = needed > 0 ? ((done + inProg) / needed) * 100 : 0;
+                      const satisfied = prog.satisfied || (needed > 0 && done >= needed);
 
-                return (
-                  <div
-                    key={bid}
-                    className={`rounded-xl border border-border-subtle/50 p-4 h-full ${satisfied ? "opacity-60" : ""}`}
-                  >
-                    <div className="flex justify-between items-baseline mb-2">
-                      <span className="text-sm font-medium text-ink-primary">
-                        {label}
-                      </span>
-                      <span className="text-xs text-ink-faint">
-                        {done}
-                        {inProg > 0 && (
-                          <span className="text-gold">+{inProg}</span>
-                        )}
-                        /{needed}
-                        {satisfied && (
-                          <span className="text-ok ml-1">(Done)</span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="h-2 bg-surface-hover rounded-full overflow-hidden">
-                      <div className="h-full flex">
+                      return (
                         <div
-                          className="h-full bg-ok rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min(100, pct)}%` }}
-                        />
-                        {inProg > 0 && (
-                          <div
-                            className="h-full bg-gold rounded-full transition-all duration-500"
-                            style={{
-                              width: `${Math.min(100 - Math.min(100, pct), totalPct - pct)}%`,
-                            }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                    {ipCodes.length > 0 && (
-                      <p className="text-xs text-gold/70 mt-1.5">
-                        In progress: {ipCodes.join(", ")}
-                      </p>
-                    )}
+                          key={bid}
+                          className={`rounded-xl border border-border-subtle/50 p-4 h-full ${satisfied ? "opacity-60" : ""}`}
+                        >
+                          <div className="flex justify-between items-baseline mb-2">
+                            <span className="text-sm font-medium text-ink-primary">
+                              {label}
+                            </span>
+                            <span className="text-xs text-ink-faint">
+                              {done}
+                              {inProg > 0 && (
+                                <span className="text-gold">+{inProg}</span>
+                              )}
+                              /{needed}
+                              {satisfied && (
+                                <span className="text-ok ml-1">(Done)</span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="h-2 bg-surface-hover rounded-full overflow-hidden">
+                            <div className="h-full flex">
+                              <div
+                                className="h-full bg-ok rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, pct)}%` }}
+                              />
+                              {inProg > 0 && (
+                                <div
+                                  className="h-full bg-gold rounded-full transition-all duration-500"
+                                  style={{
+                                    width: `${Math.min(100 - Math.min(100, pct), totalPct - pct)}%`,
+                                  }}
+                                />
+                              )}
+                            </div>
+                          </div>
+                          {ipCodes.length > 0 && (
+                            <p className="text-xs text-gold/70 mt-1.5">
+                              In progress: {ipCodes.join(", ")}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         )}

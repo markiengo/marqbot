@@ -113,6 +113,58 @@ export function sortProgressEntries(
   return indexed.map((x) => x.entry);
 }
 
+// ── Bucket grouping ───────────────────────────────────────────────────────────
+
+/** Parent bucket IDs that are data-model-only; never shown in any progress view. */
+const HIDDEN_PARENT_IDS = new Set(["MCC_ESSV2", "MCC_WRIT"]);
+
+const PARENT_LABEL_FALLBACKS: Record<string, string> = {
+  BCC: "Business Core (BCC)",
+  MCC_FOUNDATION: "MCC Foundation",
+  MCC_CULM: "MCC Culminating",
+  MCC_DISC: "MCC Discovery",
+  MCC_DISC_CMI: "Discovery: Cognition, Memory & Intelligence",
+  MCC_DISC_BNJ: "Discovery: Basic Needs and Justice",
+  MCC_DISC_CB: "Discovery: Crossing Boundaries",
+  MCC_DISC_EOH: "Discovery: Expanding Our Horizons",
+  MCC_DISC_IC: "Discovery: Individuals and Communities",
+};
+
+export interface ProgressGroup {
+  parentId: string;
+  label: string;
+  entries: [string, BucketProgress][];
+}
+
+/**
+ * Groups progress entries by parent bucket ID, filtering hidden buckets.
+ * Preserves the sort order from sortProgressEntries() within each group.
+ */
+export function groupProgressByParent(
+  progressObj: Record<string, BucketProgress> | null | undefined,
+  programLabelMap?: Map<string, string>,
+): ProgressGroup[] {
+  const sorted = sortProgressEntries(progressObj);
+  const groups = new Map<string, ProgressGroup>();
+  const order: string[] = [];
+
+  for (const [bid, prog] of sorted) {
+    const parentId = bid.includes("::") ? bid.split("::", 2)[0] : bid;
+    if (HIDDEN_PARENT_IDS.has(parentId)) continue;
+    if (!groups.has(parentId)) {
+      const label =
+        programLabelMap?.get(parentId) ??
+        PARENT_LABEL_FALLBACKS[parentId] ??
+        parentId.replace(/_/g, " ");
+      groups.set(parentId, { parentId, label, entries: [] });
+      order.push(parentId);
+    }
+    groups.get(parentId)!.entries.push([bid, prog]);
+  }
+
+  return order.map((id) => groups.get(id)!);
+}
+
 export function compactKpiBucketLabel(label: string): string {
   const raw = String(label || "");
   if (!raw) return "";
