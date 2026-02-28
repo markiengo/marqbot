@@ -4,10 +4,10 @@ MarqBot is a deterministic degree-planning assistant for Marquette business stud
 # Architecture
 - `backend/`: Flask API and deterministic recommendation/allocation engine.
 - `frontend/`: Next.js 16 + React 19 + TypeScript UI; production output is static export (`frontend/out`).
-- `scripts/`: local run helpers and workbook governance/migration utilities.
+- `scripts/`: local run helpers and workbook governance/migration utilities. One-time migration scripts are archived under `scripts/archive/`.
 - `tests/backend`, `tests/frontend`: pytest and vitest coverage.
 - `infra/docker/Dockerfile` + `render.yaml`: Docker/Render deployment wiring.
-- `data/`: canonical runtime data source (CSV directory). Six files: `courses.csv`, `course_prereqs.csv`, `course_offerings.csv`, `parent_buckets.csv`, `child_buckets.csv`, `master_bucket_courses.csv`.
+- `data/`: canonical runtime data source (CSV directory). Seven files: `courses.csv`, `course_prereqs.csv`, `course_offerings.csv`, `parent_buckets.csv`, `child_buckets.csv`, `master_bucket_courses.csv`, `double_count_policy.csv`.
 - `marquette_courses_full.xlsx`: legacy Excel source; still present but no longer the default. Override with `DATA_PATH=marquette_courses_full.xlsx` to use it.
 
 # Commands
@@ -77,13 +77,30 @@ Global Rules:
 - If you feel like there are tasks that need extensive tokens, ask me. 
 
 # Data Model Rules
-- All six CSVs in `data/` must be read with `encoding="utf-8-sig"` (BOM-safe) when using Python's csv module directly.
+- All seven CSVs in `data/` must be read with `encoding="utf-8-sig"` (BOM-safe) when using Python's csv module directly.
 - `parent_bucket_label` values are the display names shown to users — no "Major" or "Minor" suffix. Labels must be clean (e.g., "Finance", "Accounting", "Marketing").
 - `prereq_warnings` in `course_prereqs.csv` use comma `,` as separator, never semicolon.
 - `min_standing` is a float (1.0–4.0 for undergrad). 5.0+ is graduate-level and makes a course unreachable for undergrads — never set this for undergrad courses.
 - Courses tagged `elective_pool_tag=biz_elective` flow automatically into any `credits_pool` child bucket scoped to their program — no explicit `master_bucket_courses` row needed.
 - `_canonical_program_label` in `server.py` uses CSV label as priority; falls back to generated format only when label is empty.
 - Discovery tiers (MCC_DISC_CMI, BNJ, CB, EOH, IC) are `type=track` with `parent_major=MCC_DISC` — they appear in the frontend Discovery Theme section, not the Concentration/Track section.
+- `requires_primary_major` in `parent_buckets.csv`: when `True`, a major (e.g., AIM_MAJOR, BUAN_MAJOR) cannot be declared alone — it must be paired with a primary (non-requiring) major like FIN_MAJOR or ACCO_MAJOR. Tests involving these majors must always include a primary major in `declared_majors`.
+- V2 parent/child bucket model: when a track is selected alongside its parent major, both the base major's child buckets AND the track's child buckets appear in progress. They coexist (no deduplication/replacement).
+- `double_count_policy.csv` controls which child buckets may share courses across programs. Referenced by `allocate_courses()` and `get_allowed_double_count_pairs()`.
+- Data model documentation lives at `docs/data_model.md` (Mermaid ER diagram).
+
+# Backend Module Structure
+- `server.py`: Flask app, route handlers, data loading, validation logic.
+- `allocator.py`: Greedy course allocation to buckets. Exports `allocate_courses`, `_safe_int`, `_infer_requirement_mode`.
+- `semester_recommender.py`: Multi-semester recommendation engine. Imports shared helpers from `allocator`.
+- `eligibility.py`: Course eligibility filtering (prereqs, standing gates, offering checks).
+- `requirements.py`: Bucket/role lookups, constants (`DEFAULT_TRACK_ID`, `SOFT_WARNING_TAGS`).
+- `unlocks.py`: Reverse prereq graph for "unlock power" scoring.
+- `validators.py`: Prereq chain expansion, input validation.
+- `normalizer.py`: Course code normalization.
+- `prereq_parser.py`: Prerequisite string parsing.
+- `data_loader.py`: CSV data loading with v2 parent/child model support.
+- Do not duplicate helper functions across modules; import from the canonical source.
 
 # Performance Rules
 - Workbook parsing is expensive: load once at startup and refresh via controlled reload path only.
@@ -101,3 +118,5 @@ Global Rules:
 - Never raise worker count aggressively on Render Starter (`0.5` CPU).
 - Never break canonical API routes without coordinated frontend and test updates.
 - Never commit secrets from `.env` or hardcode secret values in tracked files.
+- Never define React components inside render functions (move to module scope or a separate file).
+- Never define helper functions in multiple backend modules — import from the canonical source (e.g., `_safe_int` from `allocator`).

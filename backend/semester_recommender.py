@@ -7,7 +7,7 @@ from requirements import (
     get_allowed_double_count_pairs,
     get_buckets_by_role,
 )
-from allocator import allocate_courses
+from allocator import allocate_courses, _safe_int, _infer_requirement_mode
 from unlocks import get_direct_unlocks, get_blocking_warnings
 from eligibility import get_eligible_courses, parse_term
 
@@ -128,29 +128,6 @@ def _local_bucket_id(bucket_id: str) -> str:
     return raw
 
 
-def _safe_int(val, default=None):
-    try:
-        if pd.isna(val):
-            return default
-        return int(val)
-    except (TypeError, ValueError):
-        return default
-
-
-def _infer_requirement_mode(row: pd.Series) -> str:
-    mode = str(row.get("requirement_mode", "") or "").strip().lower()
-    if mode in {"required", "choose_n", "credits_pool"}:
-        return mode
-    role = str(row.get("role", "") or "").strip().lower()
-    if role == "core":
-        return "required"
-    needed_credits = _safe_int(row.get("needed_credits"))
-    if needed_credits is not None and needed_credits > 0:
-        return "credits_pool"
-    needed_count = _safe_int(row.get("needed_count"))
-    if role == "elective" or (needed_count is not None and needed_count > 0):
-        return "choose_n"
-    return "required"
 
 
 def _build_selection_bucket_meta(data: dict, track_id: str) -> dict[str, dict]:
@@ -264,11 +241,6 @@ def _bucket_virtual_consumption_units(bucket_id: str, candidate: dict, bucket_me
     if mode == "credits_pool":
         return max(1, int(candidate.get("credits", 0) or 0))
     return 1
-
-
-def _bucket_hierarchy_tier(candidate: dict) -> int:
-    """Deprecated compatibility wrapper; use _bucket_hierarchy_tier_v2."""
-    return _bucket_hierarchy_tier_v2(candidate, {}, {}, {})
 
 
 def _build_parent_type_map(data: dict) -> dict[str, str]:

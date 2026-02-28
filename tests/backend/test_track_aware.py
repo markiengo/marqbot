@@ -303,20 +303,21 @@ class TestServerTrackValidation:
         )
 
     def test_completed_chain_assumption_note_is_present(self, client):
+        """Completing ACCO 1031 should infer ACCO 1030 via prereq chain."""
         resp = self._post(
             client,
-            completed_courses="FINA 3001",
+            completed_courses="ACCO 1031",
             in_progress_courses="",
         )
         assert resp.status_code == 200
         data = resp.get_json()
         matching_notes = [
             note for note in data.get("current_assumption_notes", [])
-            if "because FINA 3001 is completed." in note
+            if "because ACCO 1031 is completed." in note
         ]
         assert len(matching_notes) == 1
         assert matching_notes[0].startswith("Assumed ")
-        assert "ACCO 1031" in matching_notes[0]
+        assert "ACCO 1030" in matching_notes[0]
 
     def test_in_progress_prereq_is_not_recommended(self, client):
         resp = self._post(
@@ -510,10 +511,11 @@ class TestServerTrackValidation:
         assert data["error"]["error_code"] == "TRACK_MAJOR_MISMATCH"
 
     def test_aim_cfa_track_requires_finance_major(self, client):
+        """AIM CFA track requires FIN_MAJOR specifically, not just any primary major."""
         resp = client.post("/recommend", json={
             "completed_courses": "",
             "in_progress_courses": "",
-            "declared_majors": ["AIM_MAJOR"],
+            "declared_majors": ["ACCO_MAJOR", "AIM_MAJOR"],
             "track_id": "AIM_CFA_TRACK",
         })
         assert resp.status_code == 400
@@ -581,17 +583,17 @@ class TestServerTrackValidation:
         assert tracks["CB_TRACK"]["parent_major_id"] == "FIN_MAJOR"
         assert tracks["FP_TRACK"]["parent_major_id"] == "FIN_MAJOR"
 
-    def test_programs_endpoint_major_labels_use_canonical_major_codes(self, client):
+    def test_programs_endpoint_major_labels_use_csv_labels(self, client):
         resp = client.get("/programs")
         assert resp.status_code == 200
         data = resp.get_json()
         majors = {m["major_id"]: m["label"] for m in data["majors"]}
 
-        assert majors["ACCO_MAJOR"] == "ACCO Major"
-        assert majors["BUAN_MAJOR"] == "BUAN Major"
-        assert majors["FIN_MAJOR"] == "FINA Major"
-        assert majors["INSY_MAJOR"] == "IS Major"
-        assert majors["OSCM_MAJOR"] == "OSCM Major"
+        assert majors["ACCO_MAJOR"] == "Accounting"
+        assert majors["BUAN_MAJOR"] == "Business Analytics"
+        assert majors["FIN_MAJOR"] == "Finance"
+        assert majors["INSY_MAJOR"] == "Information Systems"
+        assert majors["OSCM_MAJOR"] == "Operations & Supply Chain Management"
 
     def test_courses_endpoint_levels_are_json_safe(self, client):
         resp = client.get("/api/courses")
@@ -651,13 +653,13 @@ class TestServerTrackValidation:
         data = resp.get_json()
         assert data["error"]["error_code"] == "UNKNOWN_TRACK"
 
-    def test_track_specific_bucket_replaces_track_neutral_duplicate(self, client):
-        """When a track is selected, the 'No Concentration' parent is dropped so
-        its sub-buckets don't duplicate the track-specific ones."""
+    def test_track_specific_bucket_coexists_with_major_bucket(self, client):
+        """When a track is selected, both the base major's buckets and track-specific
+        buckets appear in progress (v2 parent/child model)."""
         resp = client.post("/recommend", json={
             "completed_courses": "",
             "in_progress_courses": "",
-            "declared_majors": ["AIM_MAJOR"],
+            "declared_majors": ["FIN_MAJOR", "AIM_MAJOR"],
             "track_id": "AIM_FINTECH_TRACK",
         })
         assert resp.status_code == 200
@@ -666,8 +668,11 @@ class TestServerTrackValidation:
         progress_keys = set(data.get("progress", {}).keys())
         # The track-specific sub-bucket should be present.
         assert "AIM_MAJOR::AIM-FINTECH-ELEC-UPPER-15" in progress_keys
-        # The 'No Concentration' elective sub-bucket should NOT be present.
-        assert "AIM_MAJOR::AIM-ELEC-UPPER-15" not in progress_keys
+        # The base major's elective bucket also remains (separate parent).
+        assert "AIM_MAJOR::AIM-ELEC-UPPER-15" in progress_keys
+        # Core requirements from both base major and track appear.
+        assert "AIM_MAJOR::AIM-REQ-CORE" in progress_keys
+        assert "AIM_MAJOR::AIM-FINTECH-REQ-CORE" in progress_keys
 
 
 # ── 5. End-to-end smoke test — synthetic track through /recommend ────────────

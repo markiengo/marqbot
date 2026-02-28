@@ -3,7 +3,6 @@ import { describe, expect, test } from "vitest";
 import {
   bucketLabel,
   colorizePrereq,
-  courseDisplayName,
   filterCourses,
   formatCourseNotes,
   prettifyIdentifier,
@@ -28,17 +27,6 @@ describe("utils.bucketLabel", () => {
 describe("utils.prettifyIdentifier", () => {
   test("normalizes separators and capitalization", () => {
     expect(prettifyIdentifier("acco-choose-2")).toBe("ACCO Choose 2");
-  });
-});
-
-describe("utils.courseDisplayName", () => {
-  test("returns mapped display name", () => {
-    const map = new Map([["FINA 3001", "Financial Management"]]);
-    expect(courseDisplayName("FINA 3001", map)).toBe("Financial Management");
-  });
-
-  test("falls back to course code", () => {
-    expect(courseDisplayName("FINA 3001", new Map())).toBe("FINA 3001");
   });
 });
 

@@ -23,6 +23,8 @@ Thumbs.db
 v34_*_output.txt
 backups/*.xlsx
 
+coverage/
+
 # Next.js build artifacts
 frontend/.next/
 frontend/out/

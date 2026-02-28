@@ -40,15 +40,6 @@ export function esc(str: string | null | undefined): string {
     .replace(/"/g, "&quot;");
 }
 
-export function courseDisplayName(
-  courseCode: string,
-  courseNameByCode: LabelStore = null,
-): string {
-  const normalized = String(courseCode || "").trim();
-  if (!normalized) return "";
-  return mapLookup(courseNameByCode, normalized) || normalized;
-}
-
 export function bucketLabel(
   bucketId: string,
   programLabelMap: LabelStore = null,

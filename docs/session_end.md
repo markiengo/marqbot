@@ -42,7 +42,7 @@ Examples:
   - Build passes
   - Tests pass (if tests exist)
   - Lint/format passes (if configured)
-  - Exception: Do not push @todo.md 
+  - Exception: Do not push @todo.md and files that should stay local. 
 
 ## 4) Publish a release
 - Create a release after push.

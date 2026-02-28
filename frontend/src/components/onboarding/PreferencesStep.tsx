@@ -9,6 +9,13 @@ import {
 
 export function PreferencesStep() {
   const { state, dispatch } = useAppContext();
+  const optionButtonClass = (selected: boolean) =>
+    [
+      "w-full rounded-xl px-4 py-3 text-base font-medium leading-tight transition-all cursor-pointer",
+      selected
+        ? "bg-gold text-navy-dark"
+        : "bg-surface-card text-ink-secondary hover:bg-surface-hover border border-border-subtle",
+    ].join(" ");
 
   return (
     <div className="space-y-6">
@@ -48,7 +55,7 @@ export function PreferencesStep() {
           <label className="text-base font-medium text-ink-secondary">
             How many semesters to plan?
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {SEMESTER_COUNT_OPTIONS.map((o) => (
               <button
                 key={o.value}
@@ -56,11 +63,9 @@ export function PreferencesStep() {
                 onClick={() =>
                   dispatch({ type: "SET_SEMESTER_COUNT", payload: o.value })
                 }
-                className={`flex-1 px-4 py-3 rounded-xl text-base font-medium transition-all cursor-pointer ${
-                  state.semesterCount === o.value
-                    ? "bg-gold text-navy-dark"
-                    : "bg-surface-card text-ink-secondary hover:bg-surface-hover border border-border-subtle"
-                }`}
+                className={`${optionButtonClass(
+                  state.semesterCount === o.value,
+                )} min-h-[5.25rem]`}
               >
                 {o.label}
               </button>
@@ -73,7 +78,7 @@ export function PreferencesStep() {
           <label className="text-base font-medium text-ink-secondary">
             Courses per semester
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             {MAX_RECS_OPTIONS.map((o) => (
               <button
                 key={o.value}
@@ -81,11 +86,7 @@ export function PreferencesStep() {
                 onClick={() =>
                   dispatch({ type: "SET_MAX_RECS", payload: o.value })
                 }
-                className={`flex-1 px-4 py-3 rounded-xl text-base font-medium transition-all cursor-pointer ${
-                  state.maxRecs === o.value
-                    ? "bg-gold text-navy-dark"
-                    : "bg-surface-card text-ink-secondary hover:bg-surface-hover border border-border-subtle"
-                }`}
+                className={optionButtonClass(state.maxRecs === o.value)}
               >
                 {o.label}
               </button>

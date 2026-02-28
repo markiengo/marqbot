@@ -14,6 +14,13 @@ import { AnimatePresence } from "motion/react";
 
 const DISC_MAJOR_ID = "MCC_DISC";
 
+const SectionLabel = ({ title, sub }: { title: string; sub?: string }) => (
+  <div className="flex items-baseline gap-2 mb-1.5">
+    <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{title}</span>
+    {sub && <span className="text-xs text-ink-faint">{sub}</span>}
+  </div>
+);
+
 export function MajorStep() {
   const { state, dispatch } = useAppContext();
   const majors = state.programs.majors;
@@ -64,6 +71,8 @@ export function MajorStep() {
     return map;
   }, [minors]);
   const atMinorLimit = state.selectedMinors.size >= MAX_MINORS;
+  const minorsComingSoon = true;
+  const discoveryThemeComingSoon = true;
 
   // Discovery tracks (MCC_DISC children)
   const discoveryTracks = useMemo(
@@ -216,13 +225,6 @@ export function MajorStep() {
   const inputCls = "w-full px-3 py-2.5 bg-surface-input border border-border-medium rounded-xl text-sm text-ink-primary placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-gold/40";
   const dropdownCls = "absolute z-20 w-full mt-1 max-h-52 overflow-y-auto bg-surface-card border border-border-medium rounded-xl shadow-lg";
 
-  const SectionLabel = ({ title, sub }: { title: string; sub?: string }) => (
-    <div className="flex items-baseline gap-2 mb-1.5">
-      <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{title}</span>
-      {sub && <span className="text-xs text-ink-faint">{sub}</span>}
-    </div>
-  );
-
   return (
     <div className="space-y-5">
       <div>
@@ -309,71 +311,88 @@ export function MajorStep() {
 
       {/* ── 2. Minors ─────────────────────────────────────────────────────────── */}
       {minors.length > 0 && (
-        <>
-          <div>
-            <SectionLabel title="Minor(s)" sub="optional" />
-            <div className="flex flex-wrap gap-1.5 min-h-[26px] mb-1.5">
-              <AnimatePresence mode="popLayout">
-                {[...state.selectedMinors].map((id) => (
-                  <Chip
-                    key={id}
-                    label={minorLabelById.get(id) ?? id}
-                    variant="gold"
-                    onRemove={() => dispatch({ type: "REMOVE_MINOR", payload: id })}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-            {!atMinorLimit && (
-              <div className="relative">
-                <input
-                  ref={minorInputRef}
-                  type="text"
-                  value={minorQuery}
-                  onChange={(e) => { setMinorQuery(e.target.value); setMinorHighlightIdx(0); setMinorIsOpen(true); }}
-                  onFocus={() => setMinorIsOpen(true)}
-                  onKeyDown={(e) => {
-                    if (!minorIsOpen || filteredMinors.length === 0) {
-                      if (e.key === "ArrowDown" || e.key === "Enter") { setMinorIsOpen(true); e.preventDefault(); }
-                      return;
-                    }
-                    if (e.key === "ArrowDown") { e.preventDefault(); setMinorHighlightIdx((i) => Math.min(i + 1, filteredMinors.length - 1)); }
-                    else if (e.key === "ArrowUp") { e.preventDefault(); setMinorHighlightIdx((i) => Math.max(i - 1, 0)); }
-                    else if (e.key === "Enter") { e.preventDefault(); if (filteredMinors[minorHighlightIdx]) selectMinor(filteredMinors[minorHighlightIdx].id); }
-                    else if (e.key === "Escape") { e.preventDefault(); setMinorIsOpen(false); }
-                  }}
-                  placeholder="Search minors..."
-                  className={inputCls}
-                  role="combobox"
-                  aria-expanded={minorIsOpen}
-                  aria-autocomplete="list"
-                  aria-controls="minor-listbox"
-                />
-                {minorIsOpen && filteredMinors.length > 0 && (
-                  <div ref={minorListRef} id="minor-listbox" role="listbox" className={dropdownCls}>
-                    {filteredMinors.map((m, idx) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        role="option"
-                        aria-selected={idx === minorHighlightIdx}
-                        onClick={() => selectMinor(m.id)}
-                        className={`w-full text-left px-3 py-2.5 text-sm cursor-pointer transition-colors ${idx === minorHighlightIdx ? "bg-gold/15 text-gold" : "text-ink-secondary hover:bg-surface-hover"}`}
-                      >
-                        {m.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {minorIsOpen && minorQuery && filteredMinors.length === 0 && (
-                  <div className="absolute z-20 w-full mt-1 bg-surface-card border border-border-medium rounded-xl shadow-lg px-3 py-2.5 text-xs text-ink-faint">
-                    No minors match &ldquo;{minorQuery}&rdquo;
-                  </div>
-                )}
+        <div>
+          <SectionLabel title="Minor(s)" sub="optional" />
+          {minorsComingSoon ? (
+            <div className="relative">
+              <input
+                type="text"
+                disabled
+                placeholder="Search minors..."
+                className={`${inputCls} pointer-events-none opacity-40`}
+                aria-label="Minor search"
+              />
+              <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-surface-card/60 backdrop-blur-[1px]">
+                <span className="text-[10px] font-semibold text-gold/70 uppercase tracking-widest">
+                  Coming Soon
+                </span>
               </div>
-            )}
-          </div>
-        </>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-1.5 min-h-[26px] mb-1.5">
+                <AnimatePresence mode="popLayout">
+                  {[...state.selectedMinors].map((id) => (
+                    <Chip
+                      key={id}
+                      label={minorLabelById.get(id) ?? id}
+                      variant="gold"
+                      onRemove={() => dispatch({ type: "REMOVE_MINOR", payload: id })}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+              {!atMinorLimit && (
+                <div className="relative">
+                  <input
+                    ref={minorInputRef}
+                    type="text"
+                    value={minorQuery}
+                    onChange={(e) => { setMinorQuery(e.target.value); setMinorHighlightIdx(0); setMinorIsOpen(true); }}
+                    onFocus={() => setMinorIsOpen(true)}
+                    onKeyDown={(e) => {
+                      if (!minorIsOpen || filteredMinors.length === 0) {
+                        if (e.key === "ArrowDown" || e.key === "Enter") { setMinorIsOpen(true); e.preventDefault(); }
+                        return;
+                      }
+                      if (e.key === "ArrowDown") { e.preventDefault(); setMinorHighlightIdx((i) => Math.min(i + 1, filteredMinors.length - 1)); }
+                      else if (e.key === "ArrowUp") { e.preventDefault(); setMinorHighlightIdx((i) => Math.max(i - 1, 0)); }
+                      else if (e.key === "Enter") { e.preventDefault(); if (filteredMinors[minorHighlightIdx]) selectMinor(filteredMinors[minorHighlightIdx].id); }
+                      else if (e.key === "Escape") { e.preventDefault(); setMinorIsOpen(false); }
+                    }}
+                    placeholder="Search minors..."
+                    className={inputCls}
+                    role="combobox"
+                    aria-expanded={minorIsOpen}
+                    aria-autocomplete="list"
+                    aria-controls="minor-listbox"
+                  />
+                  {minorIsOpen && filteredMinors.length > 0 && (
+                    <div ref={minorListRef} id="minor-listbox" role="listbox" className={dropdownCls}>
+                      {filteredMinors.map((m, idx) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          role="option"
+                          aria-selected={idx === minorHighlightIdx}
+                          onClick={() => selectMinor(m.id)}
+                          className={`w-full text-left px-3 py-2.5 text-sm cursor-pointer transition-colors ${idx === minorHighlightIdx ? "bg-gold/15 text-gold" : "text-ink-secondary hover:bg-surface-hover"}`}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {minorIsOpen && minorQuery && filteredMinors.length === 0 && (
+                    <div className="absolute z-20 w-full mt-1 bg-surface-card border border-border-medium rounded-xl shadow-lg px-3 py-2.5 text-xs text-ink-faint">
+                      No minors match &ldquo;{minorQuery}&rdquo;
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {/* ── 3. Concentration / Track ──────────────────────────────────────────── */}
@@ -470,76 +489,93 @@ export function MajorStep() {
 
       {/* ── 4. Discovery Theme ────────────────────────────────────────────────── */}
       {discoveryTracks.length > 0 && (
-        <>
-          <div>
-            <SectionLabel title="Discovery Theme" sub="optional" />
-            <div className="flex flex-wrap gap-1.5 min-h-[26px] mb-1.5">
-              <AnimatePresence mode="popLayout">
-                {selectedDiscoveryTrack && (
-                  <Chip
-                    key={selectedDiscoveryTrack.id}
-                    label={selectedDiscoveryTrack.label}
-                    variant="navy"
-                    onRemove={() =>
-                      dispatch({ type: "SET_TRACK", payload: { majorId: DISC_MAJOR_ID, trackId: null } })
-                    }
-                  />
-                )}
-              </AnimatePresence>
-            </div>
-            {!selectedDiscoveryTrack && (
-              <div className="relative">
-                <input
-                  ref={(el) => { trackInputRefs.current[DISC_MAJOR_ID] = el; }}
-                  type="text"
-                  value={trackQuery[DISC_MAJOR_ID] || ""}
-                  onChange={(e) => {
-                    setTrackQuery((prev) => ({ ...prev, [DISC_MAJOR_ID]: e.target.value }));
-                    setTrackOpen((prev) => ({ ...prev, [DISC_MAJOR_ID]: true }));
-                  }}
-                  onFocus={() => setTrackOpen((prev) => ({ ...prev, [DISC_MAJOR_ID]: true }))}
-                  placeholder="Search discovery themes..."
-                  className={inputCls}
-                  role="combobox"
-                  aria-expanded={!!trackOpen[DISC_MAJOR_ID]}
-                  aria-autocomplete="list"
-                  aria-controls={`${trackComboId}-disc`}
-                />
-                {trackOpen[DISC_MAJOR_ID] && (
-                  (() => {
-                    const q = (trackQuery[DISC_MAJOR_ID] || "").toLowerCase();
-                    const filteredDisc = discoveryTracks.filter((t) => t.label.toLowerCase().includes(q));
-                    return filteredDisc.length > 0 ? (
-                      <div
-                        ref={(el) => { trackListRefs.current[DISC_MAJOR_ID] = el; }}
-                        id={`${trackComboId}-disc`}
-                        role="listbox"
-                        className={dropdownCls}
-                      >
-                        {filteredDisc.map((t) => (
-                          <button
-                            key={t.id}
-                            type="button"
-                            role="option"
-                            aria-selected={false}
-                            onClick={() => selectTrack(DISC_MAJOR_ID, t.id)}
-                            className="w-full text-left px-3 py-2.5 text-sm cursor-pointer transition-colors text-ink-secondary hover:bg-surface-hover"
-                          >
-                            {t.label}
-                          </button>
-                        ))}
-                      </div>
-                    ) : trackQuery[DISC_MAJOR_ID] ? (
-                      <div className="absolute z-20 w-full mt-1 bg-surface-card border border-border-medium rounded-xl shadow-lg px-3 py-2.5 text-xs text-ink-faint">
-                        No themes match &ldquo;{trackQuery[DISC_MAJOR_ID]}&rdquo;
-                      </div>
-                    ) : null;
-                  })()
-                )}
+        <div>
+          <SectionLabel title="Discovery Theme" sub="optional" />
+          {discoveryThemeComingSoon ? (
+            <div className="relative">
+              <input
+                type="text"
+                disabled
+                placeholder="Search discovery themes..."
+                className={`${inputCls} pointer-events-none opacity-40`}
+                aria-label="Discovery theme search"
+              />
+              <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-surface-card/60 backdrop-blur-[1px]">
+                <span className="text-[10px] font-semibold text-gold/70 uppercase tracking-widest">
+                  Coming Soon
+                </span>
               </div>
-            )}
-          </div>
-        </>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-1.5 min-h-[26px] mb-1.5">
+                <AnimatePresence mode="popLayout">
+                  {selectedDiscoveryTrack && (
+                    <Chip
+                      key={selectedDiscoveryTrack.id}
+                      label={selectedDiscoveryTrack.label}
+                      variant="navy"
+                      onRemove={() =>
+                        dispatch({ type: "SET_TRACK", payload: { majorId: DISC_MAJOR_ID, trackId: null } })
+                      }
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+              {!selectedDiscoveryTrack && (
+                <div className="relative">
+                  <input
+                    ref={(el) => { trackInputRefs.current[DISC_MAJOR_ID] = el; }}
+                    type="text"
+                    value={trackQuery[DISC_MAJOR_ID] || ""}
+                    onChange={(e) => {
+                      setTrackQuery((prev) => ({ ...prev, [DISC_MAJOR_ID]: e.target.value }));
+                      setTrackOpen((prev) => ({ ...prev, [DISC_MAJOR_ID]: true }));
+                    }}
+                    onFocus={() => setTrackOpen((prev) => ({ ...prev, [DISC_MAJOR_ID]: true }))}
+                    placeholder="Search discovery themes..."
+                    className={inputCls}
+                    role="combobox"
+                    aria-expanded={!!trackOpen[DISC_MAJOR_ID]}
+                    aria-autocomplete="list"
+                    aria-controls={`${trackComboId}-disc`}
+                  />
+                  {trackOpen[DISC_MAJOR_ID] && (
+                    (() => {
+                      const q = (trackQuery[DISC_MAJOR_ID] || "").toLowerCase();
+                      const filteredDisc = discoveryTracks.filter((t) => t.label.toLowerCase().includes(q));
+                      return filteredDisc.length > 0 ? (
+                        <div
+                          ref={(el) => { trackListRefs.current[DISC_MAJOR_ID] = el; }}
+                          id={`${trackComboId}-disc`}
+                          role="listbox"
+                          className={dropdownCls}
+                        >
+                          {filteredDisc.map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              role="option"
+                              aria-selected={false}
+                              onClick={() => selectTrack(DISC_MAJOR_ID, t.id)}
+                              className="w-full text-left px-3 py-2.5 text-sm cursor-pointer transition-colors text-ink-secondary hover:bg-surface-hover"
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : trackQuery[DISC_MAJOR_ID] ? (
+                        <div className="absolute z-20 w-full mt-1 bg-surface-card border border-border-medium rounded-xl shadow-lg px-3 py-2.5 text-xs text-ink-faint">
+                          No themes match &ldquo;{trackQuery[DISC_MAJOR_ID]}&rdquo;
+                        </div>
+                      ) : null;
+                    })()
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );

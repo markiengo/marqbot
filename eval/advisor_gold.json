@@ -61,9 +61,9 @@
   },
   {
     "id": "aim_freshman_001",
-    "description": "AIM_MAJOR freshman, Fall 2026, minimal completed",
+    "description": "AIM_MAJOR + FIN_MAJOR freshman, Fall 2026, minimal completed",
     "profile": {
-      "declared_majors": ["AIM_MAJOR"],
+      "declared_majors": ["FIN_MAJOR", "AIM_MAJOR"],
       "track_id": "",
       "completed_courses": "ECON 1001, BUAD 1000",
       "in_progress_courses": "",
@@ -72,13 +72,13 @@
       "max_recommendations": 6
     },
     "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "AIM freshman. Same BCC/MCC tier-1 universal courses."
+    "notes": "AIM requires a primary major; paired with FIN. Same BCC/MCC tier-1 universal courses."
   },
   {
     "id": "aim_freshman_002",
-    "description": "AIM_MAJOR freshman, Spring 2026, zero completed",
+    "description": "AIM_MAJOR + FIN_MAJOR freshman, Spring 2026, zero completed",
     "profile": {
-      "declared_majors": ["AIM_MAJOR"],
+      "declared_majors": ["FIN_MAJOR", "AIM_MAJOR"],
       "track_id": "",
       "completed_courses": "",
       "in_progress_courses": "",
@@ -87,7 +87,7 @@
       "max_recommendations": 6
     },
     "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "Zero-credit AIM freshman."
+    "notes": "Zero-credit AIM+FIN freshman. AIM requires a primary major."
   },
   {
     "id": "hure_freshman_001",

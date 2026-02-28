@@ -178,10 +178,10 @@ class TestAccoMajor:
 
 
 class TestAimMajor:
-    """AIM major smoke test."""
+    """AIM major smoke test (requires a primary major)."""
 
     PAYLOAD = {
-        "declared_majors": ["AIM_MAJOR"],
+        "declared_majors": ["FIN_MAJOR", "AIM_MAJOR"],
         "track_id": "",
         "completed_courses": "ECON 1001, BUAD 1000",
         "in_progress_courses": "",

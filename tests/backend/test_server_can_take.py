@@ -102,7 +102,7 @@ class TestCanTakeEligibility:
         """A course whose prereqs are in completed_courses should return can_take=True."""
         _, data = post_can_take(client, {
             "requested_course": "FINA 4001",
-            "completed_courses": "FINA 3001",
+            "completed_courses": "FINA 3001, ACCO 1031",
             "target_semester": "Fall 2026",
         })
         # can_take is True or None (manual review), but NOT False due to missing prereqs
