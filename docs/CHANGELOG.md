@@ -8,6 +8,51 @@ Format per release:
 
 ---
 
+## [v1.9.8] - 2026-02-28
+
+### Changes
+
+**Requirement progress — grouped hierarchy view**
+- Progress panels (Degree Summary, Progress Modal, Semester Modal) now group bucket entries by parent program instead of a flat sorted list.
+- Each group shows a labeled section header (e.g. "Finance", "MCC Foundation") with child buckets indented beneath it.
+- Hidden parents (`MCC_ESSV2`, `MCC_WRIT`) are filtered from the display until their data is fully injected.
+
+**Planning Settings moved to Preferences pane**
+- The "Include Summer Semesters" toggle was in the wrong pane (Your Profile). Moved it to the Preferences pane, right below Semesters and Max Courses.
+
+**Max semesters raised to 8**
+- Semester count now accepts 1–8 (was 1–4). Both the UI options list and backend validation/clamp updated.
+
+**Summer semester UX polish**
+- Added a gold-tinted note inside the Semester Detail modal when the selected semester is a summer: "Summer semesters are capped at 4 courses (max 12 credits)."
+- Suppressed the "You requested N, but only 4 eligible" warning for summer semesters since the 4-course cap is by design.
+
+**Coming Soon — Discovery Theme and Minors**
+- Discovery Theme dropdown in the profile modal now shows a translucent "Coming Soon" overlay and is non-interactive. Data not yet injected.
+- Minors dropdown similarly marked Coming Soon; no minor data injected yet.
+
+**"How Marqbot Recommends Courses" modal — rewrite**
+- Rewrote the explainer modal (accessible via link next to the Can I Take search bar) in a first-person, student-facing voice.
+- Now covers 7 steps (0–6): Reality Check First, MCC Foundation, Business Core (BCC), Major Requirements, Tracks & Minors, Course Unlockers, Multi-Bucket Efficiency.
+- Removed the redundant "Standing Gates" step (already covered by step 0). Added BCC as its own step. Added Multi-Bucket Efficiency as the final step.
+
+**MCC Writing Intensive (WRIT) bucket deactivated**
+- Set `MCC_WRIT active=False` in `data/parent_buckets.csv`. WRIT courses no longer appear in recommendations until the bucket is re-activated after full data review.
+- Deactivating the parent bucket cascades through the runtime: its sub-buckets are dropped via inner join, course mappings are removed from the eligibility pool, and WRIT-only courses are skipped (no eligible bucket).
+
+**AIM primary major enforcement**
+- Set `AIM_MAJOR requires_primary_major=True` in `data/parent_buckets.csv`. AIM is now correctly treated as a secondary-only major alongside BUAN and INBU.
+- Removed the hardcoded `majorId === "AIM_MAJOR" ? true : ...` override from `frontend/src/lib/api.ts` — the data carries the correct value now.
+- Added frontend warning in both the onboarding Major step and the planner profile modal: when every selected major has `requires_primary_major=True`, a yellow banner prompts the student to add a standalone primary major.
+- Backend already returned `PRIMARY_MAJOR_REQUIRED` (HTTP 400) for this case; the frontend warning now surfaces it before the API call.
+
+### Design Decisions
+- Grouping progress by parent gives students a clearer mental model of their degree structure (e.g. all Finance sub-requirements under one "Finance" header) rather than a flat alphabetical list.
+- WRIT deactivation is a data-readiness gate, not a feature removal. The bucket and its 103 course mappings remain in the CSV; flipping `active` back to `True` re-enables it instantly.
+- AIM primary major rule is enforced at both data and frontend layers: data is the source of truth, frontend gives early feedback, backend is the hard gate.
+
+---
+
 ## [v1.9.7] - 2026-02-28
 
 ### Changes
