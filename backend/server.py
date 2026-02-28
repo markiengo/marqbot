@@ -1784,8 +1784,9 @@ def recommend():
         _cdf["course_code"].astype(str),
         _cdf["credits"].fillna(3).apply(lambda x: max(0, int(x)) if pd.notna(x) else 3),
     ))
-    # Initial standing from user-provided completed courses (before prereq expansion).
-    running_credits: int = sum(_credits_lookup.get(c, 3) for c in completed)
+    # Initial standing from completed + in-progress courses (in-progress are assumed
+    # finishing by the time semester 1 recommendations apply).
+    running_credits: int = sum(_credits_lookup.get(c, 3) for c in completed) + sum(_credits_lookup.get(c, 3) for c in in_progress)
 
     inconsistencies = find_inconsistent_completed_courses(
         completed, in_progress, effective_data["prereq_map"]
