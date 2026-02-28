@@ -19,9 +19,16 @@ export interface Track {
   parent_major_id?: string;
 }
 
+export interface Minor {
+  id: string;
+  label: string;
+  active?: boolean;
+}
+
 export interface ProgramsData {
   majors: Major[];
   tracks: Track[];
+  minors: Minor[];
   default_track_id: string;
 }
 
@@ -56,12 +63,17 @@ export interface SelectionContext {
   selected_program_labels?: string[];
   declared_majors?: string[];
   declared_major_labels?: string[];
+  declared_minors?: string[];
+  declared_minor_labels?: string[];
+  discovery_theme?: string | null;
   selected_track_id?: string;
   selected_track_label?: string;
 }
 
 export interface SemesterData {
   target_semester?: string;
+  standing?: number;
+  standing_label?: string;
   recommendations?: RecommendedCourse[];
   eligible_count?: number;
   not_in_catalog_warning?: string[];
@@ -110,9 +122,12 @@ export interface SessionSnapshot {
   targetSemester: string;
   semesterCount: string;
   maxRecs: string;
+  includeSummer?: boolean;
   canTake: string;
   declaredMajors: string[];
   declaredTracks: string[];
+  declaredMinors: string[];
+  discoveryTheme: string;
   activeNavTab: string;
   onboardingComplete?: boolean;
   lastRecommendationData?: RecommendationResponse | null;
@@ -126,9 +141,12 @@ export interface AppState {
   inProgress: Set<string>;
   selectedMajors: Set<string>;
   selectedTracks: string[];
+  selectedMinors: Set<string>;
+  discoveryTheme: string;
   targetSemester: string;
   semesterCount: string;
   maxRecs: string;
+  includeSummer: boolean;
   canTakeQuery: string;
   activeNavTab: string;
   onboardingComplete: boolean;

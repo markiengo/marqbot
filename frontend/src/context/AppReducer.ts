@@ -1,5 +1,12 @@
 import type { AppState, Course, ProgramsData, RecommendationResponse, SessionSnapshot } from "@/lib/types";
-import { DEFAULT_SEMESTER, DEFAULT_SEMESTER_COUNT, DEFAULT_MAX_RECS } from "@/lib/constants";
+
+import {
+  DEFAULT_SEMESTER,
+  DEFAULT_SEMESTER_COUNT,
+  DEFAULT_MAX_RECS,
+  AIM_CFA_TRACK_ID,
+  FIN_MAJOR_ID,
+} from "@/lib/constants";
 
 export type AppAction =
   | { type: "SET_COURSES"; payload: Course[] }
@@ -7,6 +14,9 @@ export type AppAction =
   | { type: "ADD_MAJOR"; payload: string }
   | { type: "REMOVE_MAJOR"; payload: string }
   | { type: "SET_TRACK"; payload: { majorId: string; trackId: string | null } }
+  | { type: "ADD_MINOR"; payload: string }
+  | { type: "REMOVE_MINOR"; payload: string }
+  | { type: "SET_DISCOVERY_THEME"; payload: string }
   | { type: "ADD_COMPLETED"; payload: string }
   | { type: "REMOVE_COMPLETED"; payload: string }
   | { type: "ADD_IN_PROGRESS"; payload: string }
@@ -14,22 +24,27 @@ export type AppAction =
   | { type: "SET_TARGET_SEMESTER"; payload: string }
   | { type: "SET_SEMESTER_COUNT"; payload: string }
   | { type: "SET_MAX_RECS"; payload: string }
+  | { type: "SET_INCLUDE_SUMMER"; payload: boolean }
   | { type: "SET_CAN_TAKE_QUERY"; payload: string }
   | { type: "SET_NAV_TAB"; payload: string }
   | { type: "SET_RECOMMENDATIONS"; payload: { data: RecommendationResponse; count: number } }
   | { type: "RESTORE_SESSION"; payload: SessionSnapshot }
-  | { type: "MARK_ONBOARDING_COMPLETE" };
+  | { type: "MARK_ONBOARDING_COMPLETE" }
+  | { type: "CLEAR_RECOMMENDATIONS" };
 
 export const initialState: AppState = {
   courses: [],
-  programs: { majors: [], tracks: [], default_track_id: "FIN_MAJOR" },
+  programs: { majors: [], tracks: [], minors: [], default_track_id: "FIN_MAJOR" },
   completed: new Set<string>(),
   inProgress: new Set<string>(),
   selectedMajors: new Set<string>(),
   selectedTracks: [],
+  selectedMinors: new Set<string>(),
+  discoveryTheme: "",
   targetSemester: DEFAULT_SEMESTER,
   semesterCount: DEFAULT_SEMESTER_COUNT,
   maxRecs: DEFAULT_MAX_RECS,
+  includeSummer: false,
   canTakeQuery: "",
   activeNavTab: "plan",
   onboardingComplete: false,
@@ -55,15 +70,22 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const next = new Set(state.selectedMajors);
       next.delete(action.payload);
       // Also clear any track whose parent_major_id matches the removed major
-      const nextTracks = state.selectedTracks.filter((tid) => {
+      let nextTracks = state.selectedTracks.filter((tid) => {
         const tr = state.programs.tracks.find((t) => t.id === tid);
         return tr?.parent_major_id !== action.payload;
       });
+      // AIM CFA track requires Finance major.
+      if (action.payload === FIN_MAJOR_ID) {
+        nextTracks = nextTracks.filter((tid) => tid !== AIM_CFA_TRACK_ID);
+      }
       return { ...state, selectedMajors: next, selectedTracks: nextTracks };
     }
 
     case "SET_TRACK": {
       const { majorId, trackId } = action.payload;
+      if (trackId === AIM_CFA_TRACK_ID && !state.selectedMajors.has(FIN_MAJOR_ID)) {
+        return state;
+      }
       // Remove any existing track for this major, then add the new one
       const filtered = state.selectedTracks.filter((tid) => {
         const tr = state.programs.tracks.find((t) => t.id === tid);
@@ -72,6 +94,21 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const nextTracks = trackId ? [...filtered, trackId] : filtered;
       return { ...state, selectedTracks: nextTracks };
     }
+
+    case "ADD_MINOR": {
+      const next = new Set(state.selectedMinors);
+      next.add(action.payload);
+      return { ...state, selectedMinors: next };
+    }
+
+    case "REMOVE_MINOR": {
+      const next = new Set(state.selectedMinors);
+      next.delete(action.payload);
+      return { ...state, selectedMinors: next };
+    }
+
+    case "SET_DISCOVERY_THEME":
+      return { ...state, discoveryTheme: action.payload };
 
     case "ADD_COMPLETED": {
       const nextCompleted = new Set(state.completed);
@@ -109,6 +146,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case "SET_MAX_RECS":
       return { ...state, maxRecs: action.payload };
+
+    case "SET_INCLUDE_SUMMER":
+      return { ...state, includeSummer: action.payload };
 
     case "SET_CAN_TAKE_QUERY":
       return { ...state, canTakeQuery: action.payload };
@@ -151,16 +191,26 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         : (snap as unknown as { declaredTrack?: string }).declaredTrack
           ? [(snap as unknown as { declaredTrack: string }).declaredTrack]
           : [];
+      const sanitizedTracks = selectedTracks.filter(
+        (tid) => tid !== AIM_CFA_TRACK_ID || selectedMajors.has(FIN_MAJOR_ID),
+      );
+
+      const selectedMinors = new Set(
+        (snap.declaredMinors || []).filter(Boolean),
+      );
 
       return {
         ...state,
         completed,
         inProgress,
         selectedMajors,
-        selectedTracks,
+        selectedTracks: sanitizedTracks,
+        selectedMinors,
+        discoveryTheme: snap.discoveryTheme || "",
         targetSemester: snap.targetSemester || DEFAULT_SEMESTER,
         semesterCount: snap.semesterCount || DEFAULT_SEMESTER_COUNT,
         maxRecs: snap.maxRecs || DEFAULT_MAX_RECS,
+        includeSummer: snap.includeSummer ?? false,
         canTakeQuery: snap.canTake || "",
         activeNavTab: snap.activeNavTab || "plan",
         onboardingComplete: snap.onboardingComplete || false,
@@ -168,6 +218,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         lastRequestedCount: Number(snap.lastRequestedCount) || state.lastRequestedCount,
       };
     }
+
+    case "CLEAR_RECOMMENDATIONS":
+      return { ...state, lastRecommendationData: null };
 
     case "MARK_ONBOARDING_COMPLETE":
       return { ...state, onboardingComplete: true, lastRecommendationData: null };

@@ -36,6 +36,15 @@ export function SemesterModal({
       title={`Semester ${index + 1}${semester.target_semester ? ` \u2014 ${semester.target_semester}` : ""}`}
     >
       <div className="space-y-6">
+        {/* Standing badge */}
+        {semester.standing_label && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gold/15 text-gold border border-gold/30">
+              {semester.standing_label} Standing
+            </span>
+          </div>
+        )}
+
         {/* Warnings */}
         {semester.not_in_catalog_warning && semester.not_in_catalog_warning.length > 0 && (
           <div className="bg-bad-light rounded-xl p-3 text-sm text-bad">

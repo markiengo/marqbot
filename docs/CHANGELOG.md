@@ -8,6 +8,87 @@ Format per release:
 
 ---
 
+## [v1.9.7] - 2026-02-28
+
+### Changes
+
+**MCC course data — ESSV2, WRIT, CULM buckets now populated**
+- Added 107 Engaging Social Systems & Values 2 (ESSV2) approved courses to the data model; MCC_ESSV2 bucket now has full course mappings.
+- Added 103 Writing Intensive (WRIT) approved courses; MCC_WRIT bucket now has full course mappings.
+- Added CORE 4929 as the Culminating Experience (CULM) course; MCC_CULM bucket now has a mapping.
+- All three buckets previously returned no recommendations; students needing these requirements now receive course suggestions.
+
+**Summer semester recommendations**
+- New "Include Summer Semesters" toggle in Planning Settings (default Off).
+- When enabled, summer semesters appear in the plan capped at 4 courses, showing only summer-available offerings.
+- When disabled, summer semesters are skipped and the plan delivers the requested number of non-summer semesters.
+
+**Running academic standing**
+- Marqbot now tracks your academic standing (Freshman / Sophomore / Junior / Senior) across each planned semester.
+- Standing is computed from your completed courses at the start and projected forward as you complete each semester's recommendations.
+- Courses requiring a minimum standing (e.g. Junior-only seminars) are automatically held until you qualify.
+- Each semester card now shows a standing badge: e.g. "Semester 1 – Fall 2025 · Freshman Standing".
+
+**"How Marqbot Recommends Courses" explainer**
+- Added a link near the course search bar in the Recommendations panel.
+- Opens a modal describing the five recommendation tiers: Foundation First, Major Requirements, Tracks & Minors, Standing Gates, and Prerequisite Chains.
+
+**Bug fixes**
+- Fixed a crash when using the CSV data source: prerequisite standing values were read as strings, causing a type error during eligibility checks.
+- Restored BCC (Business Core Curriculum) decay behavior: once core BCC requirements are substantially complete, lower-priority BCC courses are deprioritized in favor of major-specific courses.
+
+### Design Decisions
+- ESSV2 and WRIT bucket course data is live in the data model; the frontend "coming soon" treatment for those buckets will land in a future patch.
+- Summer course cap of 4 matches typical summer session load limits at Marquette.
+- Standing projection is additive: each semester's recommended credits accumulate before the next semester's eligibility gate runs, so a student finishing Semester 1 as a Freshman may start Semester 2 as a Sophomore.
+
+---
+
+## [v1.9.6] - 2026-02-27
+
+### Changes
+
+**Data source migration: Excel → CSV directory**
+- Changed `_DEFAULT_DATA_PATH` in `backend/server.py` from `marquette_courses_full.xlsx` to `data/`. Backend now reads from the six CSV files in `data/` by default; Excel remains as a manual override via `DATA_PATH` env var.
+- Fixed `_canonical_program_label` in `backend/server.py`: was hardcoded to ignore CSV labels for `kind=major` and always generate `"{code} Major"` format. Now uses the CSV `parent_bucket_label` as priority; falls back to generated format only when label is absent.
+- Removed `MAJOR_LABEL_OVERRIDES` dict from `frontend/src/lib/api.ts` — was an Excel-era workaround that mapped abbreviated labels (e.g. "ACCO Major" → "Accounting"). No longer needed since labels now come directly from CSVs.
+- Deleted `marquette_courses_full.xlsx`; removed xlsx COPY line from `infra/docker/Dockerfile`; updated `scripts/validate_track.py` default `--path` to `data/`.
+
+**Stage 1 data injection — `data/courses.csv`, `data/course_prereqs.csv`, `data/course_offerings.csv`**
+- Injected 268 business school catalog entries (ACCO, AIM, BUAD, BUAN, BULA, ECON, ENTP, FINA, HURE, INBU, INSY, LEAD, MANA, MARK, OSCM, REAL) via `scripts/inject_stage1.py`.
+- CSV BOM fix: changed `read_csv` in inject script to use `encoding="utf-8-sig"` to handle UTF-8 BOM on first column.
+
+**Stage 2 data injection — `data/parent_buckets.csv`, `data/child_buckets.csv`, `data/master_bucket_courses.csv`**
+- Added 5 new majors: Marketing (MARK_MAJOR), Real Estate (REAL_MAJOR), Business Economics (BECO_MAJOR), Business Administration (BADM_MAJOR), International Business (INBU_MAJOR).
+- Added 7 minors: Business Administration, Entrepreneurship, Human Resources, Information Systems, Marketing, Supply Chain Management, Professional Selling.
+- Added 2 new tracks: Professional Selling Concentration (MARK_PRSL_TRACK), Real Estate Asset Program Concentration (REAL_REAP_TRACK).
+
+**CSV integrity fixes**
+- AIM 4410: removed ghost prereq `FINA 5075` (graduate code), corrected to `FINA 4075`; fixed `min_standing` from 5.0 → 4.0; removed erroneous `may_be_concurrent`/`instructor_consent` warnings; kept `major_restriction` only.
+- MATH 1200: cleared all prereqs and warnings (was incorrectly flagging `instructor_consent;standing_requirement`).
+- HOPR 2956H, INPS 2010: fixed `prereq_warnings` separator from `;` to `,`.
+- REAL 4002: added to all three CSVs as a cross-listing of FINA 4002 (Commercial Real Estate Finance); resolves orphaned prereq references in REAL 4xxx courses.
+
+**Label cleanup — `data/parent_buckets.csv`**
+- Removed "Major" suffix from all major display labels (e.g. "Finance Major" → "Finance", "Accounting Major" → "Accounting").
+- Removed "Minor" suffix from all minor display labels (e.g. "Entrepreneurship Minor" → "Entrepreneurship").
+- Set AIM label to "AIM - Accelerating Ingenuity in Markets".
+- Prefixed Discovery tier track labels with "MCC Discovery:" for clarity in the UI.
+
+**Frontend — MajorStep redesign (`frontend/src/components/onboarding/MajorStep.tsx`)**
+- Restructured from a single-column conditional layout to 4 explicit sections: Major(s), Minor(s), Concentration / Track, Discovery Theme.
+- Concentration/Track section always visible; shows placeholder text when no major with tracks is selected.
+- Added Discovery Theme section: single-select combobox for MCC_DISC tracks (CMI, BNJ, CB, EOH, IC), using existing track selection state keyed by `MCC_DISC`.
+- Compacted spacing and font sizes; removed `<hr>` dividers between sections.
+- Updated heading to "What's your program?".
+
+### Design Decisions
+- CSV directory is the permanent data source going forward; Excel file deleted. All future data changes go through the CSV files.
+- Label authority lives in `parent_bucket_label` column — no frontend overrides. Keeps display names in one place and avoids frontend/data drift.
+- Discovery themes are tracks (not a separate entity type) to reuse existing `SET_TRACK` dispatch and `selectedTracks` state without new reducer logic.
+
+---
+
 ## [v1.9.3] - 2026-02-27
 
 ### Changes
@@ -92,6 +173,8 @@ Format per release:
   BCC_REQUIRED, preserving relative ordering intent.
 - Rate limiting uses manual token bucket (no new deps) rather than Flask-Limiter.
 - Feedback uses append-only JSONL on a Render persistent disk (provision separately).
+
+---
 
 ## [Unreleased]
 

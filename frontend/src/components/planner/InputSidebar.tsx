@@ -5,7 +5,13 @@ import { AnimatePresence } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { MultiSelect } from "@/components/shared/MultiSelect";
 import { Chip } from "@/components/shared/Chip";
-import { MAX_MAJORS } from "@/lib/constants";
+import {
+  MAX_MAJORS,
+  MAX_MINORS,
+  AIM_CFA_TRACK_ID,
+  AIM_CFA_FINANCE_RULE_MSG,
+  FIN_MAJOR_ID,
+} from "@/lib/constants";
 
 interface InputSidebarProps {
   hideHeader?: boolean;
@@ -16,7 +22,22 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
 
   const majors = state.programs.majors;
   const tracks = state.programs.tracks;
-  const selectedMajorIds = [...state.selectedMajors];
+  const minors = state.programs.minors;
+  const selectedMajorIds = useMemo(() => [...state.selectedMajors], [state.selectedMajors]);
+  const hasFinanceMajor = state.selectedMajors.has(FIN_MAJOR_ID);
+  const selectedMajorBaseCodes = useMemo(
+    () => new Set(selectedMajorIds.map((id) => id.replace("_MAJOR", ""))),
+    [selectedMajorIds],
+  );
+  const minorLabelById = useMemo(() => {
+    const map = new Map<string, string>();
+    minors.forEach((m) => map.set(m.id, m.label));
+    return map;
+  }, [minors]);
+  const discoveryThemeTracks = useMemo(
+    () => tracks.filter((t) => String(t.parent_major_id || "").trim().toUpperCase() === "MCC_DISC"),
+    [tracks],
+  );
   const majorLabelById = useMemo(() => {
     const map = new Map<string, string>();
     majors.forEach((m) => map.set(m.id, m.label));
@@ -58,9 +79,26 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
 
   const [trackQuery, setTrackQuery] = useState<Record<string, string>>({});
   const [trackOpen, setTrackOpen] = useState<Record<string, boolean>>({});
+  const [trackRuleWarning, setTrackRuleWarning] = useState<string | null>(null);
   const trackInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const trackListRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const trackComboId = useId();
+  const aimCfaSelectedWithoutFinance =
+    state.selectedTracks.includes(AIM_CFA_TRACK_ID) && !hasFinanceMajor;
+  const effectiveTrackRuleWarning = !hasFinanceMajor
+    ? (trackRuleWarning || (aimCfaSelectedWithoutFinance ? AIM_CFA_FINANCE_RULE_MSG : null))
+    : null;
+
+  const selectTrack = useCallback((majorId: string, trackId: string) => {
+    if (trackId === AIM_CFA_TRACK_ID && !hasFinanceMajor) {
+      setTrackRuleWarning(AIM_CFA_FINANCE_RULE_MSG);
+      return;
+    }
+    setTrackRuleWarning(null);
+    dispatch({ type: "SET_TRACK", payload: { majorId, trackId } });
+    setTrackOpen((prev) => ({ ...prev, [majorId]: false }));
+    setTrackQuery((prev) => ({ ...prev, [majorId]: "" }));
+  }, [dispatch, hasFinanceMajor]);
 
   // Close track dropdowns on outside click
   useEffect(() => {
@@ -138,7 +176,13 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
         )}
       </div>
 
-      {/* Per-major track selectors — chip + combobox */}
+      {/* Per-major track selectors - chip + combobox */}
+      {effectiveTrackRuleWarning && (
+        <div className="bg-bad-light rounded-lg px-2 py-1.5 text-xs text-bad">
+          {effectiveTrackRuleWarning}
+        </div>
+      )}
+
       {selectedMajorIds.map((majorId) => {
         const mt = tracksForMajor(majorId);
         if (mt.length === 0) return null;
@@ -204,11 +248,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
                         type="button"
                         role="option"
                         aria-selected={false}
-                        onClick={() => {
-                          dispatch({ type: "SET_TRACK", payload: { majorId, trackId: t.id } });
-                          setTrackOpen((prev) => ({ ...prev, [majorId]: false }));
-                          setTrackQuery((prev) => ({ ...prev, [majorId]: "" }));
-                        }}
+                        onClick={() => selectTrack(majorId, t.id)}
                         className="w-full text-left px-2 py-1.5 text-xs cursor-pointer transition-colors text-ink-secondary hover:bg-surface-hover"
                       >
                         {t.label}
@@ -221,6 +261,76 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
           </div>
         );
       })}
+
+      {/* Minors */}
+      {minors.length > 0 && (
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+            Minors
+          </label>
+          <div className="flex flex-wrap gap-1.5 min-h-[24px] min-w-0">
+            <AnimatePresence mode="popLayout">
+              {[...state.selectedMinors].map((id) => {
+                const label = minorLabelById.get(id) ?? id;
+                return (
+                  <Chip
+                    key={id}
+                    label={label}
+                    variant="gold"
+                    onRemove={() => dispatch({ type: "REMOVE_MINOR", payload: id })}
+                  />
+                );
+              })}
+            </AnimatePresence>
+          </div>
+          {state.selectedMinors.size < MAX_MINORS && (
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  dispatch({ type: "ADD_MINOR", payload: e.target.value });
+                  e.target.value = "";
+                }
+              }}
+              defaultValue=""
+              className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
+            >
+              <option value="">Add minor...</option>
+              {minors
+                .filter(
+                  (m) =>
+                    !state.selectedMinors.has(m.id) &&
+                    !selectedMajorBaseCodes.has(m.id.replace("_MINOR", "")),
+                )
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+            </select>
+          )}
+        </div>
+      )}
+
+      {/* Discovery Theme */}
+      {discoveryThemeTracks.length > 0 && (
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+            Discovery Theme
+          </label>
+          <select
+            value={state.discoveryTheme}
+            onChange={(e) => dispatch({ type: "SET_DISCOVERY_THEME", payload: e.target.value })}
+            className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
+          >
+            <option value="">Select theme...</option>
+            {discoveryThemeTracks.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Completed */}
       <div className="space-y-1.5">
@@ -252,6 +362,36 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
           placeholder="Add in-progress..."
           resolveLabel={(code) => code}
         />
+      </div>
+
+      {/* Planning Settings */}
+      <div className="pt-1 border-t border-border-subtle/40 space-y-2">
+        <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+          Planning Settings
+        </label>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-ink-secondary leading-tight">Include Summer Semesters</p>
+            <p className="text-[10px] text-ink-faint leading-tight mt-0.5">Max 4 courses · Summer-only offerings</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={state.includeSummer}
+            onClick={() => dispatch({ type: "SET_INCLUDE_SUMMER", payload: !state.includeSummer })}
+            className={[
+              "relative flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gold/40",
+              state.includeSummer ? "bg-gold" : "bg-white/20",
+            ].join(" ")}
+          >
+            <span
+              className={[
+                "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
+                state.includeSummer ? "translate-x-4" : "translate-x-0",
+              ].join(" ")}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );

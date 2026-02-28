@@ -36,4 +36,10 @@ export const MAX_RECS_OPTIONS = [
 export const DEFAULT_SEMESTER = "Fall 2025";
 export const DEFAULT_SEMESTER_COUNT = "3";
 export const DEFAULT_MAX_RECS = "3";
-export const MAX_MAJORS = 2;
+export const MAX_MAJORS = 3;
+export const MAX_MINORS = 2;
+
+export const FIN_MAJOR_ID = "FIN_MAJOR";
+export const AIM_CFA_TRACK_ID = "AIM_CFA_TRACK";
+export const AIM_CFA_FINANCE_RULE_MSG =
+  "Students in the AIM CFA: Investments Concentration must also have a declared primary major in Finance.";

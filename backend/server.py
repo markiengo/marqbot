@@ -30,6 +30,7 @@ from semester_recommender import (
     normalize_semester_label,
     default_followup_semester,
     run_recommendation_semester,
+    _credits_to_standing,
 )
 
 load_dotenv()
@@ -42,7 +43,7 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 _NEXT_OUT = os.path.join(PROJECT_ROOT, "frontend", "out")
 # Frontend convergence: only serve the Next.js static export.
 FRONTEND_DIR = _NEXT_OUT
-_DEFAULT_DATA_PATH = os.path.join(PROJECT_ROOT, "marquette_courses_full.xlsx")
+_DEFAULT_DATA_PATH = os.path.join(PROJECT_ROOT, "data")
 _env_data_path = os.environ.get("DATA_PATH")
 if not _env_data_path:
     DATA_PATH = _DEFAULT_DATA_PATH
@@ -155,6 +156,13 @@ def _check_rate_limit(ip: str) -> bool:
 
 def _data_file_mtime(path: str):
     try:
+        if os.path.isdir(path):
+            mtimes = [
+                os.path.getmtime(os.path.join(path, f))
+                for f in os.listdir(path)
+                if f.endswith(".csv")
+            ]
+            return max(mtimes) if mtimes else None
         return os.path.getmtime(path)
     except OSError:
         return None
@@ -317,6 +325,12 @@ def _validate_recommend_body(body):
 
 
 PHASE5_PLAN_TRACK_ID = "__DECLARED_PLAN__"
+AIM_CFA_TRACK_ID = "AIM_CFA_TRACK"
+FIN_MAJOR_ID = "FIN_MAJOR"
+AIM_CFA_FINANCE_RULE_MSG = (
+    "Students in the AIM CFA: Investments Concentration must also have a declared "
+    "primary major in Finance."
+)
 _MAJOR_CODE_LABEL_OVERRIDES = {
     "FIN": "FINA",
     "INSY": "IS",
@@ -341,13 +355,12 @@ def _canonical_major_label(program_id: str) -> str:
 
 
 def _canonical_program_label(program_id: str, kind: str, fallback_label: str | None = None) -> str:
-    normalized_kind = str(kind or "").strip().lower()
-    if normalized_kind == "major":
-        return _canonical_major_label(program_id)
-
     fallback = str(fallback_label or "").strip()
     if fallback:
         return fallback
+    normalized_kind = str(kind or "").strip().lower()
+    if normalized_kind == "major":
+        return _canonical_major_label(program_id)
     return str(program_id or "").strip().upper()
 
 
@@ -396,7 +409,7 @@ def _normalize_program_catalog(tracks_df):
 
     def _normalize_kind(row):
         kind = str(row.get("kind", "") or "").strip().lower()
-        if kind in {"major", "track"}:
+        if kind in {"major", "track", "minor"}:
             return kind
         tid = str(row.get("track_id", "") or "").strip().upper()
         label = str(row.get("track_label", "") or "").strip().lower()
@@ -447,7 +460,7 @@ def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
             if not program_id:
                 continue
             kind = str(row.get("kind", "major") or "major").strip().lower()
-            if kind not in {"major", "track"}:
+            if kind not in {"major", "track", "minor"}:
                 kind = "major"
             parent_major_id = str(row.get("parent_major_id", "") or "").strip().upper()
             if kind == "major":
@@ -798,13 +811,63 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
     return merged
 
 
+_CORE_PARENT_ALIAS = {
+    "BCC": "BCC",
+    "MCC": "MCC",
+    "BCC_CORE": "BCC",
+    "MCC_CORE": "MCC",
+    "MCC_FOUNDATION": "MCC",
+    "MCC_CULM": "MCC",
+    "MCC_ESSV2": "MCC",
+    "MCC_WRIT": "MCC",
+    "MCC_DISC": "MCC",
+    "MCC_DISC_CMI": "MCC",
+    "MCC_DISC_BNJ": "MCC",
+    "MCC_DISC_CB": "MCC",
+    "MCC_DISC_EOH": "MCC",
+    "MCC_DISC_IC": "MCC",
+}
+
+
+def _apply_discovery_theme_filter(
+    buckets: pd.DataFrame,
+    course_map: pd.DataFrame,
+    universal_programs: set[str],
+    discovery_theme: str | None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Filter MCC_DISC overlay buckets to only the selected Discovery theme."""
+    if "MCC_DISC" not in universal_programs:
+        return buckets, course_map
+
+    is_disc_overlay_bucket = buckets.get("source_program_id", pd.Series(dtype=str)) == "MCC_DISC"
+    track_req = buckets.get("track_required", pd.Series(dtype=str)).fillna("")
+    if discovery_theme:
+        keep = ~is_disc_overlay_bucket | (track_req == "") | (track_req == discovery_theme)
+    else:
+        keep = ~is_disc_overlay_bucket | (track_req == "")
+    buckets = buckets[keep].copy()
+
+    is_disc_overlay_map = course_map.get("source_program_id", pd.Series(dtype=str)) == "MCC_DISC"
+    map_track_req = course_map.get("track_required", pd.Series(dtype=str)).fillna("")
+    if discovery_theme:
+        keep_map = ~is_disc_overlay_map | (map_track_req == "") | (map_track_req == discovery_theme)
+    else:
+        keep_map = ~is_disc_overlay_map | (map_track_req == "")
+    course_map = course_map[keep_map].copy()
+
+    return buckets, course_map
+
+
 def _build_declared_plan_data_v2(
     data: dict,
     declared_majors: list[str],
     selected_track_ids: list[str],
     catalog_df: pd.DataFrame,
+    declared_minors: list[str] | None = None,
+    discovery_theme: str | None = None,
 ) -> dict:
-    """Build synthetic merged runtime view from V2 model for declared majors."""
+    """Build synthetic merged runtime view from V2 model for declared majors and minors."""
+    declared_minors = declared_minors or []
     label_map = {str(r["track_id"]): str(r["track_label"] or r["track_id"]) for _, r in catalog_df.iterrows()}
     track_parent = {
         str(r["track_id"]): str(r.get("parent_major_id", "") or "").strip().upper()
@@ -821,20 +884,18 @@ def _build_declared_plan_data_v2(
         buckets = major_data["buckets_df"].copy()
         course_map = major_data["course_bucket_map_df"].copy()
 
+        # Filter Discovery theme overlay buckets.
+        buckets, course_map = _apply_discovery_theme_filter(
+            buckets, course_map, universal_programs, discovery_theme
+        )
+
         buckets["source_program_id"] = buckets.get("source_program_id", major_id).fillna(major_id).astype(str).str.strip().str.upper()
         buckets["source_bucket_id"] = buckets.get("source_bucket_id", buckets["bucket_id"]).fillna("").astype(str)
         buckets["source_parent_bucket_id"] = buckets.get(
             "source_parent_bucket_id",
             buckets.get("parent_bucket_id", ""),
         ).fillna("").astype(str).str.strip().str.upper()
-        core_parent_alias = {
-            "BCC": "BCC",
-            "MCC": "MCC",
-            "BCC_CORE": "BCC",
-            "MCC_CORE": "MCC",
-            "MCC_FOUNDATION": "MCC",
-        }
-        source_parent_display = buckets["source_parent_bucket_id"].map(core_parent_alias).fillna(
+        source_parent_display = buckets["source_parent_bucket_id"].map(_CORE_PARENT_ALIAS).fillna(
             buckets["source_parent_bucket_id"]
         )
 
@@ -870,7 +931,7 @@ def _build_declared_plan_data_v2(
             how="left",
         )
         course_map["source_parent_bucket_id"] = course_map["source_parent_bucket_id"].fillna("").astype(str).str.upper()
-        source_parent_map_display = course_map["source_parent_bucket_id"].map(core_parent_alias).fillna(
+        source_parent_map_display = course_map["source_parent_bucket_id"].map(_CORE_PARENT_ALIAS).fillna(
             course_map["source_parent_bucket_id"]
         )
 
@@ -888,6 +949,77 @@ def _build_declared_plan_data_v2(
         )
         course_map.loc[~is_overlay_map, "bucket_id"] = (
             major_id + "::" + course_map.loc[~is_overlay_map, "source_bucket_id"].astype(str)
+        )
+        course_map["track_id"] = PHASE5_PLAN_TRACK_ID
+
+        all_buckets.append(buckets)
+        all_maps.append(course_map)
+
+    for minor_id in declared_minors:
+        minor_data = _build_single_major_data_v2(data, minor_id, None)
+        buckets = minor_data["buckets_df"].copy()
+        course_map = minor_data["course_bucket_map_df"].copy()
+
+        buckets["source_program_id"] = buckets.get("source_program_id", minor_id).fillna(minor_id).astype(str).str.strip().str.upper()
+        buckets["source_bucket_id"] = buckets.get("source_bucket_id", buckets["bucket_id"]).fillna("").astype(str)
+        buckets["source_parent_bucket_id"] = buckets.get(
+            "source_parent_bucket_id",
+            buckets.get("parent_bucket_id", ""),
+        ).fillna("").astype(str).str.strip().str.upper()
+        source_parent_display = buckets["source_parent_bucket_id"].map(_CORE_PARENT_ALIAS).fillna(
+            buckets["source_parent_bucket_id"]
+        )
+
+        is_overlay_bucket = buckets["source_program_id"].isin(universal_programs)
+        has_named_core_parent_bucket = is_overlay_bucket & source_parent_display.isin({"BCC", "MCC"})
+        buckets.loc[has_named_core_parent_bucket, "bucket_id"] = (
+            source_parent_display.loc[has_named_core_parent_bucket].astype(str)
+            + "::"
+            + buckets.loc[has_named_core_parent_bucket, "source_bucket_id"].astype(str)
+        )
+        buckets.loc[is_overlay_bucket & ~has_named_core_parent_bucket, "bucket_id"] = (
+            buckets.loc[is_overlay_bucket & ~has_named_core_parent_bucket, "source_program_id"].astype(str)
+            + "::"
+            + buckets.loc[is_overlay_bucket & ~has_named_core_parent_bucket, "source_bucket_id"].astype(str)
+        )
+        buckets.loc[~is_overlay_bucket, "bucket_id"] = (
+            minor_id + "::" + buckets.loc[~is_overlay_bucket, "source_bucket_id"].astype(str)
+        )
+        buckets.loc[~is_overlay_bucket, "bucket_label"] = (
+            f"{label_map.get(minor_id, minor_id)}: "
+            + buckets.loc[~is_overlay_bucket, "bucket_label"].astype(str)
+        )
+        buckets["track_id"] = PHASE5_PLAN_TRACK_ID
+
+        course_map["source_program_id"] = course_map.get("source_program_id", minor_id).fillna(minor_id).astype(str).str.strip().str.upper()
+        course_map["source_bucket_id"] = course_map.get("source_bucket_id", course_map["bucket_id"]).fillna("").astype(str)
+        parent_lookup = buckets[
+            ["source_program_id", "source_bucket_id", "source_parent_bucket_id"]
+        ].drop_duplicates()
+        course_map = course_map.merge(
+            parent_lookup,
+            on=["source_program_id", "source_bucket_id"],
+            how="left",
+        )
+        course_map["source_parent_bucket_id"] = course_map["source_parent_bucket_id"].fillna("").astype(str).str.upper()
+        source_parent_map_display = course_map["source_parent_bucket_id"].map(_CORE_PARENT_ALIAS).fillna(
+            course_map["source_parent_bucket_id"]
+        )
+
+        is_overlay_map = course_map["source_program_id"].isin(universal_programs)
+        has_named_core_parent_map = is_overlay_map & source_parent_map_display.isin({"BCC", "MCC"})
+        course_map.loc[has_named_core_parent_map, "bucket_id"] = (
+            source_parent_map_display.loc[has_named_core_parent_map].astype(str)
+            + "::"
+            + course_map.loc[has_named_core_parent_map, "source_bucket_id"].astype(str)
+        )
+        course_map.loc[is_overlay_map & ~has_named_core_parent_map, "bucket_id"] = (
+            course_map.loc[is_overlay_map & ~has_named_core_parent_map, "source_program_id"].astype(str)
+            + "::"
+            + course_map.loc[is_overlay_map & ~has_named_core_parent_map, "source_bucket_id"].astype(str)
+        )
+        course_map.loc[~is_overlay_map, "bucket_id"] = (
+            minor_id + "::" + course_map.loc[~is_overlay_map, "source_bucket_id"].astype(str)
         )
         course_map["track_id"] = PHASE5_PLAN_TRACK_ID
 
@@ -960,12 +1092,23 @@ def _normalize_declared_majors(raw_value):
             "INVALID_INPUT",
             "declared_majors cannot be empty when provided.",
         )
-    if len(majors) > 2:
+    return majors, None
+
+
+def _normalize_declared_minors(raw_value):
+    if raw_value is None:
+        return [], None
+    if not isinstance(raw_value, list):
         return None, (
             "INVALID_INPUT",
-            "MVP limit exceeded: declared_majors supports at most 2 majors.",
+            "declared_minors must be an array of minor IDs (e.g., ['MARK_MINOR']).",
         )
-    return majors, None
+    minors = []
+    for item in raw_value:
+        code = str(item or "").strip().upper()
+        if code:
+            minors.append(code)
+    return list(dict.fromkeys(minors)), None
 
 
 def _resolve_program_selection(body, data: dict):
@@ -997,6 +1140,16 @@ def _resolve_program_selection(body, data: dict):
             "mode": "error",
             "error": {"error_code": code, "message": msg},
         }, 400)
+
+    declared_minors, minor_parse_error = _normalize_declared_minors(body.get("declared_minors"))
+    if minor_parse_error:
+        code, msg = minor_parse_error
+        return None, ({
+            "mode": "error",
+            "error": {"error_code": code, "message": msg},
+        }, 400)
+
+    discovery_theme = str(body.get("discovery_theme") or "").strip().upper() or None
 
     # Single-program path (backward compatibility input shape).
     if declared_majors is None:
@@ -1114,6 +1267,36 @@ def _resolve_program_selection(body, data: dict):
                 },
             }, 400)
 
+    # Validate declared minors and check for major/minor subject overlap.
+    for minor_id in declared_minors:
+        row = selectable_catalog_df[selectable_catalog_df["track_id"] == minor_id]
+        if len(row) == 0 or row.iloc[0]["kind"] != "minor":
+            return None, ({
+                "mode": "error",
+                "error": {
+                    "error_code": "UNKNOWN_MINOR",
+                    "message": f"Minor '{minor_id}' is not recognized.",
+                },
+            }, 400)
+        if not row.iloc[0].get("active", True):
+            warnings.append(
+                f"Minor '{_program_label(minor_id)}' is not yet published (active=0). "
+                "Results may be incomplete."
+            )
+
+    major_base_codes = {m.replace("_MAJOR", "") for m in declared_majors}
+    minor_base_codes = {m.replace("_MINOR", "") for m in declared_minors}
+    overlap = major_base_codes & minor_base_codes
+    if overlap:
+        labels = ", ".join(sorted(overlap))
+        return None, ({
+            "mode": "error",
+            "error": {
+                "error_code": "MAJOR_MINOR_OVERLAP",
+                "message": f"Cannot minor in a subject you are already majoring in: {labels}.",
+            },
+        }, 400)
+
     # Support track_ids (array) and legacy track_id (single) — normalise to list.
     selected_track_ids = []
     raw_track_ids = body.get("track_ids", None)
@@ -1152,6 +1335,14 @@ def _resolve_program_selection(body, data: dict):
                     ),
                 },
             }, 400)
+        if t_id == AIM_CFA_TRACK_ID and FIN_MAJOR_ID not in declared_majors:
+            return None, ({
+                "mode": "error",
+                "error": {
+                    "error_code": "PRIMARY_MAJOR_REQUIRED",
+                    "message": AIM_CFA_FINANCE_RULE_MSG,
+                },
+            }, 400)
         if parent_major_id in seen_parent_majors:
             return None, ({
                 "mode": "error",
@@ -1168,18 +1359,21 @@ def _resolve_program_selection(body, data: dict):
             )
         selected_track_ids.append(t_id)
 
-    selected_program_ids = list(dict.fromkeys(declared_majors + selected_track_ids))
+    selected_program_ids = list(dict.fromkeys(declared_majors + selected_track_ids + declared_minors))
     if using_v2_catalog:
         effective_data = _build_declared_plan_data_v2(
             data,
             declared_majors,
             selected_track_ids,
             catalog_df,
+            declared_minors=declared_minors,
+            discovery_theme=discovery_theme,
         )
     else:
         effective_data = _build_declared_plan_data(data, selected_program_ids, catalog_df)
     selected_program_labels = [_program_label(pid) for pid in selected_program_ids]
     declared_major_labels = [_program_label(mid) for mid in declared_majors]
+    declared_minor_labels = [_program_label(mid) for mid in declared_minors]
     selected_track_label = (
         _program_label(selected_track_ids[0]) if len(selected_track_ids) == 1
         else (", ".join(_program_label(t) for t in selected_track_ids) if selected_track_ids else None)
@@ -1189,6 +1383,9 @@ def _resolve_program_selection(body, data: dict):
         "mode": "declared",
         "declared_majors": declared_majors,
         "declared_major_labels": declared_major_labels,
+        "declared_minors": declared_minors,
+        "declared_minor_labels": declared_minor_labels,
+        "discovery_theme": discovery_theme,
         "selected_track_id": selected_track_ids[0] if len(selected_track_ids) == 1 else None,
         "selected_track_ids": selected_track_ids,
         "selected_track_label": selected_track_label,
@@ -1425,12 +1622,14 @@ def get_programs():
         return jsonify({
             "majors": [],
             "tracks": [],
+            "minors": [],
             "default_track_id": DEFAULT_TRACK_ID,
         })
 
     publishable = catalog_df[catalog_df.get("applies_to_all", False) != True].copy()
     majors = publishable[publishable["kind"] == "major"].sort_values("track_id", kind="stable")
     tracks = publishable[publishable["kind"] == "track"].sort_values("track_id", kind="stable")
+    minors = publishable[publishable["kind"] == "minor"].sort_values("track_id", kind="stable")
 
     majors_payload = [
         {
@@ -1450,10 +1649,19 @@ def get_programs():
         }
         for _, row in tracks.iterrows()
     ]
+    minors_payload = [
+        {
+            "minor_id": str(row["track_id"]),
+            "label": str(row.get("track_label", row["track_id"])),
+            "active": bool(row.get("active", True)),
+        }
+        for _, row in minors.iterrows()
+    ]
 
     return jsonify({
         "majors": majors_payload,
         "tracks": tracks_payload,
+        "minors": minors_payload,
         "default_track_id": DEFAULT_TRACK_ID,
     })
 
@@ -1544,6 +1752,7 @@ def recommend():
 
     requested_course_raw = body.get("requested_course") or None
     max_recs = max(1, min(6, int(body.get("max_recommendations", 3) or 3)))
+    include_summer = bool(body.get("include_summer", False))
     debug_mode = bool(body.get("debug", False))
     debug_limit = max(1, min(100, int(body.get("debug_limit", 30) or 30)))
 
@@ -1567,6 +1776,15 @@ def recommend():
     completed = comp_result["valid"]
     in_progress = ip_result["valid"]
     not_in_catalog_warn = comp_result["not_in_catalog"] + ip_result["not_in_catalog"]
+
+    # Build a course→credits lookup for standing projection.
+    _cdf = effective_data["courses_df"]
+    _credits_lookup: dict[str, int] = dict(zip(
+        _cdf["course_code"].astype(str),
+        _cdf["credits"].fillna(3).apply(lambda x: max(0, int(x)) if pd.notna(x) else 3),
+    ))
+    # Initial standing from user-provided completed courses (before prereq expansion).
+    running_credits: int = sum(_credits_lookup.get(c, 3) for c in completed)
 
     inconsistencies = find_inconsistent_completed_courses(
         completed, in_progress, effective_data["prereq_map"]
@@ -1637,9 +1855,22 @@ def recommend():
         else:
             semester_labels.append(default_followup_semester(semester_labels[-1]))
 
+    # Filter out summer semesters when include_summer is False.
+    # default_followup_semester never produces a Summer label, so only primary/explicit
+    # semesters can be summers. Extend with auto-generated labels to fill any gaps.
+    if not include_summer:
+        filtered = [l for l in semester_labels if "summer" not in l.lower()]
+        probe = filtered[-1] if filtered else semester_labels[-1]
+        while len(filtered) < target_semester_count:
+            next_label = default_followup_semester(probe)
+            filtered.append(next_label)
+            probe = next_label
+        semester_labels = filtered[:target_semester_count]
+
     semesters_payload = []
     completed_cursor = list(dict.fromkeys(completed + in_progress))
     for idx, semester_label in enumerate(semester_labels):
+        current_standing = _credits_to_standing(running_credits)
         if idx == 0:
             semester_payload = run_recommendation_semester(
                 completed,
@@ -1651,6 +1882,7 @@ def recommend():
                 track_id=effective_track_id,
                 debug=debug_mode,
                 debug_limit=debug_limit,
+                current_standing=current_standing,
             )
         else:
             semester_payload = run_recommendation_semester(
@@ -1663,8 +1895,12 @@ def recommend():
                 track_id=effective_track_id,
                 debug=debug_mode,
                 debug_limit=debug_limit,
+                current_standing=current_standing,
             )
         semesters_payload.append(semester_payload)
+        # Accumulate recommended course credits for the next semester's standing projection.
+        for rec in semester_payload.get("recommendations", []):
+            running_credits += _credits_lookup.get(rec.get("course_code", ""), 3)
         completed_cursor = list(dict.fromkeys(
             completed_cursor + [
                 r["course_code"]

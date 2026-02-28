@@ -12,9 +12,16 @@ export function SemesterPreview({ semester, index }: SemesterPreviewProps) {
 
   return (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-ink-secondary">
-        Semester {index + 1}
-        {term && ` \u2014 ${term}`}
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <span className="text-xs font-semibold text-ink-secondary">
+          Semester {index + 1}
+          {term && ` \u2014 ${term}`}
+        </span>
+        {semester.standing_label && (
+          <span className="text-[10px] font-medium text-gold/80">
+            {semester.standing_label}
+          </span>
+        )}
       </div>
       {rows.length > 0 ? (
         <div className="space-y-1">

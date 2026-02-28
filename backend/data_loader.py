@@ -1,8 +1,27 @@
+import os
 import re
 
 import pandas as pd
 
 from prereq_parser import parse_prereqs
+
+
+class _CsvDirSource:
+    """Thin adapter that mimics the pd.ExcelFile.parse() interface for a CSV directory."""
+
+    def __init__(self, dir_path: str):
+        self._dir = dir_path
+        self.sheet_names = sorted(
+            f[:-4] for f in os.listdir(dir_path) if f.endswith(".csv")
+        )
+
+    def parse(self, sheet: str) -> pd.DataFrame:
+        path = os.path.join(self._dir, sheet + ".csv")
+        # Read all columns as strings; normalizers handle type coercion.
+        return pd.read_csv(path, dtype=str, keep_default_na=False, na_values=[""])
+
+    def __contains__(self, sheet: str) -> bool:
+        return sheet in self.sheet_names
 
 
 _BOOL_TRUTHY = {"true", "1", "yes", "y"}
@@ -70,7 +89,7 @@ def _normalize_programs_df(programs_df: pd.DataFrame) -> pd.DataFrame:
     out["program_id"] = out["program_id"].fillna("").astype(str).str.strip().str.upper()
     out["program_label"] = out["program_label"].fillna("").astype(str).str.strip()
     out["kind"] = out["kind"].fillna("major").astype(str).str.strip().str.lower()
-    out["kind"] = out["kind"].where(out["kind"].isin({"major", "track"}), "major")
+    out["kind"] = out["kind"].where(out["kind"].isin({"major", "track", "minor"}), "major")
     out["parent_major_id"] = out["parent_major_id"].fillna("").astype(str).str.strip().str.upper()
 
     # If only one major exists, auto-parent orphan track rows to that major.
@@ -410,7 +429,7 @@ def _convert_parent_child_model_to_v2(
         req_primary = bool(row.get("requires_primary_major", False))
         is_universal = ptype == "universal"
 
-        kind = "track" if ptype in {"track", "minor"} else "major"
+        kind = "minor" if ptype == "minor" else ("track" if ptype == "track" else "major")
         program_parent = parent_major if kind == "track" else ""
         programs_rows.append(
             {
@@ -445,7 +464,7 @@ def _convert_parent_child_model_to_v2(
         active = bool(meta["active"])
         label = str(meta["label"] or parent_id)
 
-        if ptype in {"track", "minor"}:
+        if ptype == "track":
             owner_program = parent_major or parent_id
             track_required = parent_id
             if not parent_major:
@@ -454,6 +473,9 @@ def _convert_parent_child_model_to_v2(
                     f"'{parent_id}' has type='{ptype}' but empty parent_major. "
                     "Track selection linkage may be incomplete."
                 )
+        elif ptype == "minor":
+            owner_program = parent_id   # minor owns its own bucket scope
+            track_required = ""          # no track_required linkage
         else:
             owner_program = parent_id
             track_required = ""
@@ -559,7 +581,7 @@ def _build_tracks_from_programs(programs_df: pd.DataFrame) -> pd.DataFrame:
     )
     tracks_df = tracks_df[tracks_df["track_id"] != ""]
     tracks_df["kind"] = tracks_df["kind"].where(
-        tracks_df["kind"].isin({"major", "track"}),
+        tracks_df["kind"].isin({"major", "track", "minor"}),
         "major",
     )
     tracks_df.loc[tracks_df["kind"] == "major", "parent_major_id"] = ""
@@ -1058,8 +1080,16 @@ def _load_v2_equivalencies(xl: pd.ExcelFile, sheet_set: set[str]) -> pd.DataFram
 
 
 def load_data(data_path: str) -> dict:
-    """Load workbook using parent/child schema or legacy V2 compatibility schema."""
-    xl = pd.ExcelFile(data_path)
+    """Load workbook using parent/child schema or legacy V2 compatibility schema.
+
+    Accepts either:
+    - A path to a .xlsx workbook (original behavior).
+    - A path to a directory of CSV files (one per sheet, e.g. data/).
+    """
+    if os.path.isdir(data_path):
+        xl = _CsvDirSource(data_path)
+    else:
+        xl = pd.ExcelFile(data_path)
     sheet_set = set(xl.sheet_names)
 
     if "courses" not in sheet_set:

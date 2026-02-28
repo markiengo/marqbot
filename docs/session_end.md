@@ -37,6 +37,7 @@ Examples:
   - Build passes
   - Tests pass (if tests exist)
   - Lint/format passes (if configured)
+  - Exception: Do not push @todo.md 
 
 ## 4) Publish a release
 - Create a release after push.

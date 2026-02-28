@@ -1,0 +1,91 @@
+parent_bucket_id,child_bucket_id,child_bucket_label,requirement_mode,courses_required,credits_required,min_level,notes
+ACCO_MAJOR,acco-req-core,Accounting Core Requirements,required,7.0,,,
+ACCO_MAJOR,acco-choose-2,Choose 2,choose_n,2.0,,3000.0,
+ACCO_MAJOR,acco-elec-2,2 Business Electives (6 credits),credits_pool,,6.0,3000.0,Elective pool intentionally unmapped for now.
+AIM_CFA_TRACK,aim-cfa-req-core,AIM CFA Core,required,9.0,,,
+AIM_CFA_TRACK,aim-cfa-intl-choose-1,International Choose 1,choose_n,1.0,,3000.0,
+AIM_CFA_TRACK,aim-cfa-elec-upper,Upper Division Business Electives (9-15 credits),credits_pool,,9.0,3000.0,Minimum 9 credits; elective pool intentionally unmapped for now.
+AIM_FINTECH_TRACK,aim-fintech-req-core,AIM FinTech Core,required,6.0,,,
+AIM_FINTECH_TRACK,aim-fintech-elec-upper-15,Upper Division Business Electives (15 credits),credits_pool,,15.0,3000.0,Elective pool intentionally unmapped for now.
+AIM_IB_TRACK,aim-pcib-req-core,AIM PCIB Core,required,11.0,,,
+AIM_IB_TRACK,aim-pcib-elec-upper-15,Upper Division Business Electives (15 credits),credits_pool,,15.0,3000.0,Elective pool intentionally unmapped for now.
+AIM_MAJOR,aim-req-core,AIM Core Requirements,required,5.0,,,
+AIM_MAJOR,aim-choose-1,AIM Choose 1,choose_n,1.0,,3000.0,
+AIM_MAJOR,aim-elec-upper-15,Upper Division Business Electives in Primary Major (15 credits),credits_pool,,15.0,3000.0,Elective pool intentionally unmapped for now.
+BADM_MAJOR,badm-req-core,Specific Business Administration Course Requirements,required,1.0,,,
+BADM_MAJOR,badm-biz-elec-27,Business Electives (27 credits),credits_pool,,27.0,3000.0,Elective pool intentionally unmapped for now.
+BCC_CORE,BCC_ANALYTICS,BCC Analytics,required,1.0,,,
+BCC_CORE,BCC_ENHANCE,BCC Core Enhancement,required,1.0,,,
+BCC_CORE,BCC_ETHICS,BCC Ethics,required,1.0,,,
+BCC_CORE,BCC_REQUIRED,Business Core Required,required,18.0,,,
+BECO_MAJOR,beco-req-core,Specific Economics Course Requirements,required,5.0,,,
+BECO_MAJOR,beco-econ-3000plus-9,Upper-Division ECON Electives (9 credits),credits_pool,,9.0,3000.0,All ECON courses at 3000-level and above.
+BECO_MAJOR,beco-biz-elec-9,Business Electives (9 credits),credits_pool,,9.0,3000.0,Exclude ECON 3399; Elective pool intentionally unmapped for now.
+BUAN_MAJOR,buan-req-core,BUAN Core Requirements,required,3.0,,,
+BUAN_MAJOR,buan-choose-1,Choose 1,choose_n,1.0,,3000.0,
+BUAN_MAJOR,buan-adv,BUAN Advanced,required,2.0,,3000.0,
+BUAN_MAJOR,buan-elec-upper-15,Upper Division Business Electives (15 credits),credits_pool,,15.0,3000.0,Elective pool intentionally unmapped for now.
+CB_TRACK,commbank-req-core,Commercial Banking Core,required,10.0,,,
+CB_TRACK,commbank-choose-1,Commercial Banking Choose 1,choose_n,1.0,,3000.0,
+CB_TRACK,commbank-choose-2,Commercial Banking Choose 2,choose_n,2.0,,3000.0,
+FIN_MAJOR,fina-req-core,FINA Core Requirements,required,3.0,,,
+FIN_MAJOR,choose-2,Choose 2,choose_n,2.0,,3000.0,
+FIN_MAJOR,choose-1,Choose 1,choose_n,1.0,,3000.0,
+FIN_MAJOR,fina-elec-4,4 Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
+FP_TRACK,finplan-req-core,Financial Planning Core,required,7.0,,,
+FP_TRACK,finplan-elec-3,3 Business Electives (9 credits),credits_pool,,9.0,3000.0,Elective pool intentionally unmapped for now.
+HURE_LEAD_TRACK,buslead-req-core,Business Leadership Core,required,3.0,,,
+HURE_LEAD_TRACK,buslead-choose-2,Choose 2,choose_n,2.0,,3000.0,
+HURE_LEAD_TRACK,buslead-choose-1,Choose 1,choose_n,1.0,,3000.0,
+HURE_LEAD_TRACK,buslead-elec-4,4 Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
+HURE_MAJOR,hure-req-core,HURE Core Requirements,required,3.0,,,
+HURE_MAJOR,hure-choose-3,Choose 3,choose_n,3.0,,3000.0,
+HURE_MAJOR,hure-elec-4,4 Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
+INBU_MAJOR,inbu-functional-choose-3,Functional Area Courses (Choose 3),required,3.0,,3000.0,ECON options allowed but max 2 not runtime-enforced.
+INBU_MAJOR,inbu-study-abroad-1,Study Abroad Course (Choose 1),choose_n,1.0,,,
+INBU_MAJOR,inbu-exp-global-1,Experiential and Global Perspectives (Choose 1),choose_n,1.0,,,"Second language requirement, study/work abroad completion, and at-least-one international business elective policy are advisory only (not runtime-enforced)."
+INBU_MAJOR,inbu-biz-elec-15,Upper Division Business Electives (15 credits),credits_pool,,15.0,3000.0,Courses completed in primary major; elective pool intentionally unmapped for now.
+INSY_MAJOR,insy-req-core,INSY Core Requirements,required,4.0,,,
+INSY_MAJOR,insy-choose-2,Choose 2,choose_n,2.0,,3000.0,
+INSY_MAJOR,insy-elec-4,4 Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
+MARK_MAJOR,mark-req-core,Specific Marketing Course Requirements,required,3.0,,,
+MARK_MAJOR,mark-choose-3,Choose 3,choose_n,3.0,,3000.0,
+MARK_MAJOR,mark-biz-elec-12,Four Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
+MARK_PRSL_TRACK,prsl-req-core,Professional Selling Concentration Required Courses,required,4.0,,,
+MARK_PRSL_TRACK,prsl-choose-2,Professional Selling Concentration Choose 2,choose_n,2.0,,3000.0,
+MARK_PRSL_TRACK,prsl-biz-elec-12,Four Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
+MCC_DISC_BNJ,MCC_DISC_BNJ_HUM,Discovery Humanities,required,1.0,,,
+MCC_DISC_BNJ,MCC_DISC_BNJ_NSM,Discovery Natural Science & Mathematics,required,1.0,,,
+MCC_DISC_BNJ,MCC_DISC_BNJ_SSC,Discovery Social Science,required,1.0,,,
+MCC_DISC_BNJ,MCC_DISC_BNJ_ELEC,Discovery Elective,choose_n,1.0,,,
+MCC_DISC_CB,MCC_DISC_CB_HUM,Discovery Humanities,required,1.0,,,
+MCC_DISC_CB,MCC_DISC_CB_NSM,Discovery Natural Science & Mathematics,required,1.0,,,
+MCC_DISC_CB,MCC_DISC_CB_SSC,Discovery Social Science,required,1.0,,,
+MCC_DISC_CB,MCC_DISC_CB_ELEC,Discovery Elective,choose_n,1.0,,,
+MCC_DISC_CMI,MCC_DISC_CMI_HUM,Discovery Humanities,required,1.0,,,
+MCC_DISC_CMI,MCC_DISC_CMI_NSM,Discovery Natural Science & Mathematics,required,1.0,,,
+MCC_DISC_CMI,MCC_DISC_CMI_SSC,Discovery Social Science,required,1.0,,,
+MCC_DISC_CMI,MCC_DISC_CMI_ELEC,Discovery Elective,choose_n,1.0,,,
+MCC_DISC_EOH,MCC_DISC_EOH_HUM,Discovery Humanities,required,1.0,,,
+MCC_DISC_EOH,MCC_DISC_EOH_NSM,Discovery Natural Science & Mathematics,required,1.0,,,
+MCC_DISC_EOH,MCC_DISC_EOH_SSC,Discovery Social Science,required,1.0,,,
+MCC_DISC_EOH,MCC_DISC_EOH_ELEC,Discovery Elective,choose_n,1.0,,,
+MCC_DISC_IC,MCC_DISC_IC_HUM,Discovery Humanities,required,1.0,,,
+MCC_DISC_IC,MCC_DISC_IC_NSM,Discovery Natural Science & Mathematics,required,1.0,,,
+MCC_DISC_IC,MCC_DISC_IC_SSC,Discovery Social Science,required,1.0,,,
+MCC_DISC_IC,MCC_DISC_IC_ELEC,Discovery Elective,choose_n,1.0,,,
+MCC_ESSV2,MCC_ESSV2,MCC Engaging Social Systems & Values 2,required,1.0,,,
+MCC_WRIT,MCC_WRIT,MCC Writing Intensive,required,1.0,,,
+MCC_CULM,MCC_CULM,MCC Culminating Course,required,1.0,,,
+MCC_FOUNDATION,MCC_ESSV1,MCC Engaging Social Systems and Values 1,required,1.0,,,
+MCC_FOUNDATION,MCC_CORE,MCC Core,required,4.0,,,
+OSCM_MAJOR,oscm-req-core,OSCM Core Requirements,required,5.0,,,
+OSCM_MAJOR,oscm-choose-1,Choose 1,choose_n,1.0,,3000.0,
+OSCM_MAJOR,oscm-elec-4,4 Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
+REAL_MAJOR,real-req-core,Specific Real Estate Course Requirements,required,5.0,,,
+REAL_MAJOR,real-choose-1,Choose 1,choose_n,1.0,,3000.0,
+REAL_MAJOR,real-biz-elec-12,Four Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
+REAL_REAP_TRACK,reap-foundation-req,REAP Foundation Required Courses,required,2.0,,,
+REAL_REAP_TRACK,reap-model-dev-choose-1,REAP Modeling/Development Choose 1,choose_n,1.0,,3000.0,
+REAL_REAP_TRACK,reap-applied-req,REAP Applied Core,required,3.0,,,"Admission criteria, B- minimum, GPA/conduct/process clauses are advisory only (not runtime-enforced)."
+REAL_REAP_TRACK,reap-biz-elec-12,Four Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.

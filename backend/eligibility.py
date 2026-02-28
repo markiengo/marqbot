@@ -435,7 +435,11 @@ def get_eligible_courses(
         if manual_review:
             prereq_check = "Manual review required"
 
-        min_standing = int(row.get("prereq_level", 0)) if not pd.isna(row.get("prereq_level", 0)) else 0
+        _ps = row.get("prereq_level", 0)
+        try:
+            min_standing = int(float(_ps)) if _ps not in (None, "", "nan") else 0
+        except (TypeError, ValueError):
+            min_standing = 0
 
         # Reconcile standing_requirement tag with min_standing level.
         # Case A: tag is set but level is 0 — infer level from the course number

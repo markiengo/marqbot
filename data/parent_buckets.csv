@@ -1,0 +1,39 @@
+parent_bucket_id,parent_bucket_label,type,parent_major,active,requires_primary_major,double_count_family_id
+ACCO_MAJOR,Accounting,major,,True,False,ACCO_MAJOR
+AIM_CFA_TRACK,AIM CFA - Investments Concentration,track,AIM_MAJOR,True,False,AIM_CFA_TRACK
+AIM_FINTECH_TRACK,AIM Applied FinTech - AI and Business Intelligence,track,AIM_MAJOR,True,False,AIM_FINTECH_TRACK
+AIM_IB_TRACK,AIM Private Capital & Investment Banking,track,AIM_MAJOR,True,False,AIM_IB_TRACK
+AIM_MAJOR,AIM - Accelerating Ingenuity in Markets,major,,True,False,AIM_MAJOR
+BADM_MAJOR,Business Administration,major,,True,False,BADM_MAJOR
+BADM_MINOR,Business Administration,minor,,True,False,BADM_MINOR
+BCC_CORE,Business Core Courses,universal,,True,False,BCC_CORE
+BECO_MAJOR,Business Economics,major,,True,False,BECO_MAJOR
+BUAN_MAJOR,Business Analytics,major,,True,True,BUAN_MAJOR
+CB_TRACK,Commercial Banking Track,track,FIN_MAJOR,True,False,CB_TRACK
+ENTP_MINOR,Entrepreneurship,minor,,True,False,ENTP_MINOR
+FIN_MAJOR,Finance,major,,True,False,FIN_MAJOR
+FP_TRACK,Financial Planning Track,track,FIN_MAJOR,True,False,FP_TRACK
+HR_MINOR,Human Resources,minor,,True,False,HR_MINOR
+HURE_LEAD_TRACK,Business Leadership Concentration,track,HURE_MAJOR,True,False,HURE_LEAD_TRACK
+HURE_MAJOR,Human Resource Management,major,,True,False,HURE_MAJOR
+INBU_MAJOR,International Business,major,,True,True,INBU_MAJOR
+INSY_MAJOR,Information Systems,major,,True,False,INSY_MAJOR
+INSY_MINOR,Information Systems,minor,,True,False,INSY_MINOR
+MARK_MAJOR,Marketing,major,,True,False,MARK_MAJOR
+MARK_MINOR,Marketing,minor,,True,False,MARK_MINOR
+MARK_PRSL_TRACK,Professional Selling Concentration,track,MARK_MAJOR,True,False,MARK_PRSL_TRACK
+MCC_CULM,MCC: Culminating Course,universal,,True,False,MCC_CULM
+MCC_DISC,MCC: Discovery Tiers,universal,,True,False,MCC_DISC
+MCC_DISC_BNJ,MCC Discovery: Basic Needs and Justice,track,MCC_DISC,True,False,MCC_DISC
+MCC_DISC_CB,MCC Discovery: Crossing Boundaries,track,MCC_DISC,True,False,MCC_DISC
+MCC_DISC_CMI,MCC Discovery: Cognition Memory & Intelligence,track,MCC_DISC,True,False,MCC_DISC
+MCC_DISC_EOH,MCC Discovery: Expanding Our Horizons,track,MCC_DISC,True,False,MCC_DISC
+MCC_DISC_IC,MCC Discovery: Individuals and Communities,track,MCC_DISC,True,False,MCC_DISC
+MCC_ESSV2,MCC: Engaging Social Systems & Values 2,universal,,True,False,MCC_ESSV2
+MCC_FOUNDATION,MCC Foundation,universal,,True,False,MCC_FOUNDATION
+MCC_WRIT,MCC: Writing Intensive,universal,,True,False,MCC_WRIT
+OSCM_MAJOR,Operations & Supply Chain Management,major,,True,False,OSCM_MAJOR
+OSCM_MINOR,Supply Chain Management,minor,,True,False,OSCM_MINOR
+PRSL_MINOR,Professional Selling,minor,,True,False,PRSL_MINOR
+REAL_MAJOR,Real Estate,major,,True,False,REAL_MAJOR
+REAL_REAP_TRACK,Real Estate Asset Program Concentration,track,REAL_MAJOR,True,False,REAL_REAP_TRACK

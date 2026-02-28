@@ -2,16 +2,6 @@ import type { Course, ProgramsData, RecommendationResponse, CanTakeResponse } fr
 
 const API_BASE = typeof window !== "undefined" ? "" : "http://localhost:5000";
 
-// Expand abbreviated major labels to full human-readable names
-const MAJOR_LABEL_OVERRIDES: Record<string, string> = {
-  "FINA Major": "Finance",
-  "ACCO Major": "Accounting",
-  "IS Major": "Information Systems",
-  "BUAN Major": "Business Analytics",
-  "OSCM Major": "Operations & Supply Chain Management",
-  "HURE Major": "Human Resources",
-  "AIM Major": "AIM - Accelerating Ingenuity in Markets",
-};
 
 export async function loadCourses(): Promise<Course[]> {
   const res = await fetch(`${API_BASE}/api/courses`, { cache: "no-store" });
@@ -27,10 +17,9 @@ export async function loadPrograms(): Promise<ProgramsData> {
   return {
     majors: (data.majors ?? []).map((m: Record<string, unknown>) => {
       const majorId = String(m.major_id || m.id || "");
-      const rawLabel = String(m.label || m.major_id || m.id || "");
       return {
         id: majorId,
-        label: MAJOR_LABEL_OVERRIDES[rawLabel] || rawLabel,
+        label: String(m.label || m.major_id || m.id || ""),
         requires_primary_major:
           majorId === "AIM_MAJOR" ? true : Boolean(m.requires_primary_major),
       };
@@ -39,6 +28,11 @@ export async function loadPrograms(): Promise<ProgramsData> {
       id: t.track_id ?? t.id,
       label: t.label,
       parent_major_id: t.parent_major_id,
+    })),
+    minors: (data.minors ?? []).map((m: Record<string, unknown>) => ({
+      id: String(m.minor_id || m.id || ""),
+      label: String(m.label || m.minor_id || m.id || ""),
+      active: m.active !== false,
     })),
     default_track_id: data.default_track_id ?? "",
   };

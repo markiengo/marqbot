@@ -772,8 +772,8 @@ def main(args=None):
     parser.add_argument("--all", action="store_true", help="Validate all tracks in the workbook.")
     parser.add_argument(
         "--path", type=str,
-        default=os.path.join(os.path.dirname(__file__), "..", "marquette_courses_full.xlsx"),
-        help="Path to the workbook file.",
+        default=os.path.join(os.path.dirname(__file__), "..", "data"),
+        help="Path to the data directory (CSV) or workbook file.",
     )
     parser.add_argument(
         "--policy-matrix", action="store_true",

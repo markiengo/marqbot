@@ -1,4 +1,3 @@
-import os
 import re
 import pandas as pd
 
@@ -20,9 +19,36 @@ _MAX_PER_BUCKET_PER_SEM = 2
 _PROJECTION_NOTE = (
     "Projected progress below assumes you complete these recommendations."
 )
-_DEMOTED_BCC_CHILD_BUCKETS = {"BCC_ETHICS", "BCC_ANALYTICS", "BCC_ENHANCE"}
 _MCC_PARENT_FAMILY_IDS = {"MCC", "MCC_CORE", "MCC_FOUNDATION"}
-_BCC_DECAY_THRESHOLD: int = 12  # courses applied to BCC_REQUIRED before decay fires
+
+_STANDING_LABELS = {1: "Freshman", 2: "Sophomore", 3: "Junior", 4: "Senior"}
+_ESSV2_WRIT_BUCKETS = {"MCC_ESSV2", "MCC_WRIT"}
+_BCC_DECAY_THRESHOLD = 12
+_BCC_DEMOTED_CHILDREN = {"BCC_ETHICS", "BCC_ANALYTICS", "BCC_ENHANCE"}
+_ESSV2_WRIT_NOTE = (
+    "Prerequisite checking for this requirement is not yet complete — verify prerequisites independently."
+)
+
+
+def _credits_to_standing(credits: int) -> int:
+    if credits >= 90:
+        return 4
+    if credits >= 60:
+        return 3
+    if credits >= 24:
+        return 2
+    return 1
+
+
+def _count_bcc_required_done(progress: dict) -> int:
+    """Count completed + in-progress courses applied to any BCC_REQUIRED bucket."""
+    total: set[str] = set()
+    for bucket_id, info in (progress or {}).items():
+        if "BCC_REQUIRED" not in str(bucket_id).upper():
+            continue
+        total.update(info.get("completed_applied") or [])
+        total.update(info.get("in_progress_applied") or [])
+    return len(total)
 
 
 def normalize_semester_label(label: str) -> str:
@@ -312,12 +338,12 @@ def _bucket_hierarchy_tier_v2(
     bcc_decay_active: bool = False,
 ) -> int:
     """
-    Priority tiers (v1.9 5-tier system):
-      1) MCC + BCC_REQUIRED only (when not decayed)
+    Priority tiers:
+      1) MCC + BCC_REQUIRED (when bcc_decay_active=False)
       2) major parent buckets
       3) track/minor parent buckets
-      4) decayed BCC_REQUIRED (when bcc_decay_active=True)
-      5) demoted BCC children (BCC_ETHICS/ANALYTICS/ENHANCE)
+      4) BCC_REQUIRED (when bcc_decay_active=True)
+      5) demoted BCC children (BCC_ETHICS, BCC_ANALYTICS, BCC_ENHANCE) — always
 
     Unlockers remain an in-tier tie-break in the ranking key.
     """
@@ -339,11 +365,11 @@ def _bucket_hierarchy_tier_v2(
             parent_id = primary_parent_id
         parent_id = str(parent_id or "").strip().upper()
 
-        # Tier 5: explicitly demoted BCC children.
-        if local_id in _DEMOTED_BCC_CHILD_BUCKETS:
+        # Tier 5: demoted BCC children are always lowest priority.
+        if local_id in _BCC_DEMOTED_CHILDREN:
             return 5
 
-        # Tier 1 or 4: BCC_REQUIRED (position depends on decay state).
+        # Tier 1 or 4: BCC_REQUIRED placement depends on decay state.
         if local_id == "BCC_REQUIRED":
             return 4 if bcc_decay_active else 1
 
@@ -368,20 +394,6 @@ def _bucket_hierarchy_tier_v2(
 
     return min(_tier_for_bucket(bid) for bid in bucket_ids)
 
-
-def _count_bcc_required_done(progress: dict) -> int:
-    """Count distinct applied courses (completed + in-progress) in BCC_REQUIRED."""
-    for bid, bucket_data in progress.items():
-        if _local_bucket_id(bid).upper() == "BCC_REQUIRED":
-            completed = bucket_data.get("completed_applied", []) or []
-            in_progress = bucket_data.get("in_progress_applied", []) or []
-            applied = {
-                str(code).strip().upper()
-                for code in (completed + in_progress)
-                if str(code).strip()
-            }
-            return len(applied)
-    return 0
 
 
 def _is_acco_major_context(data: dict, track_id: str) -> bool:
@@ -487,7 +499,7 @@ def _build_deterministic_recommendations(candidates: list[dict], max_recommendat
                 "This course advances your declared degree path based on "
                 "prerequisite order and remaining requirements."
             )
-        recs.append({
+        rec = {
             "course_code": cand["course_code"],
             "course_name": cand.get("course_name", ""),
             "why": why,
@@ -502,7 +514,12 @@ def _build_deterministic_recommendations(candidates: list[dict], max_recommendat
             "warning_text": cand.get("warning_text"),
             "low_confidence": cand.get("low_confidence", False),
             "notes": cand.get("notes"),
-        })
+        }
+        # Inject coming-soon note for ESSV2/WRIT bucket courses (prereq checking not yet wired)
+        if set(cand.get("fills_buckets") or []) & _ESSV2_WRIT_BUCKETS:
+            existing = rec.get("notes") or ""
+            rec["notes"] = (existing + " " + _ESSV2_WRIT_NOTE).strip() if existing else _ESSV2_WRIT_NOTE
+        recs.append(rec)
     return recs
 
 
@@ -518,7 +535,6 @@ def _build_debug_trace(
     reverse_map: dict,
     virtual_remaining_snapshot: dict[str, int],
     debug_limit: int = 30,
-    bcc_decay_active: bool = False,
 ) -> list[dict]:
     """Build human-readable debug trace for each ranked candidate."""
     trace = []
@@ -526,7 +542,6 @@ def _build_debug_trace(
         code = c["course_code"]
         tier = _bucket_hierarchy_tier_v2(
             c, parent_type_map, bucket_track_required_map, bucket_parent_map,
-            bcc_decay_active,
         )
         unlocks = get_direct_unlocks(code, reverse_map, limit=50)
         fills = c.get("fills_buckets", [])
@@ -563,6 +578,7 @@ def run_recommendation_semester(
     track_id: str = DEFAULT_TRACK_ID,
     debug: bool = False,
     debug_limit: int = 30,
+    current_standing: int = 1,
 ) -> dict:
     """Run the full recommendation pipeline for a single semester."""
     term = parse_term(target_semester_label)
@@ -589,6 +605,16 @@ def run_recommendation_semester(
         data["equivalencies_df"],
         track_id=track_id,
     )
+    # Standing gate: exclude courses whose min_standing exceeds the student's current standing.
+    eligible_sem = [
+        c for c in eligible_sem
+        if (c.get("min_standing") or 0) <= current_standing
+    ]
+    # Summer hard filter: only recommend courses offered in summer; cap recs at 4.
+    is_summer_sem = "summer" in target_semester_label.lower()
+    if is_summer_sem:
+        eligible_sem = [c for c in eligible_sem if not c.get("low_confidence", False)]
+        max_recs = min(max_recs, 4)
     manual_review_sem = [c["course_code"] for c in eligible_sem if c.get("manual_review")]
     non_manual_sem = [c for c in eligible_sem if not c.get("manual_review")]
     eligible_count_sem = len(non_manual_sem)
@@ -604,6 +630,8 @@ def run_recommendation_semester(
         )
         return {
             "target_semester": target_semester_label,
+            "standing": current_standing,
+            "standing_label": _STANDING_LABELS[current_standing],
             "recommendations": [],
             "requested_recommendations": max_recs,
             "eligible_count": 0,
@@ -629,15 +657,6 @@ def run_recommendation_semester(
     for core_code in core_remaining_sem:
         core_prereq_blockers_sem |= _prereq_courses(data["prereq_map"].get(core_code, {"type": "none"}))
 
-    # BCC progress-aware decay: demote BCC_REQUIRED to Tier 4 once student
-    # has >= _BCC_DECAY_THRESHOLD applied courses (completed + in-progress).
-    # Currently off by default; enable via BCC_DECAY_ENABLED env var.
-    _bcc_decay_enabled = os.environ.get("BCC_DECAY_ENABLED", "false").lower() == "true"
-    bcc_decay_active = False
-    if _bcc_decay_enabled:
-        bcc_courses_done = _count_bcc_required_done(progress_sem)
-        bcc_decay_active = bcc_courses_done >= _BCC_DECAY_THRESHOLD
-
     is_acco_context = _is_acco_major_context(data, track_id)
     parent_type_map = _build_parent_type_map(data)
     bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
@@ -650,7 +669,6 @@ def run_recommendation_semester(
                 parent_type_map,
                 bucket_track_required_map,
                 bucket_parent_map,
-                bcc_decay_active,
             ),
             _accc_major_required_rank(c, is_acco_context),
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
@@ -735,7 +753,6 @@ def run_recommendation_semester(
             parent_type_map,
             bucket_track_required_map,
             bucket_parent_map,
-            bcc_decay_active,
         )
         cand["unlocks"] = get_direct_unlocks(cand["course_code"], reverse_map, limit=3)
 
@@ -773,6 +790,8 @@ def run_recommendation_semester(
 
     result = {
         "target_semester": target_semester_label,
+        "standing": current_standing,
+        "standing_label": _STANDING_LABELS[current_standing],
         "recommendations": recommendations_sem,
         "requested_recommendations": max_recs,
         "eligible_count": eligible_count_sem,
@@ -799,6 +818,5 @@ def run_recommendation_semester(
             reverse_map,
             virtual_remaining_snapshot,
             debug_limit=debug_limit,
-            bcc_decay_active=bcc_decay_active,
         )
     return result

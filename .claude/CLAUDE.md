@@ -7,7 +7,8 @@ MarqBot is a deterministic degree-planning assistant for Marquette business stud
 - `scripts/`: local run helpers and workbook governance/migration utilities.
 - `tests/backend`, `tests/frontend`: pytest and vitest coverage.
 - `infra/docker/Dockerfile` + `render.yaml`: Docker/Render deployment wiring.
-- `marquette_courses_full.xlsx`: canonical runtime data source.
+- `data/`: canonical runtime data source (CSV directory). Six files: `courses.csv`, `course_prereqs.csv`, `course_offerings.csv`, `parent_buckets.csv`, `child_buckets.csv`, `master_bucket_courses.csv`.
+- `marquette_courses_full.xlsx`: legacy Excel source; still present but no longer the default. Override with `DATA_PATH=marquette_courses_full.xlsx` to use it.
 
 # Commands
 ## Setup
@@ -23,7 +24,7 @@ cd frontend && npm ci
 # Preferred full stack (auto-build frontend export if missing)
 .\.venv\Scripts\python.exe scripts/run_local.py
 
-# Backend only
+# Backend only (reads data/ CSVs by default)
 .\.venv\Scripts\python.exe backend/server.py
 
 # Frontend dev (separate shell)
@@ -75,6 +76,15 @@ Global Rules:
 - For multi-file changes, reference detailed docs only when required (don’t load them automatically).
 - If you feel like there are tasks that need extensive tokens, ask me. 
 
+# Data Model Rules
+- All six CSVs in `data/` must be read with `encoding="utf-8-sig"` (BOM-safe) when using Python's csv module directly.
+- `parent_bucket_label` values are the display names shown to users — no "Major" or "Minor" suffix. Labels must be clean (e.g., "Finance", "Accounting", "Marketing").
+- `prereq_warnings` in `course_prereqs.csv` use comma `,` as separator, never semicolon.
+- `min_standing` is a float (1.0–4.0 for undergrad). 5.0+ is graduate-level and makes a course unreachable for undergrads — never set this for undergrad courses.
+- Courses tagged `elective_pool_tag=biz_elective` flow automatically into any `credits_pool` child bucket scoped to their program — no explicit `master_bucket_courses` row needed.
+- `_canonical_program_label` in `server.py` uses CSV label as priority; falls back to generated format only when label is empty.
+- Discovery tiers (MCC_DISC_CMI, BNJ, CB, EOH, IC) are `type=track` with `parent_major=MCC_DISC` — they appear in the frontend Discovery Theme section, not the Concentration/Track section.
+
 # Performance Rules
 - Workbook parsing is expensive: load once at startup and refresh via controlled reload path only.
 - Never parse Excel in request handlers (`/recommend`, `/can-take`, `/programs`, `/courses`).
@@ -86,7 +96,7 @@ Global Rules:
 # Never Do
 - Never switch production away from static Next export without redesigning backend static serving.
 - Never hardcode host/port in deploy paths or bind production traffic to `127.0.0.1`.
-- Never reload or reparse `marquette_courses_full.xlsx` per request.
+- Never reload or reparse data files (`data/` CSVs or `marquette_courses_full.xlsx`) per request.
 - Never add unbounded caches or caches without explicit invalidation.
 - Never raise worker count aggressively on Render Starter (`0.5` CPU).
 - Never break canonical API routes without coordinated frontend and test updates.

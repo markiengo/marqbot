@@ -509,6 +509,18 @@ class TestServerTrackValidation:
         data = resp.get_json()
         assert data["error"]["error_code"] == "TRACK_MAJOR_MISMATCH"
 
+    def test_aim_cfa_track_requires_finance_major(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "",
+            "in_progress_courses": "",
+            "declared_majors": ["AIM_MAJOR"],
+            "track_id": "AIM_CFA_TRACK",
+        })
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert data["error"]["error_code"] == "PRIMARY_MAJOR_REQUIRED"
+        assert "Finance" in data["error"]["message"]
+
     def test_declared_major_plus_track_returns_merged_progress(self, client):
         resp = client.post("/recommend", json={
             "completed_courses": "",
