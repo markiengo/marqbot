@@ -101,6 +101,16 @@ export function MajorStep() {
   const trackListRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const trackComboId = useId();
 
+  const majorById = useMemo(() => {
+    const map = new Map<string, (typeof majors)[number]>();
+    majors.forEach((m) => map.set(m.id, m));
+    return map;
+  }, [majors]);
+
+  const allRequirePrimary =
+    selectedMajorIds.length > 0 &&
+    selectedMajorIds.every((id) => majorById.get(id)?.requires_primary_major === true);
+
   const filtered = majors.filter(
     (m) =>
       !state.selectedMajors.has(m.id) &&
@@ -239,6 +249,11 @@ export function MajorStep() {
             ))}
           </AnimatePresence>
         </div>
+        {allRequirePrimary && (
+          <div className="rounded-lg bg-warn-light px-2.5 py-1.5 text-xs text-warn mb-1.5">
+            All selected majors are secondary-only and require a primary major alongside them. Add a standalone major (e.g., Finance, Marketing) to complete your program.
+          </div>
+        )}
         {!atLimit && (
           <div className="relative">
             <input

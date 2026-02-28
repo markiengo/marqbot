@@ -3,7 +3,7 @@ ACCO_MAJOR,Accounting,major,,True,False,ACCO_MAJOR
 AIM_CFA_TRACK,AIM CFA - Investments Concentration,track,AIM_MAJOR,True,False,AIM_CFA_TRACK
 AIM_FINTECH_TRACK,AIM Applied FinTech - AI and Business Intelligence,track,AIM_MAJOR,True,False,AIM_FINTECH_TRACK
 AIM_IB_TRACK,AIM Private Capital & Investment Banking,track,AIM_MAJOR,True,False,AIM_IB_TRACK
-AIM_MAJOR,AIM - Accelerating Ingenuity in Markets,major,,True,False,AIM_MAJOR
+AIM_MAJOR,AIM - Accelerating Ingenuity in Markets,major,,True,True,AIM_MAJOR
 BADM_MAJOR,Business Administration,major,,True,False,BADM_MAJOR
 BADM_MINOR,Business Administration,minor,,True,False,BADM_MINOR
 BCC_CORE,Business Core Courses,universal,,True,False,BCC_CORE
@@ -31,7 +31,7 @@ MCC_DISC_EOH,MCC Discovery: Expanding Our Horizons,track,MCC_DISC,True,False,MCC
 MCC_DISC_IC,MCC Discovery: Individuals and Communities,track,MCC_DISC,True,False,MCC_DISC
 MCC_ESSV2,MCC: Engaging Social Systems & Values 2,universal,,True,False,MCC_ESSV2
 MCC_FOUNDATION,MCC Foundation,universal,,True,False,MCC_FOUNDATION
-MCC_WRIT,MCC: Writing Intensive,universal,,True,False,MCC_WRIT
+MCC_WRIT,MCC: Writing Intensive,universal,,False,False,MCC_WRIT
 OSCM_MAJOR,Operations & Supply Chain Management,major,,True,False,OSCM_MAJOR
 OSCM_MINOR,Supply Chain Management,minor,,True,False,OSCM_MINOR
 PRSL_MINOR,Professional Selling,minor,,True,False,PRSL_MINOR

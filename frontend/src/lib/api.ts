@@ -15,15 +15,11 @@ export async function loadPrograms(): Promise<ProgramsData> {
   if (!res.ok) throw new Error(`Failed to load programs: ${res.status}`);
   const data = await res.json();
   return {
-    majors: (data.majors ?? []).map((m: Record<string, unknown>) => {
-      const majorId = String(m.major_id || m.id || "");
-      return {
-        id: majorId,
-        label: String(m.label || m.major_id || m.id || ""),
-        requires_primary_major:
-          majorId === "AIM_MAJOR" ? true : Boolean(m.requires_primary_major),
-      };
-    }),
+    majors: (data.majors ?? []).map((m: Record<string, unknown>) => ({
+      id: String(m.major_id || m.id || ""),
+      label: String(m.label || m.major_id || m.id || ""),
+      requires_primary_major: Boolean(m.requires_primary_major),
+    })),
     tracks: (data.tracks ?? []).map((t: Record<string, unknown>) => ({
       id: t.track_id ?? t.id,
       label: t.label,

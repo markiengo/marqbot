@@ -43,6 +43,14 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
     majors.forEach((m) => map.set(m.id, m.label));
     return map;
   }, [majors]);
+  const majorById = useMemo(() => {
+    const map = new Map<string, (typeof majors)[number]>();
+    majors.forEach((m) => map.set(m.id, m));
+    return map;
+  }, [majors]);
+  const allRequirePrimary =
+    selectedMajorIds.length > 0 &&
+    selectedMajorIds.every((id) => majorById.get(id)?.requires_primary_major === true);
   const trackById = useMemo(() => {
     const map = new Map<string, (typeof tracks)[number]>();
     tracks.forEach((t) => map.set(t.id, t));
@@ -153,6 +161,11 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
             })}
           </AnimatePresence>
         </div>
+        {allRequirePrimary && (
+          <div className="rounded-lg bg-warn-light px-2 py-1.5 text-xs text-warn">
+            All selected majors require a primary major. Add a standalone major (e.g., Finance, Marketing) to complete your program.
+          </div>
+        )}
         {selectedMajorIds.length < MAX_MAJORS && (
           <select
             onChange={(e) => {
@@ -268,46 +281,21 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
           <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
             Minors
           </label>
-          <div className="flex flex-wrap gap-1.5 min-h-[24px] min-w-0">
-            <AnimatePresence mode="popLayout">
-              {[...state.selectedMinors].map((id) => {
-                const label = minorLabelById.get(id) ?? id;
-                return (
-                  <Chip
-                    key={id}
-                    label={label}
-                    variant="gold"
-                    onRemove={() => dispatch({ type: "REMOVE_MINOR", payload: id })}
-                  />
-                );
-              })}
-            </AnimatePresence>
-          </div>
-          {state.selectedMinors.size < MAX_MINORS && (
+          <div className="relative">
             <select
-              onChange={(e) => {
-                if (e.target.value) {
-                  dispatch({ type: "ADD_MINOR", payload: e.target.value });
-                  e.target.value = "";
-                }
-              }}
-              defaultValue=""
-              className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
+              disabled
+              value=""
+              onChange={() => {}}
+              className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary pointer-events-none opacity-40"
             >
               <option value="">Add minor...</option>
-              {minors
-                .filter(
-                  (m) =>
-                    !state.selectedMinors.has(m.id) &&
-                    !selectedMajorBaseCodes.has(m.id.replace("_MINOR", "")),
-                )
-                .map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
             </select>
-          )}
+            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-card/60 backdrop-blur-[1px]">
+              <span className="text-[10px] font-semibold text-gold/70 uppercase tracking-widest">
+                Coming Soon
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -317,18 +305,21 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
           <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
             Discovery Theme
           </label>
-          <select
-            value={state.discoveryTheme}
-            onChange={(e) => dispatch({ type: "SET_DISCOVERY_THEME", payload: e.target.value })}
-            className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
-          >
-            <option value="">Select theme...</option>
-            {discoveryThemeTracks.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              disabled
+              value=""
+              onChange={() => {}}
+              className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary pointer-events-none opacity-40"
+            >
+              <option value="">Select theme...</option>
+            </select>
+            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-card/60 backdrop-blur-[1px]">
+              <span className="text-[10px] font-semibold text-gold/70 uppercase tracking-widest">
+                Coming Soon
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -364,35 +355,6 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
         />
       </div>
 
-      {/* Planning Settings */}
-      <div className="pt-1 border-t border-border-subtle/40 space-y-2">
-        <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
-          Planning Settings
-        </label>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs text-ink-secondary leading-tight">Include Summer Semesters</p>
-            <p className="text-[10px] text-ink-faint leading-tight mt-0.5">Max 4 courses · Summer-only offerings</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={state.includeSummer}
-            onClick={() => dispatch({ type: "SET_INCLUDE_SUMMER", payload: !state.includeSummer })}
-            className={[
-              "relative flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gold/40",
-              state.includeSummer ? "bg-gold" : "bg-white/20",
-            ].join(" ")}
-          >
-            <span
-              className={[
-                "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
-                state.includeSummer ? "translate-x-4" : "translate-x-0",
-              ].join(" ")}
-            />
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
