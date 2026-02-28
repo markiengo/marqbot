@@ -19,6 +19,11 @@ Update README if you added:
 - New pages/flows that users should know exist
 - Update the badges
 
+### claude.md
+- notice any decisions and rationale i made within the conversation/session
+- read the current state of claude.md and decide if there are any thing to add
+- update the doc
+
 ## 2) Commit locally
 - Commit changes locally before pushing.
 - Commit message rules:

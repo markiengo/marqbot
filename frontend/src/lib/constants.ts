@@ -23,6 +23,10 @@ export const SEMESTER_COUNT_OPTIONS = [
   { value: "2", label: "2 semesters" },
   { value: "3", label: "3 semesters" },
   { value: "4", label: "4 semesters" },
+  { value: "5", label: "5 semesters" },
+  { value: "6", label: "6 semesters" },
+  { value: "7", label: "7 semesters" },
+  { value: "8", label: "8 semesters" },
 ];
 
 export const MAX_RECS_OPTIONS = [

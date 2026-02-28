@@ -86,6 +86,31 @@ export function PreferencesPanel({ onSubmit, loading }: PreferencesPanelProps) {
         </div>
       </div>
 
+      {/* Summer toggle */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-ink-secondary leading-tight">Include Summer Semesters</p>
+          <p className="text-xs text-ink-faint leading-tight mt-0.5">Max 4 courses · Summer-only offerings</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={state.includeSummer}
+          onClick={() => dispatch({ type: "SET_INCLUDE_SUMMER", payload: !state.includeSummer })}
+          className={[
+            "relative flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gold/40",
+            state.includeSummer ? "bg-gold" : "bg-white/20",
+          ].join(" ")}
+        >
+          <span
+            className={[
+              "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
+              state.includeSummer ? "translate-x-4" : "translate-x-0",
+            ].join(" ")}
+          />
+        </button>
+      </div>
+
       <div className="pt-2">
         <Button
           variant="gold"

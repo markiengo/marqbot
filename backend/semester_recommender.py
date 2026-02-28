@@ -79,6 +79,25 @@ def default_followup_semester(first_semester: str) -> str:
     return f"Spring {year + 1}"
 
 
+def default_followup_semester_with_summer(first_semester: str) -> str:
+    """
+    Like default_followup_semester but inserts Summer between Spring and Fall:
+    - Spring YYYY -> Summer YYYY
+    - Summer YYYY -> Fall YYYY
+    - Fall YYYY   -> Spring YYYY+1
+    """
+    m = SEM_RE.match((first_semester or "").strip())
+    if not m:
+        return "Summer 2026"
+    term = m.group(1).capitalize()
+    year = int(m.group(2))
+    if term == "Spring":
+        return f"Summer {year}"
+    if term == "Summer":
+        return f"Fall {year}"
+    return f"Spring {year + 1}"
+
+
 def _prereq_courses(parsed: dict) -> set[str]:
     t = parsed.get("type")
     if t == "single":

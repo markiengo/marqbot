@@ -29,6 +29,7 @@ from semester_recommender import (
     SEM_RE,
     normalize_semester_label,
     default_followup_semester,
+    default_followup_semester_with_summer,
     run_recommendation_semester,
     _credits_to_standing,
 )
@@ -307,10 +308,10 @@ def _validate_recommend_body(body):
     if semester_count_raw not in (None, ""):
         try:
             semester_count = int(semester_count_raw)
-            if not (1 <= semester_count <= 4):
+            if not (1 <= semester_count <= 8):
                 raise ValueError
         except (TypeError, ValueError):
-            return "INVALID_INPUT", "target_semester_count must be an integer between 1 and 4."
+            return "INVALID_INPUT", "target_semester_count must be an integer between 1 and 8."
     for field in (
         "target_semester_primary",
         "target_semester",
@@ -1748,7 +1749,7 @@ def recommend():
         else:
             target_semester_count = 3
     else:
-        target_semester_count = max(1, min(4, int(target_semester_count_raw)))
+        target_semester_count = max(1, min(8, int(target_semester_count_raw)))
 
     requested_course_raw = body.get("requested_course") or None
     max_recs = max(1, min(6, int(body.get("max_recommendations", 3) or 3)))
@@ -1846,6 +1847,7 @@ def recommend():
         target_semester_tertiary,
         target_semester_quaternary,
     ]
+    _followup_fn = default_followup_semester_with_summer if include_summer else default_followup_semester
     semester_labels = [target_semester_primary]
     while len(semester_labels) < target_semester_count:
         idx = len(semester_labels)  # 1-based semester offset from primary
@@ -1853,7 +1855,7 @@ def recommend():
         if explicit and explicit != "__NONE__":
             semester_labels.append(explicit)
         else:
-            semester_labels.append(default_followup_semester(semester_labels[-1]))
+            semester_labels.append(_followup_fn(semester_labels[-1]))
 
     # Filter out summer semesters when include_summer is False.
     # default_followup_semester never produces a Summer label, so only primary/explicit

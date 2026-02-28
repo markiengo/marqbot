@@ -1,34 +1,50 @@
-# File Cleanup Playbook (Safe, Verifiable, Behavior-Preserving)
+# File Cleanup Playbook (AI-Executable, Zero-Regression)
 
 Goal: reduce repository clutter without changing product behavior.
 
-## Required Role Framing
-When using an AI/code agent for cleanup, start with:
-- "You are a senior software engineer focused on safe repository cleanup and zero-regression refactors."
+## Why this format
+This playbook is optimized for AI coding agents:
+- Clear objective and scope
+- Explicit constraints and precedence
+- Deterministic workflow
+- Required evidence and output schema
 
-This reduces aggressive, low-confidence deletes.
+## Instruction precedence
+1. System/developer instructions in the agent runtime
+2. Repository-wide agent instructions (for example `AGENTS.md`)
+3. This playbook
+4. Task-specific user prompt
 
-## Non-Negotiable Safety Rules
-- Do not delete files unless you can prove they are unused.
-- "Proof of unused" must include checks across:
-  - Runtime/application code
-  - Tests
-  - Build tooling and CI configs
-  - Documentation and scripts
-- If uncertain, archive instead of delete.
+If instructions conflict, follow the higher-priority source and report the conflict.
+
+## Required task packet (before agent starts)
+Always provide:
+- Cleanup scope (exact paths)
+- Out-of-scope paths
+- Protected paths that require explicit approval
+- Validation commands to run
+- Whether archiving is allowed and archive target (default: `archive/YYYY-MM-DD_cleanup/`)
+
+If any required item is missing, agent should choose the safest fallback: `keep` + report.
+
+## Non-negotiable safety rules
+- Do not delete files unless there is positive evidence they are unused.
+- "Unused" must be verified across runtime code, tests, build/CI, docs, and scripts.
+- If uncertain, archive or keep. Never guess.
 - Keep cleanup changes separate from feature work.
-- Never use destructive git commands (`reset --hard`, blanket checkout) during cleanup.
+- Never use destructive git commands (`reset --hard`, blanket checkout).
+- Keep commits atomic and themed.
 
-## Protected Paths (Require Explicit Approval Before Deletion)
+## Protected paths (explicit approval required before deletion)
 - `docs/`
 - `mds/`
 - `.claude/`
 - `todo.md`
 - `marquette_courses_full.xlsx`
-- Any infra or deployment files: `render.yaml`, Dockerfiles, CI workflows
+- Infra/deploy files (`render.yaml`, Dockerfiles, CI workflows)
 
-## Safe-to-Delete Local Artifacts
-These are generated artifacts and safe to remove locally:
+## Safe local artifacts
+Generated artifacts that are generally safe to remove locally:
 - `.pytest_cache/`
 - `**/__pycache__/`
 - `.DS_Store`
@@ -40,8 +56,8 @@ These are generated artifacts and safe to remove locally:
 - `*.log`
 - `*.tmp`
 
-## Repository Hygiene Baseline
-Ensure `.gitignore` covers:
+## Hygiene baseline
+Ensure `.gitignore` includes:
 - `.pytest_cache/`
 - `**/__pycache__/`
 - `.next/`
@@ -49,91 +65,102 @@ Ensure `.gitignore` covers:
 - `dist/`
 - `build/`
 - `coverage/`
-- `.env*` (project policy permitting)
+- `.env*` (if project policy allows)
 
-## Cleanup Workflow (Do Not Skip Steps)
-1. Inventory
-- List top-level directories and classify: source, config, docs, generated, backups, experiments.
-- Build candidate list only; no deletions yet.
+## Execution workflow (required)
+1. Preflight (no edits)
+- Capture branch and working tree status.
+- Inventory top-level folders and candidate files only.
 
-2. Reference Verification
-- For each candidate, search repo-wide references with `rg`:
-  - Imports/usages in code
-  - Mentions in tests
-  - Mentions in build/CI
-  - Mentions in docs/scripts
-- Record evidence per file.
+2. Reference verification
+- For each candidate, run repo-wide `rg` checks for:
+  - imports/usages in app/runtime code
+  - test references
+  - build/CI references
+  - docs and scripts references
+- Record exact search patterns used.
 
-3. Categorize
-- `Delete-safe-now`: strong evidence of no references.
-- `Archive-review`: uncertain or low-confidence.
-- `Keep`: referenced or operationally important.
+3. Decisioning
+- `delete_safe_now`: strong evidence of non-use
+- `archive_review`: uncertain, low confidence, or operational ambiguity
+- `keep`: referenced or operationally relevant
 
-4. Execute in Small Batches
-- Delete only `Delete-safe-now`.
-- Move uncertain files to `archive/` (or keep with explicit TODO note).
-- Keep commits atomic and themed.
+4. Small-batch execution
+- Apply only `delete_safe_now`.
+- Move uncertain files to archive only if allowed.
+- Re-check working tree after each batch.
 
-5. Verify
-- Run lint/build/tests relevant to touched areas.
-- Smoke-test critical flows.
-- Confirm no runtime/config regressions.
+5. Validation
+- Run approved lint/build/tests.
+- Verify no config/runtime regressions.
 
-## Required Evidence Standard Per File
-Before deletion, capture:
+6. Report
+- Produce required output schema (below).
+- Include open risks and next actions.
+
+## Evidence standard (required per candidate)
+No evidence means no deletion. For each file/path, include:
 - Search terms used
-- Files scanned (code/tests/CI/docs)
+- Areas checked (runtime/tests/CI/docs/scripts)
 - Why false positives were ruled out
-- Final decision (`delete`, `archive`, `keep`)
+- Final decision (`delete_safe_now`, `archive_review`, `keep`)
 
-No evidence means no deletion.
-
-## Output Format for Cleanup PRs
-Use this structure:
+## Required output schema
 - `Deleted files`
-  - `<path>` - reason + proof summary
+  - `<path>` | reason | proof summary
 - `Archived files`
-  - `<path>` - reason + uncertainty note
+  - `<path>` | reason | uncertainty note
 - `Kept files`
-  - `<path>` - reason kept
+  - `<path>` | reason
 - `Validation run`
-  - Commands executed + outcomes
-- `Follow-ups`
-  - Open risks, manual checks, or deferred decisions
+  - command | result
+- `Risks / follow-ups`
+  - unresolved risk | required manual check
 
-## Iterative Prompting Pattern (Recommended)
-For large cleanup work, split prompts:
-1. "List cleanup candidates only; no edits."
-2. "Verify references and produce delete/archive/keep matrix with evidence."
-3. "Apply only delete-safe-now changes."
-4. "Run validation and produce structured report."
+## Iterative prompting pattern
+For large cleanups, run in phases:
+1. "List candidates only. No edits."
+2. "Build delete/archive/keep matrix with evidence."
+3. "Apply only delete_safe_now."
+4. "Run validation and output report schema."
 
-## Ready-to-Paste Prompt Template
-Use this with Claude/Codex for cleanup tasks:
-
+## Ready-to-paste prompt template
 ```text
-You are a senior engineer performing safe repository cleanup with zero functional regressions.
+<role>
+You are a senior software engineer performing safe repository cleanup with zero functional regressions.
+</role>
 
-Goal: reduce clutter while preserving all behavior.
+<objective>
+Reduce repository clutter while preserving all behavior.
+</objective>
 
-Rules:
-- Only delete a file if you can prove it is unused.
-- Verify references in runtime code, tests, build/CI, and docs/scripts.
-- If uncertain, archive instead of delete.
+<scope>
+In scope: [paths]
+Out of scope: [paths]
+Protected paths: docs/, mds/, .claude/, todo.md, marquette_courses_full.xlsx, infra/deploy files
+</scope>
+
+<constraints>
+- Only delete when evidence proves non-use.
+- Verify references in runtime code, tests, build/CI, docs, and scripts.
+- If uncertain, archive_review (or keep if archive is disallowed).
 - Do not mix cleanup with feature changes.
-- Provide evidence per file decision.
+- Use non-destructive git operations only.
+</constraints>
 
-Process:
+<process>
 1) Inventory candidates (no edits).
-2) Verify references for each candidate.
-3) Categorize into delete-safe-now / archive-review / keep.
-4) Apply only delete-safe-now changes.
-5) Run lint/build/tests and summarize outcomes.
+2) Verify references per candidate with repo-wide searches.
+3) Classify into delete_safe_now / archive_review / keep.
+4) Apply only delete_safe_now.
+5) Run validation commands and summarize outcomes.
+</process>
 
-Output:
-- Deleted files + justification
-- Archived files + justification
-- Kept files + reasoning
-- Validation commands/results
-- Follow-up actions
+<output_format>
+- Deleted files: path | reason | proof summary
+- Archived files: path | reason | uncertainty
+- Kept files: path | reason
+- Validation run: command | result
+- Risks/follow-ups
+</output_format>
 ```

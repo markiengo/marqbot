@@ -53,7 +53,8 @@ export function SemesterModal({
           </div>
         )}
 
-        {(semester.eligible_count || 0) < requestedCount && recs.length > 0 && (
+        {(semester.eligible_count || 0) < requestedCount && recs.length > 0 &&
+          !semester.target_semester?.toLowerCase().includes("summer") && (
           <div className="bg-bad-light rounded-xl p-3 text-sm text-bad">
             Warning: You requested {requestedCount}, but only {semester.eligible_count}{" "}
             eligible course(s) match for this term.
@@ -82,6 +83,13 @@ export function SemesterModal({
           <p className="text-sm text-bad">
             Warning: {esc(semester.in_progress_note)}
           </p>
+        )}
+
+        {/* Summer note */}
+        {semester.target_semester && semester.target_semester.toLowerCase().includes("summer") && (
+          <div className="rounded-lg bg-gold/10 border border-gold/25 px-3 py-2 text-xs text-gold/80 leading-relaxed">
+            Summer semesters are capped at <span className="font-semibold text-gold">4 courses (max 12 credits)</span>. Only courses with confirmed summer availability are shown.
+          </div>
         )}
 
         {/* Projected progress */}
