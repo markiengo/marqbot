@@ -8,6 +8,34 @@ Format per release:
 
 ---
 
+## [v2.0.3] - 2026-03-01
+
+### Changes
+
+**Business Economics electives fix**
+- Fixed a bug where upper-division ECON elective courses were not counting toward the "Upper-Division ECON Electives" bucket for Business Economics majors. Courses like ECON 3042, ECON 4005, ECON 4020 now correctly fill the ECON electives requirement.
+- Removed 7 incorrectly mapped courses from the ECON electives bucket (required core courses and curriculum-excluded courses like ECON 3399).
+
+**Non-recommendable course filtering**
+- Internships, independent studies, and "Topics in" courses are no longer recommended by the planner. They still count toward your progress if you've already completed or enrolled in them.
+
+**BUAN Advanced bucket fix**
+- Corrected BUAN Advanced requirement from 2 courses to 1 course (BUAN 4061 only).
+
+**Regression test coverage**
+- Added smoke tests for 5 previously untested majors (BADM, BECO, INBU, MARK, REAL) and 7 tracks (AIM CFA, AIM FinTech, AIM IB, Financial Planning, HURE Leadership, MARK Professional Selling, REAL REAP).
+
+**Modal and heading polish**
+- Modal titles sized down from h2 to h3 for better visual hierarchy.
+- Major section headings in progress and semester modals now use Marquette blue and bold styling for better visibility.
+- ESSV2/WRIT/Discovery disclaimer text made bold and 15% larger.
+
+### Design Decisions
+- BECO ECON electives bucket changed from `credits_pool` to `choose_n` mode to give it allocation priority over the general business electives bucket. This leverages the allocator's built-in priority ordering (`required → choose_n → credits_pool`).
+- Non-recommendable courses are filtered by name pattern matching (not a CSV column) to automatically catch future courses without data maintenance.
+
+---
+
 ## [v2.0.2] - 2026-03-01
 
 ### Changes
