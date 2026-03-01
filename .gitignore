@@ -30,3 +30,11 @@ frontend/.next/
 frontend/out/
 frontend/tsconfig.tsbuildinfo
 frontend/nul
+
+# Local-only files (never push to remote)
+.claude/
+todo.md
+docs/branding.md
+docs/data_injection_stage1.md
+docs/data_injection_stage2.md
+docs/session_end.md
