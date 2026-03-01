@@ -158,4 +158,4 @@ export interface AppState {
   lastRequestedCount: number;
 }
 
-export type NavTab = "home" | "plan" | "courses" | "saved" | "ai-advisor";
+export type NavTab = "home" | "plan" | "courses" | "saved" | "ai-advisor" | "about";

@@ -118,7 +118,7 @@ export function FeatureSection() {
               transition={{ duration: 0.45, delay: 0.22 + idx * 0.1 }}
               className="bg-surface-card/75 backdrop-blur-[2px] border border-border-subtle rounded-xl p-6 shadow-sm stat-card-decor"
             >
-              <div className="text-2xl font-bold font-[family-name:var(--font-sora)] text-gold mb-1">
+              <div className="text-4xl font-bold font-[family-name:var(--font-sora)] text-gold mb-1">
                 {f.stat}
               </div>
               <div className="text-xs text-ink-muted mb-3">{f.statLabel}</div>

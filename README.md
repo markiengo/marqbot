@@ -1,5 +1,5 @@
 # MarqBot
-![Version](https://img.shields.io/badge/version-v2.0.3-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
+![Version](https://img.shields.io/badge/version-v2.1.0-003366?style=for-the-badge&logo=bookstack&logoColor=ffcc00)
 ![Audience](https://img.shields.io/badge/audience-students%20%26%20advisors-0A7E8C?style=for-the-badge)
 
 Your degree-planning buddy at Marquette. MarqBot knows what you've taken, what you still need, and what you should take next — so you can stop spiraling over CheckMarq at 2am.

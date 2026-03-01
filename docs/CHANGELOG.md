@@ -8,6 +8,25 @@ Format per release:
 
 ---
 
+## [v2.1.0] - 2026-03-01
+
+### Changes
+
+**Contextual quips in modals**
+- Progress and Semester modals now show a contextual one-liner based on your data — standing, progress, season, course load, and more. 500+ messages, deterministic (same data = same quip), no external AI.
+
+**About page**
+- New "Meet the Builder" page with founder intro, social links, project roadmap, and CTA section. Accessible from the navbar.
+
+**Landing page stat accuracy**
+- "Courses Tracked" and "Majors Supported" numbers now reflect real data (540+ courses, 12 majors). Feature card stats are larger for better readability.
+
+### Design Decisions
+- Quip selection uses a djb2 hash over student dimensions — no Math.random(), fully deterministic. Quips are authored in `data/quips.csv` and compiled to TypeScript via `scripts/compile_quips.py`. The generated file is committed to git so fresh checkouts work without running the script.
+- About page uses a scrapbook visual style with polaroid frames, sticky notes, washi tape, and hand-drawn doodles to match the brand personality.
+
+---
+
 ## [v2.0.3] - 2026-03-01
 
 ### Changes

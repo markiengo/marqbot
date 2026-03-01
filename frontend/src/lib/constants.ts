@@ -8,6 +8,7 @@ export const NAV_ITEMS: { id: NavTab; label: string; href: string }[] = [
   { id: "courses", label: "Courses", href: "/courses" },
   { id: "saved", label: "Saved", href: "/saved" },
   { id: "ai-advisor", label: "AI Advisor", href: "/ai-advisor" },
+  { id: "about", label: "About", href: "/about" },
 ];
 
 export const SEMESTER_OPTIONS = [

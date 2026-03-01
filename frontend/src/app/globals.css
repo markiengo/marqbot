@@ -302,3 +302,88 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
 .accent-top-blue { border-top: 3px solid var(--color-mu-blue); }
 .accent-left-gold { border-left: 3px solid var(--color-gold); }
 .accent-left-blue { border-left: 3px solid var(--color-mu-blue); }
+
+/* ── Scrapbook Decorative Elements ─────────────────────────────── */
+.washi-tape {
+  position: absolute;
+  width: 110px;
+  height: 26px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 204, 0, 0.22) 0%,
+    rgba(255, 204, 0, 0.12) 50%,
+    rgba(255, 204, 0, 0.22) 100%
+  );
+  backdrop-filter: blur(2px);
+  border-top: 1px solid rgba(255, 204, 0, 0.28);
+  border-bottom: 1px solid rgba(255, 204, 0, 0.18);
+  z-index: 10;
+  pointer-events: none;
+}
+.washi-tape-blue {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 114, 206, 0.22) 0%,
+    rgba(0, 114, 206, 0.12) 50%,
+    rgba(0, 114, 206, 0.22) 100%
+  );
+  border-top: 1px solid rgba(0, 114, 206, 0.28);
+  border-bottom: 1px solid rgba(0, 114, 206, 0.18);
+}
+
+.sticky-note {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 204, 0, 0.10) 0%,
+    rgba(255, 204, 0, 0.05) 100%
+  );
+  border: 1px solid rgba(255, 204, 0, 0.18);
+  border-radius: 4px 4px 12px 4px;
+  box-shadow:
+    2px 3px 10px rgba(0, 0, 0, 0.3),
+    inset 0 -1px 0 rgba(255, 204, 0, 0.08);
+  position: relative;
+}
+.sticky-note::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, transparent 50%, rgba(255, 204, 0, 0.06) 50%);
+  border-radius: 0 0 12px 0;
+  pointer-events: none;
+}
+
+.polaroid-frame {
+  background: rgba(240, 238, 232, 0.07);
+  border: 1px solid rgba(240, 238, 232, 0.13);
+  padding: 10px 10px 36px 10px;
+  border-radius: 4px;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.4),
+    0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.stamp-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px;
+  border: 2px dashed rgba(255, 204, 0, 0.45);
+  border-radius: 50px;
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-gold);
+  opacity: 0.8;
+}
+
+.scrapbook-tilt-1 { transform: rotate(-1.5deg); }
+.scrapbook-tilt-2 { transform: rotate(2deg); }
+.scrapbook-tilt-3 { transform: rotate(-2.5deg); }
+.scrapbook-tilt-4 { transform: rotate(1deg); }
+.scrapbook-tilt-5 { transform: rotate(3deg); }

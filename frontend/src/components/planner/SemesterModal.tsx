@@ -4,6 +4,7 @@ import type { SemesterData, BucketProgress } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { CourseCard } from "./CourseCard";
 import { groupProgressByTierWithMajors, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
+import { getSemesterQuip } from "@/lib/quips";
 import { bucketLabel, esc } from "@/lib/utils";
 
 interface SemesterModalProps {
@@ -47,6 +48,11 @@ export function SemesterModal({
             </span>
           </div>
         )}
+
+        {/* Contextual quip */}
+        <p className="text-center text-sm text-ink-muted italic py-1.5">
+          {getSemesterQuip({ semester, index, requestedCount })}
+        </p>
 
         {/* Warnings */}
         {semester.not_in_catalog_warning && semester.not_in_catalog_warning.length > 0 && (

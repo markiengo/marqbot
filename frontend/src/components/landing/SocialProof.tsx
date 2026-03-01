@@ -5,8 +5,8 @@ import { motion, useInView } from "motion/react";
 import { AnchorLine } from "@/components/shared/AnchorLine";
 
 const stats = [
-  { value: 200, suffix: "+", label: "Courses Tracked" },
-  { value: 6, suffix: "", label: "Majors Supported" },
+  { value: 540, suffix: "+", label: "Courses Tracked" },
+  { value: 12, suffix: "", label: "Majors Supported" },
   { value: 124, suffix: "", label: "Credits to Graduate" },
 ];
 

@@ -4,6 +4,7 @@ import type { CreditKpiMetrics, BucketProgress } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { ProgressRing } from "./ProgressRing";
 import { groupProgressByTierWithMajors, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
+import { getProgressQuip } from "@/lib/quips";
 import { bucketLabel } from "@/lib/utils";
 
 interface ProgressModalProps {
@@ -70,6 +71,11 @@ export function ProgressModal({
             />
           </div>
         </div>
+
+        {/* Contextual quip */}
+        <p className="text-center text-sm text-ink-muted italic py-2">
+          {getProgressQuip({ metrics, currentProgress: currentProgress ?? null })}
+        </p>
 
         {/* Assumption notes */}
         <div className="space-y-3">
