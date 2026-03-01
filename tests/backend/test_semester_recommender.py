@@ -1143,3 +1143,74 @@ def test_selection_uses_required_before_choose_n_within_same_family():
 
     codes = [r["course_code"] for r in out["recommendations"]]
     assert codes == ["X300", "Y300"]
+
+
+def test_only_one_bridge_course_per_target_bucket():
+    """When two bridge courses target the same single-slot bucket,
+    only the first (higher-ranked) should be recommended."""
+    courses = [
+        {
+            "course_code": "BRIDGE_A",
+            "course_name": "Bridge A",
+            "credits": 3,
+            "prereq_hard": "none",
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+        },
+        {
+            "course_code": "BRIDGE_B",
+            "course_name": "Bridge B",
+            "credits": 3,
+            "prereq_hard": "none",
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+        },
+        {
+            "course_code": "TARGET_1",
+            "course_name": "Target Course",
+            "credits": 3,
+            "prereq_hard": "BRIDGE_A or BRIDGE_B",
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::CORE",
+            "bucket_label": "Core Required",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::CORE", "course_code": "TARGET_1"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+
+    reverse_map = {
+        "BRIDGE_A": ["TARGET_1"],
+        "BRIDGE_B": ["TARGET_1"],
+    }
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=5,
+        reverse_map=reverse_map,
+        track_id="FIN_MAJOR",
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    bridge_codes = [c for c in codes if c.startswith("BRIDGE_")]
+    assert len(bridge_codes) == 1, (
+        f"Expected 1 bridge course, got {len(bridge_codes)}: {bridge_codes}"
+    )

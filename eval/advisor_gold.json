@@ -11,8 +11,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "Effective zero-credit FIN freshman (catalog-based). All recs should be BCC/MCC tier 1."
+    "expected_top6": ["ECON 1103", "ACCO 1030", "ENGL 1001", "PHIL 1001", "SOCI 1001", "MATH 1200"],
+    "notes": "Effective zero-credit FIN freshman (catalog-based). Standing gates block 3001-level BCC courses (INSY/OSCM/MARK/MANA require sophomore+). Recs are BCC/MCC tier 1 courses open to freshmen."
   },
   {
     "id": "fin_freshman_002",
@@ -26,8 +26,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "Absolute zero-credit FIN freshman. All top-6 should be BCC/MCC (tier 1)."
+    "expected_top6": ["ECON 1103", "ACCO 1030", "ENGL 1001", "PHIL 1001", "SOCI 1001", "MATH 1200"],
+    "notes": "Absolute zero-credit FIN freshman. Standing gates block 3001-level BCC courses."
   },
   {
     "id": "acco_freshman_001",
@@ -41,8 +41,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["ACCO 1030", "ECON 1103", "INSY 3001", "BUAD 1001", "MARK 3001", "OSCM 3001"],
-    "notes": "ACCO freshman. Chain-depth scoring favors BCC_REQUIRED gateway courses (ACCO 1030, BUAD 1001) that unlock long prereq chains."
+    "expected_top6": ["ACCO 1030", "ECON 1103", "BUAD 1001", "ENGL 1001", "LEAD 1050", "PHIL 1001"],
+    "notes": "ACCO freshman. Standing gates block INSY/MARK/OSCM 3001 (require sophomore+). Chain-depth scoring favors BCC_REQUIRED gateway courses open to freshmen."
   },
   {
     "id": "acco_freshman_002",
@@ -56,8 +56,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["ACCO 1030", "ECON 1103", "INSY 3001", "BUAD 1001", "OSCM 3001", "MANA 3001"],
-    "notes": "Zero-credit ACCO freshman. Chain-depth scoring favors BCC_REQUIRED gateway courses."
+    "expected_top6": ["ACCO 1030", "ECON 1103", "BUAD 1001", "ENGL 1001", "LEAD 1050", "PHIL 1001"],
+    "notes": "Zero-credit ACCO freshman. Standing gates block 3001-level BCC courses."
   },
   {
     "id": "aim_freshman_001",
@@ -71,8 +71,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "AIM requires a primary major; paired with FIN. Same BCC/MCC tier-1 universal courses."
+    "expected_top6": ["ECON 1103", "ACCO 1030", "ENGL 1001", "PHIL 1001", "SOCI 1001", "MATH 1200"],
+    "notes": "AIM requires a primary major; paired with FIN. Standing gates block 3001-level BCC courses."
   },
   {
     "id": "aim_freshman_002",
@@ -86,8 +86,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "Zero-credit AIM+FIN freshman. AIM requires a primary major."
+    "expected_top6": ["ECON 1103", "ACCO 1030", "ENGL 1001", "PHIL 1001", "SOCI 1001", "MATH 1200"],
+    "notes": "Zero-credit AIM+FIN freshman. Standing gates block 3001-level BCC courses."
   },
   {
     "id": "hure_freshman_001",
@@ -101,8 +101,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["ACCO 1030", "ECON 1103", "INSY 3001", "BUAD 1001", "MARK 3001", "OSCM 3001"],
-    "notes": "HURE freshman. Chain-depth scoring favors BCC_REQUIRED gateway courses."
+    "expected_top6": ["BUAD 1001", "ACCO 1030", "ECON 1103", "ENGL 1001", "LEAD 1050", "PHIL 1001"],
+    "notes": "HURE freshman. Standing gates block INSY/MARK/OSCM 3001 (require sophomore+). Chain-depth scoring favors BCC_REQUIRED gateway courses open to freshmen."
   },
   {
     "id": "hure_freshman_002",
@@ -116,8 +116,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["ACCO 1030", "ECON 1103", "INSY 3001", "BUAD 1001", "OSCM 3001", "MANA 3001"],
-    "notes": "Zero-credit HURE freshman. Chain-depth scoring favors BCC_REQUIRED gateway courses."
+    "expected_top6": ["BUAD 1001", "ACCO 1030", "ECON 1103", "ENGL 1001", "LEAD 1050", "PHIL 1001"],
+    "notes": "Zero-credit HURE freshman. Standing gates block 3001-level BCC courses."
   },
   {
     "id": "oscm_freshman_001",
@@ -131,8 +131,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "MANA 3001"],
-    "notes": "OSCM freshman sees MANA 3001 instead of ANTH 1001 due to major-specific MCC routing."
+    "expected_top6": ["ACCO 1030", "ECON 1103", "BUAD 1001", "ENGL 1001", "LEAD 1050", "PHIL 1001"],
+    "notes": "OSCM freshman. Standing gates block OSCM/INSY/MANA 3001 (require sophomore/junior+)."
   },
   {
     "id": "oscm_freshman_002",
@@ -146,8 +146,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "MANA 3001"],
-    "notes": "Zero-credit OSCM freshman."
+    "expected_top6": ["ACCO 1030", "ECON 1103", "BUAD 1001", "ENGL 1001", "LEAD 1050", "PHIL 1001"],
+    "notes": "Zero-credit OSCM freshman. Standing gates block 3001-level BCC courses."
   },
   {
     "id": "insy_freshman_001",
@@ -161,8 +161,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "MANA 3001"],
-    "notes": "INSY freshman sees MANA 3001 in top-6 due to major-specific MCC routing."
+    "expected_top6": ["ACCO 1030", "ECON 1103", "BUAD 1001", "ENGL 1001", "LEAD 1050", "PHIL 1001"],
+    "notes": "INSY freshman. Standing gates block INSY/OSCM/MANA 3001 (require sophomore/junior+)."
   },
   {
     "id": "insy_freshman_002",
@@ -176,8 +176,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "MANA 3001"],
-    "notes": "Zero-credit INSY freshman."
+    "expected_top6": ["ACCO 1030", "ECON 1103", "BUAD 1001", "ENGL 1001", "LEAD 1050", "PHIL 1001"],
+    "notes": "Zero-credit INSY freshman. Standing gates block 3001-level BCC courses."
   },
   {
     "id": "buan_freshman_001",
@@ -191,8 +191,8 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "BUAN requires a primary major; freshman baseline uses FIN+BUAN and should remain BCC/MCC heavy."
+    "expected_top6": ["ECON 1103", "ACCO 1030", "ENGL 1001", "PHIL 1001", "SOCI 1001", "MATH 1200"],
+    "notes": "BUAN requires a primary major; freshman baseline uses FIN+BUAN. Standing gates block 3001-level BCC courses."
   },
   {
     "id": "buan_freshman_002",
@@ -206,7 +206,7 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["OSCM 3001", "ECON 1103", "INSY 3001", "PHIL 1001", "THEO 1001", "ANTH 1001"],
-    "notes": "Zero-credit FIN+BUAN freshman baseline."
+    "expected_top6": ["ECON 1103", "ACCO 1030", "ENGL 1001", "PHIL 1001", "SOCI 1001", "MATH 1200"],
+    "notes": "Zero-credit FIN+BUAN freshman baseline. Standing gates block 3001-level BCC courses."
   }
 ]

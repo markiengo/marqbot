@@ -14,7 +14,7 @@ import pandas as pd
 
 from allocator import allocate_courses
 from eligibility import get_course_eligible_buckets, get_eligible_courses
-from requirements import DEFAULT_TRACK_ID, get_bucket_by_role, get_buckets_by_role
+from requirements import DEFAULT_TRACK_ID, get_buckets_by_role
 
 
 # ── Shared multi-track fixtures ──────────────────────────────────────────────
@@ -159,32 +159,22 @@ class TestEligibilityTrackFiltering:
 # ── 3. Role-based bucket lookup ──────────────────────────────────────────────
 
 class TestRoleLookup:
-    def test_get_core_bucket_for_track_a(self, two_track_buckets):
-        assert get_bucket_by_role(two_track_buckets, "TRACK_A", "core") == "A_CORE"
-
-    def test_get_core_bucket_for_track_b(self, two_track_buckets):
-        assert get_bucket_by_role(two_track_buckets, "TRACK_B", "core") == "B_CORE"
-
     def test_get_elective_buckets_for_track_a(self, two_track_buckets):
         assert get_buckets_by_role(two_track_buckets, "TRACK_A", "elective") == ["A_ELEC"]
 
     def test_get_elective_buckets_for_track_b(self, two_track_buckets):
         assert get_buckets_by_role(two_track_buckets, "TRACK_B", "elective") == ["B_ELEC"]
 
-    def test_missing_role_returns_none(self, two_track_buckets):
-        assert get_bucket_by_role(two_track_buckets, "TRACK_A", "nonexistent") is None
-
     def test_missing_role_returns_empty_list(self, two_track_buckets):
         assert get_buckets_by_role(two_track_buckets, "TRACK_A", "nonexistent") == []
 
-    def test_unknown_track_returns_none(self, two_track_buckets):
-        assert get_bucket_by_role(two_track_buckets, "FAKE_TRACK", "core") is None
+    def test_unknown_track_returns_empty_list(self, two_track_buckets):
+        assert get_buckets_by_role(two_track_buckets, "FAKE_TRACK", "core") == []
 
-    def test_no_role_column_returns_none(self):
+    def test_no_role_column_returns_empty_list(self):
         df = pd.DataFrame([
             {"track_id": "T", "bucket_id": "B", "bucket_label": "X", "priority": 1},
         ])
-        assert get_bucket_by_role(df, "T", "core") is None
         assert get_buckets_by_role(df, "T", "core") == []
 
 

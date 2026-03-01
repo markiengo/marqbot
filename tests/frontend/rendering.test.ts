@@ -6,6 +6,8 @@ import {
   computeCreditKpiMetrics,
   deriveStandingFromCredits,
   getProgramLabelMap,
+  groupProgressByParent,
+  groupProgressByTierSections,
   sortProgressEntries,
   sumCreditsForCourseCodes,
 } from "../../frontend/src/lib/rendering";
@@ -33,12 +35,61 @@ describe("rendering.compactKpiBucketLabel", () => {
 });
 
 describe("rendering.sortProgressEntries", () => {
-  test("ranks BCC_REQUIRED before other buckets", () => {
+  test("ranks MCC before BCC, then majors", () => {
     const out = sortProgressEntries({
       "FIN_MAJOR::FINA-REQ-CORE": { needed: 1, completed_done: 0 },
       "BCC::BCC_REQUIRED": { needed: 1, completed_done: 0 },
+      "MCC_FOUNDATION::MCC_CORE": { needed: 1, completed_done: 0 },
     });
-    expect(out[0][0]).toBe("BCC::BCC_REQUIRED");
+    expect(out.map(([bucketId]) => bucketId)).toEqual([
+      "MCC_FOUNDATION::MCC_CORE",
+      "BCC::BCC_REQUIRED",
+      "FIN_MAJOR::FINA-REQ-CORE",
+    ]);
+  });
+
+  test("keeps demoted BCC children below major buckets", () => {
+    const out = sortProgressEntries({
+      "BCC::BCC_ANALYTICS": { needed: 1, completed_done: 0, recommendation_tier: 5 },
+      "FIN_MAJOR::FINA-REQ-CORE": { needed: 1, completed_done: 0, recommendation_tier: 2 },
+      "BCC::BCC_REQUIRED": { needed: 1, completed_done: 0, recommendation_tier: 1 },
+    });
+    expect(out.map(([bucketId]) => bucketId)).toEqual([
+      "BCC::BCC_REQUIRED",
+      "BCC::BCC_ANALYTICS",
+      "FIN_MAJOR::FINA-REQ-CORE",
+    ]);
+  });
+});
+
+describe("rendering.groupProgressByParent", () => {
+  test("keeps parent groups intact", () => {
+    const groups = groupProgressByParent({
+      "BCC::BCC_REQUIRED": { needed: 1, completed_done: 0, recommendation_tier: 1 },
+      "BCC::BCC_ANALYTICS": { needed: 1, completed_done: 0, recommendation_tier: 5 },
+      "FIN_MAJOR::FINA-REQ-CORE": { needed: 1, completed_done: 0, recommendation_tier: 2 },
+    });
+    expect(groups.map((group) => group.parentId)).toEqual([
+      "BCC",
+      "FIN_MAJOR",
+    ]);
+  });
+});
+
+describe("rendering.groupProgressByTierSections", () => {
+  test("builds recommender-style sections for modal views", () => {
+    const sections = groupProgressByTierSections({
+      "MCC_FOUNDATION::MCC_CORE": { needed: 1, completed_done: 0, recommendation_tier: 1 },
+      "BCC::BCC_REQUIRED": { needed: 1, completed_done: 0, recommendation_tier: 1 },
+      "FIN_MAJOR::FINA-REQ-CORE": { needed: 1, completed_done: 0, recommendation_tier: 2 },
+      "CB_TRACK::COMMBANK-REQ-CORE": { needed: 1, completed_done: 0, recommendation_tier: 3 },
+    });
+    expect(sections.map((section) => section.label)).toEqual([
+      "MCC",
+      "Business Core (BCC)",
+      "Major Requirements",
+      "Tracks & Minors",
+    ]);
   });
 });
 

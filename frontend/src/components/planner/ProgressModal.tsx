@@ -3,7 +3,7 @@
 import type { CreditKpiMetrics, BucketProgress } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { ProgressRing } from "./ProgressRing";
-import { groupProgressByParent, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
+import { groupProgressByTierSections, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
 import { bucketLabel } from "@/lib/utils";
 
 interface ProgressModalProps {
@@ -23,7 +23,7 @@ export function ProgressModal({
   assumptionNotes,
   programLabelMap,
 }: ProgressModalProps) {
-  const groups = groupProgressByParent(currentProgress, programLabelMap);
+  const sections = groupProgressByTierSections(currentProgress);
   const notes = (assumptionNotes || []).filter(Boolean);
 
   return (
@@ -98,19 +98,19 @@ export function ProgressModal({
         </div>
 
         {/* Bucket breakdown — grouped by program */}
-        {groups.length > 0 && (
+        {sections.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-gold uppercase tracking-wider">
               Requirement Breakdown
             </h3>
             <div className="space-y-6">
-              {groups.map((group) => (
-                <div key={group.parentId} className="space-y-3">
+              {sections.map((section) => (
+                <div key={section.sectionKey} className="space-y-3">
                   <h4 className="text-xs font-semibold text-gold/70 uppercase tracking-wider border-b border-border-subtle/30 pb-1">
-                    {group.label}
+                    {section.label}
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {group.entries.map(([bid, prog]) => {
+                    {section.entries.map(([bid, prog]) => {
                       const { done, inProg, needed, unit } = getBucketDisplay(prog);
                       const ipCodes = prog.in_progress_applied || [];
                       const label = compactKpiBucketLabel(

@@ -158,15 +158,15 @@ export function RecommendationsPanel({
                       .every(isBucketSatisfied);
                   return projectedGrad ? (
                     <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
-                      <div className="text-4xl">🎓</div>
-                      <p className="text-[15px] font-semibold text-gold">
+                      <div className="text-5xl">🎓</div>
+                      <p className="text-xl font-semibold text-gold">
                         You will have graduated!
                       </p>
-                      <p className="text-xs text-ink-faint max-w-xs leading-relaxed">
+                      <p className="text-sm text-ink-faint max-w-xs leading-relaxed">
                         Based on your current plan, all tracked degree requirements
                         will be satisfied by this point.
                       </p>
-                      <p className="text-[10px] text-ink-faint/60 mt-1">
+                      <p className="text-xs text-ink-faint/60 mt-1">
                         Note: ESSV2, WRIT, and Discovery courses are not yet considered.
                       </p>
                     </div>

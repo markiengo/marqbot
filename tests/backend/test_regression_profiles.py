@@ -75,7 +75,7 @@ class TestFinMajorFreshman:
         assert len(upper_fina) == 0, f"No upper-level FINA courses should appear for freshman: {upper_fina}"
 
     def test_all_recs_are_tier_1(self, client):
-        """All recs for a freshman should be BCC or MCC (tier 1)."""
+        """All recs for a freshman should be BCC/MCC (tier 1) or bridge prereqs."""
         recs, _ = _get_recs(client, self.PAYLOAD)
         for r in recs:
             fills = r.get("fills_buckets", [])
@@ -83,8 +83,10 @@ class TestFinMajorFreshman:
             is_tier_1 = any(
                 "BCC" in b or "MCC" in b for b in short_fills
             )
-            assert is_tier_1, (
-                f"{r['course_code']} fills {short_fills} which is not tier 1 (BCC/MCC)"
+            # Bridge courses have empty fills_buckets but still serve tier-1 needs
+            is_bridge = not fills and "unlocks" in (r.get("why") or "").lower()
+            assert is_tier_1 or is_bridge, (
+                f"{r['course_code']} fills {short_fills} which is not tier 1 (BCC/MCC) and not a bridge course"
             )
 
 
@@ -213,6 +215,33 @@ class TestHureMajor:
         assert len(recs) >= 4
 
 
+class TestHureMajorZeroCreditMultiSemester:
+    """Zero-credit HURE path should keep progressing through bridge prerequisites."""
+
+    PAYLOAD = {
+        "declared_majors": ["HURE_MAJOR"],
+        "track_id": "",
+        "completed_courses": "",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 8,
+        "max_recommendations": 6,
+    }
+
+    def test_bridge_prereq_keeps_late_semesters_alive(self, client):
+        _, data = _get_recs(client, self.PAYLOAD)
+        semesters = data.get("semesters", [])
+        assert len(semesters) == 8
+        assert semesters[5].get("recommendations"), "Semester 6 should not dead-end early"
+        # Semesters 7-8 may be empty once all degree requirements are fulfilled.
+        all_codes = [
+            rec["course_code"]
+            for semester in semesters
+            for rec in semester.get("recommendations", [])
+        ]
+        assert "MATH 1200" in all_codes
+
+
 class TestOscmMajor:
     """OSCM major smoke test."""
 
@@ -317,7 +346,7 @@ class TestDebugMode:
         entry = data["semesters"][0]["debug"][0]
         required_fields = [
             "rank", "course_code", "selected", "tier",
-            "unlock_count", "soft_tag_penalty", "multi_bucket_score",
+            "soft_tag_penalty", "multi_bucket_score",
             "prereq_level", "fills_buckets",
         ]
         for field in required_fields:

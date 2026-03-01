@@ -190,6 +190,83 @@ class TestGetEligibleCourses:
         # FINA 4011 only maps to CORE in this fixture; with CORE full it should not appear.
         assert "FINA 4011" not in codes
 
+    def test_includes_bridge_course_that_unlocks_unmet_bucket_course(self):
+        courses = pd.DataFrame([
+            {
+                "course_code": "PREP 1000",
+                "course_name": "Preparation",
+                "credits": 3,
+                "level": 1000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "",
+                "offering_confidence": "high",
+                "notes": None,
+            },
+            {
+                "course_code": "CORE 2000",
+                "course_name": "Core Course",
+                "credits": 3,
+                "level": 2000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "PREP 1000",
+                "prereq_soft": "",
+                "offering_confidence": "high",
+                "notes": None,
+            },
+        ])
+        from prereq_parser import parse_prereqs
+        prereq_map = {
+            "PREP 1000": parse_prereqs("none"),
+            "CORE 2000": parse_prereqs("PREP 1000"),
+        }
+        buckets = pd.DataFrame([
+            {
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "CORE",
+                "bucket_label": "Core Required",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "FIN_MAJOR",
+                "requirement_mode": "required",
+            }
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "FIN_MAJOR", "bucket_id": "CORE", "course_code": "CORE 2000"},
+        ])
+        remaining = {
+            "CORE": {
+                "slots_remaining": 1,
+                "needed": 1,
+                "remaining_courses": ["CORE 2000"],
+            }
+        }
+
+        eligible = get_eligible_courses(
+            courses,
+            [],
+            [],
+            "Fall",
+            prereq_map,
+            remaining,
+            course_map,
+            buckets,
+            track_id="FIN_MAJOR",
+        )
+        row = next(c for c in eligible if c["course_code"] == "PREP 1000")
+        assert row["primary_bucket"] == "CORE"
+        assert row["fills_buckets"] == []
+        assert row["selection_buckets"] == []
+        assert row["bridge_target_buckets"] == ["CORE"]
+        assert row["unlocks_unmet_courses"] == ["CORE 2000"]
+
     def test_same_family_non_elective_hides_same_family_elective_pool_but_keeps_cross_family(self):
         courses = pd.DataFrame([
             {

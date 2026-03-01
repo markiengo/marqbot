@@ -1,0 +1,932 @@
+
+<!DOCTYPE HTML><html lang="en"><head>
+<!-- this is the headcode include -->
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="/_resources-2024/bootstrap-5.3.3-dist/css/bootstrap.min.css"/>
+<link rel="stylesheet" href="/_resources-2024/fontawesome-free-6.5.2-web/css/all.css"/>
+
+<link rel="stylesheet" href="/_resources-2024/css/global.css"/>
+<link rel="stylesheet" href="/_resources-2024/css/global-responsive.css"/>
+
+<link rel="stylesheet" href="/_resources-2024/css/header.css"/>
+<link rel="stylesheet" href="/_resources-2024/css/footer.css"/>
+
+<link rel="stylesheet" href="/_resources-2024/css/fonts.css"/>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+
+
+
+
+
+
+
+
+
+<!-- Insert google analytics here -->
+<script type="text/javascript">
+
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-TRKSKJB');
+
+</script>
+<style>header { z-index: 2; }</style>
+
+		<meta property="og:url" content="https://www.marquette.edu/">
+		<meta property="og:type" content="website">
+		<meta property="og:title" content="A Marquette education prepares students to Be The Difference.">
+		<meta property="og:description" content="Marquette University is a Catholic, Jesuit university located in Milwaukee, Wisconsin, that offers more than 80 majors through its nationally and internationally recognized colleges and schools.">
+		<meta property="og:image" content="https://www.marquette.edu/_images/students-campus-og.jpg">
+		
+				<style>
+/* call to action bottom fade in section */
+			.call-to-action {
+			display: none;
+			padding: 1rem 2.5rem 1.5rem;
+			background: #fffae6;
+			gap: 10%;
+			align-items: center;
+			justify-content: space-around;
+			position: fixed;
+			bottom: 0;
+			max-width: 4000px;
+			z-index: 2;
+			margin: 0 auto;
+			width: 100%;
+			}
+			.call-to-action h3 {
+			color: #836236;
+			font-size: 2rem;
+			}
+			.call-to-action h3 em{
+			font-family: 'Tiempos Headline', serif;
+			font-style: italic;
+			}
+			
+					
+			/* make lower banner link accessible */
+			.hero_banner-subtitle > a{
+				color:white;
+			}
+			.hero_banner-subtitle > a:hover {
+			  color: #FFCC00;
+			}
+			
+			.dropup-menu {
+			transform: translateY(10px);
+			}
+			.dropup-menu.btn-dropdown-menu {
+			margin-top: -12.5rem !important;
+			width: calc(100% - 0px);
+			z-index: 0;
+			}
+			
+			@media screen and (max-width: 991px) {
+			.main_footer {
+			padding: 60px 0 15em 0;
+			}	
+			.call-to-action h3 {
+			font-size: 1.5rem;
+			}
+			}
+			
+			@media screen and (max-width: 718px) {
+			.call-to-action {
+			padding: .25rem 2rem 1rem;
+			align-items: start;
+			flex-direction: column;
+			}
+			.call-to-action h3 {
+			padding-bottom: .75rem;
+			}
+		</style>
+		
+	<title>Marquette University // Be The Difference</title><meta name="Description" content="Marquette University is a Catholic, Jesuit university located in Milwaukee, Wisconsin, that offers more than 80 majors through its nationally and internationally recognized colleges and schools."></head><body><!-- OU Search Ignore Start Here -->
+<noscript>  <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TRKSKJB" height="0" width="0" style="display:none;visibility:hidden">  </iframe></noscript>
+<header><div class="main_header gradient_gray"><div class="container-fluid">
+   <div class="row">
+      <div class="col-6 col-xl-3 d-flex align-items-center"><a href="/"><img class="header-logo" src="/_resources-2024/images/mu-logo.svg" alt="Marquette University"></a></div>
+      <div class="col-12 col-xl-6 d-none d-xl-grid align-items-center">
+         <div class="header-links"><a href="/academics/">Academics</a><a href="/admissions/">Admissions</a><a href="/tuition-financial-aid/">Tuition &amp; Financial Aid</a><a href="/campus-life/">Campus Life</a></div>
+      </div>
+      <div class="col-6 col-xl-3 d-grid align-items-center justify-content-end">
+         <div><span class="header-links-sm"><a href="/apply/">Apply</a><span class="divider">/</span><a href="/visit/">Visit</a><span class="divider">/</span><a href="https://www.givecampus.com/0rx5li">Give</a></span><a href="#" class="submenu-search_icon mx-3" id="openSearchButton"><span class="fa-solid fa-magnifying-glass"></span><span class="sr-only">Search</span></a><a href="#" class="submenu-bars" id="openMenuButton" aria-label="Menu toggle"><span class="fa-sharp fa-solid fa-bars me-1"></span><span class="submenu-bars-text">Menu</span></a></div>
+      </div>
+   </div>
+</div></div><div class="header-submenu">
+   <div class="container-fluid">
+      <div class="row">
+         <div class="col-6 d-grid align-items-center"><a href="/"><img class="header-logo" src="/_resources-2024/images/mu-logo.svg" alt="Marquette University"></a></div>
+         <div class="col-6 d-grid align-items-center justify-content-end"><a href="#" class="submenu-bars" id="closeMenuButton" aria-label="Close menu"><span>close Menu</span><span class="fa-sharp fa-solid fa-close ms-3"></span></a></div>
+      </div>
+      <div class="submenu-content">
+         <div class="submenu-btns">
+            <div class="row">
+               <div class="col px-0"><a href="/apply/">Apply</a></div>
+               <div class="col px-0"><a href="/visit/">Visit</a></div>
+               <div class="col px-0"><a href="https://www.givecampus.com/0rx5li">Give</a></div>
+            </div>
+         </div>
+         <div class="submenu-search">
+            <h4 class="submenu-title">SEARCH MARQUETTE</h4>
+            <form action="/search/q.php"><label for="search-input" class="sr-only">Search:</label><input type="text" id="search-input" name="q" placeholder="Search"><button type="submit"><span class="fa fa-search"></span><span class="sr-only">search button</span></button></form>
+         </div>
+         <div class="submenu-links">
+            <div class="row">
+               <div class="col-12 col-lg-4">
+                  <div class="hash_mark"></div><a class="submenu-title" href="/academics/">Academics</a><a href="/admissions/undergraduate/">Undergraduate Programs</a><a href="/grad/programs.php">Graduate Programs</a><a href="/business/graduate/">Graduate Business Programs</a><a href="/academics/majors/">Majors</a><a href="/libraries/">Libraries</a><a href="/academics/">Colleges/Schools</a><a href="/student-success/">Student Success</a><a href="/study-abroad/">Study Abroad</a></div>
+               <div class="col-12 col-lg-4">
+                  <div class="hash_mark"></div><a class="submenu-title" href="/admissions/">Admissions</a><a href="/admissions/undergraduate/">Undergraduate Admissions</a><a href="/grad/why-choose-marquette-university.php">Graduate Admissions</a><a href="/business/graduate/">Graduate Business Admissions</a><a href="https://law.marquette.edu/prospective-students">Law</a><a href="/dentistry/admissions/">Dentistry</a><a href="/apply/">Apply</a></div>
+               <div class="col-12 col-lg-4">
+                  <div class="hash_mark"></div><a class="submenu-title" href="/tuition-financial-aid/">Tuition &amp; Financial Aid</a><a href="/tuition-financial-aid/scholarships-overview.php">Undergraduate Scholarships</a><a href="/central/financial-aid/scholarships/">Graduate/Professional Scholarships</a><a href="/central/financial-aid/applying-for-aid/">Apply for Aid</a><a href="/value/lasting-value.php">Value of Marquette</a><a href="/central/">Marquette Central</a></div>
+            </div>
+            <div class="row">
+               <div class="col-12 col-lg-4">
+                  <div class="hash_mark"></div><a class="submenu-title" href="/campus-life/">Campus Life</a><a href="/visit/">Visit Marquette</a><a href="/university-safety/">University Safety</a><a href="/residence-life/">Residence Life</a><a href="/student-affairs/">Student Affairs</a><a href="/mission-ministry/">Mission and Ministry</a><a href="https://gomarquette.com" target="_blank" rel="noopener"><span data-teams="true"><span class="ui-provider a b c d e f g h i j k l m n o p q r s t u v w x y z ab ac ae af ag ah ai aj ak" dir="ltr">Athletics</span></span></a></div>
+               <div class="col-12 col-lg-4">
+                  <div class="hash_mark"></div><a class="submenu-title" href="/about/">About</a><a href="/about/mission.php">Our Mission</a><a href="/about/history.php">Our History</a><a href="/about/catholic-jesuit.php">Catholic and Jesuit</a><a href="/about/rankings.php">RANKINGS/RECOGNITIONS</a><a href="/leadership/">University Leadership</a><a href="https://today.marquette.edu/" target="_blank" rel="noopener">Marquette Today</a><a href="https://employment.marquette.edu/">Careers</a><a href="/alumni/" target="_blank" rel="noopener">Alumni</a></div>
+               <div class="col-12 col-lg-4">
+                  <div class="hash_mark"></div><a class="submenu-title" href="/research-at-marquette/">Research</a><a href="/innovation/">Research and Innovation</a><a href="/research-sponsored-programs/">Research and Sponsored Programs</a><a href="https://today.marquette.edu/category/research-innovation/faculty-research/">Faculty Research</a></div>
+            </div>
+         </div>
+         <div class="submenu-footer">
+            <div class="row">
+               <div class="col-12 col-lg-6">
+                  <div class="submenu-az">
+                     <p>Marquette A to Z</p><a href="/tools/atoz.php?index=a">A</a><a href="/tools/atoz.php?index=b">B</a><a href="/tools/atoz.php?index=c">C</a><a href="/tools/atoz.php?index=d">D</a><a href="/tools/atoz.php?index=e">E</a><a href="/tools/atoz.php?index=f">F</a><a href="/tools/atoz.php?index=g">G</a><a href="/tools/atoz.php?index=h">H</a><a href="/tools/atoz.php?index=i">I</a><a href="/tools/atoz.php?index=j">J</a><a href="/tools/atoz.php?index=k">K</a><a href="/tools/atoz.php?index=l">L</a><a href="/tools/atoz.php?index=m">M</a><a href="/tools/atoz.php?index=n">N</a><a href="/tools/atoz.php?index=o">O</a><a href="/tools/atoz.php?index=p">P</a><a href="/tools/atoz.php?index=q">Q</a><a href="/tools/atoz.php?index=r">R</a><a href="/tools/atoz.php?index=s">S</a><a href="/tools/atoz.php?index=t">T</a><a href="/tools/atoz.php?index=u">U</a><a href="/tools/atoz.php?index=v">V</a><a href="/tools/atoz.php?index=w">W</a><a href="/tools/atoz.php?index=x">X</a><a href="/tools/atoz.php?index=y">Y</a><a href="/tools/atoz.php?index=z">Z</a></div>
+               </div>
+               <div class="col-12 col-lg-6 d-lg-grid align-items-center justify-content-end">
+                  <div class="submenu-social"><a href="https://www.facebook.com/marquetteu"><span class="fa-brands fa-square-facebook"></span><span class="sr-only">facebook</span></a><a href="https://www.instagram.com/marquetteu/?hl=en"><span class="fa-brands fa-instagram"></span><span class="sr-only">instagram</span></a><a href="https://x.com/MarquetteU"><span class="fa-brands fa-square-x-twitter"></span><span class="sr-only">x-twitter</span></a><a href="http://www.linkedin.com/company/7160?goback=.fcs_GLHD_marquette_false_*2_*2_*2_*2_*2_*2_*2_*2_*2_*2_*2_*2&amp;trk=ncsrch_hits"><span class="fa-brands fa-linkedin-in"></span><span class="sr-only">linkedin</span></a><a href="https://www.youtube.com/marquetteu"><span class="fa-brands fa-youtube"></span><span class="sr-only">youtube</span></a><a href="https://www.tiktok.com/@marquetteu"><span class="fa-brands fa-tiktok"></span><span class="sr-only">tiktok</span></a><a href="https://www.threads.net/@marquetteu"><span class="fa-brands fa-threads"></span><span class="sr-only">threads</span></a></div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</div></header><!-- OU Search Ignore End Here --><div class="hero_banner hero-bg-center" style="background-image: url(/_images/wis-ave-sunset.webp);"><div class="container-fluid"><div class="hero_banner-content"><div class="hash_mark"></div><h1 class="d1 hero_banner-title">Meaningful education,<br><span class="d1_emphasis">purposeful lives.</span></h1><div class="hero_banner-btns"><div class="dropdown btn-dropdown"><button class="btn-primary_blue dropdown-toggle" type="button" id="d15e97" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-bs-display="static">Take your first step</button><div class="dropdown-menu btn-dropdown-menu" aria-labelledby="d15e97"><a class="dropdown-item" href="/admissions/index.php">Apply today</a><a class="dropdown-item" href="/visit/index.php">Plan a visit</a><a class="dropdown-item" href="/value/lasting-value.php">Discover our difference</a><a class="dropdown-item" href="/tools/contact-us.php">We're here to help</a></div></div></div></div></div></div>
+	<div class="bg-primary_blue">
+		<div class="container-fluid">
+			
+			<div class="section-intro intro-center">
+				<div class="row">
+					<div class="col-12">
+						<div class="hash_mark"></div>
+						<div>
+							<!-- check heading classes to match background -->
+							<h2 class="text-white">Explore your purpose. <span class="emphasis">Become your potential.</span></h2>
+						</div>
+						<p>We’re a Catholic, Jesuit university in the heart of Milwaukee, Wisconsin, that prepares our students with the knowledge, skills and sense of community they need to build meaningful careers, lead purposeful lives and transform the world around them.</p>
+					</div>
+				</div>
+			</div>
+			<div class="stats_card stats_card-decor stats_card-decor_blue">
+	<div class="stats_card-box">
+		<div class="row">
+			<div class="row"><div class="col-12"><div class="hash_mark"></div><div class="stats-title"><h2 class="h1">We're highly rated.</h2></div></div><div class="col-12 col-md-6 col-lg-4"><h2 class="stats-heading">Top 20%</h2><h5 class="stats-sub_heading">Best national universities</h5><p class="paragraph">U.S. News &amp; World Report</p></div><div class="col-12 col-md-6 col-lg-4"><h2 class="stats-heading">#6</h2><h5 class="stats-sub_heading">Nationally for job placement</h5><p class="paragraph">Zippia.com, based on U.S. Department of Education data</p></div><div class="col-12 col-md-6 col-lg-4"><h2 class="stats-heading">Best Value</h2><h5 class="stats-sub_heading">Top 60</h5><p class="paragraph">U.S. News &amp; World Report</p></div></div>
+		</div>
+	</div>
+	<div class="stats-anchor anchor_horizontal-blue"></div>
+</div>
+
+
+
+		</div>
+	</div>
+	
+	
+	
+	
+ 
+
+
+
+
+	<div class="bg-gradient_blue_2 py-5">
+		<div class="container-fluid px-lg-5">
+			<div class="row px-lg-5">
+				<center>
+					<div class="col-12 col-xl-10 mx-auto">
+						<div class="hash_mark"></div>
+							<h3 class="h2 mb-3" style="color:#ffffff;">Be a part of something  <em style="color:#ffcc00">greater.</em></h3>
+							<p>Students don’t just come to Marquette for a degree. They come here to build lifelong connections and find a community of kindred spirits focused on the greater good. They leave ready to Be The Difference in their own extraordinary ways.</p>
+							<div></div>
+						</div>
+				</center>
+				<div class="col-12 col-xl-2">
+					<div class="image_collage d-none d-xl-block">
+						
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	
+ 
+
+
+	<div id="" class="bg-white">
+		<div class="container-fluid">
+			
+			
+			<div class="row">
+				<div class="col-12 col-sm-6 col-lg-4">
+	<!-- full image card - start -->  
+	<div class="card-full-img">
+		<img src="/_images/2026-undergrad.jpg" alt="Undergraduate students working next to computers">
+		<div class="card-content">
+			<h3 class="card-title">Undergraduate application</h3>
+			<p class="card-text">If you’re a first-year or transfer student, learn more about Marquette’s undergraduate admissions. Or if you’re ready to apply, start your application process below.</p>
+			<a class="card-btn btn-secondary_blue" href="/admissions/undergraduate/index.php" target="_self">Apply to Marquette</a>
+		</div>
+		<div class="anchor_horizontal-gold"></div>
+	</div>
+	<!-- full image card - end -->
+</div><div class="col-12 col-sm-6 col-lg-4">
+	<!-- full image card - start -->  
+	<div class="card-full-img">
+		<img src="/_images/2026-grad.jpg" alt="Nursing professor working with grad student">
+		<div class="card-content">
+			<h3 class="card-title">Graduate School application</h3>
+			<p class="card-text">Explore more than 90 Marquette graduate program opportunities and start your application process below.</p>
+			<a class="card-btn btn-secondary_blue" href="/grad/programs.php" target="_self">Apply to Graduate School</a>
+		</div>
+		<div class="anchor_horizontal-gold"></div>
+	</div>
+	<!-- full image card - end -->
+</div><div class="col-12 col-sm-6 col-lg-4">
+	<!-- full image card - start -->  
+	<div class="card-full-img">
+		<img src="/_images/2026-gsm.jpg" alt="A student at business school">
+		<div class="card-content">
+			<h3 class="card-title">Graduate School of Management application</h3>
+			<p class="card-text">Discover Marquette’s graduate business programs and start your application process below.</p>
+			<a class="card-btn btn-secondary_blue" href="/business/graduate/index.php" target="_self">Apply to GSM</a>
+		</div>
+		<div class="anchor_horizontal-gold"></div>
+	</div>
+	<!-- full image card - end -->
+</div><div class="col-12 col-sm-6 col-lg-4">
+	<!-- full image card - start -->  
+	<div class="card-full-img">
+		<img src="/_images/2026-law-school.jpg" alt="Students doing homework together">
+		<div class="card-content">
+			<h3 class="card-title">Law School application</h3>
+			<p class="card-text">Learn more about Marquette University Law School and start your application process below.</p>
+			<a class="card-btn btn-secondary_blue" href="https://law.marquette.edu/prospective-students/apply-now" target="_self">Apply to Marquette Law School</a>
+		</div>
+		<div class="anchor_horizontal-gold"></div>
+	</div>
+	<!-- full image card - end -->
+</div><div class="col-12 col-sm-6 col-lg-4">
+	<!-- full image card - start -->  
+	<div class="card-full-img">
+		<img src="/_images/2026-health-sciences.jpg" alt="Health Sciences studying outside">
+		<div class="card-content">
+			<h3 class="card-title">Health Sciences Professional applications</h3>
+			<p class="card-text">Learn more about Marquette’s Health Sciences Professional programs and start your application process below.</p>
+			<a class="card-btn btn-secondary_blue" href="/health-sciences/prospective-students/professional-programs.php" target="_self">Apply to Health Sciences Professional Programs</a>
+		</div>
+		<div class="anchor_horizontal-gold"></div>
+	</div>
+	<!-- full image card - end -->
+</div><div class="col-12 col-sm-6 col-lg-4">
+	<!-- full image card - start -->  
+	<div class="card-full-img">
+		<img src="/_images/2026-dental-school.jpg" alt="Two dental students working on a patient">
+		<div class="card-content">
+			<h3 class="card-title">School of Dentistry application</h3>
+			<p class="card-text">Interested in dental school? Explore Marquette University’s School of Dentistry and start your application below.</p>
+			<a class="card-btn btn-secondary_blue" href="/dentistry/admissions/admissions-process.php" target="_self">Apply to Marquette School of dentistry</a>
+		</div>
+		<div class="anchor_horizontal-gold"></div>
+	</div>
+	<!-- full image card - end -->
+</div>
+			</div>
+		</div>
+	</div>
+	
+	
+ 
+
+
+
+
+	<div class="bg_white extra-padding-top">
+		<div class="container-fluid px-lg-5">
+			<div class="row px-lg-5">
+				<center>
+					<div class="col-12 col-xl-10 mx-auto">
+						<div class="hash_mark"></div>
+							<h3 class="h2 mb-3" style="color: #003366;">We make connections that <em style="color:#0072ce"> count.</em></h3>
+							<p></p>
+							<div></div>
+						</div>
+				</center>
+				<div class="col-12 col-xl-2">
+					<div class="image_collage d-none d-xl-block">
+						
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	
+ 
+
+
+	<div class="bg_white py-5 " tabindex="-1">
+		<div class="container-fluid">
+			 <div class="row align-items-center">	     
+		<div class="col-xs-12 col-sm-4" style="padding: 0 7%;"> 
+<img src="https://www.marquette.edu/_images/teaching-stat-graphic.svg" alt="Top 20 in best undergrad teaching - US News &amp; World Report" width="100%;">
+		  
+		  <p>
+			  
+		</p>
+</div><div class="col-xs-12 col-sm-4" style="padding: 0 7%;"> 
+<img src="https://www.marquette.edu/_images/rankings-stats-15-internship.svg" alt="Top 15 in Best Schools for Internships - Princeton Review" width="100%;">
+		  
+		  <p>
+			  
+		</p>
+</div><div class="col-xs-12 col-sm-4" style="padding: 0 7%;"> 
+<img src="/_images/student-faculty-ratio.svg" alt="14 to 1 student-to-faculty ratio" width="100%;">
+		  
+		  <p>
+			  
+		</p>
+</div>				
+			</div>
+		</div>
+	</div>
+ 
+
+
+
+	<div class="bg-gradient_gold_2 extra-padding ">
+		<div class="container">
+			<div class="row">
+				<div class="col-12 horizontal_image_collage" style=";">
+					<!-- card 2 col - start -->
+					<img src="/_images/mu-four-image-collage-2026.webp" alt="" class="">
+					<!-- card 2 col - end -->
+				</div>
+			</div>
+		</div>
+	</div>
+ 
+
+
+	
+	<div class="bg-white ">
+		<div class="container-fluid">
+			
+			
+			<div class="stats_card stats_card-decor stats_card-decor_blue">
+	<div class="stats_card-box">
+		<div class="row">
+			<div class="row"><div class="col-12 col-xl-5"><div class="hash_mark"></div><div class="stats-title"><h2 class="h1">We are Marquette.*</h2></div></div><div class="col-12 col-xl-7"><div class="row"><div class="col-12 col-md-6"><h2 class="stats-heading">8,000+</h2><h5 class="stats-sub_heading">undergraduates</h5><p class="paragraph"></p></div><div class="col-12 col-md-6"><h2 class="stats-heading">115,000+</h2><h5 class="stats-sub_heading">alumni around the world</h5><p class="paragraph"></p></div><div class="col-12 col-md-6"><h2 class="stats-heading">3,700+</h2><h5 class="stats-sub_heading">graduate and professional students</h5><p class="paragraph"></p></div><div class="col-12 col-md-6"><h2 class="stats-heading">1,772</h2><h5 class="stats-sub_heading">first-generation undergraduate students</h5><p class="paragraph"></p></div></div></div></div>
+		</div>
+	</div>
+	<div class="stats-anchor anchor_horizontal-blue"></div>
+</div>
+
+
+<div class="stats-footnote"><p>*<em>This is who we are. See what we do, every day at <a href="https://today.marquette.edu/">Marquette Today</a>.</em></p></div>
+		</div>
+	</div>
+	
+	
+	
+ 
+
+
+	<div class="bg-white ">
+		<div class="container-fluid">
+			
+			<div class="section-intro intro-center">
+				<div class="row">
+					<div class="col-12">
+						<div class="hash_mark"></div>
+						<div>
+							<h2 class="">You'll stand out with a <span class="emphasis">Marquette degree.</span></h2>
+						</div>
+						
+					</div>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-12">
+					<div class="card_split" data-split-card="1">
+	<div class="row">
+		<div class="col-12 col-lg-6 split-content order-1 order-lg-0">
+			<div class="card_split-title">
+				<span class="h1">96%</span>
+			</div>
+			<h3 class="card_split-text">of graduates with full-time employment consider their job to be related to their career goals</h3>
+
+			<p class="card_split-gray"><em>Undergraduate First Destination Survey 2024</em></p>
+		</div>
+		<div class="col-12 col-lg-6 split-image d-flex order-0 order-lg-1">
+			<div class="split-image-wrapper" style="background-image: url('/_images/harley-davidson-student.webp');" title="Woman working at Harley Davidson" role="img"></div>
+		</div>
+	</div>
+</div>
+
+
+<div class="card_split card_split-right" data-split-card="2">
+	<div class="row">
+		<div class="col-12 col-lg-6 split-content order-1">
+			<div class="card_split-title">
+				<span class="h1">96%</span>
+			</div>
+			<h3 class="card_split-text">of our alumni are employed full time 10 years after graduation</h3>
+
+			<p class="card_split-gray"><em>Zippia.com/U.S. Department of Education data</em></p>
+		</div>
+		<div class="col-12 col-lg-6 split-image d-flex order-0">
+			<div class="split-image-wrapper" style="background-image: url('/_images/exercise-physiology-work.webp');" title="Exercise physiology students helping other students with injuries" role="img"></div>
+		</div>
+	</div>
+</div>
+<div class="card_split" data-split-card="3">
+	<div class="row">
+		<div class="col-12 col-lg-6 split-content order-1 order-lg-0">
+			<div class="card_split-title">
+				<span class="h1">96%</span>
+			</div>
+			<h3 class="card_split-text">of graduating seniors reported satisfaction with their undergraduate Marquette University education</h3>
+
+			<p class="card_split-gray"><em>Graduating Senior Survey 2025</em></p>
+		</div>
+		<div class="col-12 col-lg-6 split-image d-flex order-0 order-lg-1">
+			<div class="split-image-wrapper" style="background-image: url('/_images/excited-student-undergrad-ceremony.webp');" title="Student pumps their fist as they recieve their degree" role="img"></div>
+		</div>
+	</div>
+</div>
+
+
+				</div>
+			</div>
+		</div>
+	</div>
+	
+ 
+
+
+
+<div class="hero_banner hero-bg-top extra-padding" style="margin-top: 0!important; background-image: url('/_images/o-fest-2025.webp'); background-position:%">
+        <div class="container-fluid">
+          <div class="hero_banner-content">
+            <div class="hash_mark"></div>
+            <h2 class="w-75 d2 hero_banner-title" style="font-size: 2.75rem; margin-bottom:1rem;">
+              Live it up!
+				<br>
+              <span class="d2_emphasis" style="font-size: 2.75rem;"></span>
+            </h2>
+
+            <h3 class="w-75 hero_banner-subtitle">
+			  Curious what <a href="/campus-life/index.php">campus life</a> at Marquette is all about? Expect to have the time of your life!
+            </h3>
+
+            
+          </div>
+        </div>
+      </div>
+
+ 
+
+
+	
+	
+	<div class="bg-light_blue ">
+		<div class="container-fluid">
+			
+			<div class="section-intro intro-center">
+				<div class="row">
+					<div class="col-12">
+						<div class="hash_mark"></div>
+						<div>
+							<!-- check heading classes to match background -->
+							<h2 class="text-primary_blue">Research, scholarship and <span class="emphasis">innovation.</span></h2>
+						</div>
+						<p>People across the globe are facing big challenges, and we need all available brains and bodies on board to solve them. So at Marquette, we have multiple opportunities to generate ideas, foster innovation and research critical questions.</p>
+					</div>
+				</div>
+			</div>
+			<div class="stats_card stats_card-decor stats_card-decor_blue">
+	<div class="stats_card-box">
+		<div class="row">
+			<div class="row"><div class="col-12"><div class="hash_mark"></div><div class="stats-title"><h2 class="h1">More ideas mean more solutions.*</h2></div></div><div class="col-12 col-md-6 col-lg-4"><h2 class="stats-heading">1 in 4</h2><h5 class="stats-sub_heading">Undergraduates participate in faculty research</h5><p class="paragraph"></p></div><div class="col-12 col-md-6 col-lg-4"><h2 class="stats-heading">#48</h2><h5 class="stats-sub_heading">Most Innovative Schools</h5><p class="paragraph">U.S. News &amp; World Report</p></div><div class="col-12 col-md-6 col-lg-4"><h2 class="stats-heading">$49.1M+</h2><h5 class="stats-sub_heading">Research and development expenditures FY24</h5><p class="paragraph"></p></div></div>
+		</div>
+	</div>
+	<div class="stats-anchor anchor_horizontal-blue"></div>
+</div>
+
+
+<div class="stats-footnote"><p><em>*Read about our research impact at <a href="https://today.marquette.edu/category/research-innovation/">Marquette Today</a>.</em></p></div>
+		</div>
+	</div>
+	
+	
+ 
+
+
+<!-- Image on the left -->
+<div class="bg-light_blue extra-padding-bottom breakout-image-left">
+	<div class="container-fluid px-lg-5">
+		<div class="row px-lg-5 align-items-center">
+			<div class="col-12 col-xl-7 order-1 order-xl-1">
+				<div>
+					<div class="hash_mark"></div>
+					<h3>Research in action</h3>
+					<p>Marquette’s research and scholarship efforts advance knowledge, tackle the world’s challenges and strive to create value for all.</p>
+					<div class="card_2col-btns">
+						<a class="btn-secondary_blue" href="https://www.marquette.edu/research-at-marquette/index.php" target="_self">Research at Marquette</a>
+					</div>
+				</div>
+			</div>
+			<div class="col-12 col-xl-5 order-0 order-xl-0 my-4">
+				<div class="image_collage">
+					<img src="https://today.marquette.edu/wp-content/uploads/2024/05/LarryZhimingXu_Discover_Wave2.jpg" alt="Man standing in front of whiteboard">
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+
+
+
+
+	
+ 
+
+
+
+
+	<div class="bg_white extra-padding-top">
+		<div class="container-fluid px-lg-5">
+			<div class="row px-lg-5">
+				<center>
+					<div class="col-12 col-xl-10 mx-auto">
+						<div class="hash_mark"></div>
+							<h3 class="h2 mb-3" style="color: #003366;">We take you into the community. Because   <em style="color:#0072ce">being the difference </em>begins at home. </h3>
+							<p></p>
+							<div></div>
+						</div>
+				</center>
+				<div class="col-12 col-xl-2">
+					<div class="image_collage d-none d-xl-block">
+						
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	
+ 
+
+
+	<div class="bg-white">
+		<div class="container">
+			<div class="card_2col card_2col-decor card_2col-decor_blue">
+	<div class="row center">
+		<div class="col-12 col-lg-6 order-1 order-lg-0">
+			<div class="hash_mark"></div>
+			<div class="card_2col-title">
+				<h2 class="h1">
+					Ranked No. 1 in community service
+					
+					
+				</h2>
+			</div>
+			
+			<div class="paragraph"><p><em>The Princeton Review ranked Marquette University in its list of best colleges for 2026, including a No. 1 ranking for engagement in community service for the second year in a row.</em></p></div>
+
+			<div class="card_2col-btns">
+				<a class="btn-secondary_blue" href="https://today.marquette.edu/2024/08/marquette-ranked-a-best-college-no-1-for-community-service-by-princeton-review-for-2025/" target="_self">Get the story</a>
+				
+			</div>
+		</div>
+
+		<div class="col-12 col-lg-6 col-xl-5 offset-xl-1 d-flex order-0 order-lg-1">
+			<img src="https://www.marquette.edu/_images/mu-students.webp" alt="Students walking on campus">
+		</div>
+	</div>
+</div>
+
+<div class="anchor_horizontal-blue"></div>
+
+<div class="card_2col card_2col-decor card_2col-decor_gold">
+	<div class="row center">
+		<div class="col-12 col-lg-6 offset-xl-1 order-1">
+			<div class="hash_mark"></div>
+			<div class="card_2col-title">
+				<h2 class="h1">
+					Jesuit Educated
+					
+					
+				</h2>
+			</div>
+			
+			<div class="paragraph"><p><span data-teams="true">With a focus on critical thinking, leadership, academic excellence and scholarship, a Jesuit education helps shape students to be “for and with others." Rooted in a 500-year-old tradition founded by St. Ignatius of Loyola, Jesuit education principles prepare students to lead lives of purpose and service in the quickly changing world of today and readies them for the world of tomorrow.<br></span></p></div>
+
+			<div class="card_2col-btns">
+				<a class="btn-secondary_gold" href="https://www.jesuiteducated.com/" target="_blank">Learn more</a>
+				
+			</div>
+		</div>
+
+		<div class="col-12 col-lg-6 col-xl-5 d-flex order-0">
+			<img src="/_global-images/jesuit-logo-blue-text.png" alt="We are jesuit educated sunburst logo">
+		</div>
+	</div>
+</div>
+
+<div class="anchor_horizontal-gold"></div>
+		</div>
+	</div>
+ 
+
+<p>&nbsp;</p>
+
+
+<!-- Image on the right -->
+<div class="bg-light_blue extra-padding breakout-image-right">
+	<div class="container-fluid px-lg-5">
+		<div class="row px-lg-5 align-items-center">
+			<div class="col-12 col-xl-7 order-1 order-xl-0">
+				<div>
+					<div class="hash_mark"></div>
+					<h3>Marquette + Milwaukee. Together since 1881.</h3>
+					<p>Our central location just over a mile from Lake Michigan gives you the ideal spot to discover Milwaukee, our hometown. You’ll find world-class sports, dining, concerts, festivals, shopping, art and theatre — all within walking distance. And with an extensive number of nonprofits, organizations and companies in every industry, including several Fortune 500 headquarters, Milwaukee boasts an abundance of job and internship opportunities. Even <a href="https://www.travelandleisure.com/best-us-cities-for-young-adults-ranking-11869271" target="_blank" rel="noopener">Travel + Leisure</a> ranked Milwaukee in the top 5 Best U.S. Cities for Young Adults, based on livability, rent, jobs and social life.</p>
+					
+				</div>
+			</div>
+			<div class="col-12 col-xl-5 order-0 order-xl-1 my-4">
+				<div class="image_collage">
+					<img src="/_images/top-five-city.webp" alt="Graphic detailing Milwaukee being a top 5 city in the United States for young adults">
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+
+
+
+
+	
+ 
+
+<section class="call-to-action" style="display: flex;">
+<h3>Come for a visit. Stay for <em>The Difference</em>.</h3>
+<div class="dropdown btn-dropdown btn-up"><button id="d14e77" class="btn-primary_blue dropdown-toggle dropup-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true" data-bs-display="static">Take your first step</button>
+<div class="dropdown-menu btn-dropdown-menu dropup-menu" style="visibility: hidden;" aria-labelledby="d14e77" data-bs-popper="static"><a class="dropdown-item" href="/admissions/">APPLY TODAY</a> <a class="dropdown-item" href="/visit/">PLAN A VISIT</a> <a class="dropdown-item" href="/value/lasting-value.php">DISCOVER OUR DIFFERENCE</a> <a class="dropdown-item" href="/tools/contact-us.php">WE'RE HERE TO HELP</a></div>
+</div>
+</section>
+<div class="bg-primary_blue extra-padding">
+<div class="container">
+<div class="row">
+<div class="col-12"><!-- card 2 col - start -->
+<div class="card_2col card_2col-decor card_2col-decor_gold">
+<div class="row">
+<div class="col-12 col-lg-6"><img src="https://www.marquette.edu/_images/droneshot-marquette-campus.webp" alt="Campus drone shot with beautiful green space new buildings and view of Lake Michigan" width="1200" height="800"></div>
+<div class="col-12 col-lg-6 col-xl-5 offset-xl-1 d-flex align-items-center">
+<div>
+<div class="hash_mark">&nbsp;</div>
+<div class="card_2col-title">
+<h2 class="h1">There's only one way to get here.</h2>
+</div>
+<div class="card_2col-btns"><a class="btn-primary_blue" href="/visit/">Plan a visit</a> <a class="btn-primary_gold mt-3" href="/tools/contact-us.php">Here to help</a></div>
+</div>
+</div>
+</div>
+</div>
+<div class="anchor_horizontal-gold">&nbsp;</div>
+<!-- card 2 col - end --></div>
+</div>
+</div>
+</div><!-- OU Search Ignore Start Here --><footer class="main_footer">
+   <div class="container-fluid">
+      <p class="footer-info">Problem with this webpage? <a href="/accessible-technology/report-accessibility-issue.php">Report an accessibility problem</a>. To report another problem, please contact <a href="https://www.wrike.com/frontend/requestforms/index.html?token=eyJhY2NvdW50SWQiOjYzMDEyODcsInRhc2tGb3JtSWQiOjIxMjQ3NTZ9CTQ4ODMyMzQzMTgyNDgJOWZiMjhiZGVhOThkNjJhMGZlYWY5N2Q0OTkwYzA0MTZkNjY2YTI2ZGYxZTYwMjU2ZmM0ZDgyMDlmZjczZTA0Ng==">webrequests@marquette.edu</a>.</p>
+      <div class="row">
+         <div class="col-12 col-lg-4 d-lg-grid align-items-center">
+            <div class="footer-logo"><a href="/"><img class="header-logo" src="/_resources-2024/images/mu-logo.svg" alt="Marquette University"></a></div>
+         </div>
+         <div class="col-12 col-lg-4 d-lg-grid align-items-center">
+            <div class="search-container">
+               <form action="/search/q.php" class="footer-search-container"><label for="footer-search-input" class="sr-only">Search</label><input id="footer-search-input" class="footer-search" type="text" name="q" placeholder="Search"><button type="submit"><span class="fa fa-search"></span><span class="sr-only">search button</span></button></form>
+            </div>
+         </div>
+         <div class="col-12 col-lg-4 d-lg-grid align-items-center">
+            <div class="footer-social"><a href="https://www.facebook.com/marquetteu"><span class="fa-brands fa-square-facebook"></span><span class="sr-only">facebook</span></a><a href="https://www.instagram.com/marquetteu/?hl=en"><span class="fa-brands fa-instagram"></span><span class="sr-only">instagram</span></a><a href="https://x.com/MarquetteU"><span class="fa-brands fa-square-x-twitter"></span><span class="sr-only">x-twitter</span></a><a href="http://www.linkedin.com/company/7160?goback=.fcs_GLHD_marquette_false_*2_*2_*2_*2_*2_*2_*2_*2_*2_*2_*2_*2&amp;trk=ncsrch_hits"><span class="fa-brands fa-linkedin-in"></span><span class="sr-only">linkedin</span></a><a href="https://www.youtube.com/marquetteu"><span class="fa-brands fa-youtube"></span><span class="sr-only">youtube</span></a><a href="https://www.tiktok.com/@marquetteu"><span class="fa-brands fa-tiktok"></span><span class="sr-only">tiktok</span></a><a href="https://www.threads.net/@marquetteu"><span class="fa-brands fa-threads"></span><span class="sr-only">threads</span></a></div>
+         </div>
+      </div>
+      <div class="row">
+         <div class="col-12 col-lg-4">
+            <h4 class="footer-title">Marquette University</h4>
+            <div class="footer-address"><a href="/visit/">1250 W. Wisconsin Ave.<br>Milwaukee, WI 53233</a><a href="tel:8002226544">(800) 222-6544</a></div>
+            <div class="mt-5"><a class="btn-primary_gold footer-btn" href="/tools/contact-us.php">Contact Us</a><br><a href="/value/jesuit-educated.php"><img style="width:250px; margin-top: 45px" src="https://www.marquette.edu/_global-images/jesuit-educated-logo.png" alt="We are Jesuit Educated logo"></a></div>
+         </div>
+         <div class="col-12 col-lg-4">
+            <div class="row">
+               <div class="col-12">
+                  <h4 class="footer-title">Key resources</h4>
+               </div>
+               <div class="col-6">
+                  <div class="footer-links"><a href="/es/">español</a><a href="https://employment.marquette.edu/">Careers</a><a href="/visit/#map">Campus Map</a><a href="/tools/campus-contacts.php">Campus Contacts</a><a href="https://outlook.office.com/">Marquette Email</a><a href="https://checkmarq.mu.edu/">CheckMarq</a><a href="https://d2l.mu.edu/">D2L</a><a href="https://myjob.mu.edu/">MyJob</a></div>
+               </div>
+               <div class="col-6">
+                  <div class="footer-links"><a href="/admissions/">Admissions</a><a href="/about/">About</a><a href="/libraries/">Libraries</a><a href="/research-at-marquette/">Research</a><a href="https://gomarquette.com/">Athletics</a><a href="https://alumni.marquette.edu/">Alumni</a><a href="/university-safety/index.php">University Safety</a><a href="/mission-ministry/catholic-jesuit-identity.php">Catholic, Jesuit Identity</a></div>
+               </div>
+            </div>
+         </div>
+         <div class="col-12 col-lg-4">
+            <h4 class="footer-title">Marquette A to Z</h4>
+            <div class="footer-az"><a href="/tools/atoz.php?index=a">A</a><a href="/tools/atoz.php?index=b">B</a><a href="/tools/atoz.php?index=c">C</a><a href="/tools/atoz.php?index=d">D</a><a href="/tools/atoz.php?index=e">E</a><a href="/tools/atoz.php?index=f">F</a><a href="/tools/atoz.php?index=g">G</a><a href="/tools/atoz.php?index=h">H</a><a href="/tools/atoz.php?index=i">I</a><a href="/tools/atoz.php?index=j">J</a><a href="/tools/atoz.php?index=k">K</a><a href="/tools/atoz.php?index=l">L</a><a href="/tools/atoz.php?index=m">M</a><a href="/tools/atoz.php?index=n">N</a><a href="/tools/atoz.php?index=o">O</a><a href="/tools/atoz.php?index=p">P</a><a href="/tools/atoz.php?index=q">Q</a><a href="/tools/atoz.php?index=r">R</a><a href="/tools/atoz.php?index=s">S</a><a href="/tools/atoz.php?index=t">T</a><a href="/tools/atoz.php?index=u">U</a><a href="/tools/atoz.php?index=v">V</a><a href="/tools/atoz.php?index=w">W</a><a href="/tools/atoz.php?index=x">X</a><a href="/tools/atoz.php?index=y">Y</a><a href="/tools/atoz.php?index=z">Z</a></div>
+            <div class="footer-links mt-5 pt-lg-5"><a href="https://www.marquette.edu/tools/privacy.php">Privacy Policy</a><a href="https://www.marquette.edu/tools/legal.php">Legal Disclaimer</a><a href="https://www.marquette.edu/tools/non-discrimination.php">Non-Discrimination Policy</a><a href="https://www.marquette.edu/accessible-technology/">Accessible Technology</a></div>
+            <div class="footer-copyright"><span><span id="directedit">©</span> 2026 Marquette University</span></div>
+         </div>
+      </div>
+   </div>
+</footer> 
+<script src="/_resources-2024/bootstrap-5.3.3-dist/js/bootstrap.bundle.min.js"></script>
+<script src="/_resources-2024/js/slick.min.js"></script>
+<script src="/_resources-2024/js/scripts.js"></script>
+<script src="/_resources-2024/js/header.js"></script>
+<script src="/_resources-2024/js/direct-edit.js"></script>
+<div id="hidden" style="display:none;"><div style="display: none"><a id="de" href="https://cms.mu.edu/11/?skin=oucampus&amp;account=Marquette&amp;site=www&amp;action=de&amp;path=/index.pcf">©</a></div></div>
+			<script>
+		 	$(window).scroll(function() {
+			if ($(this).scrollTop() > 500) {
+			$('.call-to-action').fadeIn().css("display", "flex");
+			} else {
+			$('.call-to-action').fadeOut().css("display", "none");
+			}
+			}); 
+		</script>
+		
+		
+		<script type="text/javascript">
+	
+//dropdown items
+jQuery(".dropdown-item:nth-of-type(1)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Apply Today",
+	  cta_url: "/admissions/index.php",
+	  cta_location: "top"
+	});
+});
+	
+jQuery(".dropdown-item:nth-of-type(2)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Plan A Visit",
+	  cta_url: "/visit",
+	  cta_location: "top"
+	});
+});
+	
+jQuery(".dropdown-item:nth-of-type(3)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Discover Our Difference",
+	  cta_url: "/value/lasting-value.php",
+	  cta_location: "top"
+	});
+});
+	
+jQuery(".dropdown-item:nth-of-type(4)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "We're Here to Help",
+	  cta_url: "/tools/contact-us.php",
+	  cta_location: "top"
+	});
+});
+	
+//apply buttons
+jQuery(".btn-secondary_blue:eq(0)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Apply to Marquette",
+	  cta_url: "/undergraduate",
+	  cta_location: "mid"
+	});
+});
+
+jQuery(".btn-secondary_blue:eq(1)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Apply to Graduate School",
+	  cta_url: "/grad/programs.php",
+	  cta_location: "mid"
+	});
+});
+	
+jQuery(".btn-secondary_blue:eq(2)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Apply to GSM",
+	  cta_url: "/business/graduate",
+	  cta_location: "mid"
+	});
+});
+	
+jQuery(".btn-secondary_blue:eq(3)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Apply to Marquette Law School",
+	  cta_url: "https://law.marquette.edu/prospective-students/apply-now",
+	  cta_location: "mid"
+	});
+});
+	
+jQuery(".btn-secondary_blue:eq(4)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Apply to Health Sciences Professional Programs",
+	  cta_url: "/health-sciences/prospective-students/professional-programs.php",
+	  cta_location: "mid"
+	});
+});
+	
+jQuery(".btn-secondary_blue:eq(5)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Apply to Marquette School of Dentistry",
+	  cta_url: "/dentistry/admissions/admissions-process.php",
+	  cta_location: "mid"
+	});
+});
+
+	
+//One way to get here two buttons
+jQuery(".btn-primary_blue:eq(0)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Plan A Visit",
+	  cta_url: "/visit",
+	  cta_location: "bottom"
+	});
+});
+	
+jQuery("div.card_2col-btns .btn-primary_gold:eq(0)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_cta_click",
+	  cta_text: "Here to Help",
+	  cta_url: "/tools/contact-us.php",
+	  cta_location: "bottom"
+	});
+});
+	
+	
+//floating banner dropup items
+jQuery(".dropup-menu .dropdown-item:nth-of-type(1)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_banner_cta_click",
+	  cta_text: "Apply Today",
+	  cta_url: "/admissions/index.php",
+	  cta_location: "persistent"
+	});
+});
+	
+jQuery(".dropup-menu .dropdown-item:nth-of-type(2)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_banner_cta_click",
+	  cta_text: "Plan A Visit",
+	  cta_url: "/visit",
+	  cta_location: "persistent"
+	});
+});
+	
+jQuery(".dropup-menu .dropdown-item:nth-of-type(3)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_banner_cta_click",
+	  cta_text: "Discover Our Difference",
+	  cta_url: "/value/lasting-value.php",
+	  cta_location: "persistent"
+	});
+});
+	
+jQuery(".dropup-menu .dropdown-item:nth-of-type(4)").on('click', function() {
+	dataLayer.push({
+	  event: "homepage_banner_cta_click",
+	  cta_text: "We're Here to Help",
+	  cta_url: "/tools/contact-us.php",
+	  cta_location: "persistent"
+	});
+});
+
+</script>
+	<!-- OU Search Ignore End Here --></body></html>

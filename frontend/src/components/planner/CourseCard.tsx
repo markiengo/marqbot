@@ -111,13 +111,6 @@ export function CourseCard({ course, programLabelMap }: CourseCardProps) {
         />
       )}
 
-      {/* Unlocks */}
-      {c.unlocks && c.unlocks.length > 0 && (
-        <p className="text-sm text-ink-faint mb-2">
-          Unlocks: {c.unlocks.map(esc).join(", ")}
-        </p>
-      )}
-
       {/* Warnings */}
       {dedupedWarnings.length > 0 && (
         <div className="bg-bad-light rounded-lg px-3 py-2 text-sm text-bad">

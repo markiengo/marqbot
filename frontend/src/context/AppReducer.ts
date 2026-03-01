@@ -98,6 +98,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       if (action.payload === FIN_MAJOR_ID) {
         nextTracks = nextTracks.filter((tid) => tid !== AIM_CFA_TRACK_ID);
       }
+      // Remove tracks whose parent_major_id matches the removed major.
+      nextTracks = nextTracks.filter((tid) => {
+        const tr = state.programs.tracks.find((t) => t.id === tid);
+        return !tr?.parent_major_id || tr.parent_major_id !== action.payload;
+      });
       return { ...state, selectedMajors: next, selectedTracks: nextTracks };
     }
 

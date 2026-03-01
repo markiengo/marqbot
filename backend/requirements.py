@@ -221,38 +221,6 @@ def get_allowed_double_count_pairs(
     return allowed_pairs
 
 
-def get_bucket_by_role(buckets_df: pd.DataFrame, track_id: str, role: str) -> str | None:
-    """Return the first bucket_id with the given role for a track, or None.
-
-    Expects exactly one match per role per track. Logs a warning if multiple
-    rows match (tie-break uses deterministic order).
-    """
-    if "role" not in buckets_df.columns:
-        return None
-    rows = buckets_df[
-        (buckets_df["track_id"] == track_id) & (buckets_df["role"] == role)
-    ]
-    if len(rows) == 0:
-        print(f"[WARN] No bucket with role='{role}' found for track '{track_id}'. Feature disabled.")
-        return None
-    if len(rows) > 1:
-        print(
-            f"[WARN] Multiple buckets with role='{role}' for track '{track_id}': "
-            f"{rows['bucket_id'].tolist()}. Using deterministic tie-break "
-            "(priority asc, bucket_id asc)."
-        )
-
-    rows = rows.copy()
-    if "priority" in rows.columns:
-        priority_sort = pd.to_numeric(rows["priority"], errors="coerce").fillna(10**9)
-    else:
-        priority_sort = pd.Series([10**9] * len(rows), index=rows.index)
-    rows["_priority_sort"] = priority_sort
-    rows["_bucket_sort"] = rows["bucket_id"].astype(str)
-    rows = rows.sort_values(["_priority_sort", "_bucket_sort"], kind="stable")
-    return rows.iloc[0]["bucket_id"]
-
-
 def get_buckets_by_role(buckets_df: pd.DataFrame, track_id: str, role: str) -> list[str]:
     """Return all bucket_ids with the given role for a track."""
     if "role" not in buckets_df.columns:

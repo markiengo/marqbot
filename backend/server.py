@@ -32,6 +32,8 @@ from semester_recommender import (
     default_followup_semester_with_summer,
     run_recommendation_semester,
     _credits_to_standing,
+    _compute_satisfied,
+    annotate_progress_with_recommendation_hierarchy,
 )
 
 load_dotenv()
@@ -1441,16 +1443,25 @@ def _build_current_progress(completed, in_progress, data, track_id):
             "completed_done": completed_done,
             "in_progress_increment": in_progress_increment,
             "assumed_done": assumed_done,
-            "satisfied": bool(
-                (assumed.get("needed", baseline.get("needed")) or 0) > 0
-                and assumed_done >= (assumed.get("needed", baseline.get("needed")) or 0)
+            "satisfied": _compute_satisfied(
+                {
+                    "needed": assumed.get("needed", baseline.get("needed")),
+                    "needed_count": (
+                        baseline.get("needed_count")
+                        if baseline.get("needed_count") is not None
+                        else assumed.get("needed_count")
+                    ),
+                    "completed_applied": baseline.get("completed_applied", []),
+                    "in_progress_applied": baseline.get("in_progress_applied", []),
+                },
+                assumed_done,
             ),
             "requirement_mode": (baseline.get("requirement_mode") or assumed.get("requirement_mode", "required")),
             "needed_count": (baseline.get("needed_count") if baseline.get("needed_count") is not None else assumed.get("needed_count")),
             "completed_courses": len(baseline.get("completed_applied", [])),
             "in_progress_courses": len(baseline.get("in_progress_applied", [])),
         }
-    return out
+    return annotate_progress_with_recommendation_hierarchy(out, data, track_id)
 
 
 def _build_current_assumption_notes(

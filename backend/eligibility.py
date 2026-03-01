@@ -2,6 +2,7 @@ import re
 import pandas as pd
 from prereq_parser import prereqs_satisfied, build_prereq_check_string
 from requirements import SOFT_WARNING_TAGS, COMPLEX_PREREQ_TAG, CONCURRENT_TAGS, DEFAULT_TRACK_ID
+from unlocks import build_reverse_prereq_map
 
 
 def parse_term(s: str) -> str:
@@ -217,6 +218,7 @@ def get_eligible_courses(
     buckets_df: pd.DataFrame,
     equivalencies_df: pd.DataFrame = None,
     track_id: str = DEFAULT_TRACK_ID,
+    reverse_map: dict[str, list[str]] | None = None,
 ) -> list[dict]:
     """
     Returns eligible courses for the target term, sorted by:
@@ -257,6 +259,8 @@ def get_eligible_courses(
     }.get(target_term, "offered_fall")
 
     track_key = str(track_id or "").strip().upper()
+    if reverse_map is None:
+        reverse_map = build_reverse_prereq_map(courses_df, prereq_map)
 
     # Build per-request indexes to avoid repeated dataframe scans in the loop below.
     course_bucket_index: dict[str, list[str]] = {}
@@ -314,6 +318,24 @@ def get_eligible_courses(
                 course_level_index[code] = int(lvl)
             else:
                 course_level_index[code] = None
+
+    unmet_course_buckets: dict[str, list[str]] = {}
+    for bucket_id, remaining in (allocator_remaining or {}).items():
+        slots_remaining_raw = pd.to_numeric(
+            (remaining or {}).get("slots_remaining", 0),
+            errors="coerce",
+        )
+        slots_remaining = int(slots_remaining_raw) if pd.notna(slots_remaining_raw) else 0
+        if slots_remaining <= 0:
+            continue
+        for raw_code in (remaining or {}).get("remaining_courses", []) or []:
+            code = str(raw_code or "").strip()
+            if not code:
+                continue
+            target_buckets = unmet_course_buckets.setdefault(code, [])
+            if bucket_id not in target_buckets:
+                target_buckets.append(bucket_id)
+    unmet_remaining_courses = set(unmet_course_buckets.keys())
 
     results = []
 
@@ -403,9 +425,6 @@ def get_eligible_courses(
             _course_level_index=course_level_index,
         )
 
-        if not eligible_buckets and not manual_review:
-            continue  # course doesn't belong to any tracked bucket
-
         # Keep only courses that can fill at least one unmet bucket slot.
         # This avoids recommending extra courses for already-satisfied buckets
         # (e.g., MCC_ESSV1 after its single-slot requirement is fulfilled).
@@ -413,14 +432,54 @@ def get_eligible_courses(
             b for b in eligible_buckets
             if allocator_remaining.get(b["bucket_id"], {}).get("slots_remaining", 0) > 0
         ]
-        if not unmet_buckets:
+        direct_unmet_unlocks = [
+            unlocked_code
+            for unlocked_code in reverse_map.get(code, [])
+            if unlocked_code in unmet_remaining_courses
+        ]
+        bridge_target_buckets: list[dict] = []
+        seen_bridge_bucket_ids: set[str] = set()
+        for unlocked_code in direct_unmet_unlocks:
+            for target_bucket_id in unmet_course_buckets.get(unlocked_code, []):
+                if target_bucket_id in seen_bridge_bucket_ids:
+                    continue
+                target_meta = bucket_meta.get(target_bucket_id)
+                if target_meta is None:
+                    continue
+                priority_raw = pd.to_numeric(target_meta.get("priority", 99), errors="coerce")
+                parent_priority_raw = pd.to_numeric(
+                    target_meta.get("parent_bucket_priority", 99),
+                    errors="coerce",
+                )
+                bridge_target_buckets.append({
+                    "bucket_id": target_bucket_id,
+                    "label": str(target_meta.get("bucket_label", target_bucket_id)),
+                    "priority": int(priority_raw) if pd.notna(priority_raw) else 99,
+                    "parent_bucket_priority": int(parent_priority_raw) if pd.notna(parent_priority_raw) else 99,
+                    "parent_bucket_id": str(target_meta.get("parent_bucket_id", "") or "").strip().upper(),
+                })
+                seen_bridge_bucket_ids.add(target_bucket_id)
+        bridge_target_buckets.sort(
+            key=lambda b: (b["priority"], str(b.get("bucket_id", ""))),
+        )
+
+        if not unmet_buckets and not bridge_target_buckets:
             continue
 
         # Multi-bucket score reflects unmet buckets for ranking, while
-        # fills_buckets still shows all eligible buckets for UI clarity.
+        # fills_buckets shows only direct bucket mappings (never bridge targets).
         multi_bucket_score = len(unmet_buckets)
 
-        primary = unmet_buckets[0] if unmet_buckets else (eligible_buckets[0] if eligible_buckets else None)
+        display_buckets = [b["bucket_id"] for b in eligible_buckets]
+        primary = (
+            unmet_buckets[0]
+            if unmet_buckets
+            else (
+                bridge_target_buckets[0]
+                if bridge_target_buckets
+                else (eligible_buckets[0] if eligible_buckets else None)
+            )
+        )
 
         # prereq_check string
         if has_explicit_concurrent:
@@ -469,8 +528,12 @@ def get_eligible_courses(
             "primary_bucket_priority": primary["priority"] if primary else 99,
             "primary_parent_bucket_priority": primary["parent_bucket_priority"] if primary else 99,
             "primary_parent_bucket_id": primary["parent_bucket_id"] if primary else "",
-            "fills_buckets": [b["bucket_id"] for b in eligible_buckets],
+            "fills_buckets": display_buckets,
+            "selection_buckets": [b["bucket_id"] for b in eligible_buckets],
             "multi_bucket_score": multi_bucket_score,
+            "bridge_target_buckets": [b["bucket_id"] for b in bridge_target_buckets],
+            "unlocks_unmet_courses": direct_unmet_unlocks,
+            "is_bridge_course": bool(bridge_target_buckets) and not bool(eligible_buckets),
             "prereq_check": prereq_check,
             "has_soft_requirement": has_soft_requirement,
             "soft_tags": warning_tags,

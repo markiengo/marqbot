@@ -285,6 +285,19 @@ ACCO 4040,False,False,True
 
 ---
 
+## Orphaned Prereq References (Known Limitation)
+
+When injecting non-business courses (especially MCC Discovery tier courses), their `prereq_raw` often references courses from across the university that are not in `courses.csv`. This is **expected and not a bug**.
+
+**Rules:**
+1. **Do not chase transitive prereq chains** outside the business school scope. If a HIST or POSC course has a prereq like `HIST 1101`, and `HIST 1101` is already in `courses.csv`, great. If not, do not add every upstream prereq recursively.
+2. **Non-business courses exist for two purposes:** (a) satisfying MCC Discovery bucket mappings, and (b) appearing as OR alternatives in business course prereq strings. They are not independently recommended.
+3. **Missing prereq courses in OR chains are harmless.** If `MARK 4060` requires `MARK 3001 or BUAD 1560 or SOCI 2060`, and `SOCI 2060` is later removed from `courses.csv`, the OR chain still works via the remaining alternatives.
+4. **Phantom prereq references** (codes in `prerequisites` column that don't exist in `courses.csv`) are acceptable for non-business courses. The system treats unresolvable prereqs as blocking, but since these courses aren't actively recommended, it has no runtime impact.
+5. **Discovery tiers are "Coming Soon"** — all `MCC_DISC_*` parent buckets are `active=False`. Course mappings exist for future activation but do not affect current recommendations.
+
+---
+
 ## Quick Reference
 
 ### Business dept prefixes → `biz_elective`

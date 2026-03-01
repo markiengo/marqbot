@@ -39,7 +39,6 @@ export interface RecommendedCourse {
   why?: string;
   prereq_check?: string;
   fills_buckets?: string[];
-  unlocks?: string[];
   warning_text?: string;
   soft_tags?: string[];
   notes?: string;
@@ -60,6 +59,7 @@ export interface BucketProgress {
   needed_count?: number;
   completed_courses?: number;
   in_progress_courses?: number;
+  recommendation_tier?: number;
 }
 
 export interface SelectionContext {

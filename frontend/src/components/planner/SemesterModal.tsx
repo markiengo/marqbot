@@ -3,7 +3,7 @@
 import type { SemesterData, BucketProgress } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { CourseCard } from "./CourseCard";
-import { groupProgressByParent, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
+import { groupProgressByTierSections, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
 import { bucketLabel, esc } from "@/lib/utils";
 
 interface SemesterModalProps {
@@ -105,13 +105,13 @@ export function SemesterModal({
               <p className="text-sm text-ink-faint">{esc(semester.projection_note)}</p>
             )}
             <div className="space-y-5">
-              {groupProgressByParent(semesterProgress, programLabelMap).map((group) => (
-                <div key={group.parentId} className="space-y-2">
+              {groupProgressByTierSections(semesterProgress).map((section) => (
+                <div key={section.sectionKey} className="space-y-2">
                   <h4 className="text-xs font-semibold text-gold/70 uppercase tracking-wider border-b border-border-subtle/30 pb-1">
-                    {group.label}
+                    {section.label}
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {group.entries.map(([bid, prog]: [string, BucketProgress]) => {
+                    {section.entries.map(([bid, prog]: [string, BucketProgress]) => {
                       const { done, inProg, needed, unit } = getBucketDisplay(prog);
                       const ipCodes = prog.in_progress_applied || [];
                       const label = compactKpiBucketLabel(

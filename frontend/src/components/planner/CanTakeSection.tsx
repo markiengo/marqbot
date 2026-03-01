@@ -71,61 +71,47 @@ export function CanTakeSection() {
       >
         <div className="space-y-4 text-sm text-ink-secondary">
           <p className="text-ink-faint text-xs">
-            Hi, I&apos;m Marqbot. I don&apos;t guess — I follow a strict rulebook to figure out which courses make the most sense for you right now. Here&apos;s the full algorithm, top to bottom:
+            Hey! Here&apos;s how I pick your courses. No guessing — just rules, top to bottom:
           </p>
           <ol className="space-y-3 list-none">
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">1</span>
               <div>
-                <p className="font-semibold text-white">Eligibility Filter</p>
-                <p className="text-ink-faint text-xs mt-0.5">Before anything gets ranked, I throw out everything you literally can&apos;t take. Prereqs not done? Not offered this term? Standing too low? Gone. Zero point recommending a course you can&apos;t register for.</p>
+                <p className="font-semibold text-white">Can you actually take it?</p>
+                <p className="text-ink-faint text-xs mt-0.5">First, I remove anything you can&apos;t register for. Missing a prereq? Not offered this semester? Not enough credits to qualify? It&apos;s gone. I only show you courses you can actually sign up for.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">2</span>
               <div>
-                <p className="font-semibold text-white">Requirement Tiers</p>
-                <p className="text-ink-faint text-xs mt-0.5">Courses get sorted into tiers based on what they fulfill. MCC (ENGL, PHIL, THEO, CORE) and BCC core (BUAD, ECON, MANA, BULA) sit at the top. Major requirements come next. Tracks, concentrations, and minors follow. Everything else is below. I clear the foundations first so nothing bottlenecks later.</p>
+                <p className="font-semibold text-white">What does it count toward?</p>
+                <p className="text-ink-faint text-xs mt-0.5">University requirements (PHIL, THEO, ENGL) and business core (BUAD, ECON, ACCO) come first. Then your major. Then your track or concentration. Electives come last. I knock out the important stuff before the flexible stuff.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">3</span>
               <div>
-                <p className="font-semibold text-white">Prereq Blocker Priority</p>
-                <p className="text-ink-faint text-xs mt-0.5">Out of everything you still need to take, which one course is gatekeeping the most other courses on your list? That&apos;s the bottleneck. I find it and push it to the front — take that one class and suddenly half your schedule opens up.</p>
+                <p className="font-semibold text-white">Is it blocking you?</p>
+                <p className="text-ink-faint text-xs mt-0.5">Some courses are gatekeepers — you can&apos;t take a bunch of other classes until you finish them. I find those bottlenecks and push them to the front so you don&apos;t get stuck later.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">4</span>
               <div>
-                <p className="font-semibold text-white">Chain Depth</p>
-                <p className="text-ink-faint text-xs mt-0.5">I trace the full prereq chain from every course all the way down. FINA 3001 kicks off a 5-semester sequence to AIM 4430? That&apos;s depth 4 — it gets scheduled way before some standalone elective with depth 0. Long chains = early starts. No surprises senior year.</p>
+                <p className="font-semibold text-white">How long is the chain?</p>
+                <p className="text-ink-faint text-xs mt-0.5">Some courses kick off a sequence that takes multiple semesters to finish. The longer that chain, the earlier you need to start. I make sure you&apos;re not scrambling senior year because you started a 4-course sequence too late.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">5</span>
               <div>
-                <p className="font-semibold text-white">Multi-Bucket Score</p>
-                <p className="text-ink-faint text-xs mt-0.5">One course checking off your major, BCC, and a track requirement at the same time? That&apos;s a 3-for-1 deal and it absolutely moves up the list. More requirements knocked out per course = faster graduation. Efficiency is bussin.</p>
-              </div>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">6</span>
-              <div>
-                <p className="font-semibold text-white">Direct Unlockers</p>
-                <p className="text-ink-faint text-xs mt-0.5">If two courses are still tied, I pick the one that directly unlocks more options for your next semester. More doors opened = better pick. Simple math.</p>
-              </div>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">7</span>
-              <div>
-                <p className="font-semibold text-white">Program Diversity</p>
-                <p className="text-ink-faint text-xs mt-0.5">Double major? I make sure both majors get love. If Finance already has 3 picks and INSY has 0, the next FINA course gets deferred so INSY can catch up. No major gets left behind.</p>
+                <p className="font-semibold text-white">Does it knock out multiple requirements?</p>
+                <p className="text-ink-faint text-xs mt-0.5">If one course counts toward your major AND your business core at the same time, that&apos;s a two-for-one. Those move up the list because they save you time and credits.</p>
               </div>
             </li>
           </ol>
           <p className="text-ink-faint text-xs pt-1 border-t border-border-subtle/40">
-            I assume you pass everything I recommend. Keep your completed and in-progress courses updated and I&apos;ll keep the plan accurate.
+            I assume you&apos;ll pass everything. Keep your completed and in-progress courses updated so I can stay accurate.
           </p>
         </div>
       </Modal>

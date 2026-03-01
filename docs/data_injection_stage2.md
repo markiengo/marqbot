@@ -279,10 +279,19 @@ This preserves full overlap visibility and matches current runtime behavior.
 
 ## Known Pending MCC Items
 
-- `MCC_CULM` is currently parent-only.
-- `CORE 4929` is the target course for CULM.
-- CULM child bucket and mapping are pending.
-- `MCC_ESSV2`, `MCC_WRIT`, and Discovery mappings are pending future injection.
+- `MCC_CULM` is currently parent-only. `CORE 4929` is the target course for CULM. CULM child bucket and mapping are pending.
+- `MCC_ESSV2` and `MCC_WRIT` are `active=False`. Pending future injection.
+- **Discovery tiers** (`MCC_DISC` + 5 themes) are `active=False` and tagged "Coming Soon". The 5 theme parents (`MCC_DISC_BNJ`, `MCC_DISC_CB`, `MCC_DISC_CMI`, `MCC_DISC_EOH`, `MCC_DISC_IC`) operate like AIM's track model — each is a separate track-type program under `MCC_DISC`. Child buckets (HUM/NSM/SSC/ELEC per theme) and some course mappings exist for future activation. Do not activate until official Marquette data is confirmed.
+
+## Orphaned Prereq References (Known Limitation)
+
+Non-business courses injected for MCC Discovery or cross-department prereq resolution often have prereqs referencing courses not in `courses.csv`. This is expected.
+
+**Rules for Stage 2:**
+1. When mapping a course to a Discovery child bucket, ensure it exists in `courses.csv` and `course_prereqs.csv` (use Stage 1 defaults if prereq details are unknown).
+2. Do not recursively add every upstream prereq for non-business courses. Only add courses that are directly mapped to active buckets.
+3. Phantom prereq references in OR chains are harmless — the system falls back to resolvable alternatives.
+4. When a Discovery theme is activated in the future, audit its mapped courses for prereq completeness at that time.
 
 ---
 

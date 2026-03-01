@@ -97,17 +97,102 @@ function localBucketId(bucketId: string): string {
   return raw;
 }
 
+function parentBucketId(bucketId: string): string {
+  const raw = String(bucketId || "").trim();
+  if (!raw) return "";
+  if (raw.includes("::")) return raw.split("::", 2)[0];
+  return raw;
+}
+
+const DEMOTED_BCC_CHILDREN = new Set([
+  "BCC_ETHICS",
+  "BCC_ANALYTICS",
+  "BCC_ENHANCE",
+]);
+
+function inferRecommendationTier(
+  bucketId: string,
+  prog: BucketProgress | null | undefined,
+): number {
+  const explicit = Number(prog?.recommendation_tier);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+
+  const localId = localBucketId(bucketId);
+  const parentId = parentBucketId(bucketId);
+
+  if (DEMOTED_BCC_CHILDREN.has(localId)) return 5;
+  if (localId === "BCC_REQUIRED") return 1;
+  if (
+    parentId === "MCC" ||
+    parentId === "MCC_CORE" ||
+    parentId === "MCC_FOUNDATION" ||
+    parentId === "MCC_CULM" ||
+    bucketId.startsWith("MCC::") ||
+    localId.startsWith("MCC_")
+  ) {
+    return 1;
+  }
+  if (parentId.endsWith("_TRACK") || parentId.endsWith("_MINOR")) return 3;
+  return 2;
+}
+
+type ProgressSectionKey =
+  | "mcc"
+  | "bcc"
+  | "major"
+  | "track_minor"
+  | "other";
+
+function inferProgressSection(
+  bucketId: string,
+  prog: BucketProgress | null | undefined,
+): { key: ProgressSectionKey; label: string; rank: number } {
+  const localId = localBucketId(bucketId);
+  const parentId = parentBucketId(bucketId);
+  const tier = inferRecommendationTier(bucketId, prog);
+
+  if (
+    parentId === "MCC" ||
+    parentId === "MCC_CORE" ||
+    parentId === "MCC_FOUNDATION" ||
+    parentId === "MCC_CULM" ||
+    parentId.startsWith("MCC_DISC") ||
+    bucketId.startsWith("MCC::") ||
+    localId.startsWith("MCC_")
+  ) {
+    return { key: "mcc", label: "MCC", rank: 0 };
+  }
+  if (
+    parentId === "BCC" ||
+    parentId === "BCC_CORE" ||
+    bucketId.startsWith("BCC::") ||
+    localId.startsWith("BCC_")
+  ) {
+    return { key: "bcc", label: "Business Core (BCC)", rank: 1 };
+  }
+  if (tier === 3 || parentId.endsWith("_TRACK") || parentId.endsWith("_MINOR")) {
+    return { key: "track_minor", label: "Tracks & Minors", rank: 3 };
+  }
+  if (tier === 2) {
+    return { key: "major", label: "Major Requirements", rank: 2 };
+  }
+  return { key: "other", label: "Additional Requirements", rank: 4 };
+}
+
 export function sortProgressEntries(
   progressObj: Record<string, BucketProgress> | null | undefined,
 ): [string, BucketProgress][] {
   const entries = Object.entries(progressObj || {}) as [string, BucketProgress][];
   const indexed = entries.map((entry, idx) => ({ entry, idx }));
   indexed.sort((a, b) => {
+    const aSection = inferProgressSection(a.entry[0], a.entry[1]);
+    const bSection = inferProgressSection(b.entry[0], b.entry[1]);
+    if (aSection.rank !== bSection.rank) return aSection.rank - bSection.rank;
     const aLocal = localBucketId(a.entry[0]);
     const bLocal = localBucketId(b.entry[0]);
-    const aRank = aLocal === "BCC_REQUIRED" ? 0 : 1;
-    const bRank = bLocal === "BCC_REQUIRED" ? 0 : 1;
-    if (aRank !== bRank) return aRank - bRank;
+    const aBccRank = aLocal === "BCC_REQUIRED" ? 0 : 1;
+    const bBccRank = bLocal === "BCC_REQUIRED" ? 0 : 1;
+    if (aBccRank !== bBccRank) return aBccRank - bBccRank;
     return a.idx - b.idx;
   });
   return indexed.map((x) => x.entry);
@@ -137,8 +222,8 @@ export interface ProgressGroup {
 }
 
 /**
- * Groups progress entries by parent bucket ID, filtering hidden buckets.
- * Preserves the sort order from sortProgressEntries() within each group.
+ * Groups progress entries by parent bucket ID, preserving recommender-style
+ * section ordering from sortProgressEntries().
  */
 export function groupProgressByParent(
   progressObj: Record<string, BucketProgress> | null | undefined,
@@ -149,7 +234,7 @@ export function groupProgressByParent(
   const order: string[] = [];
 
   for (const [bid, prog] of sorted) {
-    const parentId = bid.includes("::") ? bid.split("::", 2)[0] : bid;
+    const parentId = parentBucketId(bid);
     if (HIDDEN_PARENT_IDS.has(parentId)) continue;
     if (!groups.has(parentId)) {
       const label =
@@ -163,6 +248,37 @@ export function groupProgressByParent(
   }
 
   return order.map((id) => groups.get(id)!);
+}
+
+export interface ProgressSection {
+  sectionKey: ProgressSectionKey;
+  label: string;
+  entries: [string, BucketProgress][];
+}
+
+export function groupProgressByTierSections(
+  progressObj: Record<string, BucketProgress> | null | undefined,
+): ProgressSection[] {
+  const sorted = sortProgressEntries(progressObj);
+  const sections = new Map<ProgressSectionKey, ProgressSection>();
+  const order: ProgressSectionKey[] = [];
+
+  for (const [bid, prog] of sorted) {
+    const parentId = parentBucketId(bid);
+    if (HIDDEN_PARENT_IDS.has(parentId)) continue;
+    const section = inferProgressSection(bid, prog);
+    if (!sections.has(section.key)) {
+      sections.set(section.key, {
+        sectionKey: section.key,
+        label: section.label,
+        entries: [],
+      });
+      order.push(section.key);
+    }
+    sections.get(section.key)!.entries.push([bid, prog]);
+  }
+
+  return order.map((key) => sections.get(key)!);
 }
 
 export function compactKpiBucketLabel(label: string): string {

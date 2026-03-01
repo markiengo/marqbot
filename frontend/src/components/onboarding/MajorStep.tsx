@@ -76,8 +76,13 @@ export function MajorStep() {
     [state.selectedTracks, trackById],
   );
   const availableProgramTracks = useMemo(
-    () => programTracks.filter((t) => !state.selectedTracks.includes(t.id)),
-    [programTracks, state.selectedTracks],
+    () =>
+      programTracks.filter(
+        (t) =>
+          !state.selectedTracks.includes(t.id) &&
+          state.selectedMajors.has(String(t.parent_major_id || "")),
+      ),
+    [programTracks, state.selectedTracks, state.selectedMajors],
   );
 
   // ── Major combobox state ─────────────────────────────────────────────────────

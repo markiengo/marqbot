@@ -83,7 +83,9 @@ Global Rules:
 - `min_standing` is a float (1.0–4.0 for undergrad). 5.0+ is graduate-level and makes a course unreachable for undergrads — never set this for undergrad courses.
 - Courses tagged `elective_pool_tag=biz_elective` flow automatically into any `credits_pool` child bucket scoped to their program — no explicit `master_bucket_courses` row needed.
 - `_canonical_program_label` in `server.py` uses CSV label as priority; falls back to generated format only when label is empty.
-- Discovery tiers (MCC_DISC_CMI, BNJ, CB, EOH, IC) are `type=track` with `parent_major=MCC_DISC` — they appear in the frontend Discovery Theme section, not the Concentration/Track section.
+- Discovery tiers (MCC_DISC_CMI, BNJ, CB, EOH, IC) are `type=track` with `parent_major=MCC_DISC` — they operate like AIM's track model (5 separate theme programs under one parent). Currently `active=False` and tagged "Coming Soon" until official Marquette data is available.
+- **Orphaned prereq problem:** Non-business courses (HIST, POSC, SPAN, MATH, etc.) added to `courses.csv` as gap fixes often lack full prereq/offering data. These exist so that MCC Discovery or cross-department prereq references resolve, but they are not fully curated. When injecting new courses, their prereqs may reference courses not yet in `courses.csv` — this is expected and not a bug. Do not chase transitive prereq chains outside the business school scope.
+- Non-business courses without bucket mappings or `biz_elective` tags are present solely to satisfy prereq references or future MCC Discovery mappings. They are not recommended by the engine unless mapped to an active bucket.
 - `requires_primary_major` in `parent_buckets.csv`: when `True`, a major (e.g., AIM_MAJOR, BUAN_MAJOR) cannot be declared alone — it must be paired with a primary (non-requiring) major like FIN_MAJOR or ACCO_MAJOR. Tests involving these majors must always include a primary major in `declared_majors`.
 - V2 parent/child bucket model: when a track is selected alongside its parent major, both the base major's child buckets AND the track's child buckets appear in progress. They coexist (no deduplication/replacement).
 - `double_count_policy.csv` controls which child buckets may share courses across programs. Referenced by `allocate_courses()` and `get_allowed_double_count_pairs()`.
@@ -95,7 +97,7 @@ Global Rules:
 - `semester_recommender.py`: Multi-semester recommendation engine. Imports shared helpers from `allocator`.
 - `eligibility.py`: Course eligibility filtering (prereqs, standing gates, offering checks).
 - `requirements.py`: Bucket/role lookups, constants (`DEFAULT_TRACK_ID`, `SOFT_WARNING_TAGS`).
-- `unlocks.py`: Reverse prereq graph, `compute_chain_depths()` for transitive prereq chain scoring, `get_direct_unlocks()` for 1-level unlock counts, `get_blocking_warnings()` for core blocker alerts.
+- `unlocks.py`: Reverse prereq graph, `compute_chain_depths()` for transitive prereq chain scoring, `get_blocking_warnings()` for core blocker alerts.
 - `validators.py`: Prereq chain expansion, input validation.
 - `normalizer.py`: Course code normalization.
 - `prereq_parser.py`: Prerequisite string parsing.
@@ -103,7 +105,7 @@ Global Rules:
 - Do not duplicate helper functions across modules; import from the canonical source.
 
 # Recommendation Algorithm
-- Ranking key order (in `semester_recommender.py`): bucket_tier → acco_boost → core_prereq_blocker → chain_depth → multi_bucket_score → direct_unlocks → soft_tag_penalty → prereq_level → lexical tiebreak.
+- Ranking key order (in `semester_recommender.py`): bucket_tier → acco_boost → core_prereq_blocker → chain_depth → multi_bucket_score → soft_tag_penalty → prereq_level → lexical tiebreak.
 - `compute_chain_depths()` runs once at startup and on data reload; passed to `run_recommendation_semester()` via `chain_depths` kwarg.
 - Program balance deferral threshold is `_PROGRAM_BALANCE_THRESHOLD = 2`. Deferred candidates get a second pass after the main greedy loop.
 - Bucket satisfaction uses OR logic: if either course-count or credit threshold is met, the bucket is satisfied (`_compute_satisfied()` in `semester_recommender.py`).
