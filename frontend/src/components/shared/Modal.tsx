@@ -7,6 +7,7 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  titleClassName?: string;
   size?: "default" | "large" | "planner-detail";
   children: React.ReactNode;
 }
@@ -17,7 +18,7 @@ const sizeClasses = {
   "planner-detail": "w-full max-w-[95vw] max-h-[90vh] md:max-w-[70vw] md:max-h-[70vh]",
 };
 
-export function Modal({ open, onClose, title, size = "default", children }: ModalProps) {
+export function Modal({ open, onClose, title, titleClassName, size = "default", children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,9 +81,9 @@ export function Modal({ open, onClose, title, size = "default", children }: Moda
           >
             {title && (
               <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-border-subtle">
-                <h2 className="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
+                <h3 className={titleClassName || "text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary"}>
                   {title}
-                </h2>
+                </h3>
                 <button
                   type="button"
                   onClick={onClose}

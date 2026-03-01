@@ -19,11 +19,11 @@ BCC_CORE,BCC_ENHANCE,BCC Core Enhancement,required,1.0,,,
 BCC_CORE,BCC_ETHICS,BCC Ethics,required,1.0,,,
 BCC_CORE,BCC_REQUIRED,Business Core Required,required,18.0,,,
 BECO_MAJOR,beco-req-core,Specific Economics Course Requirements,required,5.0,,,
-BECO_MAJOR,beco-econ-3000plus-9,Upper-Division ECON Electives (9 credits),credits_pool,,9.0,3000.0,All ECON courses at 3000-level and above.
+BECO_MAJOR,beco-econ-3000plus-9,Upper-Division ECON Electives (Choose 3),choose_n,3.0,,3000.0,Excludes ECON 3399 ECON 4986 ECON 4989 and required core courses.
 BECO_MAJOR,beco-biz-elec-9,Business Electives (9 credits),credits_pool,,9.0,3000.0,Exclude ECON 3399; Elective pool intentionally unmapped for now.
 BUAN_MAJOR,buan-req-core,BUAN Core Requirements,required,3.0,,,
 BUAN_MAJOR,buan-choose-1,Choose 1,choose_n,1.0,,3000.0,
-BUAN_MAJOR,buan-adv,BUAN Advanced,required,2.0,,3000.0,
+BUAN_MAJOR,buan-adv,BUAN Advanced,required,1.0,,3000.0,
 BUAN_MAJOR,buan-elec-upper-15,Upper Division Business Electives (15 credits),credits_pool,,15.0,3000.0,Elective pool intentionally unmapped for now.
 CB_TRACK,commbank-req-core,Commercial Banking Core,required,10.0,,,
 CB_TRACK,commbank-choose-1,Commercial Banking Choose 1,choose_n,1.0,,3000.0,

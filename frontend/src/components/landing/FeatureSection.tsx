@@ -2,9 +2,12 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "motion/react";
+import { AnchorLine } from "@/components/shared/AnchorLine";
 
 const features = [
   {
+    stat: "5+",
+    statLabel: "Ranking Factors",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
@@ -17,9 +20,11 @@ const features = [
     ),
     title: "Smart Recommendations",
     description:
-      "Get personalized course suggestions that consider your prerequisites, degree requirements, and progress across multiple semesters.",
+      "Courses ranked by prereq chains, bucket tiers, and multi-requirement efficiency. Same inputs, same outputs.",
   },
   {
+    stat: "100%",
+    statLabel: "Prereqs Verified",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
@@ -32,9 +37,11 @@ const features = [
     ),
     title: "Prerequisite Tracking",
     description:
-      "Instantly see which prerequisites you've met, which are in progress, and what is still needed with clear status indicators.",
+      "Every recommendation is prereq-checked. Missing a prereq? You'll know before you register.",
   },
   {
+    stat: "6",
+    statLabel: "Programs Tracked",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
@@ -47,7 +54,7 @@ const features = [
     ),
     title: "Degree Progress",
     description:
-      "Track progress across core, electives, MCC, and major requirements with concise summaries and drill-down details.",
+      "Core, major, MCC, electives — tracked across every bucket. See what's done and what's left.",
   },
 ];
 
@@ -56,7 +63,7 @@ export function FeatureSection() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-20 overflow-hidden">
+    <section ref={ref} className="relative py-20 overflow-hidden band-blue band-fade-top">
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[680px] h-[300px] bg-gold/[0.03] rounded-full blur-[90px]" />
       </div>
@@ -90,16 +97,15 @@ export function FeatureSection() {
           </motion.p>
         </div>
 
-        <div className="flex items-center justify-center mb-10">
-          <div className="w-20 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
-        </div>
+        <AnchorLine variant="gold" className="mb-10" />
 
         <div className="text-center mb-10">
           <p className="text-gold text-xs sm:text-sm uppercase tracking-widest font-semibold mb-3">
             The Solution
           </p>
           <h3 className="text-2xl sm:text-3xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
-            A calm co-pilot for semester planning
+            Ranked by actual degree logic.{" "}
+            <em className="mu-accent text-ink-secondary">Not guesswork.</em>
           </h3>
         </div>
 
@@ -110,8 +116,12 @@ export function FeatureSection() {
               initial={{ opacity: 0, y: 18 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.45, delay: 0.22 + idx * 0.1 }}
-              className="bg-surface-card/75 backdrop-blur-[2px] border border-border-subtle rounded-xl p-6 shadow-sm"
+              className="bg-surface-card/75 backdrop-blur-[2px] border border-border-subtle rounded-xl p-6 shadow-sm stat-card-decor"
             >
+              <div className="text-2xl font-bold font-[family-name:var(--font-sora)] text-gold mb-1">
+                {f.stat}
+              </div>
+              <div className="text-xs text-ink-muted mb-3">{f.statLabel}</div>
               <div className="w-11 h-11 rounded-xl bg-gold/12 text-gold flex items-center justify-center mb-4">
                 {f.icon}
               </div>

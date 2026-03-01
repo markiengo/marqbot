@@ -8,6 +8,37 @@ Format per release:
 
 ---
 
+## [v2.0.2] - 2026-03-01
+
+### Changes
+
+**UI revamp — Marquette design language integration**
+- Applied Marquette brand visual language across landing, onboarding, and planner: section color banding, gold/blue accent borders, serif italic accents, stat-card decorations, hash-mark section labels, anchor-line dividers.
+- Updated branding copy across planner, onboarding, and empty states to match `docs/branding.md` voice (student-built, witty upperclassman tone).
+- Responsive typography via CSS `clamp()` on h1–h3 element selectors.
+- 4 new shared components: `StatCard`, `SplitCard`, `AnchorLine`, `HashMark`.
+
+**Progress modals — major sub-grouping**
+- "Major Requirements" and "Tracks & Minors" sections in both ProgressModal and SemesterModal now sub-group buckets by individual program (e.g., separate "BUAN", "Marketing", "Real Estate" headings).
+- Primary major listed first when applicable, otherwise follows user's selected order.
+- New `groupProgressByTierWithMajors()` in `rendering.ts`; `programOrder` derived from `selection_context.selected_program_ids`.
+
+**Planner polish**
+- "Get My Plan" button glow: two-layer gold shadow (`24px @ 35%` + `48px @ 15%`).
+- "How Marqbot Recommends Courses" modal title: gold color, h3-scale sizing.
+- Semester heading in recommendations panel: h4 (no clamp override) for tighter fit.
+- KPI tiles: removed `stat-card-decor` gradient, kept `text-3xl` bold numbers.
+- Course code/title font bumped 20% across all density tiers.
+- Semester heading in recommendations reduced 30%.
+- Projected progress in SemesterModal restyled to match ProgressModal's bucket cards.
+
+### Design Decisions
+- Sub-grouping majors inside tier sections gives multi-major students a clearer mental model without breaking the MCC → BCC → Major → Track hierarchy.
+- CSS `clamp()` on heading elements ensures consistent responsive sizing but requires `h4` (no clamp rule) for small UI headings to avoid inflation.
+- Gold glow on the primary CTA reinforces Marquette brand while drawing attention to the main action.
+
+---
+
 ## [v2.0.1] - 2026-03-01
 
 ### Changes

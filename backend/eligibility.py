@@ -28,6 +28,29 @@ def _is_none_prereq(raw_val) -> bool:
     return s in ("", "none", "none listed", "n/a", "nan")
 
 
+_NON_RECOMMENDABLE_PATTERNS = (
+    "internship",
+    "work period",
+    "independent study",
+    "topics in",
+)
+
+
+def _is_non_recommendable_course(course_code: str, course_name: str | None = None) -> bool:
+    """
+    Suppress non-recommendable courses from recommendation candidates.
+    Internships, work periods, independent studies, and topics courses
+    have variable content or require special enrollment and cannot be
+    deterministically recommended.  They still count toward bucket
+    progress when completed/in-progress (allocator does NOT call this).
+    """
+    code = str(course_code or "").strip().upper()
+    name = str(course_name or "").strip().lower()
+    if re.search(r"\b4986\b", code):
+        return True
+    return any(p in name for p in _NON_RECOMMENDABLE_PATTERNS)
+
+
 def _bucket_family_key(bucket: dict) -> str:
     family = str(bucket.get("double_count_family_id", "") or "").strip()
     if family:
@@ -344,6 +367,8 @@ def get_eligible_courses(
 
         # Skip already taken / in-progress
         if code in completed_set or code in in_progress_set:
+            continue
+        if _is_non_recommendable_course(code, row.get("course_name")):
             continue
 
         # Recommendation lane is warning-driven for term offering:

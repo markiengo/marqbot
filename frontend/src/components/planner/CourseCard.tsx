@@ -47,7 +47,7 @@ export function CourseCard({ course, programLabelMap }: CourseCardProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2, boxShadow: "0 8px 25px -5px rgba(0,0,0,0.3)" }}
-      className="bg-surface-card/80 backdrop-blur-sm rounded-2xl border border-border-subtle p-5 transition-shadow"
+      className="bg-surface-card/80 backdrop-blur-sm rounded-2xl border border-border-subtle p-5 transition-shadow accent-left-gold"
     >
       {/* Header */}
       <div className="mb-3">
@@ -63,8 +63,8 @@ export function CourseCard({ course, programLabelMap }: CourseCardProps) {
               </>
             )}
           </div>
-          <span className="text-sm text-ink-faint shrink-0">
-            {c.credits || 3} cr
+          <span className="text-lg font-bold font-[family-name:var(--font-sora)] text-gold shrink-0">
+            {c.credits || 3}<span className="text-xs font-normal text-ink-faint ml-0.5">cr</span>
           </span>
         </div>
       </div>

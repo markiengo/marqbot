@@ -32,13 +32,13 @@ export function ProgressDashboard({ onViewDetails }: ProgressDashboardProps) {
   return (
     <div className="h-full min-h-0 rounded-2xl border border-border-subtle bg-[#0b2143]/70 p-3 flex flex-col gap-1.5">
       <p className="text-xs font-semibold text-gold leading-tight">
-        Verify with your Graduation Checklist in Checkmarq.
+        Always double-check with your advisor and Checkmarq.
       </p>
 
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
+        <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
           Degree Progress
-        </h2>
+        </h3>
         {hasData && (
           <button
             type="button"
@@ -74,7 +74,7 @@ export function ProgressDashboard({ onViewDetails }: ProgressDashboardProps) {
           <KpiTile value={metrics.remainingCredits} label="Credits Remaining" valueClass="text-bad" />
         </div>
 
-        <div className="rounded-xl border border-border-subtle bg-surface-card/40 p-2 text-center flex-[0.6] min-h-[60px] max-h-[100px] flex flex-col justify-center">
+        <div className="rounded-xl border border-border-subtle bg-surface-card/40 p-2 text-center flex-[0.6] min-h-[60px] max-h-[100px] flex flex-col justify-center accent-top-gold">
           <div className="text-xl md:text-2xl font-bold font-[family-name:var(--font-sora)] text-ink-primary leading-none">
             {metrics.standingLabel}
           </div>
@@ -96,7 +96,7 @@ function KpiTile({
 }) {
   return (
     <div className="h-full rounded-lg border border-border-subtle bg-surface-card/40 p-3 text-center min-h-0 flex flex-col items-center justify-center">
-      <div className={`text-2xl font-bold font-[family-name:var(--font-sora)] leading-none ${valueClass}`}>
+      <div className={`text-3xl font-bold font-[family-name:var(--font-sora)] leading-none ${valueClass}`}>
         {value}
       </div>
       <div className="text-xs text-ink-secondary mt-1 leading-tight">{label}</div>

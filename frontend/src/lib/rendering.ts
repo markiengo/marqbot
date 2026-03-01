@@ -256,6 +256,17 @@ export interface ProgressSection {
   entries: [string, BucketProgress][];
 }
 
+export interface ProgressSubGroup {
+  parentId: string;
+  label: string;
+  entries: [string, BucketProgress][];
+}
+
+export interface ProgressSectionWithGroups extends ProgressSection {
+  /** Sub-groups by program within the section (only for major/track_minor). */
+  subGroups?: ProgressSubGroup[];
+}
+
 export function groupProgressByTierSections(
   progressObj: Record<string, BucketProgress> | null | undefined,
 ): ProgressSection[] {
@@ -279,6 +290,59 @@ export function groupProgressByTierSections(
   }
 
   return order.map((key) => sections.get(key)!);
+}
+
+/**
+ * Like groupProgressByTierSections, but sub-groups the "major" and
+ * "track_minor" sections by parent program ID.
+ * `programOrder` controls sub-group ordering (primary major first).
+ */
+export function groupProgressByTierWithMajors(
+  progressObj: Record<string, BucketProgress> | null | undefined,
+  programLabelMap?: Map<string, string>,
+  programOrder?: string[],
+): ProgressSectionWithGroups[] {
+  const base = groupProgressByTierSections(progressObj);
+  const needsSubGroups = new Set<ProgressSectionKey>(["major", "track_minor"]);
+
+  return base.map((section) => {
+    if (!needsSubGroups.has(section.sectionKey) || section.entries.length === 0) {
+      return section;
+    }
+
+    // Group entries by parent program ID
+    const groupMap = new Map<string, ProgressSubGroup>();
+    const seenOrder: string[] = [];
+
+    for (const [bid, prog] of section.entries) {
+      const pid = parentBucketId(bid);
+      if (!groupMap.has(pid)) {
+        const label =
+          programLabelMap?.get(pid) ??
+          PARENT_LABEL_FALLBACKS[pid] ??
+          pid.replace(/_/g, " ");
+        groupMap.set(pid, { parentId: pid, label, entries: [] });
+        seenOrder.push(pid);
+      }
+      groupMap.get(pid)!.entries.push([bid, prog]);
+    }
+
+    // If only one program, no sub-grouping needed
+    if (groupMap.size <= 1) return section;
+
+    // Sort sub-groups: use programOrder if provided, otherwise seen order
+    const orderedIds = programOrder
+      ? [
+          ...programOrder.filter((id) => groupMap.has(id)),
+          ...seenOrder.filter((id) => !programOrder.includes(id)),
+        ]
+      : seenOrder;
+
+    return {
+      ...section,
+      subGroups: orderedIds.map((id) => groupMap.get(id)!),
+    } satisfies ProgressSectionWithGroups;
+  });
 }
 
 export function compactKpiBucketLabel(label: string): string {

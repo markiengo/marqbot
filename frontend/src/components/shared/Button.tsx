@@ -15,7 +15,7 @@ const variants = {
   ghost:
     "text-ink-secondary hover:bg-surface-hover",
   gold:
-    "bg-gold text-navy-dark font-semibold hover:bg-gold-light shadow-sm",
+    "bg-gold text-navy-dark font-semibold hover:bg-gold-light shadow-sm shadow-gold/20",
 };
 
 const sizes = {

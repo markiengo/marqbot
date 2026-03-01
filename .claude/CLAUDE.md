@@ -95,7 +95,7 @@ Global Rules:
 - `server.py`: Flask app, route handlers, data loading, validation logic.
 - `allocator.py`: Greedy course allocation to buckets. Exports `allocate_courses`, `_safe_int`, `_infer_requirement_mode`.
 - `semester_recommender.py`: Multi-semester recommendation engine. Imports shared helpers from `allocator`.
-- `eligibility.py`: Course eligibility filtering (prereqs, standing gates, offering checks).
+- `eligibility.py`: Course eligibility filtering (prereqs, standing gates, offering checks). `_is_non_recommendable_course()` excludes internships, work periods, independent studies, and topics courses from recommendations (they still count toward progress when completed).
 - `requirements.py`: Bucket/role lookups, constants (`DEFAULT_TRACK_ID`, `SOFT_WARNING_TAGS`).
 - `unlocks.py`: Reverse prereq graph, `compute_chain_depths()` for transitive prereq chain scoring, `get_direct_unlocks()` for 1-level unlock counts, `get_blocking_warnings()` for core blocker alerts.
 - `validators.py`: Prereq chain expansion, input validation.
@@ -129,6 +129,8 @@ Global Rules:
 - Never commit secrets from `.env` or hardcode secret values in tracked files.
 - Never define React components inside render functions (move to module scope or a separate file).
 - Never define helper functions in multiple backend modules — import from the canonical source (e.g., `_safe_int` from `allocator`).
+- Never push /.claude folder onto main (github), if it is on there, remove
+- Inside docs, only push @changelog.md and @data_model.md. everything else stay offline.
 
 # Known Dev Environment Issues
 - **Claude Code Bash tool on Windows**: The Bash tool may return empty output on Windows (known issue, GitHub #26545). Workaround: use Agent tool to spawn subagents for running commands, or run commands directly in a separate terminal. Setting `CLAUDE_CODE_GIT_BASH_PATH` environment variable to Git Bash path (e.g., `$env:CLAUDE_CODE_GIT_BASH_PATH = "C:\Program Files\Git\bin\bash.exe"` in PowerShell) may help but is not guaranteed.

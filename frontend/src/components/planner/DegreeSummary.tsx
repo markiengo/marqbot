@@ -14,7 +14,7 @@ export function DegreeSummary({ currentProgress, programLabelMap }: DegreeSummar
 
   return (
     <div className="h-full min-h-0 rounded-2xl border border-border-subtle bg-gradient-to-br from-[#0f2a52]/70 to-[#10284a]/55 p-2 flex flex-col">
-      <h3 className="text-base md:text-lg font-bold font-[family-name:var(--font-sora)] text-gold uppercase tracking-wide px-1 pb-1">
+      <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-gold uppercase tracking-wide px-1 pb-1">
         Degree Summary
       </h3>
 
@@ -22,7 +22,7 @@ export function DegreeSummary({ currentProgress, programLabelMap }: DegreeSummar
         {groups.map((group) => (
           <div key={group.parentId}>
             <div className="px-2 pt-2 pb-0.5">
-              <span className="text-[10px] font-semibold text-gold/60 uppercase tracking-widest leading-none">
+              <span className="text-[10px] font-semibold text-gold/60 uppercase tracking-widest leading-none hash-mark">
                 {group.label}
               </span>
             </div>

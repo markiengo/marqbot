@@ -49,6 +49,10 @@
   --color-bad: #c73b45;
   --color-bad-light: rgba(199, 59, 69, 0.15);
 
+  /* MU extended palette */
+  --color-mu-blue: #0072ce;
+  --color-mu-dark-gold: #836236;
+
   /* Radii */
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -198,3 +202,103 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Tablet/Mobile <1024px — stack vertically (default flex-column) */
+
+/* ── MU Typography — moderate size bump + serif accent ──────────── */
+h1 { font-size: clamp(2.25rem, 5vw, 4rem); line-height: 1.08; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.75rem, 3.5vw, 2.75rem); line-height: 1.12; letter-spacing: -0.01em; }
+h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
+
+.mu-accent {
+  font-style: italic;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+/* ── MU Section Banding ─────────────────────────────────────────── */
+.band-blue {
+  background: linear-gradient(168deg, #091e3a 0%, #0c2a4e 50%, #0a2240 100%);
+  position: relative;
+}
+.band-gold {
+  background: linear-gradient(168deg, #1a1508 0%, #1f1d0d 45%, #16130a 100%);
+  position: relative;
+}
+.band-deep {
+  background: linear-gradient(168deg, #050e1e 0%, #081628 50%, #06111f 100%);
+  position: relative;
+}
+.band-blue-gold {
+  background: linear-gradient(168deg, #091e3a 0%, #0c2a4e 40%, #1a1508 100%);
+  position: relative;
+}
+
+.band-fade-top::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, var(--color-surface-base), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+.band-fade-bottom::after {
+  content: "";
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(to top, var(--color-surface-base), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── MU Decorative Elements ─────────────────────────────────────── */
+.hash-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.hash-mark::before {
+  content: "";
+  display: block;
+  width: 24px;
+  height: 3px;
+  background: var(--color-gold);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.anchor-gold {
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-gold) 20%, var(--color-gold) 80%, transparent);
+  border-radius: 2px;
+}
+.anchor-blue {
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-mu-blue) 20%, var(--color-mu-blue) 80%, transparent);
+  border-radius: 2px;
+}
+.anchor-fade {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-gold-dark) 30%, var(--color-gold-dark) 70%, transparent);
+  opacity: 0.5;
+}
+
+.stat-card-decor {
+  position: relative;
+  overflow: hidden;
+}
+.stat-card-decor::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-gold), var(--color-mu-blue));
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.accent-top-gold { border-top: 3px solid var(--color-gold); }
+.accent-top-blue { border-top: 3px solid var(--color-mu-blue); }
+.accent-left-gold { border-left: 3px solid var(--color-gold); }
+.accent-left-blue { border-left: 3px solid var(--color-mu-blue); }

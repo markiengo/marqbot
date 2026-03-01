@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 from eligibility import get_eligible_courses, check_can_take, parse_term
+from prereq_parser import parse_prereqs
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -69,6 +70,124 @@ class TestGetEligibleCourses:
         )
         codes = [c["course_code"] for c in eligible]
         assert "FINA 3001" not in codes
+
+    def test_excludes_work_period_courses_marked_as_4986(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "FINA 4986",
+                "course_name": "Finance Internship - Grading Period",
+                "credits": 0,
+                "level": 4000,
+                "offered_fall": True,
+                "offered_spring": False,
+                "offered_summer": True,
+                "prereq_hard": "none",
+                "prereq_soft": "",
+                "offering_confidence": "high",
+                "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["FINA 4986"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_CHOOSE_2",
+                "course_code": "FINA 4986",
+                "is_required": False,
+                "can_double_count": True,
+                "constraints": None,
+            }]),
+        ], ignore_index=True)
+
+        eligible = get_eligible_courses(
+            augmented_courses, [], [], "Fall", augmented_prereq_map,
+            allocator_remaining, augmented_map, buckets_df,
+        )
+        codes = [c["course_code"] for c in eligible]
+        assert "FINA 4986" not in codes
+
+    def test_excludes_internship_courses(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "FINA 3987",
+                "course_name": "Internship Work Period",
+                "credits": 0, "level": 3000,
+                "offered_fall": True, "offered_spring": True, "offered_summer": False,
+                "prereq_hard": "none", "prereq_soft": "", "offering_confidence": "high", "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["FINA 3987"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "course_code": "FINA 3987", "is_required": False, "can_double_count": True, "constraints": None}]),
+        ], ignore_index=True)
+        eligible = get_eligible_courses(
+            augmented_courses, [], [], "Fall", augmented_prereq_map,
+            allocator_remaining, augmented_map, buckets_df,
+        )
+        codes = [c["course_code"] for c in eligible]
+        assert "FINA 3987" not in codes
+
+    def test_excludes_independent_study_courses(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "FINA 4995",
+                "course_name": "Independent Study in Finance",
+                "credits": 3, "level": 4000,
+                "offered_fall": True, "offered_spring": True, "offered_summer": False,
+                "prereq_hard": "none", "prereq_soft": "instructor_consent", "offering_confidence": "high", "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["FINA 4995"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "course_code": "FINA 4995", "is_required": False, "can_double_count": True, "constraints": None}]),
+        ], ignore_index=True)
+        eligible = get_eligible_courses(
+            augmented_courses, [], [], "Fall", augmented_prereq_map,
+            allocator_remaining, augmented_map, buckets_df,
+        )
+        codes = [c["course_code"] for c in eligible]
+        assert "FINA 4995" not in codes
+
+    def test_excludes_topics_courses(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "FINA 4931",
+                "course_name": "Topics in Finance",
+                "credits": 3, "level": 4000,
+                "offered_fall": True, "offered_spring": True, "offered_summer": False,
+                "prereq_hard": "none", "prereq_soft": "", "offering_confidence": "high", "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["FINA 4931"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "course_code": "FINA 4931", "is_required": False, "can_double_count": True, "constraints": None}]),
+        ], ignore_index=True)
+        eligible = get_eligible_courses(
+            augmented_courses, [], [], "Fall", augmented_prereq_map,
+            allocator_remaining, augmented_map, buckets_df,
+        )
+        codes = [c["course_code"] for c in eligible]
+        assert "FINA 4931" not in codes
 
     def test_includes_wrong_term_with_warning(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
         # Recommendation mode no longer hard-excludes courses by selected term.

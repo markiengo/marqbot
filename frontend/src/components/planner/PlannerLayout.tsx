@@ -43,6 +43,8 @@ export function PlannerLayout() {
     ? getProgramLabelMap(data.selection_context)
     : undefined;
 
+  const programOrder = data?.selection_context?.selected_program_ids ?? undefined;
+
   const majorLabelById = useMemo(() => {
     const map = new Map<string, string>();
     state.programs.majors.forEach((m) => map.set(m.id, m.label));
@@ -69,7 +71,7 @@ export function PlannerLayout() {
     <div className="planner-shell">
       {/* ── Header bar ────────────────────────────────────────────── */}
       {hasProgram ? (
-        <div className="px-4 py-2 mb-2 rounded-xl bg-surface-card/60 border border-border-subtle/50 flex flex-wrap items-center justify-between gap-2">
+        <div className="px-4 py-2 mb-2 rounded-xl bg-surface-card/60 border border-border-subtle/50 flex flex-wrap items-center justify-between gap-2 accent-top-gold">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-sm text-ink-faint shrink-0">Planning for: </span>
             <span className="text-sm font-semibold font-[family-name:var(--font-sora)] text-gold truncate">
@@ -105,7 +107,7 @@ export function PlannerLayout() {
                 Loading...
               </span>
             ) : (
-              "Get Recommendations"
+              "Get My Plan"
             )}
           </Button>
         </div>
@@ -140,7 +142,7 @@ export function PlannerLayout() {
               ) : (
                 <div className="h-full rounded-2xl border border-border-subtle bg-gradient-to-br from-[#0f2a52]/70 to-[#10284a]/55 p-4 flex items-center justify-center text-center">
                   <p className="text-sm text-ink-faint">
-                    Degree summary appears after recommendations are generated.
+                    Hit &ldquo;Get My Plan&rdquo; to see your degree breakdown.
                   </p>
                 </div>
               )}
@@ -153,10 +155,10 @@ export function PlannerLayout() {
           <div className="h-full min-h-0 flex flex-col">
             <div className="mb-2">
               <p className="text-xs font-semibold text-gold leading-tight">
-                Expand each semester to view recommendations in more details.
+                Ranked by actual degree logic. Expand each semester for details.
               </p>
               <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white mt-2 leading-tight">
-                Recommendations
+                Here&apos;s what to take next.
               </h3>
             </div>
 
@@ -185,12 +187,11 @@ export function PlannerLayout() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                    Pick your program to get started
+                    Drop your major to get started.
                   </h2>
                   <p className="text-sm text-ink-faint mt-1 max-w-sm">
-                    Click the edit icon in the header to select your major or track, add your
-                    completed courses, then hit &ldquo;Get Recommendations&rdquo; to
-                    unlock your personalized semester plan.
+                    Hit the edit icon above, pick your major, add your completed courses, then
+                    hit &ldquo;Get My Plan.&rdquo; We&apos;ll handle the rest.
                   </p>
                 </div>
               </div>
@@ -210,10 +211,10 @@ export function PlannerLayout() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                    Ready to plan
+                    Ready when you are.
                   </h2>
                   <p className="text-sm text-ink-faint mt-1">
-                    Click &ldquo;Get Recommendations&rdquo; to see your semester plan.
+                    Hit &ldquo;Get My Plan&rdquo; and let&apos;s build your plan.
                   </p>
                 </div>
               </div>
@@ -222,7 +223,7 @@ export function PlannerLayout() {
             {loading && !data && (
               <div className="flex flex-col items-center justify-center h-full text-center py-8">
                 <div className="w-10 h-10 border-3 border-gold border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-ink-faint mt-4">Generating recommendations...</p>
+                <p className="text-sm text-ink-faint mt-4">Running the rules. One sec.</p>
               </div>
             )}
 
@@ -246,6 +247,7 @@ export function PlannerLayout() {
         currentProgress={data?.current_progress}
         assumptionNotes={data?.current_assumption_notes}
         programLabelMap={programLabelMap}
+        programOrder={programOrder}
       />
       <SemesterModal
         open={semesterModalIdx !== null && modalSemester !== null}
@@ -254,6 +256,7 @@ export function PlannerLayout() {
         index={semesterModalIdx ?? 0}
         requestedCount={requestedCount}
         programLabelMap={programLabelMap}
+        programOrder={programOrder}
       />
       <ProfileModal
         open={profileModalOpen}

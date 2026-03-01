@@ -3,7 +3,7 @@
 import type { CreditKpiMetrics, BucketProgress } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { ProgressRing } from "./ProgressRing";
-import { groupProgressByTierSections, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
+import { groupProgressByTierWithMajors, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
 import { bucketLabel } from "@/lib/utils";
 
 interface ProgressModalProps {
@@ -13,6 +13,7 @@ interface ProgressModalProps {
   currentProgress?: Record<string, BucketProgress> | null;
   assumptionNotes?: string[] | null;
   programLabelMap?: Map<string, string>;
+  programOrder?: string[];
 }
 
 export function ProgressModal({
@@ -22,8 +23,9 @@ export function ProgressModal({
   currentProgress,
   assumptionNotes,
   programLabelMap,
+  programOrder,
 }: ProgressModalProps) {
-  const sections = groupProgressByTierSections(currentProgress);
+  const sections = groupProgressByTierWithMajors(currentProgress, programLabelMap, programOrder);
   const notes = (assumptionNotes || []).filter(Boolean);
 
   return (
@@ -71,7 +73,7 @@ export function ProgressModal({
 
         {/* Assumption notes */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gold uppercase tracking-wider">
+          <h3 className="text-sm font-semibold text-gold uppercase tracking-wider hash-mark">
             Assumptions Applied
           </h3>
           <div className="rounded-xl border border-border-subtle/50 bg-surface-card/40 p-4 space-y-2">
@@ -83,7 +85,7 @@ export function ProgressModal({
               ))
             ) : (
               <p className="text-sm text-ink-faint">
-                No prerequisite assumptions were applied for this plan.
+                No assumptions applied. Clean slate.
               </p>
             )}
           </div>
@@ -100,74 +102,29 @@ export function ProgressModal({
         {/* Bucket breakdown — grouped by program */}
         {sections.length > 0 && (
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gold uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-gold uppercase tracking-wider hash-mark">
               Requirement Breakdown
             </h3>
             <div className="space-y-6">
               {sections.map((section) => (
                 <div key={section.sectionKey} className="space-y-3">
-                  <h4 className="text-xs font-semibold text-gold/70 uppercase tracking-wider border-b border-border-subtle/30 pb-1">
+                  <h4 className="text-sm font-bold text-mu-blue uppercase tracking-wider border-b border-border-subtle/30 pb-1">
                     {section.label}
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {section.entries.map(([bid, prog]) => {
-                      const { done, inProg, needed, unit } = getBucketDisplay(prog);
-                      const ipCodes = prog.in_progress_applied || [];
-                      const label = compactKpiBucketLabel(
-                        prog.label || bucketLabel(bid, programLabelMap),
-                      );
-                      const creditNeeded = Number(prog.needed || 0);
-                      const creditDone = Number(prog.completed_done ?? prog.done_count ?? 0);
-                      const creditInProg = Number(prog.in_progress_increment ?? 0);
-                      const pct = creditNeeded > 0 ? (creditDone / creditNeeded) * 100 : 0;
-                      const totalPct = creditNeeded > 0 ? ((creditDone + creditInProg) / creditNeeded) * 100 : 0;
-                      const satisfied = prog.satisfied || (creditNeeded > 0 && creditDone >= creditNeeded);
-
-                      return (
-                        <div
-                          key={bid}
-                          className={`rounded-xl border border-border-subtle/50 p-4 h-full ${satisfied ? "opacity-60" : ""}`}
-                        >
-                          <div className="flex justify-between items-baseline mb-2">
-                            <span className="text-sm font-medium text-ink-primary">
-                              {label}
-                            </span>
-                            <span className="text-xs text-ink-faint">
-                              {done}
-                              {inProg > 0 && (
-                                <span className="text-gold">+{inProg}</span>
-                              )}
-                              /{needed} {unit}
-                              {satisfied && (
-                                <span className="text-ok ml-1">(Done)</span>
-                              )}
-                            </span>
-                          </div>
-                          <div className="h-2 bg-surface-hover rounded-full overflow-hidden">
-                            <div className="h-full flex">
-                              <div
-                                className="h-full bg-ok rounded-full transition-all duration-500"
-                                style={{ width: `${Math.min(100, pct)}%` }}
-                              />
-                              {inProg > 0 && (
-                                <div
-                                  className="h-full bg-gold rounded-full transition-all duration-500"
-                                  style={{
-                                    width: `${Math.min(100 - Math.min(100, pct), totalPct - pct)}%`,
-                                  }}
-                                />
-                              )}
-                            </div>
-                          </div>
-                          {ipCodes.length > 0 && (
-                            <p className="text-xs text-gold/70 mt-1.5">
-                              In progress courses: {ipCodes.join(", ")}
-                            </p>
-                          )}
+                  {section.subGroups ? (
+                    <div className="space-y-5">
+                      {section.subGroups.map((group) => (
+                        <div key={group.parentId} className="space-y-2">
+                          <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wider pl-1">
+                            {group.label}
+                          </p>
+                          <BucketGrid entries={group.entries} programLabelMap={programLabelMap} />
                         </div>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <BucketGrid entries={section.entries} programLabelMap={programLabelMap} />
+                  )}
                 </div>
               ))}
             </div>
@@ -175,6 +132,76 @@ export function ProgressModal({
         )}
       </div>
     </Modal>
+  );
+}
+
+function BucketGrid({
+  entries,
+  programLabelMap,
+}: {
+  entries: [string, BucketProgress][];
+  programLabelMap?: Map<string, string>;
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      {entries.map(([bid, prog]) => {
+        const { done, inProg, needed, unit } = getBucketDisplay(prog);
+        const ipCodes = prog.in_progress_applied || [];
+        const label = compactKpiBucketLabel(
+          prog.label || bucketLabel(bid, programLabelMap),
+        );
+        const creditNeeded = Number(prog.needed || 0);
+        const creditDone = Number(prog.completed_done ?? prog.done_count ?? 0);
+        const creditInProg = Number(prog.in_progress_increment ?? 0);
+        const pct = creditNeeded > 0 ? (creditDone / creditNeeded) * 100 : 0;
+        const totalPct = creditNeeded > 0 ? ((creditDone + creditInProg) / creditNeeded) * 100 : 0;
+        const satisfied = prog.satisfied || (creditNeeded > 0 && creditDone >= creditNeeded);
+
+        return (
+          <div
+            key={bid}
+            className={`rounded-xl border border-border-subtle/50 p-4 h-full ${satisfied ? "opacity-60" : ""}`}
+          >
+            <div className="flex justify-between items-baseline mb-2">
+              <span className="text-sm font-medium text-ink-primary">
+                {label}
+              </span>
+              <span className="text-xs text-ink-faint">
+                {done}
+                {inProg > 0 && (
+                  <span className="text-gold">+{inProg}</span>
+                )}
+                /{needed} {unit}
+                {satisfied && (
+                  <span className="text-ok ml-1">(Done)</span>
+                )}
+              </span>
+            </div>
+            <div className="h-2 bg-surface-hover rounded-full overflow-hidden">
+              <div className="h-full flex">
+                <div
+                  className="h-full bg-ok rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, pct)}%` }}
+                />
+                {inProg > 0 && (
+                  <div
+                    className="h-full bg-gold rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100 - Math.min(100, pct), totalPct - pct)}%`,
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+            {ipCodes.length > 0 && (
+              <p className="text-xs text-gold/70 mt-1.5">
+                In progress courses: {ipCodes.join(", ")}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -192,7 +219,7 @@ function MetricCard({
   detail?: string;
 }) {
   return (
-    <div className="bg-surface-card/60 rounded-xl border border-border-subtle/50 p-3 text-center">
+    <div className="bg-surface-card/60 rounded-xl border border-border-subtle/50 p-3 text-center stat-card-decor">
       <div className={`text-2xl font-bold font-[family-name:var(--font-sora)] ${color}`}>
         {value}
       </div>

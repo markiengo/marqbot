@@ -19,35 +19,35 @@ export function CourseRow({ course, courseCount }: CourseRowProps) {
     if (count >= 6) {
       return {
         row: "min-h-[34px] px-2 py-1",
-        code: "text-[13px] leading-[1.2]",
-        name: "text-[13px] leading-[1.2]",
+        code: "text-[16px] leading-[1.2]",
+        name: "text-[16px] leading-[1.2]",
       };
     }
     if (count === 5) {
       return {
         row: "min-h-[40px] px-2.5 py-1.5",
-        code: "text-[14px] leading-[1.22]",
-        name: "text-[13px] leading-[1.22]",
+        code: "text-[17px] leading-[1.22]",
+        name: "text-[16px] leading-[1.22]",
       };
     }
     if (count === 4) {
       return {
         row: "min-h-[48px] px-2.5 py-1.5",
-        code: "text-[15px] leading-[1.24]",
-        name: "text-[14px] leading-[1.25]",
+        code: "text-[18px] leading-[1.24]",
+        name: "text-[17px] leading-[1.25]",
       };
     }
     if (count === 3) {
       return {
         row: "min-h-[58px] px-3 py-2",
-        code: "text-[16px] leading-[1.25]",
-        name: "text-[14px] leading-[1.28]",
+        code: "text-[19px] leading-[1.25]",
+        name: "text-[17px] leading-[1.28]",
       };
     }
     return {
       row: "min-h-[92px] px-3 py-3",
-      code: "text-[17px] leading-[1.25]",
-      name: "text-[15px] leading-[1.3]",
+      code: "text-[20px] leading-[1.25]",
+      name: "text-[18px] leading-[1.3]",
     };
   })();
 
@@ -56,7 +56,7 @@ export function CourseRow({ course, courseCount }: CourseRowProps) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.14 }}
-      className={`flex-1 ${density.row} rounded-lg border border-border-subtle/60 bg-[#0e2a52]/45 overflow-hidden flex items-center`}
+      className={`flex-1 ${density.row} rounded-lg border border-border-subtle/60 bg-[#0e2a52]/45 overflow-hidden flex items-center border-l-2 border-l-gold/40`}
     >
       <div className="min-w-0 flex items-center gap-2">
         <span className={`shrink-0 font-semibold text-ink-primary ${density.code}`}>

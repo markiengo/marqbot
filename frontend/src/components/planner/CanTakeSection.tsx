@@ -67,51 +67,52 @@ export function CanTakeSection() {
         open={showExplainer}
         onClose={() => setShowExplainer(false)}
         title="How Marqbot Recommends Courses"
+        titleClassName="!text-[clamp(1.25rem,2.5vw,1.75rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
         size="planner-detail"
       >
-        <div className="space-y-4 text-sm text-ink-secondary">
-          <p className="text-ink-faint text-xs">
+        <div className="space-y-4 text-[16px] text-ink-secondary">
+          <p className="text-ink-faint text-[14px]">
             Hey! Here&apos;s how I pick your courses. No guessing — just rules, top to bottom:
           </p>
           <ol className="space-y-3 list-none">
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">1</span>
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">1</span>
               <div>
-                <p className="font-semibold text-white">Can you actually take it?</p>
-                <p className="text-ink-faint text-xs mt-0.5">First, I remove anything you can&apos;t register for. Missing a prereq? Not offered this semester? Not enough credits to qualify? It&apos;s gone. I only show you courses you can actually sign up for.</p>
+                <p className="font-semibold text-white text-[16px]">Can you actually take it?</p>
+                <p className="text-ink-faint text-[14px] mt-0.5">First, I remove anything you can&apos;t register for. Missing a prereq? Not offered this semester? Not enough credits to qualify? It&apos;s gone. I only show you courses you can actually sign up for.</p>
               </div>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">2</span>
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">2</span>
               <div>
-                <p className="font-semibold text-white">What does it count toward?</p>
-                <p className="text-ink-faint text-xs mt-0.5">University requirements (PHIL, THEO, ENGL) and business core (BUAD, ECON, ACCO) come first. Then your major. Then your track or concentration. Electives come last. I knock out the important stuff before the flexible stuff.</p>
+                <p className="font-semibold text-white text-[16px]">What does it count toward?</p>
+                <p className="text-ink-faint text-[14px] mt-0.5">University requirements (PHIL, THEO, ENGL) and business core (BUAD, ECON, ACCO) come first. Then your major. Then your track or concentration. Electives come last. I knock out the important stuff before the flexible stuff.</p>
               </div>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">3</span>
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">3</span>
               <div>
-                <p className="font-semibold text-white">Is it blocking you?</p>
-                <p className="text-ink-faint text-xs mt-0.5">Some courses are gatekeepers — you can&apos;t take a bunch of other classes until you finish them. I find those bottlenecks and push them to the front so you don&apos;t get stuck later.</p>
+                <p className="font-semibold text-white text-[16px]">Is it blocking you?</p>
+                <p className="text-ink-faint text-[14px] mt-0.5">Some courses are gatekeepers — you can&apos;t take a bunch of other classes until you finish them. I find those bottlenecks and push them to the front so you don&apos;t get stuck later.</p>
               </div>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">4</span>
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">4</span>
               <div>
-                <p className="font-semibold text-white">How long is the chain?</p>
-                <p className="text-ink-faint text-xs mt-0.5">Some courses kick off a sequence that takes multiple semesters to finish. The longer that chain, the earlier you need to start. I make sure you&apos;re not scrambling senior year because you started a 4-course sequence too late.</p>
+                <p className="font-semibold text-white text-[16px]">How long is the chain?</p>
+                <p className="text-ink-faint text-[14px] mt-0.5">Some courses kick off a sequence that takes multiple semesters to finish. The longer that chain, the earlier you need to start. I make sure you&apos;re not scrambling senior year because you started a 4-course sequence too late.</p>
               </div>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold/20 text-gold text-xs font-bold flex items-center justify-center">5</span>
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">5</span>
               <div>
-                <p className="font-semibold text-white">Does it knock out multiple requirements?</p>
-                <p className="text-ink-faint text-xs mt-0.5">If one course counts toward your major AND your business core at the same time, that&apos;s a two-for-one. Those move up the list because they save you time and credits.</p>
+                <p className="font-semibold text-white text-[16px]">Does it knock out multiple requirements?</p>
+                <p className="text-ink-faint text-[14px] mt-0.5">If one course counts toward your major AND your business core at the same time, that&apos;s a two-for-one. Those move up the list because they save you time and credits.</p>
               </div>
             </li>
           </ol>
-          <p className="text-ink-faint text-xs pt-1 border-t border-border-subtle/40">
-            I assume you&apos;ll pass everything. Keep your completed and in-progress courses updated so I can stay accurate.
+          <p className="text-ink-faint text-[14px] pt-1 border-t border-border-subtle/40">
+            I assume you&apos;ll pass everything. Keep your courses updated so I don&apos;t accidentally plan your downfall.
           </p>
         </div>
       </Modal>

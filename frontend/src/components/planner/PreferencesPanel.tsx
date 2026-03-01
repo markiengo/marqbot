@@ -117,7 +117,7 @@ export function PreferencesPanel({ onSubmit, loading }: PreferencesPanelProps) {
           size="md"
           onClick={onSubmit}
           disabled={loading || !hasProgram}
-          className="w-full"
+          className="w-full shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
         >
           {loading ? (
             <span className="flex items-center gap-2">
@@ -125,7 +125,7 @@ export function PreferencesPanel({ onSubmit, loading }: PreferencesPanelProps) {
               Loading...
             </span>
           ) : (
-            "Get Recommendations"
+            "Get My Plan"
           )}
         </Button>
         {!hasProgram && (

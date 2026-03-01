@@ -441,3 +441,282 @@ class TestFinMajorSeniorBccFull:
         assert has_eligible or len(upper_fina) > 0, (
             "Senior should see upper FINA courses or have eligible courses remaining"
         )
+
+
+# ---------------------------------------------------------------------------
+# Missing major smoke tests
+# ---------------------------------------------------------------------------
+
+
+class TestBadmMajor:
+    """BADM major smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["BADM_MAJOR"],
+        "track_id": "",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestBecoMajor:
+    """BECO major smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["BECO_MAJOR"],
+        "track_id": "",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestBecoMajorEconElectivesAllocation:
+    """
+    Verify that upper-division ECON electives flow to the ECON electives bucket
+    (beco-econ-3000plus-9) and NOT only to the general business electives bucket.
+    """
+
+    PAYLOAD = {
+        "declared_majors": ["BECO_MAJOR"],
+        "track_id": "",
+        "completed_courses": (
+            "ECON 1001, ECON 1103, ECON 1104, MATH 1400, BUAD 1000, "
+            "ECON 3003, ECON 3004, ECON 4060, "
+            "ECON 3042, ECON 4005, ECON 4020"
+        ),
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_econ_electives_bucket_satisfied(self, client):
+        """3 elective ECON courses should fill beco-econ-3000plus-9 (3/3)."""
+        _, data = _get_recs(client, self.PAYLOAD)
+        progress = data.get("current_progress", {})
+        econ_elec = progress.get("BECO_MAJOR::BECO-ECON-3000PLUS-9", {})
+        assert econ_elec.get("satisfied"), (
+            f"BECO-ECON-3000PLUS-9 should be satisfied, got {econ_elec}"
+        )
+
+    def test_required_core_satisfied(self, client):
+        """5 required ECON courses should fill beco-req-core."""
+        _, data = _get_recs(client, self.PAYLOAD)
+        progress = data.get("current_progress", {})
+        req_core = progress.get("BECO_MAJOR::BECO-REQ-CORE", {})
+        assert req_core.get("satisfied"), (
+            f"BECO-REQ-CORE should be satisfied, got {req_core}"
+        )
+
+    def test_excluded_courses_not_in_econ_electives(self, client):
+        """ECON 3399 should not be allocatable to beco-econ-3000plus-9."""
+        payload = dict(self.PAYLOAD)
+        payload["completed_courses"] = (
+            "ECON 1001, ECON 1103, ECON 1104, MATH 1400, BUAD 1000, "
+            "ECON 3003, ECON 3004, ECON 4060, ECON 3399"
+        )
+        _, data = _get_recs(client, payload)
+        progress = data.get("current_progress", {})
+        econ_elec = progress.get("BECO_MAJOR::BECO-ECON-3000PLUS-9", {})
+        assert econ_elec.get("completed_courses", 0) == 0, (
+            "ECON 3399 (excluded) should not count toward ECON electives bucket"
+        )
+
+
+class TestInbuMajor:
+    """INBU major smoke test (requires primary major)."""
+
+    PAYLOAD = {
+        "declared_majors": ["FIN_MAJOR", "INBU_MAJOR"],
+        "track_id": "",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestMarkMajor:
+    """MARK major smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["MARK_MAJOR"],
+        "track_id": "",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestRealMajor:
+    """REAL major smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["REAL_MAJOR"],
+        "track_id": "",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+# ---------------------------------------------------------------------------
+# Missing track smoke tests
+# ---------------------------------------------------------------------------
+
+
+class TestAimCfaTrack:
+    """AIM CFA track smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["FIN_MAJOR", "AIM_MAJOR"],
+        "track_id": "AIM_CFA_TRACK",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestAimFintechTrack:
+    """AIM FinTech track smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["FIN_MAJOR", "AIM_MAJOR"],
+        "track_id": "AIM_FINTECH_TRACK",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestAimIbTrack:
+    """AIM IB track smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["FIN_MAJOR", "AIM_MAJOR"],
+        "track_id": "AIM_IB_TRACK",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestFpTrack:
+    """Financial Planning track smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["FIN_MAJOR"],
+        "track_id": "FP_TRACK",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestHureLeadTrack:
+    """HURE Business Leadership track smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["HURE_MAJOR"],
+        "track_id": "HURE_LEAD_TRACK",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestMarkPrslTrack:
+    """Marketing Professional Selling track smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["MARK_MAJOR"],
+        "track_id": "MARK_PRSL_TRACK",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestRealReapTrack:
+    """Real Estate REAP track smoke test."""
+
+    PAYLOAD = {
+        "declared_majors": ["REAL_MAJOR"],
+        "track_id": "REAL_REAP_TRACK",
+        "completed_courses": "ECON 1001, BUAD 1000",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_produces_recommendations(self, client):
+        recs, _ = _get_recs(client, self.PAYLOAD)
+        assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"

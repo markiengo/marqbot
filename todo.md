@@ -59,3 +59,9 @@
 - These equivalences should ONLY apply when checking if a student has already satisfied a prereq (completed or in-progress), NOT during recommendation ranking
 - This way, if a student took MATH 1700 instead of BUAD 1560, the system recognizes the prereq is met — but MATH 1700 never shows up as a recommendation
 - Scope: all OR-alternatives that were stripped from `course_prereqs.csv` in v2.0.1
+
+## pre-launch (post v2.0.2)
+- extensive testing
+- feedback form inside app
+- configure UI from iphone perspective
+- add more tests 

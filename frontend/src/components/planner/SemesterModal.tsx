@@ -3,7 +3,7 @@
 import type { SemesterData, BucketProgress } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { CourseCard } from "./CourseCard";
-import { groupProgressByTierSections, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
+import { groupProgressByTierWithMajors, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
 import { bucketLabel, esc } from "@/lib/utils";
 
 interface SemesterModalProps {
@@ -13,6 +13,7 @@ interface SemesterModalProps {
   index: number;
   requestedCount: number;
   programLabelMap?: Map<string, string>;
+  programOrder?: string[];
 }
 
 export function SemesterModal({
@@ -22,6 +23,7 @@ export function SemesterModal({
   index,
   requestedCount,
   programLabelMap,
+  programOrder,
 }: SemesterModalProps) {
   if (!semester) return null;
 
@@ -34,6 +36,7 @@ export function SemesterModal({
       onClose={onClose}
       size="planner-detail"
       title={`Semester ${index + 1}${semester.target_semester ? ` \u2014 ${semester.target_semester}` : ""}`}
+      titleClassName="text-[13px] font-semibold font-[family-name:var(--font-sora)] text-ink-primary"
     >
       <div className="space-y-6">
         {/* Standing badge */}
@@ -74,7 +77,7 @@ export function SemesterModal({
           </div>
         ) : (
           <p className="text-base text-ink-faint italic">
-            No recommendations for this semester.
+            Nothing to recommend this semester. Respectfully... later.
           </p>
         )}
 
@@ -95,71 +98,32 @@ export function SemesterModal({
         {/* Projected progress */}
         {semesterProgress && Object.keys(semesterProgress).length > 0 && (
           <div className="space-y-4">
-            <h3 className="text-base font-semibold text-gold uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-gold uppercase tracking-wider hash-mark">
               Projected Progress
             </h3>
-            <p className="text-sm text-ink-faint">
-              Progress bars show applied credits or course counts for each requirement bucket.
-            </p>
             {semester.projection_note && (
               <p className="text-sm text-ink-faint">{esc(semester.projection_note)}</p>
             )}
-            <div className="space-y-5">
-              {groupProgressByTierSections(semesterProgress).map((section) => (
-                <div key={section.sectionKey} className="space-y-2">
-                  <h4 className="text-xs font-semibold text-gold/70 uppercase tracking-wider border-b border-border-subtle/30 pb-1">
+            <div className="space-y-6">
+              {groupProgressByTierWithMajors(semesterProgress, programLabelMap, programOrder).map((section) => (
+                <div key={section.sectionKey} className="space-y-3">
+                  <h4 className="text-sm font-bold text-mu-blue uppercase tracking-wider border-b border-border-subtle/30 pb-1">
                     {section.label}
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {section.entries.map(([bid, prog]: [string, BucketProgress]) => {
-                      const { done, inProg, needed, unit } = getBucketDisplay(prog);
-                      const ipCodes = prog.in_progress_applied || [];
-                      const label = compactKpiBucketLabel(
-                        prog.label || bucketLabel(bid, programLabelMap),
-                      );
-                      const creditNeeded = Number(prog.needed || 0);
-                      const creditDone = Number(prog.completed_done ?? prog.done_count ?? 0);
-                      const creditInProg = Number(prog.in_progress_increment ?? 0);
-                      const donePct = creditNeeded > 0 ? (creditDone / creditNeeded) * 100 : 0;
-                      const totalPct = creditNeeded > 0 ? ((creditDone + creditInProg) / creditNeeded) * 100 : 0;
-
-                      return (
-                        <div
-                          key={bid}
-                          className="rounded-xl border border-border-subtle/60 bg-[#0e2a52]/45 p-3"
-                        >
-                          <div className="flex justify-between items-baseline gap-3 text-sm mb-2">
-                            <span className="text-ink-primary font-semibold leading-tight">{label}</span>
-                            <span className="text-ink-faint shrink-0 font-semibold">
-                              {done}
-                              {inProg > 0 && <span className="text-gold">+{inProg}</span>}/{needed} {unit}
-                            </span>
-                          </div>
-                          <div className="h-2 bg-white/80 rounded-full overflow-hidden">
-                            <div className="h-full flex">
-                              <div
-                                className="h-full bg-ok rounded-full"
-                                style={{ width: `${Math.min(100, donePct)}%` }}
-                              />
-                              {inProg > 0 && (
-                                <div
-                                  className="h-full bg-gold rounded-full"
-                                  style={{
-                                    width: `${Math.max(0, Math.min(100, totalPct) - Math.min(100, donePct))}%`,
-                                  }}
-                                />
-                              )}
-                            </div>
-                          </div>
-                          {ipCodes.length > 0 && (
-                            <p className="text-sm text-ink-faint mt-1.5 leading-snug">
-                              In progress courses: {ipCodes.join(", ")}
-                            </p>
-                          )}
+                  {section.subGroups ? (
+                    <div className="space-y-5">
+                      {section.subGroups.map((group) => (
+                        <div key={group.parentId} className="space-y-2">
+                          <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wider pl-1">
+                            {group.label}
+                          </p>
+                          <SemesterBucketGrid entries={group.entries} programLabelMap={programLabelMap} />
                         </div>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <SemesterBucketGrid entries={section.entries} programLabelMap={programLabelMap} />
+                  )}
                 </div>
               ))}
             </div>
@@ -167,5 +131,75 @@ export function SemesterModal({
         )}
       </div>
     </Modal>
+  );
+}
+
+function SemesterBucketGrid({
+  entries,
+  programLabelMap,
+}: {
+  entries: [string, BucketProgress][];
+  programLabelMap?: Map<string, string>;
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      {entries.map(([bid, prog]: [string, BucketProgress]) => {
+        const { done, inProg, needed, unit } = getBucketDisplay(prog);
+        const ipCodes = prog.in_progress_applied || [];
+        const label = compactKpiBucketLabel(
+          prog.label || bucketLabel(bid, programLabelMap),
+        );
+        const creditNeeded = Number(prog.needed || 0);
+        const creditDone = Number(prog.completed_done ?? prog.done_count ?? 0);
+        const creditInProg = Number(prog.in_progress_increment ?? 0);
+        const pct = creditNeeded > 0 ? (creditDone / creditNeeded) * 100 : 0;
+        const totalPct = creditNeeded > 0 ? ((creditDone + creditInProg) / creditNeeded) * 100 : 0;
+        const satisfied = prog.satisfied || (creditNeeded > 0 && creditDone >= creditNeeded);
+
+        return (
+          <div
+            key={bid}
+            className={`rounded-xl border border-border-subtle/50 p-4 h-full ${satisfied ? "opacity-60" : ""}`}
+          >
+            <div className="flex justify-between items-baseline mb-2">
+              <span className="text-sm font-medium text-ink-primary">
+                {label}
+              </span>
+              <span className="text-xs text-ink-faint">
+                {done}
+                {inProg > 0 && (
+                  <span className="text-gold">+{inProg}</span>
+                )}
+                /{needed} {unit}
+                {satisfied && (
+                  <span className="text-ok ml-1">(Done)</span>
+                )}
+              </span>
+            </div>
+            <div className="h-2 bg-surface-hover rounded-full overflow-hidden">
+              <div className="h-full flex">
+                <div
+                  className="h-full bg-ok rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, pct)}%` }}
+                />
+                {inProg > 0 && (
+                  <div
+                    className="h-full bg-gold rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100 - Math.min(100, pct), totalPct - pct)}%`,
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+            {ipCodes.length > 0 && (
+              <p className="text-xs text-gold/70 mt-1.5">
+                In progress courses: {ipCodes.join(", ")}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

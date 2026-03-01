@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Button } from "@/components/shared/Button";
+import { AnchorLine } from "@/components/shared/AnchorLine";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden min-h-[86vh] flex items-center">
+    <section className="relative overflow-hidden min-h-[86vh] flex items-center band-deep">
       <div className="absolute inset-0 -z-10">
         <div
           className="absolute inset-0"
@@ -51,14 +52,14 @@ export function Hero() {
               For Marquette Business Students
             </motion.span>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[64px] font-bold font-[family-name:var(--font-sora)] text-ink-primary leading-[1.08] tracking-tight">
-              Plan your Marquette <span className="text-gold">journey</span>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[72px] font-bold font-[family-name:var(--font-sora)] text-ink-primary leading-[1.08] tracking-tight">
+              Stop spiraling. Start{" "}
+              <span className="text-gold"><em className="mu-accent">planning.</em></span>
             </h1>
 
             <p className="text-base sm:text-lg text-ink-secondary max-w-[620px] mx-auto leading-relaxed">
-              Smart course recommendations powered by your degree requirements,
-              prerequisites, and progress. Get a personalized semester plan in
-              seconds.
+              MarqBot tells you what to take next — based on what you&apos;ve
+              actually completed. No logins. No spreadsheets. No guessing.
             </p>
           </motion.div>
 
@@ -75,7 +76,7 @@ export function Hero() {
                   size="lg"
                   className="min-w-[220px] shadow-[0_0_16px_rgba(255,204,0,0.2)] hover:shadow-[0_0_22px_rgba(255,204,0,0.28)] transition-shadow"
                 >
-                  Get Started
+                  Get My Plan
                 </Button>
               </motion.div>
             </Link>
@@ -87,8 +88,10 @@ export function Hero() {
             transition={{ delay: 0.5, duration: 0.4 }}
             className="text-[17px] text-ink-faint"
           >
-            No sign-up required &middot; Works instantly
+            Built by a Marquette student. Powered by real degree rules.
           </motion.p>
+
+          <AnchorLine variant="gold" className="mt-6" />
         </div>
       </div>
     </section>

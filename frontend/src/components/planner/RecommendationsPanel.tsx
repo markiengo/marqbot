@@ -60,13 +60,12 @@ export function RecommendationsPanel({
       <div className="h-full flex flex-col items-center justify-center gap-4 rounded-xl border border-gold/30 bg-[#0c2348]/55 p-8 text-center">
         <div className="text-5xl">🎓</div>
         <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-gold">
-          You&apos;ve Graduated!
+          You did it. We love to see it.
         </h2>
         <p className="text-ink-secondary text-sm max-w-xs">
-          All degree requirements are satisfied. Congratulations on completing
-          your Marquette business degree!
+          All tracked degree requirements are satisfied. Senior energy. Confirmed.
         </p>
-        <p className="text-[10px] text-ink-faint/60 mt-1">
+        <p className="text-[11.5px] font-bold text-ink-faint/60 mt-1">
           Note: ESSV2, WRIT, and Discovery courses are not yet considered.
         </p>
       </div>
@@ -97,10 +96,10 @@ export function RecommendationsPanel({
 
         <div className="flex-1 min-w-0 min-h-0 rounded-lg bg-[#0b2143]/55 shadow-[inset_0_0_0_1px_rgba(141,170,224,0.2)] flex flex-col overflow-hidden">
           <div className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-border-subtle/60">
-            <h3 className="text-[16px] md:text-[18px] font-bold font-[family-name:var(--font-sora)] text-gold leading-[1.25] tracking-[0.01em]">
+            <h4 className="text-[11px] md:text-[13px] font-bold font-[family-name:var(--font-sora)] text-gold leading-[1.25] tracking-[0.01em] hash-mark">
               Semester {selectedIdx + 1}
               {activeSemester.target_semester && ` - ${activeSemester.target_semester}`}
-            </h3>
+            </h4>
             {activeRecs.length > 0 && (
               <button
                 type="button"
@@ -160,19 +159,19 @@ export function RecommendationsPanel({
                     <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
                       <div className="text-5xl">🎓</div>
                       <p className="text-xl font-semibold text-gold">
-                        You will have graduated!
+                        Clean path. You&apos;re done here.
                       </p>
                       <p className="text-sm text-ink-faint max-w-xs leading-relaxed">
-                        Based on your current plan, all tracked degree requirements
-                        will be satisfied by this point.
+                        All tracked requirements will be satisfied by this point.
+                        Almost there. Don&apos;t fumble now.
                       </p>
-                      <p className="text-xs text-ink-faint/60 mt-1">
+                      <p className="text-[13.8px] font-bold text-ink-faint/60 mt-1">
                         Note: ESSV2, WRIT, and Discovery courses are not yet considered.
                       </p>
                     </div>
                   ) : (
                     <p className="text-[14px] text-ink-faint italic py-4 text-center leading-[1.3]">
-                      No eligible courses for this semester.
+                      No eligible courses this semester. Nothing to see here.
                     </p>
                   );
                 })()}

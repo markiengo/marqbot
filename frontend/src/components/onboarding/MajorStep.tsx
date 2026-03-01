@@ -210,7 +210,7 @@ export function MajorStep() {
     <div className="space-y-5">
       <div>
         <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
-          What&apos;s your program?
+          What&apos;s your major?
         </h2>
         <p className="text-sm text-ink-muted mt-0.5">
           Select your major(s), any minors, and optional concentrations.

@@ -21,11 +21,10 @@ export function PreferencesStep() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
-          Preferences
+          Let&apos;s build your plan.
         </h2>
         <p className="text-base text-ink-muted mt-1">
-          Tell us about your target semester and how many recommendations you
-          want.
+          Pick your semester. Pick your load. We&apos;ll do the rest.
         </p>
       </div>
 

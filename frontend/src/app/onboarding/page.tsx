@@ -36,7 +36,7 @@ export default function OnboardingPage() {
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-ink-muted">Loading course data...</p>
+          <p className="text-sm text-ink-muted">Pulling course data. One sec.</p>
         </div>
       </div>
     );
@@ -72,7 +72,7 @@ export default function OnboardingPage() {
         <div>
           {isLast ? (
             <Button variant="gold" size="lg" onClick={handleFinish}>
-              Start Planning
+              Let&apos;s Go
             </Button>
           ) : (
             <Button

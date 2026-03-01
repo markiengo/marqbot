@@ -53,7 +53,7 @@ export function StepIndicator({
             {i < totalSteps - 1 && (
               <div
                 className={`w-14 h-1 rounded-full mb-7 ${
-                  isDone ? "bg-gold" : "bg-border-subtle"
+                  isDone ? "bg-gold shadow-[0_0_6px_rgba(255,204,0,0.3)]" : "bg-border-subtle"
                 }`}
               />
             )}

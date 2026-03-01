@@ -52,8 +52,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
           What courses have you taken?
         </h2>
         <p className="text-base text-ink-muted mt-1">
-          Add your completed and in-progress courses so we can give accurate
-          recommendations. You can skip this and add them later.
+          Drop your completed courses. Don&apos;t lie to me.
         </p>
       </div>
 
