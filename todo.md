@@ -54,3 +54,8 @@
 "Warning: Sophomore standing required" -> checkable with user's current standing
 - add a "How does Recommendations work?" inside rec pane. next to the search bar of Can I take -> to the rigth side of the screen, add an underline, yellow text: "See how Marqbot recommend courses" -> click it and it shows a modal view explaining the recommendation hierarchy. succinct, short, and students has to understand. 
 
+## course_equivalencies (future)
+- Add a new data sheet `course_equivalencies.csv` that maps OR-equivalent courses (e.g., BUAD 1560 ↔ MATH 1700 ↔ COMM 1700 ↔ SOCI 2060)
+- These equivalences should ONLY apply when checking if a student has already satisfied a prereq (completed or in-progress), NOT during recommendation ranking
+- This way, if a student took MATH 1700 instead of BUAD 1560, the system recognizes the prereq is met — but MATH 1700 never shows up as a recommendation
+- Scope: all OR-alternatives that were stripped from `course_prereqs.csv` in v2.0.1

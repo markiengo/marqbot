@@ -97,7 +97,7 @@ Global Rules:
 - `semester_recommender.py`: Multi-semester recommendation engine. Imports shared helpers from `allocator`.
 - `eligibility.py`: Course eligibility filtering (prereqs, standing gates, offering checks).
 - `requirements.py`: Bucket/role lookups, constants (`DEFAULT_TRACK_ID`, `SOFT_WARNING_TAGS`).
-- `unlocks.py`: Reverse prereq graph, `compute_chain_depths()` for transitive prereq chain scoring, `get_blocking_warnings()` for core blocker alerts.
+- `unlocks.py`: Reverse prereq graph, `compute_chain_depths()` for transitive prereq chain scoring, `get_direct_unlocks()` for 1-level unlock counts, `get_blocking_warnings()` for core blocker alerts.
 - `validators.py`: Prereq chain expansion, input validation.
 - `normalizer.py`: Course code normalization.
 - `prereq_parser.py`: Prerequisite string parsing.
@@ -105,7 +105,7 @@ Global Rules:
 - Do not duplicate helper functions across modules; import from the canonical source.
 
 # Recommendation Algorithm
-- Ranking key order (in `semester_recommender.py`): bucket_tier → acco_boost → core_prereq_blocker → chain_depth → multi_bucket_score → soft_tag_penalty → prereq_level → lexical tiebreak.
+- Ranking key order (in `semester_recommender.py`): bucket_tier → acco_boost → core_prereq_blocker → bridge_course → chain_depth → multi_bucket_score → soft_tag_penalty → prereq_level → lexical tiebreak.
 - `compute_chain_depths()` runs once at startup and on data reload; passed to `run_recommendation_semester()` via `chain_depths` kwarg.
 - Program balance deferral threshold is `_PROGRAM_BALANCE_THRESHOLD = 2`. Deferred candidates get a second pass after the main greedy loop.
 - Bucket satisfaction uses OR logic: if either course-count or credit threshold is met, the bucket is satisfied (`_compute_satisfied()` in `semester_recommender.py`).
@@ -129,3 +129,13 @@ Global Rules:
 - Never commit secrets from `.env` or hardcode secret values in tracked files.
 - Never define React components inside render functions (move to module scope or a separate file).
 - Never define helper functions in multiple backend modules — import from the canonical source (e.g., `_safe_int` from `allocator`).
+
+# Known Dev Environment Issues
+- **Claude Code Bash tool on Windows**: The Bash tool may return empty output on Windows (known issue, GitHub #26545). Workaround: use Agent tool to spawn subagents for running commands, or run commands directly in a separate terminal. Setting `CLAUDE_CODE_GIT_BASH_PATH` environment variable to Git Bash path (e.g., `$env:CLAUDE_CODE_GIT_BASH_PATH = "C:\Program Files\Git\bin\bash.exe"` in PowerShell) may help but is not guaranteed.
+
+# Prereq Data Rules
+- `course_prereqs.csv` uses `;` for AND (all required) and `or` for OR (any one). `none` = no prereqs.
+- OR alternatives in prereqs should be avoided — they cause phantom recommendations. Use AND where all prereqs are truly required, keep only the primary course otherwise.
+- Future `course_equivalencies.csv` will handle OR equivalences for completed/in-progress credit checks only.
+- `hard_prereq_complex` tag is reserved for genuinely unparseable patterns (e.g., "choose 2 from 5"). Currently: INSY 4158, OSCM 4997.
+- CORE 1929 (`THEO 1001 or PHIL 1001`) is the only intentional OR prereq — kept because both options are commonly known MCC Foundation courses.

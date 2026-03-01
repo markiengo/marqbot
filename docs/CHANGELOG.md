@@ -8,6 +8,34 @@ Format per release:
 
 ---
 
+## [v2.0.1] - 2026-03-01
+
+### Changes
+
+**Prerequisite cleanup — removed phantom course recommendations**
+- Cleaned up ~40 OR-alternative prerequisites that were causing unrelated courses (MATH 1700, COMM 1700, SOCI 2060, etc.) to appear in recommendations as "unlock targets."
+- OR alternatives replaced with the primary business course (usually BUAD 1560 for stats) or converted to AND where all prereqs are truly required.
+- Future `course_equivalencies` sheet will handle OR equivalences for completed/in-progress credit only — they no longer affect recommendations.
+
+**Core prereq blocker fix**
+- Fixed a bug where universal buckets (BCC_REQUIRED, MCC_CORE, etc.) were included in the core_prereq_blocker scoring, causing random non-major courses to get boosted in recommendations.
+- The existing BCC::/MCC:: prefix filter was dead code — bucket IDs are plain strings, not namespaced. Replaced with proper parent-type lookup.
+
+**"How Marqbot Recommends" rewrite**
+- Rewrote the explainer modal from 7 jargon-heavy steps to 5 plain-English steps a student can actually understand.
+
+**Data cleanup**
+- Removed MATH 4720 and ECON 1001 from all data files (not real courses students take).
+- Restored MATH 1200 (prereq for MATH 1400 which is BCC_REQUIRED).
+- Updated all 14 advisor gold profiles with corrected expected recommendations.
+
+### Design Decisions
+- OR-alternative prereqs were the root cause of phantom recommendations — the engine treated every OR branch as an unlock target. Stripping them from prereq data and deferring equivalency logic to a future `course_equivalencies` sheet keeps the recommendation engine clean.
+- `hard_prereq_complex` tag added to INSY 4158 (choose 2 from 5) and OSCM 4997 (choose 1 from 3) — genuinely unparseable patterns.
+- CORE 1929 (`THEO 1001 or PHIL 1001`) kept as OR — commonly known and intentional.
+
+---
+
 ## [v2.0.0] - 2026-02-28
 
 ### Changes
