@@ -925,6 +925,46 @@ def run_recommendation_semester(
                 )
                 virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
                 picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
+
+    # Rescue pass: when both main loop and deferred pass produced nothing,
+    # force-assign candidates to any mapped bucket (even at capacity).
+    # Overfilling a bucket is strictly better than dead-ending the student.
+    if not selected_sem:
+        has_unsatisfied = any(v > 0 for v in virtual_remaining.values())
+        if has_unsatisfied:
+            for cand in ranked_sem:
+                if len(selected_sem) >= max_recs:
+                    break
+                cand_buckets = _selection_bucket_ids(cand)
+                if _is_bridge_candidate(cand):
+                    continue
+                # Try without cap first
+                assigned_buckets = _select_assignable_buckets_allocator_style(
+                    cand_buckets,
+                    virtual_remaining,
+                    picks_per_bucket,
+                    enforce_bucket_cap=False,
+                    max_per_bucket=_MAX_PER_BUCKET_PER_SEM,
+                    allowed_pairs=allowed_pairs,
+                    bucket_meta=selection_bucket_meta,
+                )
+                if not assigned_buckets:
+                    # Force-assign to any mapped bucket still in remaining
+                    for bid in cand_buckets:
+                        if bid in virtual_remaining:
+                            assigned_buckets = [bid]
+                            break
+                if not assigned_buckets:
+                    continue
+                selected_sem.append(cand)
+                for bid in assigned_buckets:
+                    if virtual_remaining.get(bid, 0) > 0:
+                        consume = _bucket_virtual_consumption_units(
+                            bid, cand, selection_bucket_meta,
+                        )
+                        virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
+                        picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
+
     for cand in selected_sem:
         cand["tier"] = _bucket_hierarchy_tier_v2(
             cand,
