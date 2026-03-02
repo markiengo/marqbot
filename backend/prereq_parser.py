@@ -73,7 +73,13 @@ def prereq_course_codes(parsed_prereq: dict) -> list[str]:
         course = parsed_prereq.get("course")
         return [course] if course else []
     if t in {"and", "or", "choose_n"}:
-        return [c for c in parsed_prereq.get("courses", []) if c]
+        result = []
+        for c in parsed_prereq.get("courses", []):
+            if isinstance(c, dict):
+                result.extend(prereq_course_codes(c))
+            elif c:
+                result.append(c)
+        return result
     return []
 
 
@@ -127,11 +133,26 @@ def parse_prereqs(prereq_str) -> dict:
         return choose_n
 
     if ";" in s:
-        tokens = [normalize_code(c.strip()) or c.strip() for c in s.split(";")]
-        tokens = [t for t in tokens if t]
-        if len(tokens) == 1:
-            return {"type": "single", "course": tokens[0]}
-        return {"type": "and", "courses": tokens}
+        raw_tokens = [c.strip() for c in s.split(";")]
+        clauses = []
+        for tok in raw_tokens:
+            if not tok:
+                continue
+            if OR_SPLIT.search(tok):
+                # Nested OR clause within an AND prereq
+                or_parts = [normalize_code(p.strip()) or p.strip() for p in OR_SPLIT.split(tok)]
+                or_parts = [p for p in or_parts if p]
+                if len(or_parts) == 1:
+                    clauses.append(or_parts[0])
+                else:
+                    clauses.append({"type": "or", "courses": or_parts})
+            else:
+                clauses.append(normalize_code(tok) or tok)
+        if len(clauses) == 1:
+            if isinstance(clauses[0], dict):
+                return clauses[0]
+            return {"type": "single", "course": clauses[0]}
+        return {"type": "and", "courses": clauses}
 
     if OR_SPLIT.search(s):
         tokens = [normalize_code(c.strip()) or c.strip() for c in OR_SPLIT.split(s)]
@@ -155,7 +176,13 @@ def prereqs_satisfied(parsed_prereq: dict, satisfied_codes: set) -> bool:
     if t == "single":
         return parsed_prereq["course"] in satisfied_codes
     if t == "and":
-        return all(c in satisfied_codes for c in parsed_prereq["courses"])
+        for clause in parsed_prereq["courses"]:
+            if isinstance(clause, dict):
+                if not prereqs_satisfied(clause, satisfied_codes):
+                    return False
+            elif clause not in satisfied_codes:
+                return False
+        return True
     if t == "or":
         return any(c in satisfied_codes for c in parsed_prereq["courses"])
     if t == "choose_n":
@@ -189,7 +216,13 @@ def build_prereq_check_string(
     if t == "single":
         return label_code(parsed_prereq["course"])
     if t == "and":
-        return "; ".join(label_code(c) for c in parsed_prereq["courses"])
+        parts = []
+        for clause in parsed_prereq["courses"]:
+            if isinstance(clause, dict):
+                parts.append(build_prereq_check_string(clause, completed, in_progress))
+            else:
+                parts.append(label_code(clause))
+        return "; ".join(parts)
     if t == "or":
         # Show which one satisfied it
         codes = parsed_prereq["courses"]

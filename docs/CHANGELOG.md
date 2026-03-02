@@ -8,6 +8,30 @@ Format per release:
 
 ---
 
+## [v2.1.1] - 2026-03-02
+
+### Changes
+
+**Dead-end prevention test suite**
+- New automated tests that simulate your full degree path — every major, track, and combo — and check that the planner never gets stuck with no courses to recommend. 73 test scenarios covering empty, early, mid, and late progress states.
+
+**OSCM 4997 (Capstone) now recommendable**
+- Previously required manual advisor review. The prereq (OSCM 3001 + OSCM 4010 + one of OSCM 4020/4025/4040 + Senior standing) is now fully understood by the engine and the course appears in recommendations when you're eligible.
+
+**International Business study abroad options expanded**
+- The study abroad requirement bucket now includes 30+ eligible courses (HIST, POSC, SPAN, ANTH, CHNS, ITAL, and more) — previously only 5 were mapped, and 4 of those were non-recommendable "Topics in" courses.
+
+**Smarter recommendation engine**
+- When the planner would have returned an empty semester with unsatisfied requirements, it now keeps recommending — even if it means overfilling a bucket that's already at its soft cap. Filling a bucket twice beats giving you nothing.
+
+### Design Decisions
+- The prereq parser now supports mixed AND/OR patterns (e.g., "A and B and (C or D or E)"). This is used only for OSCM 4997 today but supports future courses with similar prereq structures.
+- Non-recommendable course groups (courses the engine will never suggest, but still count if completed): **internships**, **work periods**, **independent studies**, and **"Topics in..." courses**. These have variable content or require special enrollment.
+- Dead-end tests run in the PR gate (~60s). A separate nightly sweep covers pairwise program combos and adversarial states.
+- The rescue pass only fires as a last resort — after both the main selection loop and the balance-deferral pass return nothing. Normal bucket caps and diversity spreading are preserved for all other cases.
+
+---
+
 ## [v2.1.0] - 2026-03-01
 
 ### Changes

@@ -697,7 +697,13 @@ def check_can_take(
         if t == "single":
             return [parsed_req["course"]] if parsed_req["course"] not in source else []
         if t == "and":
-            return [c for c in parsed_req["courses"] if c not in source]
+            result = []
+            for clause in parsed_req["courses"]:
+                if isinstance(clause, dict):
+                    result.extend(missing_from(clause, source))
+                elif clause not in source:
+                    result.append(clause)
+            return result
         if t == "or":
             return [] if any(c in source for c in parsed_req["courses"]) else parsed_req["courses"]
         if t == "choose_n":
