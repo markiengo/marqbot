@@ -140,6 +140,16 @@ class TestCanTakeEligibility:
         assert data["can_take"] is True
         assert data["missing_prereqs"] == []
 
+    def test_choose_two_prereq_supported_for_insy_4158(self, client):
+        _, data = post_can_take(client, {
+            "requested_course": "INSY 4158",
+            "completed_courses": "INSY 4051, INSY 4052",
+            "target_semester": "Spring 2027",
+            "declared_majors": ["INSY_MAJOR"],
+        })
+        assert data["can_take"] is True
+        assert data["unsupported_prereq_format"] is False
+
 
 # ── Program context ──────────────────────────────────────────────────────────
 

@@ -15,6 +15,7 @@ from allocator import (
 )
 from unlocks import get_blocking_warnings
 from eligibility import get_eligible_courses, parse_term
+from prereq_parser import prereq_course_codes
 
 
 SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
@@ -104,12 +105,7 @@ def default_followup_semester_with_summer(first_semester: str) -> str:
 
 
 def _prereq_courses(parsed: dict) -> set[str]:
-    t = parsed.get("type")
-    if t == "single":
-        return {parsed["course"]}
-    if t in ("and", "or"):
-        return set(parsed["courses"])
-    return set()
+    return set(prereq_course_codes(parsed))
 
 
 def _soft_tag_demote_penalty(candidate: dict) -> int:

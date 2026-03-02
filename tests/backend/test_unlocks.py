@@ -40,6 +40,21 @@ class TestBuildReversePrereqMap:
         reverse = build_reverse_prereq_map(courses_df, prereq_map)
         assert "FINA 4081" in reverse.get("FINA 4001", [])
 
+    def test_choose_n_prereqs_contribute_to_reverse_map(self, courses_df, prereq_map):
+        augmented_courses = pd.concat(
+            [courses_df, pd.DataFrame([{"course_code": "INSY 4158"}])],
+            ignore_index=True,
+        )
+        augmented_map = dict(prereq_map)
+        augmented_map["INSY 4158"] = {
+            "type": "choose_n",
+            "count": 2,
+            "courses": ["INSY 4051", "INSY 4052", "INSY 4053"],
+        }
+        reverse = build_reverse_prereq_map(augmented_courses, augmented_map)
+        assert "INSY 4158" in reverse.get("INSY 4051", [])
+        assert "INSY 4158" in reverse.get("INSY 4052", [])
+
     def test_no_prereq_not_in_map(self, courses_df, prereq_map):
         reverse = build_reverse_prereq_map(courses_df, prereq_map)
         # FINA 3001 itself has no prereqs so no course should list it... wait,

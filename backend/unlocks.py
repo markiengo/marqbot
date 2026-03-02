@@ -1,5 +1,5 @@
 import pandas as pd
-from prereq_parser import prereqs_satisfied
+from prereq_parser import prereq_course_codes, prereqs_satisfied
 
 
 def build_reverse_prereq_map(
@@ -20,13 +20,7 @@ def build_reverse_prereq_map(
         parsed = prereq_map.get(course_code, {"type": "none"})
         t = parsed.get("type")
 
-        prereq_codes: list[str] = []
-        if t == "single":
-            prereq_codes = [parsed["course"]]
-        elif t == "and":
-            prereq_codes = parsed["courses"]
-        elif t == "or":
-            prereq_codes = parsed["courses"]
+        prereq_codes = prereq_course_codes(parsed)
 
         for prereq_code in prereq_codes:
             reverse.setdefault(prereq_code, [])

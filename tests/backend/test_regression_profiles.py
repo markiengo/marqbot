@@ -242,6 +242,42 @@ class TestHureMajorZeroCreditMultiSemester:
         assert "MATH 1200" in all_codes
 
 
+class TestTripleMajorInsy4158Regression:
+    """INSY 4158 should stop dead-ending in manual review once two 405x courses are done."""
+
+    PAYLOAD = {
+        "declared_majors": ["FIN_MAJOR", "INSY_MAJOR", "BUAN_MAJOR"],
+        "track_id": "",
+        "completed_courses": (
+            "BUAD 1001, ACCO 1030, ECON 1103, ECON 1104, "
+            "MATH 1450, INGS 1001, THEO 1001, ENGL 1001, LEAD 1050"
+        ),
+        "in_progress_courses": "",
+        "target_semester_primary": "Spring 2026",
+        "target_semester_count": 8,
+        "max_recommendations": 6,
+    }
+
+    def test_insy_4158_is_recommended_not_manual_review(self, client):
+        _, data = _get_recs(client, self.PAYLOAD)
+        semesters = data.get("semesters", [])
+        assert len(semesters) == 8
+
+        all_manual_review = [
+            code
+            for semester in semesters
+            for code in semester.get("manual_review_courses", [])
+        ]
+        assert "INSY 4158" not in all_manual_review
+
+        all_recommended = [
+            rec["course_code"]
+            for semester in semesters
+            for rec in semester.get("recommendations", [])
+        ]
+        assert "INSY 4158" in all_recommended
+
+
 class TestOscmMajor:
     """OSCM major smoke test."""
 

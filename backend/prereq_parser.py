@@ -4,6 +4,14 @@ from normalizer import normalize_code
 
 # Case-insensitive OR splitter — preserves token casing before normalize_code()
 OR_SPLIT = re.compile(r'\s+or\s+', re.IGNORECASE)
+CHOOSE_N_FROM_RE = re.compile(
+    r'^(?:any\s+)?(?P<count>\d+|one|two|three|four|five)\s+courses?\s+from\s*:?\s*(?P<options>.+)$',
+    re.IGNORECASE,
+)
+CHOOSE_N_SHORT_RE = re.compile(
+    r'^choose\s+(?P<count>\d+|one|two|three|four|five)\s+from\s*:?\s*(?P<options>.+)$',
+    re.IGNORECASE,
+)
 
 # Regex to strip parenthetical annotation clauses, e.g. "(may be concurrent)"
 ANNOTATION_RE = re.compile(r'\s*\([^)]*\)')
@@ -26,6 +34,47 @@ UNSUPPORTED_SIGNALS = [
 ]
 
 NONE_VALUES = {"none", "none listed", "n/a", ""}
+COUNT_WORDS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+}
+
+
+def _parse_count_token(token: str) -> int | None:
+    raw = str(token or "").strip().lower()
+    if raw.isdigit():
+        return int(raw)
+    return COUNT_WORDS.get(raw)
+
+
+def _parse_choose_n_from(s: str) -> dict | None:
+    for pattern in (CHOOSE_N_FROM_RE, CHOOSE_N_SHORT_RE):
+        match = pattern.match(s)
+        if not match:
+            continue
+        count = _parse_count_token(match.group("count"))
+        options_raw = str(match.group("options") or "").strip().rstrip(".")
+        tokens = [normalize_code(c.strip()) or c.strip() for c in OR_SPLIT.split(options_raw)]
+        tokens = [t for t in tokens if t]
+        if count is None or count <= 0 or len(tokens) < count:
+            return {"type": "unsupported", "raw": s}
+        if count == 1 and len(tokens) == 1:
+            return {"type": "single", "course": tokens[0]}
+        return {"type": "choose_n", "count": count, "courses": tokens}
+    return None
+
+
+def prereq_course_codes(parsed_prereq: dict) -> list[str]:
+    t = parsed_prereq.get("type")
+    if t == "single":
+        course = parsed_prereq.get("course")
+        return [course] if course else []
+    if t in {"and", "or", "choose_n"}:
+        return [c for c in parsed_prereq.get("courses", []) if c]
+    return []
 
 
 def _strip_annotations(s: str) -> str:
@@ -42,6 +91,7 @@ def parse_prereqs(prereq_str) -> dict:
       CODE                     → {"type": "single", "course": "DEPT NNNN"}
       CODE;CODE;...            → {"type": "and", "courses": [...]}
       CODE or CODE             → {"type": "or", "courses": [...]}
+      Two courses from: ...    → {"type": "choose_n", "count": 2, "courses": [...]}
 
     Parenthetical annotations (e.g. "(may be concurrent)") are stripped before
     parsing, so "FINA 3001 (may be concurrent)" → {"type": "single", "course": "FINA 3001"}.
@@ -71,6 +121,10 @@ def parse_prereqs(prereq_str) -> dict:
     for signal in UNSUPPORTED_SIGNALS:
         if signal in s_lower:
             return {"type": "unsupported", "raw": s}
+
+    choose_n = _parse_choose_n_from(s)
+    if choose_n is not None:
+        return choose_n
 
     if ";" in s:
         tokens = [normalize_code(c.strip()) or c.strip() for c in s.split(";")]
@@ -104,6 +158,8 @@ def prereqs_satisfied(parsed_prereq: dict, satisfied_codes: set) -> bool:
         return all(c in satisfied_codes for c in parsed_prereq["courses"])
     if t == "or":
         return any(c in satisfied_codes for c in parsed_prereq["courses"])
+    if t == "choose_n":
+        return sum(1 for c in parsed_prereq["courses"] if c in satisfied_codes) >= parsed_prereq["count"]
     # unsupported → always False (never auto-eligible)
     return False
 
@@ -141,4 +197,9 @@ def build_prereq_check_string(
         if satisfied:
             return f"{label_code(satisfied[0])} (or {' or '.join(c for c in codes if c != satisfied[0])})"
         return " or ".join(label_code(c) for c in codes)
+    if t == "choose_n":
+        codes = parsed_prereq["courses"]
+        count = parsed_prereq["count"]
+        satisfied_count = sum(1 for c in codes if c in completed or c in in_progress)
+        return f"{satisfied_count}/{count} required: " + "; ".join(label_code(c) for c in codes)
     return "Manual review required"
