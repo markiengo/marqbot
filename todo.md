@@ -72,3 +72,4 @@
 - add essv2
 - add writ
 - add full-fledged discovery themes courses
+- add tests for no dead-end routes 

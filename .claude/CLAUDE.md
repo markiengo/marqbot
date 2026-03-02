@@ -108,8 +108,10 @@ Global Rules:
 - Ranking key order (in `semester_recommender.py`): bucket_tier → acco_boost → core_prereq_blocker → bridge_course → chain_depth → multi_bucket_score → soft_tag_penalty → prereq_level → lexical tiebreak.
 - `compute_chain_depths()` runs once at startup and on data reload; passed to `run_recommendation_semester()` via `chain_depths` kwarg.
 - Program balance deferral threshold is `_PROGRAM_BALANCE_THRESHOLD = 2`. Deferred candidates get a second pass after the main greedy loop.
+- Post-loop rescue pass: when both main loop and deferred pass produce zero selections but unsatisfied buckets remain, force-assign candidates to any mapped bucket (even at capacity). Overfilling is better than dead-ending. Only fires as last resort — normal caps preserved otherwise.
 - Bucket satisfaction uses OR logic: if either course-count or credit threshold is met, the bucket is satisfied (`_compute_satisfied()` in `semester_recommender.py`).
 - `hard_prereq_complex` tag should only exist on courses with genuinely unparseable prerequisites. All courses with parseable prereqs (type = single, and, or, none) must NOT have this tag.
+- Non-recommendable course groups (filtered by `_is_non_recommendable_course` in `eligibility.py`): **internships**, **work periods**, **independent studies**, and **"Topics in..." courses**. These still count toward bucket progress when completed/in-progress.
 
 # Performance Rules
 - Workbook parsing is expensive: load once at startup and refresh via controlled reload path only.
@@ -118,6 +120,13 @@ Global Rules:
 - Avoid repeated full-dataframe scans in hot paths; pre-index/precompute for repeated lookups.
 - Assume concurrent requests across multiple Gunicorn workers; protect shared mutable state with locks per process.
 - Keep logs concise and operational (`[INFO]`, `[WARN]`, `[OK]`, `[FATAL]`), and never log secrets or full user payloads.
+
+# Branch Strategy
+- Two branches: `main` (pushed to remote, clean) and `local` (never pushed, superset of main).
+- `local` branch tracks local-only files: `.claude/`, `todo.md`, `docs/branding.md`, `docs/data_injection_stage1.md`, `docs/data_injection_stage2.md`, `docs/session_end.md`.
+- `local`'s `.gitignore` does NOT list the above paths; `main`'s does.
+- Always work on `local`. To push: checkout `main`, merge `local`, restore/unstage local-only files, push, return to `local`. Or: commit pushable work on `main` directly, then `git checkout local && git merge main`.
+- **Never push the `local` branch to remote.**
 
 # Never Do
 - Never switch production away from static Next export without redesigning backend static serving.
@@ -129,8 +138,8 @@ Global Rules:
 - Never commit secrets from `.env` or hardcode secret values in tracked files.
 - Never define React components inside render functions (move to module scope or a separate file).
 - Never define helper functions in multiple backend modules — import from the canonical source (e.g., `_safe_int` from `allocator`).
-- Never push /.claude folder onto main (github), if it is on there, remove
-- Inside docs, only push @changelog.md and @data_model.md. everything else stay offline.
+- Never push the `local` branch to remote.
+- Inside docs, only push `changelog.md` and `data_model.md`. Everything else stays on `local` only.
 
 # Quip System
 - `data/quips.csv` is the source of truth for contextual one-liners shown in Progress and Semester modals. ~500 messages across dimension slots and compound conditions.
@@ -138,14 +147,14 @@ Global Rules:
 - `frontend/src/lib/quips.ts` contains the selection engine: dimension resolvers, compound match rules, djb2 hash-based deterministic pick. No Math.random().
 - Quip selection is deterministic: same student data = same quip. Different data = different quip (different context hash).
 - Tone ratio: 70% dry, 20% witty, 10% slightly chaotic. Max 120 chars per quip. Never shame students.
-- `hard_prereq_complex` courses (e.g., INSY 4158) are tagged `manual_review` and excluded from recommendations — this can cause empty semesters when they're the only remaining requirement.
+- `hard_prereq_complex` courses (currently only INSY 4158) are tagged `manual_review` and excluded from recommendations — this can cause empty semesters when they're the only remaining requirement.
 
 # Known Dev Environment Issues
 - **Claude Code Bash tool on Windows**: The Bash tool may return empty output on Windows (known issue, GitHub #26545). Workaround: use Agent tool to spawn subagents for running commands, or run commands directly in a separate terminal. Setting `CLAUDE_CODE_GIT_BASH_PATH` environment variable to Git Bash path (e.g., `$env:CLAUDE_CODE_GIT_BASH_PATH = "C:\Program Files\Git\bin\bash.exe"` in PowerShell) may help but is not guaranteed.
 
 # Prereq Data Rules
-- `course_prereqs.csv` uses `;` for AND (all required) and `or` for OR (any one). `none` = no prereqs.
-- OR alternatives in prereqs should be avoided — they cause phantom recommendations. Use AND where all prereqs are truly required, keep only the primary course otherwise.
+- `course_prereqs.csv` uses `;` for AND (all required) and `or` for OR (any one). Mixed AND/OR is supported: `A;B;C or D or E` means "A AND B AND (C or D or E)". `none` = no prereqs.
+- OR alternatives in prereqs should be avoided — they cause phantom recommendations. Use AND where all prereqs are truly required, keep only the primary course otherwise. Exception: mixed AND/OR is acceptable when a course genuinely requires "all of X plus one of Y" (e.g., OSCM 4997).
 - Future `course_equivalencies.csv` will handle OR equivalences for completed/in-progress credit checks only.
-- `hard_prereq_complex` tag is reserved for genuinely unparseable patterns (e.g., "choose 2 from 5"). Currently: INSY 4158, OSCM 4997.
+- `hard_prereq_complex` tag is reserved for genuinely unparseable patterns (e.g., "choose 2 from 5"). Currently: INSY 4158.
 - CORE 1929 (`THEO 1001 or PHIL 1001`) is the only intentional OR prereq — kept because both options are commonly known MCC Foundation courses.
