@@ -52,6 +52,20 @@ class TestParsePrereqs:
         assert result["type"] == "or"
         assert "FINA 4001" in result["courses"]
 
+    def test_choose_n_from(self):
+        result = parse_prereqs(
+            "Two courses from: INSY 4051 or INSY 4052 or INSY 4053 or INSY 4054 or INSY 4055"
+        )
+        assert result["type"] == "choose_n"
+        assert result["count"] == 2
+        assert result["courses"] == [
+            "INSY 4051",
+            "INSY 4052",
+            "INSY 4053",
+            "INSY 4054",
+            "INSY 4055",
+        ]
+
     def test_parens_annotation_stripped(self):
         # Parenthetical annotation should be stripped; base course parses correctly
         result = parse_prereqs("FINA 3001 (may be concurrent)")
@@ -112,6 +126,22 @@ class TestPrereqsSatisfied:
         parsed = {"type": "or", "courses": ["FINA 4001", "FINA 5001"]}
         assert prereqs_satisfied(parsed, set()) is False
 
+    def test_choose_n_satisfied(self):
+        parsed = {
+            "type": "choose_n",
+            "count": 2,
+            "courses": ["INSY 4051", "INSY 4052", "INSY 4053"],
+        }
+        assert prereqs_satisfied(parsed, {"INSY 4051", "INSY 4053"}) is True
+
+    def test_choose_n_not_satisfied(self):
+        parsed = {
+            "type": "choose_n",
+            "count": 2,
+            "courses": ["INSY 4051", "INSY 4052", "INSY 4053"],
+        }
+        assert prereqs_satisfied(parsed, {"INSY 4051"}) is False
+
     def test_unsupported_never_satisfied(self):
         assert prereqs_satisfied({"type": "unsupported", "raw": "..."}, {"FINA 3001"}) is False
 
@@ -138,3 +168,13 @@ class TestBuildPrereqCheckString:
     def test_none(self):
         result = build_prereq_check_string({"type": "none"}, set(), set())
         assert "No prerequisites" in result
+
+    def test_choose_n(self):
+        parsed = {
+            "type": "choose_n",
+            "count": 2,
+            "courses": ["INSY 4051", "INSY 4052", "INSY 4053"],
+        }
+        result = build_prereq_check_string(parsed, {"INSY 4051"}, {"INSY 4052"})
+        assert "2/2 required" in result
+        assert "INSY 4052 (in progress)" in result

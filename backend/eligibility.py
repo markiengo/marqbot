@@ -1,6 +1,6 @@
 import re
 import pandas as pd
-from prereq_parser import prereqs_satisfied, build_prereq_check_string
+from prereq_parser import prereq_course_codes, prereqs_satisfied, build_prereq_check_string
 from requirements import SOFT_WARNING_TAGS, COMPLEX_PREREQ_TAG, CONCURRENT_TAGS, DEFAULT_TRACK_ID
 from unlocks import build_reverse_prereq_map
 
@@ -700,6 +700,12 @@ def check_can_take(
             return [c for c in parsed_req["courses"] if c not in source]
         if t == "or":
             return [] if any(c in source for c in parsed_req["courses"]) else parsed_req["courses"]
+        if t == "choose_n":
+            courses = prereq_course_codes(parsed_req)
+            satisfied = [c for c in courses if c in source]
+            if len(satisfied) >= parsed_req["count"]:
+                return []
+            return [c for c in courses if c not in source]
         return []
 
     if has_explicit_concurrent:
@@ -710,7 +716,11 @@ def check_can_take(
         source = satisfied_codes if allow_concurrent else completed_set
         missing = missing_from(parsed, source)
 
-    why_not = f"Missing prerequisite(s): {', '.join(missing)}." if missing else "Prerequisites not satisfied."
+    if parsed["type"] == "choose_n" and missing:
+        needed_more = max(0, parsed["count"] - sum(1 for c in parsed["courses"] if c in (satisfied_codes if allow_concurrent else completed_set)))
+        why_not = f"Need {needed_more} more prerequisite course(s) from: {', '.join(missing)}."
+    else:
+        why_not = f"Missing prerequisite(s): {', '.join(missing)}." if missing else "Prerequisites not satisfied."
 
     return {
         "can_take": False,
