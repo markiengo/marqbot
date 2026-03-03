@@ -66,7 +66,7 @@
 - configure UI from iphone perspective
 - add more tests 
 - add about me -> done
-- quips? -> done ![alt text](image.png)
+- quips? -> done !
 
 ## critical upcoming after 
 - add essv2
