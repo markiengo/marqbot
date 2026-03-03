@@ -305,10 +305,10 @@ def _validate_recommend_body(body):
     max_recs_raw = body.get("max_recommendations", 3)
     try:
         max_recs = int(max_recs_raw)
-        if not (1 <= max_recs <= 6):
+        if not (1 <= max_recs <= 15):
             raise ValueError
     except (TypeError, ValueError):
-        return "INVALID_INPUT", "max_recommendations must be an integer between 1 and 6."
+        return "INVALID_INPUT", "max_recommendations must be an integer between 1 and 15."
     semester_count_raw = body.get("target_semester_count")
     if semester_count_raw not in (None, ""):
         try:
@@ -1719,7 +1719,7 @@ def recommend():
         target_semester_count = max(1, min(8, int(target_semester_count_raw)))
 
     requested_course_raw = body.get("requested_course") or None
-    max_recs = max(1, min(6, int(body.get("max_recommendations", 3) or 3)))
+    max_recs = max(1, min(15, int(body.get("max_recommendations", 3) or 3)))
     include_summer = bool(body.get("include_summer", False))
     debug_mode = bool(body.get("debug", False))
     debug_limit = max(1, min(100, int(body.get("debug_limit", 30) or 30)))
@@ -1993,6 +1993,13 @@ def can_take_endpoint():
     # "Can I Take This Next Semester?" semantics:
     # treat currently in-progress courses as completed by next term.
     completed_for_next_term = _dedupe_codes(completed + in_progress)
+
+    # Build a course→credits lookup for standing projection (same as /recommend).
+    _cdf = effective_data["courses_df"]
+    _credits_lookup: dict[str, int] = dict(zip(
+        _cdf["course_code"].astype(str),
+        _cdf["credits"].fillna(3).apply(lambda x: max(0, int(x)) if pd.notna(x) else 3),
+    ))
 
     # Standing check: use next-term credits (completed + in-progress will all be done)
     next_term_credits = sum(_credits_lookup.get(c, 3) for c in completed_for_next_term)

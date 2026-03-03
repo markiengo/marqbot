@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { ProgressDashboard, useProgressMetrics } from "./ProgressDashboard";
 import { ProgressModal } from "./ProgressModal";
@@ -9,18 +10,36 @@ import { CanTakeSection } from "./CanTakeSection";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { Button } from "@/components/shared/Button";
 import { Modal } from "@/components/shared/Modal";
+import { SavePlanModal } from "@/components/saved/SavePlanModal";
 import { useRecommendations } from "@/hooks/useRecommendations";
+import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
+import { postRecommend } from "@/lib/api";
 import { getProgramLabelMap } from "@/lib/rendering";
+import { buildSavedPlanInputsFromAppState } from "@/lib/savedPlans";
+import type { RecommendedCourse, RecommendationResponse, SemesterData } from "@/lib/types";
+
+function formatPlanDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export function PlannerLayout() {
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const { data, requestedCount, loading, error, fetchRecommendations } =
     useRecommendations();
+  const { hydrated: savedPlansReady, createPlan } = useSavedPlans();
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [semesterModalIdx, setSemesterModalIdx] = useState<number | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccessName, setSaveSuccessName] = useState<string | null>(null);
+  const [semEditCandidates, setSemEditCandidates] = useState<RecommendedCourse[] | null>(null);
+  const [semEditLoading, setSemEditLoading] = useState(false);
   const closeExplainer = useCallback(() => setExplainerOpen(false), []);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
@@ -66,8 +85,139 @@ export function PlannerLayout() {
     .filter(Boolean) as string[];
   const primaryProgramLabel =
     majorLabels.length > 0 ? majorLabels.join(" & ") : trackLabels.join(" & ");
+  const canSavePlan = Boolean(data && data.mode !== "error");
+  const defaultSaveName = `${primaryProgramLabel || "Plan"} - ${state.targetSemester} - ${formatPlanDate(new Date())}`;
   const modalSemester =
     semesterModalIdx !== null ? data?.semesters?.[semesterModalIdx] ?? null : null;
+
+  const handleSavePlan = ({ name, notes }: { name: string; notes: string }) => {
+    if (!data || data.mode === "error") {
+      setSaveError("Generate recommendations before saving a plan.");
+      return;
+    }
+    const result = createPlan({
+      name,
+      notes,
+      inputs: buildSavedPlanInputsFromAppState(state),
+      recommendationData: data,
+      lastRequestedCount: requestedCount,
+    });
+    if (!result.ok) {
+      setSaveError(result.error || "Could not save this plan.");
+      return;
+    }
+    setSaveError(null);
+    setSaveSuccessName(result.plan?.name || name);
+    setSaveModalOpen(false);
+  };
+
+  const fetchCandidatesForSemester = async (semIdx: number) => {
+    if (!data?.semesters) return;
+    setSemEditLoading(true);
+    setSemEditCandidates(null);
+    try {
+      const priorCourses = data.semesters
+        .slice(0, semIdx)
+        .flatMap((s) => (s.recommendations ?? []).map((r) => r.course_code));
+      // Merge completed + in-progress + prior recs into one completed set.
+      // In-progress are treated as done for this projection to avoid validation errors.
+      const allCompleted = new Set([...state.completed, ...state.inProgress, ...priorCourses]);
+      const extCompleted = [...allCompleted].join(", ");
+      const majors = [...state.selectedMajors];
+      const payload: Record<string, unknown> = {
+        completed_courses: extCompleted,
+        in_progress_courses: "",
+        target_semester: data.semesters[semIdx]?.target_semester ?? state.targetSemester,
+        target_semester_primary: data.semesters[semIdx]?.target_semester ?? state.targetSemester,
+        target_semester_count: 1,
+        max_recommendations: 15,
+      };
+      if (majors.length > 0) payload.declared_majors = majors;
+      if (state.selectedTracks.length > 0) payload.track_ids = state.selectedTracks;
+      if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
+      if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
+      if (state.includeSummer) payload.include_summer = true;
+      const result = await postRecommend(payload);
+      setSemEditCandidates(result.semesters?.[0]?.recommendations ?? []);
+    } catch {
+      setSemEditCandidates([]); // surface empty pool rather than leaving null
+    } finally {
+      setSemEditLoading(false);
+    }
+  };
+
+  const handleSemesterEditApply = async (semIdx: number, chosenCourses: RecommendedCourse[]) => {
+    if (!data?.semesters) return;
+    const totalSems = data.semesters.length;
+    const remainingCount = totalSems - semIdx - 1;
+
+    const originalSem = data.semesters[semIdx];
+    const editedSem: SemesterData = {
+      ...originalSem,
+      recommendations: chosenCourses,
+      projected_progress: undefined,
+    };
+
+    // Last semester: no downstream re-run needed, just splice the edit in
+    if (remainingCount <= 0) {
+      const newSemesters = [
+        ...data.semesters.slice(0, semIdx),
+        editedSem,
+      ];
+      const newData: RecommendationResponse = {
+        ...data,
+        semesters: newSemesters,
+      };
+      dispatch({
+        type: "SET_RECOMMENDATIONS",
+        payload: { data: newData, count: Number(state.maxRecs) || 3 },
+      });
+      setSemEditCandidates(null);
+      return;
+    }
+
+    const priorCourses = data.semesters
+      .slice(0, semIdx)
+      .flatMap((s) => (s.recommendations ?? []).map((r) => r.course_code));
+    const editedCodes = chosenCourses.map((c) => c.course_code);
+    // Merge original completed + in-progress + prior semester recs + edited courses
+    // into a single completed set. In-progress courses are treated as done for
+    // downstream projection, avoiding the "prereq still in-progress" validation error.
+    const allCompleted = new Set([...state.completed, ...state.inProgress, ...priorCourses, ...editedCodes]);
+    const extCompleted = [...allCompleted].join(", ");
+    const majors = [...state.selectedMajors];
+    const nextSemTarget = data.semesters[semIdx + 1]?.target_semester ?? state.targetSemester;
+    const payload: Record<string, unknown> = {
+      completed_courses: extCompleted,
+      in_progress_courses: "",
+      target_semester: nextSemTarget,
+      target_semester_primary: nextSemTarget,
+      target_semester_count: remainingCount,
+      max_recommendations: Number(state.maxRecs) || 3,
+    };
+    if (majors.length > 0) payload.declared_majors = majors;
+    if (state.selectedTracks.length > 0) payload.track_ids = state.selectedTracks;
+    if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
+    if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
+    if (state.includeSummer) payload.include_summer = true;
+
+    const downstream: RecommendationResponse = await postRecommend(payload);
+
+    const newSemesters = [
+      ...data.semesters.slice(0, semIdx),
+      editedSem,
+      ...(downstream.semesters ?? []),
+    ];
+    const newData: RecommendationResponse = {
+      ...downstream,
+      semesters: newSemesters,
+    };
+    dispatch({
+      type: "SET_RECOMMENDATIONS",
+      payload: { data: newData, count: Number(state.maxRecs) || 3 },
+    });
+    setSemEditCandidates(null);
+  };
 
   return (
     <div className="planner-shell">
@@ -96,22 +246,36 @@ export function PlannerLayout() {
               </svg>
             </button>
           </div>
-          <Button
-            variant="gold"
-            size="sm"
-            onClick={fetchRecommendations}
-            disabled={loading || !hasProgram}
-            className="shrink-0"
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
-                Loading...
-              </span>
-            ) : (
-              "Get My Plan"
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setSaveError(null);
+                setSaveModalOpen(true);
+              }}
+              disabled={!savedPlansReady || !canSavePlan}
+              className="shrink-0"
+            >
+              Save Plan
+            </Button>
+            <Button
+              variant="gold"
+              size="sm"
+              onClick={fetchRecommendations}
+              disabled={loading || !hasProgram}
+              className="shrink-0 shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+                  Loading...
+                </span>
+              ) : (
+                "Get My Plan"
+              )}
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="px-4 py-2 mb-2 rounded-xl bg-surface-card/60 border border-border-subtle/50 flex items-center justify-between gap-3">
@@ -123,6 +287,15 @@ export function PlannerLayout() {
           >
             Edit Profile
           </button>
+        </div>
+      )}
+
+      {saveSuccessName && (
+        <div className="mb-3 rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok flex flex-wrap items-center justify-between gap-3">
+          <span>Saved &ldquo;{saveSuccessName}&rdquo; to this browser.</span>
+          <Link href="/saved" className="font-semibold underline underline-offset-2">
+            View saved plans
+          </Link>
         </div>
       )}
 
@@ -246,12 +419,19 @@ export function PlannerLayout() {
       />
       <SemesterModal
         open={semesterModalIdx !== null && modalSemester !== null}
-        onClose={() => setSemesterModalIdx(null)}
+        onClose={() => { setSemesterModalIdx(null); setSemEditCandidates(null); }}
         semester={modalSemester}
         index={semesterModalIdx ?? 0}
         requestedCount={requestedCount}
         programLabelMap={programLabelMap}
         programOrder={programOrder}
+        candidatePool={semEditCandidates ?? undefined}
+        candidatePoolLoading={semEditLoading}
+        onRequestCandidates={() => { if (semesterModalIdx !== null) fetchCandidatesForSemester(semesterModalIdx); }}
+        onEditApply={(courses) => {
+          if (semesterModalIdx === null) return Promise.resolve();
+          return handleSemesterEditApply(semesterModalIdx, courses);
+        }}
       />
       <ProfileModal
         open={profileModalOpen}
@@ -377,6 +557,14 @@ export function PlannerLayout() {
           </div>
         </div>
       </Modal>
+      <SavePlanModal
+        open={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        defaultName={defaultSaveName}
+        onSave={handleSavePlan}
+        error={saveError}
+        disabled={!savedPlansReady || !canSavePlan}
+      />
     </div>
   );
 }

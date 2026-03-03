@@ -138,6 +138,40 @@ export interface SessionSnapshot {
   lastRequestedCount?: number;
 }
 
+export interface SavedPlanInputs {
+  completed: string[];
+  inProgress: string[];
+  declaredMajors: string[];
+  declaredTracks: string[];
+  declaredMinors: string[];
+  discoveryTheme: string;
+  targetSemester: string;
+  semesterCount: string;
+  maxRecs: string;
+  includeSummer: boolean;
+}
+
+export interface SavedPlanRecord {
+  id: string;
+  name: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  inputs: SavedPlanInputs;
+  recommendationData: RecommendationResponse | null;
+  lastRequestedCount: number;
+  inputHash: string;
+  resultsInputHash: string | null;
+  lastGeneratedAt: string | null;
+}
+
+export interface SavedPlansStore {
+  version: 1;
+  plans: SavedPlanRecord[];
+}
+
+export type SavedPlanFreshness = "fresh" | "stale" | "missing";
+
 export type LoadStatus = "idle" | "loading" | "ready" | "error";
 
 export interface AppState {

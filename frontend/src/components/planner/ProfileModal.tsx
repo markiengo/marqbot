@@ -26,7 +26,7 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
 
         {/* Right: Preferences + Get Recs */}
         <div className="md:w-[280px] shrink-0">
-          <PreferencesPanel onSubmit={() => { fetchRecommendations(); onClose(); }} loading={loading} />
+          <PreferencesPanel onSubmit={async () => { await fetchRecommendations(); onClose(); }} loading={loading} />
         </div>
       </div>
     </Modal>

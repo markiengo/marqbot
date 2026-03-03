@@ -37,6 +37,7 @@ export type AppAction =
   | { type: "SET_NAV_TAB"; payload: string }
   | { type: "SET_RECOMMENDATIONS"; payload: { data: RecommendationResponse; count: number } }
   | { type: "RESTORE_SESSION"; payload: SessionSnapshot }
+  | { type: "APPLY_PLANNER_SNAPSHOT"; payload: SessionSnapshot }
   | { type: "MARK_ONBOARDING_COMPLETE" };
 
 export const initialState: AppState = {
@@ -77,6 +78,91 @@ function sanitizeAimProgramSelections(
     nextMajors.delete(AIM_MAJOR_ID);
   }
   return { selectedMajors: nextMajors, selectedTracks: nextTracks };
+}
+
+interface NormalizedSessionPayload {
+  completed: Set<string>;
+  inProgress: Set<string>;
+  selectedMajors: Set<string>;
+  selectedTracks: string[];
+  selectedMinors: Set<string>;
+  discoveryTheme: string;
+  targetSemester: string;
+  semesterCount: string;
+  maxRecs: string;
+  includeSummer: boolean;
+  canTakeQuery: string;
+  activeNavTab: string;
+  onboardingComplete: boolean;
+  lastRecommendationData: RecommendationResponse | null;
+  lastRequestedCount: number;
+}
+
+function normalizeSessionSnapshot(
+  state: AppState,
+  snap: SessionSnapshot,
+  options?: { forceOnboardingComplete?: boolean; activeNavTab?: string },
+): NormalizedSessionPayload {
+  const catalog = new Set(state.courses.map((c) => c.course_code));
+  const validMajorIds = new Set(state.programs.majors.map((major) => major.id));
+  const validTrackIds = new Set(state.programs.tracks.map((track) => track.id));
+  const validMinorIds = new Set(state.programs.minors.map((minor) => minor.id));
+  const validCode = (code: string) =>
+    typeof code === "string" && catalog.has(code);
+
+  const completed = new Set(
+    (snap.completed || []).filter(validCode),
+  );
+  const inProgress = new Set(
+    (snap.inProgress || []).filter(
+      (code) => validCode(code) && !completed.has(code),
+    ),
+  );
+  const selectedMajors = new Set(
+    (snap.declaredMajors || []).filter(
+      (majorId) => Boolean(majorId) && (validMajorIds.size === 0 || validMajorIds.has(majorId)),
+    ),
+  );
+  const selectedTracks = Array.isArray(snap.declaredTracks)
+    ? snap.declaredTracks.filter(Boolean)
+    : (snap as unknown as { declaredTrack?: string }).declaredTrack
+      ? [(snap as unknown as { declaredTrack: string }).declaredTrack]
+      : [];
+  const filteredTracks = selectedTracks.filter(
+    (tid) =>
+      (validTrackIds.size === 0 || validTrackIds.has(tid)) &&
+      (tid !== AIM_CFA_TRACK_ID || selectedMajors.has(FIN_MAJOR_ID)),
+  );
+  const {
+    selectedMajors: sanitizedMajors,
+    selectedTracks: sanitizedTracks,
+  } = sanitizeAimProgramSelections(selectedMajors, filteredTracks);
+  const selectedMinors = new Set(
+    (snap.declaredMinors || []).filter(
+      (minorId) => Boolean(minorId) && (validMinorIds.size === 0 || validMinorIds.has(minorId)),
+    ),
+  );
+  const selectionWasSanitized =
+    sanitizedMajors.size !== selectedMajors.size ||
+    sanitizedTracks.length !== selectedTracks.length;
+
+  return {
+    completed,
+    inProgress,
+    selectedMajors: sanitizedMajors,
+    selectedTracks: sanitizedTracks,
+    selectedMinors,
+    discoveryTheme: snap.discoveryTheme || "",
+    targetSemester: snap.targetSemester || DEFAULT_SEMESTER,
+    semesterCount: snap.semesterCount || DEFAULT_SEMESTER_COUNT,
+    maxRecs: snap.maxRecs || DEFAULT_MAX_RECS,
+    includeSummer: snap.includeSummer ?? false,
+    canTakeQuery: snap.canTake || "",
+    activeNavTab: options?.activeNavTab || snap.activeNavTab || "plan",
+    onboardingComplete: options?.forceOnboardingComplete ?? (snap.onboardingComplete || false),
+    lastRecommendationData: selectionWasSanitized ? null : (snap.lastRecommendationData || null),
+    lastRequestedCount: Number(snap.lastRequestedCount) || state.lastRequestedCount,
+  };
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -266,59 +352,24 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
       const snap = action.payload;
       if (!Array.isArray(state.courses) || state.courses.length === 0) return state;
-      const catalog = new Set(state.courses.map((c) => c.course_code));
-      const validCode = (code: string) =>
-        typeof code === "string" && catalog.has(code);
-
-      const completed = new Set(
-        (snap.completed || []).filter(validCode),
-      );
-      const inProgress = new Set(
-        (snap.inProgress || []).filter(
-          (code) => validCode(code) && !completed.has(code),
-        ),
-      );
-      const selectedMajors = new Set(
-        (snap.declaredMajors || []).filter(Boolean),
-      );
-      // Support new declaredTracks array; fall back to legacy declaredTrack string
-      const selectedTracks = Array.isArray(snap.declaredTracks)
-        ? snap.declaredTracks.filter(Boolean)
-        : (snap as unknown as { declaredTrack?: string }).declaredTrack
-          ? [(snap as unknown as { declaredTrack: string }).declaredTrack]
-          : [];
-      const filteredTracks = selectedTracks.filter(
-        (tid) => tid !== AIM_CFA_TRACK_ID || selectedMajors.has(FIN_MAJOR_ID),
-      );
-      const {
-        selectedMajors: sanitizedMajors,
-        selectedTracks: sanitizedTracks,
-      } = sanitizeAimProgramSelections(selectedMajors, filteredTracks);
-
-      const selectedMinors = new Set(
-        (snap.declaredMinors || []).filter(Boolean),
-      );
-      const selectionWasSanitized =
-        sanitizedMajors.size !== selectedMajors.size ||
-        sanitizedTracks.length !== selectedTracks.length;
+      const next = normalizeSessionSnapshot(state, snap);
 
       return {
         ...state,
-        completed,
-        inProgress,
-        selectedMajors: sanitizedMajors,
-        selectedTracks: sanitizedTracks,
-        selectedMinors,
-        discoveryTheme: snap.discoveryTheme || "",
-        targetSemester: snap.targetSemester || DEFAULT_SEMESTER,
-        semesterCount: snap.semesterCount || DEFAULT_SEMESTER_COUNT,
-        maxRecs: snap.maxRecs || DEFAULT_MAX_RECS,
-        includeSummer: snap.includeSummer ?? false,
-        canTakeQuery: snap.canTake || "",
-        activeNavTab: snap.activeNavTab || "plan",
-        onboardingComplete: snap.onboardingComplete || false,
-        lastRecommendationData: selectionWasSanitized ? null : (snap.lastRecommendationData || null),
-        lastRequestedCount: Number(snap.lastRequestedCount) || state.lastRequestedCount,
+        ...next,
+      };
+    }
+
+    case "APPLY_PLANNER_SNAPSHOT": {
+      const snap = action.payload;
+      if (!Array.isArray(state.courses) || state.courses.length === 0) return state;
+      const next = normalizeSessionSnapshot(state, snap, {
+        forceOnboardingComplete: true,
+        activeNavTab: "plan",
+      });
+      return {
+        ...state,
+        ...next,
       };
     }
 

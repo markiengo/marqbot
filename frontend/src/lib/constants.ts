@@ -1,6 +1,8 @@
 import type { NavTab } from "./types";
 
 export const STORAGE_KEY = "marqbot_session_v1";
+export const SAVED_PLANS_STORAGE_KEY = "marqbot_saved_plans_v1";
+export const MAX_SAVED_PLANS = 25;
 
 export const NAV_ITEMS: { id: NavTab; label: string; href: string }[] = [
   { id: "home", label: "Home", href: "/" },
