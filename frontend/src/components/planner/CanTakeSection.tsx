@@ -1,34 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import { useAppContext } from "@/context/AppContext";
-import { useCanTake } from "@/hooks/useCanTake";
+import { isCanTakeResultForQuery, useCanTake } from "@/hooks/useCanTake";
 import { SingleSelect } from "@/components/shared/SingleSelect";
-import { Modal } from "@/components/shared/Modal";
 import { esc } from "@/lib/utils";
 
 export function CanTakeSection() {
   const { state, dispatch } = useAppContext();
-  const { data, loading, checkCanTake } = useCanTake();
-  const [showExplainer, setShowExplainer] = useState(false);
+  const { data, loading, error, checkCanTake, clearCanTake } = useCanTake();
+  const didAutoFetch = useRef(false);
+  const hasVisibleResult = isCanTakeResultForQuery(state.canTakeQuery, data);
+
+  useEffect(() => {
+    if (state.canTakeQuery.trim()) return;
+    didAutoFetch.current = false;
+    clearCanTake();
+  }, [state.canTakeQuery, clearCanTake]);
+
+  // If a query is already set (persisted from a previous visit) but we have no
+  // result yet, re-fetch automatically so the answer is always visible.
+  useEffect(() => {
+    if (didAutoFetch.current || !state.canTakeQuery || hasVisibleResult) return;
+    didAutoFetch.current = true;
+    void checkCanTake(state.canTakeQuery);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.canTakeQuery, hasVisibleResult]);
 
   const handleSelect = (course: { course_code: string }) => {
     dispatch({ type: "SET_CAN_TAKE_QUERY", payload: course.course_code });
-    checkCanTake(course.course_code);
+    void checkCanTake(course.course_code);
   };
 
   return (
-    <div className="space-y-1.5">
-      {/* Compact inline row: label + search + loading */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-gold uppercase tracking-wider shrink-0">
-          Can I Take...?
+    <div className="lg:h-full rounded-2xl border border-border-subtle bg-gradient-to-br from-[#0f2a52]/70 to-[#10284a]/55 p-3 sm:p-4 flex flex-col gap-3">
+      {/* Header */}
+      <div className="shrink-0">
+        <span className="text-xs font-semibold text-gold uppercase tracking-wider">
+          {state.canTakeQuery
+            ? `Can I take ${state.canTakeQuery} next semester?`
+            : "Can I take... next semester?"}
         </span>
-        <div className="flex-1 min-w-0 max-w-[400px]">
+      </div>
+
+      {/* Search row */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="flex-1 min-w-0">
           <SingleSelect
             courses={state.courses}
             value={state.canTakeQuery}
-            onChange={(v) => dispatch({ type: "SET_CAN_TAKE_QUERY", payload: v })}
+            onChange={(value) => {
+              dispatch({ type: "SET_CAN_TAKE_QUERY", payload: value });
+              clearCanTake();
+            }}
             onSelect={handleSelect}
             placeholder="Search a course..."
           />
@@ -36,7 +60,7 @@ export function CanTakeSection() {
         {loading && (
           <div className="w-4 h-4 border-2 border-navy border-t-transparent rounded-full animate-spin shrink-0" />
         )}
-        {data && !loading && (
+        {hasVisibleResult && data && !loading && (
           <span
             className={`text-xs font-semibold shrink-0 px-2 py-0.5 rounded-full ${
               data.can_take === true
@@ -53,72 +77,16 @@ export function CanTakeSection() {
                 : "Review"}
           </span>
         )}
-        <button
-          type="button"
-          onClick={() => setShowExplainer(true)}
-          className="ml-auto shrink-0 text-[11px] text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"
-        >
-          See how Marqbot recommends courses
-        </button>
       </div>
 
-      {/* How Recs Work explainer modal */}
-      <Modal
-        open={showExplainer}
-        onClose={() => setShowExplainer(false)}
-        title="How Marqbot Recommends Courses"
-        titleClassName="!text-[clamp(1.25rem,2.5vw,1.75rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
-        size="planner-detail"
-      >
-        <div className="space-y-4 text-[16px] text-ink-secondary">
-          <p className="text-ink-faint text-[14px]">
-            Hey! Here&apos;s how I pick your courses. No guessing — just rules, top to bottom:
-          </p>
-          <ol className="space-y-3 list-none">
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">1</span>
-              <div>
-                <p className="font-semibold text-white text-[16px]">Can you actually take it?</p>
-                <p className="text-ink-faint text-[14px] mt-0.5">First, I remove anything you can&apos;t register for. Missing a prereq? Not offered this semester? Not enough credits to qualify? It&apos;s gone. I only show you courses you can actually sign up for.</p>
-              </div>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">2</span>
-              <div>
-                <p className="font-semibold text-white text-[16px]">What does it count toward?</p>
-                <p className="text-ink-faint text-[14px] mt-0.5">University requirements (PHIL, THEO, ENGL) and business core (BUAD, ECON, ACCO) come first. Then your major. Then your track or concentration. Electives come last. I knock out the important stuff before the flexible stuff.</p>
-              </div>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">3</span>
-              <div>
-                <p className="font-semibold text-white text-[16px]">Is it blocking you?</p>
-                <p className="text-ink-faint text-[14px] mt-0.5">Some courses are gatekeepers — you can&apos;t take a bunch of other classes until you finish them. I find those bottlenecks and push them to the front so you don&apos;t get stuck later.</p>
-              </div>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">4</span>
-              <div>
-                <p className="font-semibold text-white text-[16px]">How long is the chain?</p>
-                <p className="text-ink-faint text-[14px] mt-0.5">Some courses kick off a sequence that takes multiple semesters to finish. The longer that chain, the earlier you need to start. I make sure you&apos;re not scrambling senior year because you started a 4-course sequence too late.</p>
-              </div>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">5</span>
-              <div>
-                <p className="font-semibold text-white text-[16px]">Does it knock out multiple requirements?</p>
-                <p className="text-ink-faint text-[14px] mt-0.5">If one course counts toward your major AND your business core at the same time, that&apos;s a two-for-one. Those move up the list because they save you time and credits.</p>
-              </div>
-            </li>
-          </ol>
-          <p className="text-ink-faint text-[14px] pt-1 border-t border-border-subtle/40">
-            I assume you&apos;ll pass everything. Keep your courses updated so I don&apos;t accidentally plan your downfall.
-          </p>
-        </div>
-      </Modal>
-
       {/* Detail row — only when result exists */}
-      {data && !loading && (
+      {error && state.canTakeQuery.trim() && !loading && (
+        <div className="rounded-lg px-3 py-2 text-xs bg-bad-light/50 text-bad">
+          Couldn&apos;t check {esc(state.canTakeQuery)} right now. {esc(error)}
+        </div>
+      )}
+
+      {hasVisibleResult && data && !loading && (
         <div
           className={`rounded-lg px-3 py-1.5 text-xs ${
             data.can_take === true
@@ -128,7 +96,7 @@ export function CanTakeSection() {
                 : "bg-warn-light/50 text-warn"
           }`}
         >
-          <span className="font-semibold">
+          <span className="font-semibold text-sm">
             {data.can_take === true
               ? `Yes, you can take ${esc(data.requested_course)}`
               : data.can_take === false

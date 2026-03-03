@@ -1,63 +1,105 @@
-# Session End: Document + Ship
+# Session End: Real Closeout Checklist
 
-Use this checklist at the end of every coding session. Keep updates user-friendly and non-technical.
+Use this at the end of every coding session.
+Keep user-facing writing simple enough for a student to understand.
 
-## 1) Update docs
-### changelog.md
-- Add a new entry at the top.
-- Include:
-  - What changed (user-visible)
-  - What was fixed
-  - Anything removed/renamed (if applicable)
-- Avoid internal implementation details.
+## 1) Review the session
+- Run `git status`.
+- Separate changes into:
+  - pushable work
+  - local-only work
+- Never push the `local` branch.
 
-### README.md 
-Update README if you added:
-- A new feature or workflow
-- New setup steps / environment variables
-- New commands (dev, test, build)
-- New pages/flows that users should know exist
-- Update the badges
+## 2) Update the right docs
+### Always consider
+- `docs/CHANGELOG.md`
+  - Add a new top entry for user-visible changes.
+- `README.md`
+  - Update if setup, commands, pages, or user workflow changed.
+- `docs/data_model.md`
+  - Update if data shape, buckets, or program modeling changed.
+- `.claude/CLAUDE.md`
+  - Add important repo rules, user preferences, or decisions from the session.
 
-### claude.md
-- notice any decisions and rationale i made within the conversation/session
-- read the current state of claude.md and decide if there are any thing to add
-- update the doc
+### Important push rule
+- Inside `docs/`, only push:
+  - `docs/CHANGELOG.md`
+  - `docs/data_model.md`
+- Keep other docs local-only unless the user clearly asks otherwise.
 
-## 2) Commit locally
-- Commit changes locally before pushing.
+## 3) Regenerate files when needed
+- If `data/quips.csv` changed:
+  - Run `python scripts/compile_quips.py`
+  - Make sure `frontend/src/lib/quipBank.generated.ts` changed too.
+
+## 4) Run checks
+### Backend changes
+- Default: `python -m pytest tests/backend -q`
+- If planner or recommendation logic changed:
+  - Run `python -m pytest tests/backend/test_dead_end_fast.py -q`
+- If only one backend area changed:
+  - Run the closest focused test file too.
+
+### Frontend changes
+- Run:
+  - `cd frontend && npm run test`
+  - `cd frontend && npm run lint`
+  - `cd frontend && npm run build`
+
+### Data changes
+- Run backend tests.
+- If recommendation behavior changed, run the fast dead-end sweep too.
+
+### Workflow changes
+- Read the workflow file carefully for obvious mistakes.
+
+## 5) Keep the push clean
+- Do not push local-only files such as:
+  - `.claude/`
+  - `todo.md`
+  - `docs/branding.md`
+  - `docs/data_injection_stage1.md`
+  - `docs/data_injection_stage2.md`
+  - `docs/session_end.md`
+- Do not commit secrets or `.env` values.
+
+## 6) Commit
+- Commit locally before pushing.
 - Commit message rules:
-  - 5–8 words
-  - A user can understand it
-  - Example format: verb + outcome
+  - 5 to 8 words
+  - easy for a normal user to understand
+  - should feel like: verb + outcome
 
 Examples:
-- "Improve planner recommendations clarity"
-- "Fix prerequisites display in planner"
-- "Add progress modal for requirement buckets"
-- Generic fallback: "Maintenance and small improvements"
+- `Fix planner standing recovery gap`
+- `Add nightly dead-end workflow`
+- `Improve onboarding course entry flow`
 
-## 3) Push to main
-- Push to `main` only after:
-  - Build passes
-  - Tests pass (if tests exist)
-  - Lint/format passes (if configured)
-  - Exception: Do not push @todo.md, @claude.md and files that should stay local. 
+## 7) Push using repo branch rules
+- Normal working branch: `local`
+- Remote branch: `main`
+- Push flow:
+  - move pushable work to `main`
+  - leave local-only files behind
+  - push `main`
+  - merge back into `local` if needed
 
-## 4) Publish a release
-- Create a release after push.
-- Release notes rules:
-  - Succinct
-  - User-understandable
-  - No deep technical details
-  - 3–7 bullets maximum
-  - Mention what users can do now
+## 8) Create a release after push
+- Keep release notes short.
+- Use 3 to 7 bullets.
+- Write so a student or advisor could understand it.
+- Skip deep technical detail.
 
-Release notes template:
-- Added: <user-facing change>
-- Fixed: <user-facing fix>
-- Improved: <user-facing improvement>
-- Note: <anything users should be aware of>
+Good release note format:
+- Added: user-facing feature
+- Fixed: user-facing bug
+- Improved: user-facing improvement
+- Note: anything users should know
 
-Final check:
-- If a student reads this, they should understand it.
+## 9) Final handoff to the user
+- Say:
+  - what changed
+  - what you tested
+  - what you did not test
+  - any follow-up work or risk
+- Keep it short and concrete.

@@ -250,7 +250,7 @@ class TestTripleMajorInsy4158Regression:
         "track_id": "",
         "completed_courses": (
             "BUAD 1001, ACCO 1030, ECON 1103, ECON 1104, "
-            "MATH 1450, INGS 1001, THEO 1001, ENGL 1001, LEAD 1050"
+            "MATH 1400, INGS 1001, THEO 1001, ENGL 1001, LEAD 1050"
         ),
         "in_progress_courses": "",
         "target_semester_primary": "Spring 2026",
@@ -500,6 +500,41 @@ class TestBadmMajor:
     def test_produces_recommendations(self, client):
         recs, _ = _get_recs(client, self.PAYLOAD)
         assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
+
+
+class TestBadmMajorSeniorStandingDeadEnd:
+    """
+    BADM reaches 17/18 BCC courses with only MANA 4101 left.
+
+    MANA 4101 is correctly senior-standing only, so the planner must eventually
+    recommend standing-building filler credit instead of returning an empty term.
+    """
+
+    PAYLOAD = {
+        "declared_majors": ["BADM_MAJOR"],
+        "track_id": "",
+        "completed_courses": (
+            "ACCO 1030, ECON 1103, BUAD 1001, ENGL 1001, LEAD 1050, PHIL 1001, "
+            "ACCO 1031, ECON 1104, SOCI 1001, THEO 1001, MATH 1200, REAL 3001, "
+            "MATH 1400, INSY 3001, MARK 3001, OSCM 3001, LEAD 2000, CMST 2300, "
+            "BUAD 1560, LEAD 3000, CORE 1929, ACCO 3001, ECON 3003, INSY 4051, "
+            "FINA 3001, MANA 3001, BUAD 2001, CORE 4929, BUAN 3065, BULA 3001"
+        ),
+        "in_progress_courses": "",
+        "target_semester_primary": "Spring 2029",
+        "target_semester_count": 1,
+        "max_recommendations": 6,
+    }
+
+    def test_planner_should_not_dead_end_before_senior_standing(self, client):
+        recs, data = _get_recs(client, self.PAYLOAD)
+        bcc_required = data.get("current_progress", {}).get("BCC::BCC_REQUIRED", {})
+
+        assert data.get("standing_label") == "Junior"
+        assert bcc_required.get("completed_courses") == 17
+        assert bcc_required.get("needed_count") == 18
+        assert bcc_required.get("satisfied") is False
+        assert recs, "Planner should return filler-credit recommendations instead of an empty term."
 
 
 class TestBecoMajor:

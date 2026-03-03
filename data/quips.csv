@@ -1,510 +1,510 @@
-pool_type,pool_id,slot,target,weight,text
-dimension,standing,freshman,progress,2,"Welcome to the four-year plan. Keyword: plan."
-dimension,standing,freshman,progress,2,"First semester. Deep breath."
-dimension,standing,freshman,progress,2,"Freshman standing. The tutorial level. No skipping."
-dimension,standing,freshman,progress,1,"Everything starts here. The prereqs don't care about your feelings."
-dimension,standing,freshman,progress,2,"You're on the map now."
-dimension,standing,freshman,progress,1,"Day one. The syllabus doesn't know your name yet."
-dimension,standing,freshman,progress,2,"The foundation matters more than you think. Ask any senior."
-dimension,standing,freshman,progress,1,"Brand new transcript. Zero mistakes. Enjoy that while it lasts."
-dimension,standing,freshman,progress,2,"Every senior started exactly here. They just won't admit it."
-dimension,standing,freshman,progress,1,"Orientation is over. The prereq chains are real now."
-dimension,standing,freshman,progress,2,"Fresh start. No bad decisions on the record. Yet."
-dimension,standing,freshman,progress,0.5,"You don't know what you don't know yet. The prereqs do."
-dimension,standing,sophomore,progress,2,"Sophomore year. You know enough to be strategic."
-dimension,standing,sophomore,progress,2,"No longer the new kid."
-dimension,standing,sophomore,progress,1,"Second year. The training wheels are off. The prereqs noticed."
-dimension,standing,sophomore,progress,2,"Survived a year. Now the real courses start."
-dimension,standing,sophomore,progress,1,"Sophomore standing. You know just enough to be dangerous."
-dimension,standing,sophomore,progress,2,"One year down. You've figured out the system. Mostly."
-dimension,standing,sophomore,progress,2,"You've done this before. The transcript remembers."
-dimension,standing,sophomore,progress,1,"Year two. The honeymoon phase is over."
-dimension,standing,sophomore,progress,2,"Still early. But no longer clueless."
-dimension,standing,sophomore,progress,0.5,"Past the learning curve. Into the 'oh no, it's real' curve."
-dimension,standing,sophomore,progress,2,"Sophomore era. Fewer surprises. More strategy."
-dimension,standing,sophomore,progress,1,"A year of experience. A lifetime of prereqs ahead."
-dimension,standing,junior,progress,2,"Junior year. This is where it gets real."
-dimension,standing,junior,progress,2,"You're in the thick of it now."
-dimension,standing,junior,progress,1,"Junior standing. The major courses aren't asking nicely."
-dimension,standing,junior,progress,2,"Past the halfway mark. No turning back now."
-dimension,standing,junior,progress,2,"Upper-division courses start here. They don't hold hands."
-dimension,standing,junior,progress,1,"Junior year. The exploring phase is over. This is executing."
-dimension,standing,junior,progress,2,"Two years of base. Now it gets interesting."
-dimension,standing,junior,progress,1,"The degree is taking shape. Whether you planned it or not."
-dimension,standing,junior,progress,2,"Two years of prereqs. All for this moment."
-dimension,standing,junior,progress,0.5,"The serious courses are ahead. They know you're coming."
-dimension,standing,junior,progress,2,"Junior standing unlocks the hard stuff. Congrats, I think."
-dimension,standing,junior,progress,1,"Upper division. Different rules. Same transcript."
-dimension,standing,senior,progress,2,"Senior standing. Final boss. No respawns."
-dimension,standing,senior,progress,2,"You've seen things. Prereq things. You survived."
-dimension,standing,senior,progress,1,"Senior year. The finish line exists and it's judging you."
-dimension,standing,senior,progress,2,"Four years of prereq chains led here. The chains remember."
-dimension,standing,senior,progress,0.5,"Almost time to use that degree. Allegedly."
-dimension,standing,senior,progress,1,"Senior standing. The part where you don't get experimental."
-dimension,standing,senior,progress,2,"The last lap. Don't trip."
-dimension,standing,senior,progress,1,"You've outlasted the prereq system. It's not happy about it."
-dimension,standing,senior,progress,2,"Senior energy. Calm. Calculated. Slightly terrified."
-dimension,standing,senior,progress,2,"The end is real. Do not sabotage it with a random elective."
-dimension,standing,senior,progress,1,"One more push. This is not the time for character growth."
-dimension,standing,senior,progress,2,"You've earned this standing. The transcript has receipts."
-dimension,progress,early,progress,2,"Lots of road ahead. Good thing you started mapping it."
-dimension,progress,early,progress,2,"Early days. The plan is forming."
-dimension,progress,early,progress,0.5,"Long journey. Blink and it's junior year. Don't blink."
-dimension,progress,early,progress,2,"Under 15% done. That's just the opening credits."
-dimension,progress,early,progress,2,"The foundation phase. Skip it and future-you will be furious."
-dimension,progress,early,progress,1,"Starting from the beginning. The prereq system doesn't do shortcuts."
-dimension,progress,early,progress,2,"Every credit counts. The graduation counter is always watching."
-dimension,progress,early,progress,1,"The degree is a project. You just opened the blueprint."
-dimension,progress,early,progress,2,"Progress starts slow. Then it doesn't. Then it's finals."
-dimension,progress,early,progress,1,"You're building the base layer. Don't skip the boring parts."
-dimension,progress,early,progress,0.5,"Chapter one. It's all setup. The plot twist is junior year."
-dimension,progress,early,progress,1,"Plenty ahead. Better to see it now than panic later."
-dimension,progress,building,progress,2,"Progress is happening. Credits are stacking."
-dimension,progress,building,progress,2,"Building momentum now."
-dimension,progress,building,progress,1,"The plan is taking shape. The prereqs are taking notice."
-dimension,progress,building,progress,2,"Getting traction. This is the phase where momentum matters."
-dimension,progress,building,progress,0.5,"More done than you think. Less done than you'd like."
-dimension,progress,building,progress,1,"Every completed course unlocks the next problem."
-dimension,progress,building,progress,2,"The trajectory is up. Keep it that way."
-dimension,progress,building,progress,1,"Past the slow start. Into the 'it actually counts' zone."
-dimension,progress,building,progress,2,"Credits accumulating. The degree is assembling itself."
-dimension,progress,building,progress,0.5,"This is what forward motion looks like. Messy but real."
-dimension,progress,building,progress,2,"The degree doesn't build itself. But you're doing it."
-dimension,progress,building,progress,1,"Piece by piece. Prereq by prereq."
-dimension,progress,midway,progress,2,"Halfway there. The back half moves faster."
-dimension,progress,midway,progress,2,"The midpoint. You can see both sides now."
-dimension,progress,midway,progress,1,"50% territory. The point of no return was a while ago."
-dimension,progress,midway,progress,2,"Past the halfway mark. Quitting now would be embarrassing."
-dimension,progress,midway,progress,2,"The second half starts now. It moves faster. Brace."
-dimension,progress,midway,progress,0.5,"You're in the middle of the story. The plot twist is coming."
-dimension,progress,midway,progress,2,"Half the degree is behind you. The other half is staring."
-dimension,progress,midway,progress,1,"The hardest part might already be done. Might."
-dimension,progress,midway,progress,2,"Midway through. No prereq disasters yet. Suspicious."
-dimension,progress,midway,progress,1,"More completed than remaining. That's a flex."
-dimension,progress,midway,progress,2,"The downhill slope starts here. Gravity helps."
-dimension,progress,midway,progress,0.5,"Halfway is further than most people plan for. You're here."
-dimension,progress,homestretch,progress,2,"Home stretch. Can you feel it?"
-dimension,progress,homestretch,progress,2,"The finish line is real. You can see it."
-dimension,progress,homestretch,progress,1,"Most of the work is done. Do not get creative now."
-dimension,progress,homestretch,progress,2,"You're in the final chapters. No plot twists please."
-dimension,progress,homestretch,progress,2,"The remaining credits are countable. That used to be impossible."
-dimension,progress,homestretch,progress,0.5,"Almost there. This is not the time to explore basket weaving."
-dimension,progress,homestretch,progress,2,"The light at the end is not a train. Probably."
-dimension,progress,homestretch,progress,1,"Home stretch. The finish line has your name on it."
-dimension,progress,homestretch,progress,2,"Closing in. Don't let a random elective delay graduation."
-dimension,progress,homestretch,progress,1,"A few more semesters. That's it. Don't make it weird."
-dimension,progress,homestretch,progress,2,"You've passed the tipping point. Gravity does the rest."
-dimension,progress,homestretch,progress,0.5,"Closer to done than to the beginning. That took a while."
-dimension,progress,nearDone,both,2,"So close. Don't get weird now."
-dimension,progress,nearDone,both,2,"Single-digit requirements territory."
-dimension,progress,nearDone,both,1,"Almost done. Do not get cute with electives now."
-dimension,progress,nearDone,both,2,"The finish line is right there. It can see you hesitating."
-dimension,progress,nearDone,both,2,"You can count what's left on one hand. One."
-dimension,progress,nearDone,both,0.5,"Nearly complete. One bad course swap and we're having a conversation."
-dimension,progress,nearDone,both,2,"This close to done. The margin for error is gone."
-dimension,progress,nearDone,both,1,"A few credits away. Future-you is watching."
-dimension,progress,nearDone,both,2,"Single-digit requirements. This is the endgame."
-dimension,progress,nearDone,both,0.5,"Almost. The finish line is not going to come to you."
-dimension,progress,nearDone,both,2,"The hard part is behind you. Don't create new hard parts."
-dimension,progress,nearDone,both,0.5,"One elective stands between you and graduation. Choose wisely."
-dimension,progress,done,both,2,"Requirements met. That's the whole thing."
-dimension,progress,done,both,2,"Done. Every bucket. Every credit."
-dimension,progress,done,both,1,"All requirements satisfied. The system has nothing on you."
-dimension,progress,done,both,2,"The plan worked. The whole plan. That never happens."
-dimension,progress,done,both,2,"Complete. Nothing left to check. Go outside."
-dimension,progress,done,both,0.5,"Zero remaining. You broke even with the university. Rare."
-dimension,progress,done,both,2,"Everything accounted for. The spreadsheet is at peace."
-dimension,progress,done,both,1,"Full completion. The prereqs lost."
-dimension,progress,done,both,2,"The degree is assembled. Some assembly was definitely required."
-dimension,progress,done,both,0.5,"You did the thing. The whole thing. Go tell someone."
-dimension,progress,done,both,1,"All boxes checked. Even the weird ones."
-dimension,progress,done,both,0.5,"Finished. Actually finished. This isn't a drill."
-dimension,remaining,mountain,progress,2,"Over 80 credits remaining. Long road ahead."
-dimension,remaining,mountain,progress,2,"Triple-digit credits to go. One at a time."
-dimension,remaining,mountain,progress,1,"Lots remaining. That's why you're planning."
-dimension,remaining,mountain,progress,0.5,"The mountain is tall. It does not care about your weekend plans."
-dimension,remaining,mountain,progress,2,"Many credits ahead. At least you're looking at the number."
-dimension,remaining,mountain,progress,1,"A big number. But a known number. Denial is worse."
-dimension,remaining,mountain,progress,2,"The full picture. Scary? Sure. But at least it's honest."
-dimension,remaining,mountain,progress,1,"Better to see the real count than pretend it's smaller."
-dimension,remaining,mountain,progress,2,"Visibility beats vibes. This is the real number."
-dimension,remaining,mountain,progress,1,"At least you know what you're working with."
-dimension,remaining,mountain,progress,2,"The full scope. Now you can plan around it."
-dimension,remaining,mountain,progress,1,"Knowing the number is step one."
-dimension,remaining,chunk,progress,2,"A solid chunk remaining. Manageable."
-dimension,remaining,chunk,progress,2,"Still a meaningful amount. Stay on track."
-dimension,remaining,chunk,progress,1,"Enough left to matter. Not enough to panic."
-dimension,remaining,chunk,progress,2,"The remaining credits are a project, not a crisis."
-dimension,remaining,chunk,progress,2,"A few semesters of work. You've got this mapped."
-dimension,remaining,chunk,progress,1,"Not small, but not scary."
-dimension,remaining,chunk,progress,2,"The count is shrinking semester by semester."
-dimension,remaining,chunk,progress,1,"Steady progress will handle this."
-dimension,remaining,chunk,progress,2,"A reasonable amount. Keep the pace."
-dimension,remaining,chunk,progress,1,"You can see the shape of the remaining work."
-dimension,remaining,chunk,progress,2,"The gap is closing."
-dimension,remaining,chunk,progress,1,"Each semester takes a bite out of this."
-dimension,remaining,manageable,progress,2,"Under 50 remaining. Getting very real."
-dimension,remaining,manageable,progress,2,"The count is manageable now."
-dimension,remaining,manageable,progress,1,"Less than 50 to go. Downhill from here."
-dimension,remaining,manageable,progress,2,"The remaining work fits in a clear picture."
-dimension,remaining,manageable,progress,2,"A couple semesters of focused work."
-dimension,remaining,manageable,progress,1,"The end is plannable."
-dimension,remaining,manageable,progress,2,"You can almost list every remaining course."
-dimension,remaining,manageable,progress,1,"The finish is taking shape."
-dimension,remaining,manageable,progress,2,"Fewer credits than courses you've already passed."
-dimension,remaining,manageable,progress,1,"The plan is converging."
-dimension,remaining,manageable,progress,2,"Under 50. That's a real number."
-dimension,remaining,manageable,progress,1,"The list of remaining work is short."
-dimension,remaining,handful,progress,2,"Under 25 credits remaining."
-dimension,remaining,handful,progress,2,"A handful of credits left."
-dimension,remaining,handful,progress,1,"Almost nothing remaining."
-dimension,remaining,handful,progress,2,"Countable credits. The end is measurable now."
-dimension,remaining,handful,progress,2,"Less than a full semester left. The math is on your side."
-dimension,remaining,handful,progress,0.5,"You could list everything remaining from memory. Probably."
-dimension,remaining,handful,progress,2,"The final stretch. One wrong elective and this gets awkward."
-dimension,remaining,handful,progress,1,"Barely anything left. This is not the time to experiment."
-dimension,remaining,handful,progress,2,"The remaining work is a rounding error. Don't round wrong."
-dimension,remaining,handful,progress,0.5,"This is the part where you don't relax. Seriously."
-dimension,remaining,handful,progress,2,"Under 25. The home stretch."
-dimension,remaining,handful,progress,1,"Almost done. For real."
-dimension,remaining,zero,both,2,"Zero remaining credits. The math checks out."
-dimension,remaining,zero,both,2,"Nothing left. Everything accounted for."
-dimension,remaining,zero,both,1,"Zero. Clean."
-dimension,remaining,zero,both,2,"The balance is settled. The university owes you a diploma."
-dimension,remaining,zero,both,2,"All credits accounted for. The math doesn't lie."
-dimension,remaining,zero,both,0.5,"The ledger is clear. You won."
-dimension,remaining,zero,both,2,"Zero credits remaining. That's not a typo."
-dimension,remaining,zero,both,1,"Nothing outstanding. Nothing. Go celebrate."
-dimension,remaining,zero,both,2,"Complete credit coverage. The spreadsheet can rest now."
-dimension,remaining,zero,both,0.5,"Zeroed out. The system has nothing left to ask of you."
-dimension,remaining,zero,both,2,"No gaps. No shortfalls. No excuses."
-dimension,remaining,zero,both,1,"Everything adds up. For once."
-dimension,inProgress,none,progress,2,"Nothing in progress right now."
-dimension,inProgress,none,progress,2,"Clean slate. No courses in flight."
-dimension,inProgress,none,progress,1,"No active courses."
-dimension,inProgress,none,progress,2,"Starting fresh."
-dimension,inProgress,none,progress,1,"No in-progress credits to account for."
-dimension,inProgress,light,progress,2,"A few credits in progress."
-dimension,inProgress,light,progress,2,"Light load in flight."
-dimension,inProgress,light,progress,1,"Some courses underway."
-dimension,inProgress,light,progress,2,"A couple things cooking."
-dimension,inProgress,light,progress,1,"In-progress work noted."
-dimension,inProgress,moderate,progress,2,"A solid set of credits in progress."
-dimension,inProgress,moderate,progress,2,"Moderate course load in flight."
-dimension,inProgress,moderate,progress,1,"A real semester's worth underway."
-dimension,inProgress,moderate,progress,2,"Healthy amount of in-progress work."
-dimension,inProgress,moderate,progress,1,"Good number of courses active."
-dimension,inProgress,heavy,progress,2,"Heavy credit load in progress. Brave."
-dimension,inProgress,heavy,progress,2,"A lot in flight right now. Don't look down."
-dimension,inProgress,heavy,progress,0.5,"Full plate. Overflowing plate, honestly."
-dimension,inProgress,heavy,progress,2,"Ambitious current load. The transcript is taking notes."
-dimension,inProgress,heavy,progress,1,"Plenty underway. This is either planning or chaos."
-dimension,bucketHealth,allSatisfied,both,2,"Every requirement bucket satisfied."
-dimension,bucketHealth,allSatisfied,both,2,"All buckets filled. Clean."
-dimension,bucketHealth,allSatisfied,both,1,"Nothing left to fill."
-dimension,bucketHealth,allSatisfied,both,0.5,"Complete satisfaction. The requirement grid surrendered."
-dimension,bucketHealth,allSatisfied,both,1,"All requirements handled. They didn't go quietly."
-dimension,bucketHealth,allSatisfied,both,2,"Every bucket accounted for. Every single one."
-dimension,bucketHealth,mostDone,both,2,"Most requirements are handled."
-dimension,bucketHealth,mostDone,both,2,"A few buckets left to fill."
-dimension,bucketHealth,mostDone,both,1,"Almost all requirements satisfied."
-dimension,bucketHealth,mostDone,both,2,"The stragglers are few."
-dimension,bucketHealth,mostDone,both,1,"Close to full requirement coverage."
-dimension,bucketHealth,mostDone,both,2,"A handful of buckets remain."
-dimension,bucketHealth,halfDone,both,2,"About half the requirements met."
-dimension,bucketHealth,halfDone,both,2,"Some buckets filled. Some waiting."
-dimension,bucketHealth,halfDone,both,1,"Partial progress across requirements."
-dimension,bucketHealth,halfDone,both,2,"The requirement grid is filling in."
-dimension,bucketHealth,halfDone,both,1,"Halfway through the buckets."
-dimension,bucketHealth,halfDone,both,2,"Progress is visible. More to do."
-dimension,bucketHealth,earlyDays,both,2,"Most requirements still open. They're patient. For now."
-dimension,bucketHealth,earlyDays,both,2,"Early days for requirements. The grid is mostly blank."
-dimension,bucketHealth,earlyDays,both,1,"A lot of buckets to fill. They don't fill themselves."
-dimension,bucketHealth,earlyDays,both,2,"The requirement grid is mostly empty. It's looking at you."
-dimension,bucketHealth,earlyDays,both,1,"Plenty of ground to cover. At least the map exists."
-dimension,bucketHealth,earlyDays,both,0.5,"The buckets are hungry. Feed them courses."
-dimension,season,fall,semester,2,"Fall semester. Fresh start energy."
-dimension,season,fall,semester,2,"Fall. New semester, new plan."
-dimension,season,fall,semester,1,"Back at it for fall."
-dimension,season,fall,semester,2,"Fall term. Let's make it count."
-dimension,season,fall,semester,1,"Autumn semester. The grind resumes."
-dimension,season,fall,semester,2,"Fall schedule loading."
-dimension,season,fall,semester,1,"Another fall. Another set of courses."
-dimension,season,fall,semester,2,"Fall is always a reset."
-dimension,season,fall,semester,1,"September start. Clean slate."
-dimension,season,fall,semester,2,"Fall semester. Time to lock in."
-dimension,season,fall,semester,1,"The fall lineup."
-dimension,season,fall,semester,2,"Fresh fall semester ahead."
-dimension,season,spring,semester,2,"Spring semester. Finish strong."
-dimension,season,spring,semester,2,"Spring. The second act."
-dimension,season,spring,semester,1,"Spring term. Keep the momentum."
-dimension,season,spring,semester,2,"Back from break. Spring plan loaded."
-dimension,season,spring,semester,1,"The spring push."
-dimension,season,spring,semester,2,"January restart. Let's go."
-dimension,season,spring,semester,1,"Spring courses on deck."
-dimension,season,spring,semester,2,"Spring semester. No coasting."
-dimension,season,spring,semester,1,"The second semester of the year."
-dimension,season,spring,semester,2,"Spring. Finish what fall started."
-dimension,season,spring,semester,1,"Spring lineup ready."
-dimension,season,spring,semester,2,"Spring energy. Focused."
-dimension,season,summer,semester,2,"Summer semester. Efficient. Slightly unhinged. Respect."
-dimension,season,summer,semester,2,"Summer courses. While everyone else is at the lake."
-dimension,season,summer,semester,1,"Summer plan. Strategic and a little masochistic."
-dimension,season,summer,semester,2,"Using summer wisely. The diploma doesn't care about seasons."
-dimension,season,summer,semester,2,"Summer counts. Every credit. Even the sweaty ones."
-dimension,season,summer,semester,0.5,"Summer schedule. Your friends won't understand. That's fine."
-dimension,season,summer,semester,2,"Making the most of summer. Fall-you will appreciate it."
-dimension,season,summer,semester,1,"Summer term. Compact. Intense. No wasted time."
-dimension,season,summer,semester,2,"Summer progress. It hits different when campus is quiet."
-dimension,season,summer,semester,1,"A productive summer. The degree doesn't take vacations."
-dimension,season,summer,semester,2,"Summer credits. They count the same as fall credits. Fact."
-dimension,season,summer,semester,0.5,"Summer is an opportunity disguised as a sacrifice."
-dimension,semesterIndex,first,semester,2,"First semester of the plan."
-dimension,semesterIndex,first,semester,2,"Semester one. The starting point."
-dimension,semesterIndex,first,semester,1,"Starting with this semester."
-dimension,semesterIndex,first,semester,2,"The plan begins here."
-dimension,semesterIndex,first,semester,1,"First on the timeline."
-dimension,semesterIndex,first,semester,2,"The opening semester."
-dimension,semesterIndex,first,semester,1,"Kicking things off."
-dimension,semesterIndex,first,semester,2,"Step one of the plan."
-dimension,semesterIndex,first,semester,1,"The first move."
-dimension,semesterIndex,first,semester,2,"Starting strong."
-dimension,semesterIndex,first,semester,1,"The beginning of the roadmap."
-dimension,semesterIndex,first,semester,2,"Let's start here."
-dimension,semesterIndex,middle,semester,2,"Mid-plan semester."
-dimension,semesterIndex,middle,semester,2,"The middle of the roadmap."
-dimension,semesterIndex,middle,semester,1,"Not the start, not the end."
-dimension,semesterIndex,middle,semester,2,"The plan continues."
-dimension,semesterIndex,middle,semester,1,"Another semester in the sequence."
-dimension,semesterIndex,middle,semester,2,"The steady part of the plan."
-dimension,semesterIndex,middle,semester,1,"Continuing the roadmap."
-dimension,semesterIndex,middle,semester,2,"Part of the bigger picture."
-dimension,semesterIndex,middle,semester,1,"Another piece falling into place."
-dimension,semesterIndex,middle,semester,2,"The middle chapters."
-dimension,semesterIndex,middle,semester,1,"On track."
-dimension,semesterIndex,middle,semester,2,"The plan is unfolding."
-dimension,semesterIndex,deep,semester,2,"Deep into the plan. You're thinking long-term."
-dimension,semesterIndex,deep,semester,2,"Semester seven or beyond. Thorough."
-dimension,semesterIndex,deep,semester,1,"Long-range planning. Respect."
-dimension,semesterIndex,deep,semester,2,"You're mapping far ahead."
-dimension,semesterIndex,deep,semester,0.5,"Planning this far out is either genius or anxiety."
-dimension,semesterIndex,deep,semester,2,"The long view."
-dimension,semesterIndex,deep,semester,1,"Future semesters, present planning."
-dimension,semesterIndex,deep,semester,2,"Thinking ahead. That's the move."
-dimension,semesterIndex,deep,semester,1,"Deep into the timeline."
-dimension,semesterIndex,deep,semester,2,"The far end of the plan."
-dimension,semesterIndex,deep,semester,1,"Planning semesters you haven't registered for yet."
-dimension,semesterIndex,deep,semester,2,"Forward-looking. Solid."
-dimension,recCount,empty,semester,2,"No recommendations this semester."
-dimension,recCount,empty,semester,2,"Nothing to suggest here. The engine tried."
-dimension,recCount,empty,semester,1,"Empty lineup. The system has spoken."
-dimension,recCount,empty,semester,2,"No eligible courses this semester. Not our fault."
-dimension,recCount,empty,semester,0.5,"Quiet semester. Either you're done or the prereqs won."
-dimension,recCount,empty,semester,2,"The engine found nothing to recommend. It looked."
-dimension,recCount,empty,semester,1,"No courses fit this slot. The catalog has limits."
-dimension,recCount,empty,semester,2,"Sometimes a semester has nothing. This is that semester."
-dimension,recCount,empty,semester,0.5,"Clear calendar. Enjoy it. It won't last."
-dimension,recCount,empty,semester,2,"Nothing on the board. The prereqs are blocking everything."
-dimension,recCount,empty,semester,1,"No picks. The algorithm is not withholding. There's nothing."
-dimension,recCount,empty,semester,2,"An empty semester in the plan. That happens."
-dimension,recCount,light,semester,2,"Light load this semester."
-dimension,recCount,light,semester,2,"One or two courses. Focused."
-dimension,recCount,light,semester,1,"A light semester ahead."
-dimension,recCount,light,semester,2,"Minimal course load."
-dimension,recCount,light,semester,1,"Quality over quantity this term."
-dimension,recCount,light,semester,2,"Lean lineup."
-dimension,recCount,light,semester,1,"A couple of courses. Intentional."
-dimension,recCount,light,semester,2,"Not many, but the right ones."
-dimension,recCount,light,semester,1,"Targeted selection."
-dimension,recCount,light,semester,2,"Small but strategic."
-dimension,recCount,light,semester,1,"Focused semester."
-dimension,recCount,light,semester,2,"Light and precise."
-dimension,recCount,normal,semester,2,"Standard course load."
-dimension,recCount,normal,semester,2,"A typical semester's worth."
-dimension,recCount,normal,semester,1,"Three or four courses. Balanced."
-dimension,recCount,normal,semester,2,"Reasonable lineup."
-dimension,recCount,normal,semester,1,"A normal load."
-dimension,recCount,normal,semester,2,"The standard pace."
-dimension,recCount,normal,semester,1,"A balanced selection."
-dimension,recCount,normal,semester,2,"Right in the sweet spot."
-dimension,recCount,normal,semester,1,"Solid semester plan."
-dimension,recCount,normal,semester,2,"Well-balanced load."
-dimension,recCount,normal,semester,1,"Comfortable pace."
-dimension,recCount,normal,semester,2,"A manageable lineup."
-dimension,recCount,heavy,semester,2,"Full course load this semester."
-dimension,recCount,heavy,semester,2,"Five-plus courses. Ambitious. Questionable. We'll allow it."
-dimension,recCount,heavy,semester,1,"Heavy lineup. Your calendar just flinched."
-dimension,recCount,heavy,semester,2,"A packed semester. Hope you like reading."
-dimension,recCount,heavy,semester,0.5,"Maximum velocity. Maximum consequences."
-dimension,recCount,heavy,semester,2,"Full schedule. Zero margin for error."
-dimension,recCount,heavy,semester,1,"A serious course load. The kind advisors warn about."
-dimension,recCount,heavy,semester,2,"All slots filled. Free time is a memory."
-dimension,recCount,heavy,semester,0.5,"That's a full plate. A dangerously full plate."
-dimension,recCount,heavy,semester,1,"You're not playing around this semester. Noted."
-dimension,recCount,heavy,semester,2,"Dense semester ahead. Buckle up."
-dimension,recCount,heavy,semester,1,"Stacked schedule. Bold. Terrifying. Efficient."
-dimension,multiBucket,none,semester,2,"Each course fills one requirement."
-dimension,multiBucket,none,semester,2,"Single-purpose courses this semester."
-dimension,multiBucket,none,semester,1,"No overlap in requirements."
-dimension,multiBucket,none,semester,2,"One course, one bucket."
-dimension,multiBucket,none,semester,1,"Straightforward requirement mapping."
-dimension,multiBucket,some,semester,2,"A couple courses pull double duty."
-dimension,multiBucket,some,semester,2,"Some multi-requirement courses in the mix."
-dimension,multiBucket,some,semester,1,"A few efficient picks."
-dimension,multiBucket,some,semester,2,"Some overlap. That's efficient."
-dimension,multiBucket,some,semester,1,"A course or two doing extra work."
-dimension,multiBucket,many,semester,2,"Multiple courses pulling double duty. We love a multitasker."
-dimension,multiBucket,many,semester,2,"Stacking requirements. Maximum efficiency. Minimum waste."
-dimension,multiBucket,many,semester,0.5,"These courses are multitasking harder than you are."
-dimension,multiBucket,many,semester,2,"Heavy overlap. That's not luck. That's the algorithm."
-dimension,multiBucket,many,semester,0.5,"Efficiency mode. One class, two requirements. Beautiful."
-dimension,hasWarnings,clean,semester,2,"No warnings on these courses."
-dimension,hasWarnings,clean,semester,2,"Clean recommendations. No flags."
-dimension,hasWarnings,clean,semester,1,"All clear. No conditions."
-dimension,hasWarnings,clean,semester,2,"No fine print."
-dimension,hasWarnings,clean,semester,1,"Straightforward picks."
-dimension,hasWarnings,warned,semester,2,"Some courses come with fine print. It matters."
-dimension,hasWarnings,warned,semester,2,"A few flags in the lineup. Don't ignore them."
-dimension,hasWarnings,warned,semester,0.5,"Check the details. The details check you back."
-dimension,hasWarnings,warned,semester,2,"Some conditions apply. This is not a suggestion."
-dimension,hasWarnings,warned,semester,1,"Read the warnings. They exist for a reason."
-compound,easter_egg_complete,,both,0.1,"You actually used a planner correctly. Historic."
-compound,easter_egg_complete,,both,0.1,"Every requirement. Every bucket. The system has nothing left."
-compound,easter_egg_complete,,both,0.1,"Graduation requirements met. This planner just retired itself."
-compound,easter_egg_complete,,both,0.1,"The plan worked. The whole plan. That almost never happens."
-compound,easter_egg_complete,,both,0.1,"Complete. We have nothing left to tell you. That's new."
-compound,easter_egg_complete,,both,0.1,"You finished everything. The requirement grid is speechless."
-compound,easter_egg_complete,,progress,0.1,"All requirements satisfied. The algorithm just took a bow."
-compound,easter_egg_complete,,progress,0.1,"The degree is fully assembled. No parts left over."
-compound,easter_egg_complete,,progress,0.1,"Zero gaps. Zero warnings. Zero reasons to be here anymore."
-compound,easter_egg_complete,,progress,0.1,"This is what a completed degree plan looks like. Screenshot it."
-compound,easter_egg_full_plan,,semester,0.1,"You planned all eight semesters. Thorough."
-compound,easter_egg_full_plan,,semester,0.1,"Full four-year plan mapped. Future you approves."
-compound,easter_egg_full_plan,,semester,0.1,"Eight semesters deep. That's commitment."
-compound,easter_egg_full_plan,,semester,0.1,"You mapped the entire journey. End to end."
-compound,easter_egg_full_plan,,semester,0.1,"Planning this far out deserves some kind of award."
-compound,easter_egg_full_plan,,semester,0.1,"The whole roadmap. Start to finish."
-compound,easter_egg_full_plan,,semester,0.1,"A complete plan. Not many people do this."
-compound,easter_egg_full_plan,,semester,0.1,"Every semester accounted for. That's rare."
-compound,easter_egg_full_plan,,semester,0.1,"Full timeline. No gaps. No guessing."
-compound,easter_egg_full_plan,,semester,0.1,"From first semester to last. Mapped."
-compound,freshman_mountain,,progress,1,"The full degree ahead of you. At least you're looking at it."
-compound,freshman_mountain,,progress,1,"Freshman with a plan. Most people don't start here."
-compound,freshman_mountain,,progress,0.5,"A lot of credits ahead. The prereqs are already plotting."
-compound,freshman_mountain,,progress,1,"Starting from zero with full visibility. That's rare."
-compound,freshman_mountain,,progress,0.5,"124 credits. Four years. One plan. No pressure. (Some pressure.)"
-compound,freshman_mountain,,progress,1,"The journey is long. The map is ready. The prereqs are not."
-compound,freshman_mountain,,progress,1,"First semester, full picture. Most freshmen are still guessing."
-compound,freshman_mountain,,progress,0.5,"Everything ahead. Nothing behind. Terrifying and exciting."
-compound,freshman_mountain,,progress,0.5,"The whole mountain. At least you can see what's coming."
-compound,freshman_mountain,,progress,1,"Fresh start. Complete awareness. That's already a head start."
-compound,senior_homestretch,,both,1,"Senior year. Almost done. Don't do anything weird."
-compound,senior_homestretch,,both,1,"The diploma is close. Do not let an elective ruin this."
-compound,senior_homestretch,,both,0.5,"Senior. Home stretch. Final boss music just started."
-compound,senior_homestretch,,both,0.5,"You can practically smell the diploma. Don't fumble."
-compound,senior_homestretch,,both,1,"Final push. Coasting is how people delay graduation."
-compound,senior_homestretch,,both,1,"Senior year with the finish in sight. Eyes forward."
-compound,senior_homestretch,,both,0.5,"This close. This is not the time for character development."
-compound,senior_homestretch,,both,1,"The last few requirements. They're watching you back."
-compound,senior_homestretch,,both,0.5,"Almost done. Don't fumble now. Future-you is begging."
-compound,senior_homestretch,,both,1,"The end of the end. Make it clean."
-compound,senior_done,,both,1,"Senior. Done. That's the whole update. Go home."
-compound,senior_done,,both,0.5,"Requirements complete. Senior year complete. We're getting emotional."
-compound,senior_done,,both,0.5,"You understood the assignment. All of them. Every last one."
-compound,senior_done,,both,1,"Senior standing. Zero remaining. The system has nothing on you."
-compound,senior_done,,both,0.5,"Done. Actually done. This isn't a simulation."
-compound,senior_done,,both,1,"The plan is complete. Four years in the making."
-compound,senior_done,,both,0.5,"Senior year. Everything handled. The prereqs lost. You won."
-compound,senior_done,,both,0.5,"Four years of work. One clean finish. Screenshot this."
-compound,senior_done,,both,1,"Complete requirements. Senior standing. Go tell your advisor."
-compound,senior_done,,both,1,"Nothing left. You made it. The degree plan can rest."
-compound,almost_clean,,progress,1,"Almost everything filled. Just a few gaps."
-compound,almost_clean,,progress,1,"So close to complete. A handful of credits."
-compound,almost_clean,,progress,1,"Nearly there. The remaining work is minimal."
-compound,almost_clean,,progress,1,"A few credits from full coverage."
-compound,almost_clean,,progress,1,"The last pieces of the puzzle."
-compound,almost_clean,,progress,1,"Almost full requirement coverage."
-compound,almost_clean,,progress,0.5,"The gap between you and done is shrinking fast."
-compound,almost_clean,,progress,1,"Barely anything left to fill."
-compound,almost_clean,,progress,1,"Requirements nearly complete."
-compound,almost_clean,,progress,1,"The finish is tangible."
-compound,summer_grind,,semester,1,"Summer courses on the plan. Efficient."
-compound,summer_grind,,semester,1,"Taking summer classes. Getting ahead."
-compound,summer_grind,,semester,1,"Summer semester with courses. Strategic."
-compound,summer_grind,,semester,1,"Using summer to make progress."
-compound,summer_grind,,semester,1,"Summer plan loaded."
-compound,summer_grind,,semester,1,"Making the most of summer term."
-compound,summer_grind,,semester,0.5,"Summer semester with a real course load. Respect."
-compound,summer_grind,,semester,1,"Summer progress counts."
-compound,summer_grind,,semester,1,"A productive summer plan."
-compound,summer_grind,,semester,1,"Summer courses locked in."
-compound,summer_empty,,semester,1,"Nothing for summer. Clean break."
-compound,summer_empty,,semester,1,"Summer off. Sometimes that's the move."
-compound,summer_empty,,semester,1,"No summer courses. Recharge."
-compound,summer_empty,,semester,1,"Summer semester with no recs."
-compound,summer_empty,,semester,1,"Empty summer. Not a bad thing."
-compound,summer_empty,,semester,1,"Nothing to recommend for summer."
-compound,summer_empty,,semester,0.5,"Summer break. Earned."
-compound,summer_empty,,semester,1,"No summer plan needed."
-compound,summer_empty,,semester,1,"The plan skips summer here."
-compound,summer_empty,,semester,1,"A free summer on the timeline."
-compound,sophomore_building,,progress,1,"Sophomore year. Building the foundation."
-compound,sophomore_building,,progress,1,"Second year and things are taking shape."
-compound,sophomore_building,,progress,1,"Sophomore standing, building progress."
-compound,sophomore_building,,progress,1,"The plan is solidifying. Year two energy."
-compound,sophomore_building,,progress,0.5,"Getting traction. This is the year it clicks."
-compound,sophomore_building,,progress,1,"Sophomore era. Foundations forming."
-compound,sophomore_building,,progress,1,"Year two. The momentum is real."
-compound,sophomore_building,,progress,1,"Building credits in year two."
-compound,sophomore_building,,progress,1,"Sophomore progress. The trajectory is good."
-compound,sophomore_building,,progress,1,"Second year with visible progress."
-compound,junior_midway,,progress,1,"Junior year. Halfway there."
-compound,junior_midway,,progress,1,"The midpoint of the journey."
-compound,junior_midway,,progress,1,"Junior standing, midway progress. On track."
-compound,junior_midway,,progress,0.5,"Halfway through and no disasters. That's strategy."
-compound,junior_midway,,progress,1,"Junior year at the 50% mark."
-compound,junior_midway,,progress,1,"The middle of junior year. The plan holds."
-compound,junior_midway,,progress,1,"Midway through as a junior. Right on schedule."
-compound,junior_midway,,progress,1,"Junior midpoint. Everything lining up."
-compound,junior_midway,,progress,1,"Half the degree done. Half to go."
-compound,junior_midway,,progress,1,"The halfway marker in junior year."
-compound,first_semester_heavy,,semester,0.5,"First semester and you stacked it. Ambitious. Questionable. Allowed."
-compound,first_semester_heavy,,semester,1,"Kicking off with a packed schedule. No warm-up period."
-compound,first_semester_heavy,,semester,1,"Starting strong with a heavy load. The transcript is watching."
-compound,first_semester_heavy,,semester,0.5,"Going full throttle from day one. Respect. And concern."
-compound,first_semester_heavy,,semester,1,"A big first semester. Not everyone opens like this."
-compound,first_semester_heavy,,semester,0.5,"Heavy start. The kind your advisor would have opinions about."
-compound,first_semester_heavy,,semester,1,"Five-plus courses out the gate. Speedrun energy."
-compound,first_semester_heavy,,semester,1,"First semester, maximum courses. No easing in."
-compound,first_semester_heavy,,semester,1,"Starting at full capacity. Hope you like being busy."
-compound,first_semester_heavy,,semester,0.5,"Ambitious opening semester. Calm down, strategist."
-compound,heavy_warned,,semester,1,"Full schedule with fine print. Read it. Seriously."
-compound,heavy_warned,,semester,0.5,"Packed semester and a warning. That's a combination."
-compound,heavy_warned,,semester,1,"Heavy load. Some of these courses have opinions."
-compound,heavy_warned,,semester,1,"Lots of courses. Some come with conditions. Handle them."
-compound,heavy_warned,,semester,0.5,"Full plate and a few red flags. Bold."
-compound,heavy_warned,,semester,1,"A full lineup with asterisks. The asterisks matter."
-compound,heavy_warned,,semester,0.5,"Ambitious schedule plus warnings. That's either brave or reckless."
-compound,heavy_warned,,semester,1,"Dense semester. Some courses are waving yellow flags."
-compound,heavy_warned,,semester,1,"Heavy and flagged. The details are not optional reading."
-compound,heavy_warned,,semester,0.5,"A lot going on. And the warnings want your attention."
-compound,deep_planning,,semester,1,"Planning far into the future. Bold."
-compound,deep_planning,,semester,0.5,"Long-range planning. Either visionary or spiraling. Either way, respect."
-compound,deep_planning,,semester,1,"Deep into the semester timeline. You're out-planning your advisor."
-compound,deep_planning,,semester,0.5,"You're looking several semesters out. Calm down, strategist."
-compound,deep_planning,,semester,0.5,"This far ahead is either strategic or anxious. We won't ask."
-compound,deep_planning,,semester,1,"The distant future of your degree. Mapped. Today."
-compound,deep_planning,,semester,0.5,"Planning semesters you haven't even registered for. Ambitious."
-compound,deep_planning,,semester,1,"The long game. Not many people play it."
-compound,deep_planning,,semester,1,"Forward planning at its finest. Your future self approves."
-compound,deep_planning,,semester,0.5,"Way out on the timeline. The crystal ball has limits."
-compound,multibucket_stacking,,semester,1,"Multiple courses hitting two-plus requirements. Efficient."
-compound,multibucket_stacking,,semester,0.5,"Efficiency across the board. The algorithm is showing off."
-compound,multibucket_stacking,,semester,0.5,"These courses are pulling more weight than your group project."
-compound,multibucket_stacking,,semester,0.5,"Maximum overlap. Minimum waste. Beautiful."
-compound,multibucket_stacking,,semester,1,"Multi-requirement courses. One class, two problems solved."
-compound,multibucket_stacking,,semester,1,"Several courses doing double duty. We love to see it."
-compound,multibucket_stacking,,semester,0.5,"The lineup is efficient. Suspiciously efficient."
-compound,multibucket_stacking,,semester,1,"Overlapping requirements. The system is being generous."
-compound,multibucket_stacking,,semester,1,"Courses that check multiple boxes. The dream."
-compound,multibucket_stacking,,semester,0.5,"Stacking requirements like it's a strategy game. Because it is."
+﻿pool_type,pool_id,slot,target,weight,text
+dimension,standing,freshman,progress,2,Freshman standing. The cutscene ended. Lock in bro.
+dimension,standing,freshman,progress,2,Freshman era. The lore just dropped and D2L already wants something.
+dimension,standing,freshman,progress,2,Brand-new transcript. Zero academic jump scares so far.
+dimension,standing,freshman,progress,1,Year one. You are basically a prereq intern with a backpack.
+dimension,standing,freshman,progress,2,"Freshman standing. Foundations first, chaos later."
+dimension,standing,freshman,progress,1,The academic plot just opened with you.
+dimension,standing,freshman,progress,2,"New semester, new map, same degree grind."
+dimension,standing,freshman,progress,1,"Freshman arc. No aura yet, just prerequisites fr."
+dimension,standing,freshman,progress,2,Day-one energy. The syllabus still feels hypothetical.
+dimension,standing,freshman,progress,1,Freshman standing. The campus knows your face more than your courses do.
+dimension,standing,freshman,progress,2,This is the part where everything still sounds manageable.
+dimension,standing,freshman,progress,0.5,First-year status. The side quests are still locked behind attendance and syllabus week.
+dimension,standing,sophomore,progress,2,Sophomore standing. Tutorial over. Lock in before CheckMarq gets funny.
+dimension,standing,sophomore,progress,2,"Second-year era. You know the map, not every trap."
+dimension,standing,sophomore,progress,1,Sophomore standing. Enough experience to be strategic.
+dimension,standing,sophomore,progress,2,Year two. The transcript has started collecting lore.
+dimension,standing,sophomore,progress,1,You are past the intro and into the actual plot.
+dimension,standing,sophomore,progress,2,"Sophomore energy. Less confusion, more 'nah I got this.'"
+dimension,standing,sophomore,progress,2,Second year. The prereqs stopped being cute.
+dimension,standing,sophomore,progress,1,You know the system now. The system knows you too.
+dimension,standing,sophomore,progress,2,Sophomore standing. Lowkey the most underrated era.
+dimension,standing,sophomore,progress,0.5,This is where planning starts to look less optional.
+dimension,standing,sophomore,progress,2,"Year two. Fewer mysteries, more sequencing."
+dimension,standing,sophomore,progress,1,"Sophomore standing. The wheels are still on, just not training wheels."
+dimension,standing,junior,progress,2,Junior standing. The major said enough warm-up.
+dimension,standing,junior,progress,2,Upper-division era. The syllabus develops teeth here.
+dimension,standing,junior,progress,1,Junior standing. The lore is academically binding now. Be fr.
+dimension,standing,junior,progress,2,Year three. The degree stopped whispering and said lock in.
+dimension,standing,junior,progress,2,You are deep enough in that every class has opinions.
+dimension,standing,junior,progress,1,"Junior energy. Locked in, slightly tired, still standing."
+dimension,standing,junior,progress,2,"Upper-level courses. Same you, higher stakes."
+dimension,standing,junior,progress,1,Junior standing. No more tutorial prompts.
+dimension,standing,junior,progress,2,This is the stretch where good planning starts paying rent.
+dimension,standing,junior,progress,0.5,Year three. The easy buttons filed for leave.
+dimension,standing,junior,progress,2,Junior arc. The requirements are not bluffing anymore.
+dimension,standing,junior,progress,1,"You made it to the serious part. Respectfully, keep going."
+dimension,standing,senior,progress,2,"Senior standing. Final season. No filler, just finals and lock in."
+dimension,standing,senior,progress,2,Senior era. The diploma is visible from here.
+dimension,standing,senior,progress,1,Senior standing. This is not the moment for a random side quest.
+dimension,standing,senior,progress,2,The transcript has receipts and senior energy.
+dimension,standing,senior,progress,0.5,Final-year plot. Keep it clean and keep moving.
+dimension,standing,senior,progress,1,"Senior standing. Calm face, chaotic calendar."
+dimension,standing,senior,progress,2,"You are in the last arc now. No plot twists, please."
+dimension,standing,senior,progress,1,"Senior era. Highkey close, lowkey surviving on calendars and iced coffee."
+dimension,standing,senior,progress,2,The finish line is real and kind of staring.
+dimension,standing,senior,progress,2,Senior standing. The degree is almost fully rendered.
+dimension,standing,senior,progress,1,This is the part where strategy beats vibes.
+dimension,standing,senior,progress,2,Final-year status. One weird elective and the plot gets expensive fr.
+dimension,progress,early,progress,2,Early progress. Pilot episode energy. Nobody panic.
+dimension,progress,early,progress,2,The plan is still in its pilot episode.
+dimension,progress,early,progress,0.5,Under 16% done. The montage has not even started.
+dimension,progress,early,progress,2,This is the foundation arc. It matters more than it looks.
+dimension,progress,early,progress,2,"Low progress, high potential. Classic opener."
+dimension,progress,early,progress,1,"You just started. Be fr, you are not cooked yet."
+dimension,progress,early,progress,2,This is the boring part that saves future-you.
+dimension,progress,early,progress,1,The degree is still mostly blueprint and ambition.
+dimension,progress,early,progress,2,Early days. The map looks big because it is.
+dimension,progress,early,progress,1,Nothing is snowballing yet. Good time to be strategic.
+dimension,progress,early,progress,0.5,"The progress bar barely moved, but it did move."
+dimension,progress,early,progress,1,"Chapter one energy. Setup now, payoff later."
+dimension,progress,building,progress,2,Building progress. Credits are stacking.
+dimension,progress,building,progress,2,This degree is beating the fake-major allegations and looking employable.
+dimension,progress,building,progress,1,You are out of the intro and into momentum.
+dimension,progress,building,progress,2,The progress bar finally escaped random-CheckMarq-tab status.
+dimension,progress,building,progress,0.5,This is the phase where one good semester changes the plot.
+dimension,progress,building,progress,1,"Not done, not stuck, just steadily moving."
+dimension,progress,building,progress,2,Momentum era. The transcript looks less like a CheckMarq scavenger hunt.
+dimension,progress,building,progress,1,The transcript is starting to build some lore.
+dimension,progress,building,progress,2,This is what forward motion looks like in daylight.
+dimension,progress,building,progress,0.5,"Building phase. Kind of busy, kind of beautiful."
+dimension,progress,building,progress,2,You are getting traction. The algorithm clocked it.
+dimension,progress,building,progress,1,"Credits are piling up in the least glamorous, most useful way."
+dimension,progress,midway,progress,2,"Midway progress. You cannot ghost the degree now, be fr."
+dimension,progress,midway,progress,2,"Halfway there. That is real progress, not delusion."
+dimension,progress,midway,progress,1,This is the middle chapter where the plan either holds or gets weird.
+dimension,progress,midway,progress,2,You can see the start behind you and the finish in theory.
+dimension,progress,midway,progress,2,"Midway through. No turning back, which is convenient."
+dimension,progress,midway,progress,0.5,Half done is a lot more done than it sounds.
+dimension,progress,midway,progress,2,The degree is balanced between history and future stress.
+dimension,progress,midway,progress,1,This is the part where planning starts to compound.
+dimension,progress,midway,progress,2,Midpoint reached. The transcript has entered its serious era.
+dimension,progress,midway,progress,1,You are far enough in that every credit feels expensive.
+dimension,progress,midway,progress,2,Halfway. Future-you is officially canon fr.
+dimension,progress,midway,progress,0.5,The back half is loading.
+dimension,progress,homestretch,progress,2,Homestretch. No bonus content. Lock in before finals start talking.
+dimension,progress,homestretch,progress,2,The finish line is visible now. Stressful? Absolutely.
+dimension,progress,homestretch,progress,1,Most of the degree is behind you. Keep the ending boring.
+dimension,progress,homestretch,progress,2,You are close enough that one bad swap would feel personal.
+dimension,progress,homestretch,progress,2,Homestretch era. Clean moves only.
+dimension,progress,homestretch,progress,0.5,The remaining credits are countable. That used to sound fake.
+dimension,progress,homestretch,progress,2,This is the part where discipline beats inspiration.
+dimension,progress,homestretch,progress,1,"Almost there. No academic plot twists, please."
+dimension,progress,homestretch,progress,2,The endgame is here. Please stop freestyling and check the degree audit.
+dimension,progress,homestretch,progress,1,"Close enough to taste it, far enough to still mess it up."
+dimension,progress,homestretch,progress,2,"Home stretch. Highkey exciting, lowkey fragile."
+dimension,progress,homestretch,progress,0.5,You did the hard part. Now do the careful part.
+dimension,progress,nearDone,both,2,Near done. Single-digit requirements left.
+dimension,progress,nearDone,both,2,This degree is in the end credits but the bloopers still hit hard.
+dimension,progress,nearDone,both,1,You are so close that every choice suddenly has consequences.
+dimension,progress,nearDone,both,2,A handful of boxes left. Do not get creative.
+dimension,progress,nearDone,both,2,Almost complete. The margin for error logged out.
+dimension,progress,nearDone,both,0.5,This is not the time to test your side-quest instincts.
+dimension,progress,nearDone,both,2,"Near-finish energy. Calm, sharp, no nonsense."
+dimension,progress,nearDone,both,1,You can count what is left without opening a spreadsheet.
+dimension,progress,nearDone,both,2,A few requirements remain and all of them feel dramatic.
+dimension,progress,nearDone,both,0.5,This close to done? Keep the plan painfully normal.
+dimension,progress,nearDone,both,2,The end is right there. Absolutely no freestyling.
+dimension,progress,nearDone,both,0.5,Almost complete. No notes except finish.
+dimension,progress,done,both,2,Done. The spreadsheet absolutely cooked.
+dimension,progress,done,both,2,All requirements satisfied. You understood the assignment.
+dimension,progress,done,both,1,Everything is complete. The spreadsheet can rest.
+dimension,progress,done,both,2,Degree finished. The prereqs lost.
+dimension,progress,done,both,2,Zero remaining. That is elite admin work.
+dimension,progress,done,both,0.5,The plan actually worked from start to finish.
+dimension,progress,done,both,2,Nothing left to fill. Go outside before the transcript misses you.
+dimension,progress,done,both,1,Complete across the board. Clean ending.
+dimension,progress,done,both,2,This degree is fully assembled. No extra screws.
+dimension,progress,done,both,0.5,All boxes checked. Even the weird ones.
+dimension,progress,done,both,1,Finished. Actually finished. Not a drill.
+dimension,progress,done,both,0.5,Requirements cleared. Aura restored.
+dimension,remaining,mountain,progress,2,"A mountain of credits remains. Canon event, but the spreadsheet is honest."
+dimension,remaining,mountain,progress,2,"This count is big, but now it is visible."
+dimension,remaining,mountain,progress,1,Long road ahead. Better to know than spiral.
+dimension,remaining,mountain,progress,0.5,The number is loud. That is why planning exists.
+dimension,remaining,mountain,progress,2,A full degree still sits in front of you. Classic.
+dimension,remaining,mountain,progress,1,"Lots left, which is normal this early."
+dimension,remaining,mountain,progress,2,"This total requires snacks, strategy, and one friend who knows registration."
+dimension,remaining,mountain,progress,1,The mountain is real. So is the route up it.
+dimension,remaining,mountain,progress,2,"Big number, real number, manageable one semester at a time."
+dimension,remaining,mountain,progress,1,You are looking at the whole climb instead of pretending it is a hill.
+dimension,remaining,mountain,progress,2,A lot remains. Lowkey useful to know now.
+dimension,remaining,mountain,progress,1,This is not a red flag. It is just the full picture.
+dimension,remaining,chunk,progress,2,"A solid chunk remains. Serious, not scary."
+dimension,remaining,chunk,progress,2,"There is still real work left, but it has edges now."
+dimension,remaining,chunk,progress,1,"This is a semester stack, not a crisis."
+dimension,remaining,chunk,progress,2,Enough remaining to matter. Not enough to panic.
+dimension,remaining,chunk,progress,2,The number is shrinking and behaving.
+dimension,remaining,chunk,progress,1,A meaningful chunk is left. Stay locked in.
+dimension,remaining,chunk,progress,2,"Still plenty to do, just no longer mysterious."
+dimension,remaining,chunk,progress,1,This is the part where consistency beats drama.
+dimension,remaining,chunk,progress,2,"The remaining credits are giving project, not disaster."
+dimension,remaining,chunk,progress,1,A few good semesters can clean this up.
+dimension,remaining,chunk,progress,2,This count is mid-sized and very workable.
+dimension,remaining,chunk,progress,1,"There is still road left, but you can actually see the lanes."
+dimension,remaining,manageable,progress,2,Manageable remaining credits. This is where planning gets fun.
+dimension,remaining,manageable,progress,2,The list is short enough to think clearly.
+dimension,remaining,manageable,progress,1,What is left fits in your brain without buffering.
+dimension,remaining,manageable,progress,2,This is no longer a mountain. It is logistics.
+dimension,remaining,manageable,progress,2,The remaining count has entered its reasonable era.
+dimension,remaining,manageable,progress,1,You are past panic territory and into execution.
+dimension,remaining,manageable,progress,2,This number can be handled without a dramatic soundtrack.
+dimension,remaining,manageable,progress,1,"Manageable left. Respectfully, do not make it unmanageable."
+dimension,remaining,manageable,progress,2,The workload is compact enough to optimize.
+dimension,remaining,manageable,progress,1,This is the kind of count that rewards clean decisions.
+dimension,remaining,manageable,progress,2,"Enough left to matter, not enough to dominate your personality."
+dimension,remaining,manageable,progress,1,You can finish this without becoming a legend.
+dimension,remaining,handful,progress,2,A handful of credits remain. Tiny but important.
+dimension,remaining,handful,progress,2,This is the last little cluster before freedom.
+dimension,remaining,handful,progress,1,Only a few left. Do not invent a problem.
+dimension,remaining,handful,progress,2,Handful territory. The finish line is basically hovering.
+dimension,remaining,handful,progress,2,You are down to the last bites of the degree.
+dimension,remaining,handful,progress,0.5,"Small count, big consequences if you get weird."
+dimension,remaining,handful,progress,2,The list is short enough to screenshot without scrolling.
+dimension,remaining,handful,progress,1,Just a few left. Keep the landing clean.
+dimension,remaining,handful,progress,2,This is where one smart semester can clear the board.
+dimension,remaining,handful,progress,0.5,A handful remains and every one of them thinks it is the main character.
+dimension,remaining,handful,progress,2,The degree is down to its final receipts.
+dimension,remaining,handful,progress,1,Almost nothing left. That is both comforting and dangerous.
+dimension,remaining,zero,both,2,Zero credits remain. That is the tweet.
+dimension,remaining,zero,both,2,Nothing left. Clean sweep.
+dimension,remaining,zero,both,1,Remaining credits: none. Beautiful stat.
+dimension,remaining,zero,both,2,The counter hit zero and stayed there.
+dimension,remaining,zero,both,2,No unfinished business. Rare.
+dimension,remaining,zero,both,0.5,You cleared the board. Respect.
+dimension,remaining,zero,both,2,Zero remaining. The degree can stop haunting you.
+dimension,remaining,zero,both,1,There is literally nothing left to plan.
+dimension,remaining,zero,both,2,All that work and now the counter just says zero.
+dimension,remaining,zero,both,0.5,No remaining credits. No caveats. Just peace.
+dimension,remaining,zero,both,2,The number has gone fully extinct.
+dimension,remaining,zero,both,1,You reached zero. Big main-character spreadsheet energy.
+dimension,inProgress,none,progress,2,Nothing in progress right now. Clean slate.
+dimension,inProgress,none,progress,2,No active courses on deck. Pure planning mode.
+dimension,inProgress,none,progress,1,"Zero in-progress credits. Quiet screen, loud potential."
+dimension,inProgress,none,progress,2,Nothing currently rolling. This is the reset screen.
+dimension,inProgress,none,progress,1,No courses in flight. We are operating from stillness.
+dimension,inProgress,light,progress,2,"A light in-progress load. Enough to matter, not enough to haunt you."
+dimension,inProgress,light,progress,2,Just a little in progress. Manageable vibes.
+dimension,inProgress,light,progress,1,Light current load. The semester is speaking at indoor volume.
+dimension,inProgress,light,progress,2,A few credits are active. Nice and controlled.
+dimension,inProgress,light,progress,1,"Not much in progress, which keeps the planning clean."
+dimension,inProgress,moderate,progress,2,"Moderate in-progress load. Busy, but normal."
+dimension,inProgress,moderate,progress,2,A fair amount is already rolling. Respectable traffic.
+dimension,inProgress,moderate,progress,1,Moderate credits in progress. Enough motion to feel real.
+dimension,inProgress,moderate,progress,2,This is a balanced amount of current chaos.
+dimension,inProgress,moderate,progress,1,A middle-weight in-progress load. Manage it and move.
+dimension,inProgress,heavy,progress,2,Heavy in-progress load. You are already carrying a lot.
+dimension,inProgress,heavy,progress,2,A lot is in flight right now. Be nice to yourself.
+dimension,inProgress,heavy,progress,0.5,Heavy current load. The calendar is not exactly empty.
+dimension,inProgress,heavy,progress,2,This much in progress is giving full plate.
+dimension,inProgress,heavy,progress,1,A stacked in-progress total. Lowkey intense.
+dimension,bucketHealth,allSatisfied,both,2,Every requirement bucket is satisfied. Unreal scenes.
+dimension,bucketHealth,allSatisfied,both,2,All buckets done. The grid has no leverage left.
+dimension,bucketHealth,allSatisfied,both,1,Requirement coverage is perfect. No crumbs.
+dimension,bucketHealth,allSatisfied,both,0.5,Every bucket is handled. Clean sweep energy.
+dimension,bucketHealth,allSatisfied,both,1,All satisfied. The checklist cannot add drama anymore.
+dimension,bucketHealth,allSatisfied,both,2,Full bucket coverage. The system has been defeated politely.
+dimension,bucketHealth,mostDone,both,2,Most buckets are done. The endgame is live.
+dimension,bucketHealth,mostDone,both,2,Requirement coverage is looking very healthy.
+dimension,bucketHealth,mostDone,both,1,Most of the buckets are handled. The rest are just details with attitude.
+dimension,bucketHealth,mostDone,both,2,You are mostly clear across the board. Nice work.
+dimension,bucketHealth,mostDone,both,1,The grid is nearly full. That is a strong look.
+dimension,bucketHealth,mostDone,both,2,Most requirements are settled. The leftovers are being dramatic.
+dimension,bucketHealth,halfDone,both,2,About half the buckets are satisfied. Solid middle game.
+dimension,bucketHealth,halfDone,both,2,Half the requirement grid is already handled.
+dimension,bucketHealth,halfDone,both,1,You are halfway across the bucket battlefield.
+dimension,bucketHealth,halfDone,both,2,"A lot is done, a lot remains, and the truth is finally balanced."
+dimension,bucketHealth,halfDone,both,1,"Half satisfied. That is real progress, not just vibes."
+dimension,bucketHealth,halfDone,both,2,The bucket health is mid in the best possible way.
+dimension,bucketHealth,earlyDays,both,2,Bucket progress is still early. Plenty of room to build.
+dimension,bucketHealth,earlyDays,both,2,Most requirement buckets are still waiting their turn.
+dimension,bucketHealth,earlyDays,both,1,"Early bucket health. Nothing broken, just not filled yet."
+dimension,bucketHealth,earlyDays,both,2,"The grid is still mostly blank. That is information, not failure."
+dimension,bucketHealth,earlyDays,both,1,It is early days for requirement coverage. Start stacking.
+dimension,bucketHealth,earlyDays,both,0.5,Not many buckets are satisfied yet. The build phase is real.
+dimension,season,fall,semester,2,"Fall semester. New notebooks, same D2L jump scares and group chats."
+dimension,season,fall,semester,2,Fall term. Fresh start energy with immediate deadlines.
+dimension,season,fall,semester,1,"This plan lands in fall, when everyone swears they are organized."
+dimension,season,fall,semester,2,Fall semester. The academic year always opens a little dramatic.
+dimension,season,fall,semester,1,"Crisp air, crowded canvas pages, strategic choices."
+dimension,season,fall,semester,2,"Fall term. Big reset button, no actual reset."
+dimension,season,fall,semester,1,This is fall energy: locked in until week four.
+dimension,season,fall,semester,2,Fall semester. The vibes say fresh start; the syllabus says prove it.
+dimension,season,fall,semester,1,A fall plan always looks so clean in theory.
+dimension,season,fall,semester,2,Fall term. Prime time for locked-in behavior.
+dimension,season,fall,semester,1,This semester is giving backpack still smells new.
+dimension,season,fall,semester,2,Fall semester. Plot resumes after summer credits.
+dimension,season,spring,semester,2,"Spring semester. New calendar, same side quests trying to spawn."
+dimension,season,spring,semester,2,Spring term. Fresh start with less pretending.
+dimension,season,spring,semester,1,"This plan hits spring, when the year starts feeling real."
+dimension,season,spring,semester,2,"Spring semester. Quiet grind, strong payoff."
+dimension,season,spring,semester,1,"Spring term. Less hype, more execution."
+dimension,season,spring,semester,2,"This is spring energy: fewer speeches, more surviving the group chat."
+dimension,season,spring,semester,1,Spring semester. The academic sequel usually goes harder.
+dimension,season,spring,semester,2,"Spring term. Good weather eventually, deadlines immediately."
+dimension,season,spring,semester,1,A spring plan is lowkey one of the cleanest arcs.
+dimension,season,spring,semester,2,Spring semester. Time to turn intentions into credits.
+dimension,season,spring,semester,1,This term is giving snow boots and strategy.
+dimension,season,spring,semester,2,"Spring term. Same campus, different level of focus."
+dimension,season,summer,semester,2,"Summer term. Smaller window, zero room to be delusional."
+dimension,season,summer,semester,2,"Summer semester. Quiet campus, loud efficiency."
+dimension,season,summer,semester,1,"This is summer planning: less ceremony, more progress."
+dimension,season,summer,semester,2,"Summer term. Short, fast, and kind of ruthless."
+dimension,season,summer,semester,2,Summer semester. The side quest can still count.
+dimension,season,summer,semester,0.5,Summer term. Blink and the drop deadline is here.
+dimension,season,summer,semester,2,"This plan hits summer, where every credit feels concentrated."
+dimension,season,summer,semester,1,"Summer semester. Compact schedule, big leverage."
+dimension,season,summer,semester,2,Summer term. The academic speedrun arc fr.
+dimension,season,summer,semester,1,"Summer semester. Fewer classes, zero room to drift."
+dimension,season,summer,semester,2,This is summer energy: sunlight and aggressive efficiency.
+dimension,season,summer,semester,0.5,Summer term. The degree grind keeps its sunglasses on.
+dimension,semesterIndex,first,semester,2,First semester on the timeline. First impressions matter.
+dimension,semesterIndex,first,semester,2,This is the opening move. Keep it stable.
+dimension,semesterIndex,first,semester,1,Semester one of the plan. No reason to get fancy.
+dimension,semesterIndex,first,semester,2,The first planned term sets the tone for everything after it.
+dimension,semesterIndex,first,semester,1,This opening semester is doing a lot of narrative work.
+dimension,semesterIndex,first,semester,2,"Start strong, not chaotic. There is a difference."
+dimension,semesterIndex,first,semester,1,"First semester recs. Foundational, not flashy."
+dimension,semesterIndex,first,semester,2,This is where the academic dominoes start falling.
+dimension,semesterIndex,first,semester,1,Opening term. Future semesters are already taking notes.
+dimension,semesterIndex,first,semester,2,"The first semester should solve problems, not create lore."
+dimension,semesterIndex,first,semester,1,This is the launch sequence for the whole plan.
+dimension,semesterIndex,first,semester,2,"Semester one. Clean start, clean conscience."
+dimension,semesterIndex,middle,semester,2,Middle of the timeline. The plan is fully alive here.
+dimension,semesterIndex,middle,semester,2,These middle semesters do the heavy lifting.
+dimension,semesterIndex,middle,semester,1,This is where the degree gets built for real.
+dimension,semesterIndex,middle,semester,2,"Mid-plan terms. Less glamorous, wildly important."
+dimension,semesterIndex,middle,semester,1,The middle of the timeline is where strategy earns its keep.
+dimension,semesterIndex,middle,semester,2,These semesters are the backbone of the whole operation.
+dimension,semesterIndex,middle,semester,1,Midway through the plan. No autopilot allowed.
+dimension,semesterIndex,middle,semester,2,"The middle terms are doing the boring, essential magic."
+dimension,semesterIndex,middle,semester,1,This is the part of the timeline that quietly decides everything.
+dimension,semesterIndex,middle,semester,2,"Middle-semester energy. Efficient, direct, mildly intense."
+dimension,semesterIndex,middle,semester,1,"These are the working semesters. No opening act, no finale."
+dimension,semesterIndex,middle,semester,2,The middle stretch is lowkey where good plans prove themselves.
+dimension,semesterIndex,deep,semester,2,Deep timeline. You are planning with dangerous levels of foresight.
+dimension,semesterIndex,deep,semester,2,"Several semesters out. Bold, maybe wise."
+dimension,semesterIndex,deep,semester,1,This far ahead is either strategic or a little cinematic.
+dimension,semesterIndex,deep,semester,2,Deep planning mode. You saw the post-credit scene and the CheckMarq appointment time.
+dimension,semesterIndex,deep,semester,0.5,You are looking far enough out to surprise O'Brien Hall Suite 111.
+dimension,semesterIndex,deep,semester,2,This timeline goes so far it almost needs spoilers.
+dimension,semesterIndex,deep,semester,1,Deep-semester view. Respect the long game.
+dimension,semesterIndex,deep,semester,2,Planning this far out is giving 4D chess with the degree audit open.
+dimension,semesterIndex,deep,semester,1,These are future-you problems being solved early.
+dimension,semesterIndex,deep,semester,2,You are far down the timeline and weirdly calm about it.
+dimension,semesterIndex,deep,semester,1,"Deep plan territory. The lore gets fuzzy, the strategy gets real."
+dimension,semesterIndex,deep,semester,2,This many semesters ahead? Lowkey impressive.
+dimension,recCount,empty,semester,2,No recommendations this term. The algorithm sat this one out.
+dimension,recCount,empty,semester,2,Empty semester result. Sometimes the honest answer is silence.
+dimension,recCount,empty,semester,1,"Nothing recommended here. Not ideal, but accurate."
+dimension,recCount,empty,semester,2,No recs for this term. The planner found no clean move.
+dimension,recCount,empty,semester,0.5,"This semester came back empty. That is signal, not shade."
+dimension,recCount,empty,semester,2,Zero recommendations. The degree grid is being difficult.
+dimension,recCount,empty,semester,1,No courses made the cut this round.
+dimension,recCount,empty,semester,2,"This term is empty on purpose, not by accident."
+dimension,recCount,empty,semester,0.5,No recs here. The system is basically saying not yet.
+dimension,recCount,empty,semester,2,"An empty semester result is awkward, but still useful."
+dimension,recCount,empty,semester,1,Nothing surfaced for this term. The logic had boundaries.
+dimension,recCount,empty,semester,2,Zero picks this time. Even CheckMarq could not fake a clean option here.
+dimension,recCount,light,semester,2,"Light semester set. Minimal, but strategic."
+dimension,recCount,light,semester,2,Just a few recs here. Clean and focused.
+dimension,recCount,light,semester,1,"Small course set. Tight, not thin."
+dimension,recCount,light,semester,2,This term keeps it light without wasting momentum.
+dimension,recCount,light,semester,1,A lighter lineup can still move the plot.
+dimension,recCount,light,semester,2,"Few recommendations, strong signal."
+dimension,recCount,light,semester,1,"Not many picks, but the ones here mean something."
+dimension,recCount,light,semester,2,"This semester is low volume, high relevance."
+dimension,recCount,light,semester,1,Light rec count. Efficient little lineup.
+dimension,recCount,light,semester,2,A short list is sometimes the smartest list.
+dimension,recCount,light,semester,1,This term is giving quality over quantity.
+dimension,recCount,light,semester,2,"Only a couple picks. No filler, just business."
+dimension,recCount,normal,semester,2,Normal recommendation count. Balanced and boring in a good way.
+dimension,recCount,normal,semester,2,A standard lineup. Very healthy behavior.
+dimension,recCount,normal,semester,1,This term has a normal number of picks. Love a stable arc.
+dimension,recCount,normal,semester,2,"Solid course count. Enough to move, not enough to combust."
+dimension,recCount,normal,semester,1,The rec list is balanced and doing its job.
+dimension,recCount,normal,semester,2,"Normal load, normal plan, uncommon peace."
+dimension,recCount,normal,semester,1,This is the sweet spot for a clean semester.
+dimension,recCount,normal,semester,2,A well-sized set of recs. No circus.
+dimension,recCount,normal,semester,1,Normal count. The planner is cooking at medium heat.
+dimension,recCount,normal,semester,2,This lineup looks responsibly ambitious. Business Career Center approved.
+dimension,recCount,normal,semester,1,A balanced semester list. Good bones.
+dimension,recCount,normal,semester,2,"Nothing flashy here, just quietly elite planning."
+dimension,recCount,heavy,semester,2,Heavy recommendation count. This term is giving midterm boss battle.
+dimension,recCount,heavy,semester,2,"This term is stacked. Respectfully, read the fine print."
+dimension,recCount,heavy,semester,1,A lot of recs made the cut. The planner was not shy.
+dimension,recCount,heavy,semester,2,Heavy lineup. The semester has main-plot energy.
+dimension,recCount,heavy,semester,0.5,This list is packed and very aware of it.
+dimension,recCount,heavy,semester,2,A dense set of recs. Manage the vibes accordingly.
+dimension,recCount,heavy,semester,1,"Heavy course count. Not impossible, just serious."
+dimension,recCount,heavy,semester,2,"This semester is giving full cart, no peace, and three syllabi."
+dimension,recCount,heavy,semester,0.5,"A stacked term. Great for progress, not for coasting."
+dimension,recCount,heavy,semester,1,Lots of options here. Your calendar may object.
+dimension,recCount,heavy,semester,2,Heavy rec count. The algorithm said lock in and maybe hit Brew Cafe.
+dimension,recCount,heavy,semester,1,This is the kind of semester that makes weekends theoretical.
+dimension,multiBucket,none,semester,2,No double-duty courses here. Straightforward lineup.
+dimension,multiBucket,none,semester,2,Each course is mostly doing one job. Honest work.
+dimension,multiBucket,none,semester,1,No overlap bonuses this term. Clean and simple.
+dimension,multiBucket,none,semester,2,"This lineup is direct: one class, one problem."
+dimension,multiBucket,none,semester,1,No multi-bucket magic this round. Just standard efficiency.
+dimension,multiBucket,some,semester,2,Some courses are pulling double duty. Nice little bonus.
+dimension,multiBucket,some,semester,2,A few picks cover multiple buckets. Efficient behavior.
+dimension,multiBucket,some,semester,1,"There is some overlap here, which is always good business."
+dimension,multiBucket,some,semester,2,This lineup sneaks in a bit of extra value.
+dimension,multiBucket,some,semester,1,A couple classes are doing two jobs. We love that for you.
+dimension,multiBucket,many,semester,2,A lot of these courses hit multiple buckets. Elite efficiency.
+dimension,multiBucket,many,semester,2,This lineup is min-maxing the degree like CheckMarq registration is ranked.
+dimension,multiBucket,many,semester,0.5,Several classes are doing double duty. Very locked in.
+dimension,multiBucket,many,semester,2,Multi-bucket value is everywhere here. Beautiful scenes.
+dimension,multiBucket,many,semester,0.5,This semester is squeezing real value out of every seat.
+dimension,hasWarnings,clean,semester,2,No warnings on this set. Clean board.
+dimension,hasWarnings,clean,semester,2,This lineup came back clean. No weird footnotes.
+dimension,hasWarnings,clean,semester,1,No warning flags here. Rare and lovely.
+dimension,hasWarnings,clean,semester,2,Clean semester. The details are unusually polite.
+dimension,hasWarnings,clean,semester,1,No alerts attached. Just straightforward recommendations.
+dimension,hasWarnings,warned,semester,2,Some picks have warnings. Read them before you get brave.
+dimension,hasWarnings,warned,semester,2,This lineup comes with caveats. The caveats matter.
+dimension,hasWarnings,warned,semester,0.5,A few courses are waving yellow flags. Pay attention.
+dimension,hasWarnings,warned,semester,2,"Warnings are in play here. Not a crisis, just not optional reading."
+dimension,hasWarnings,warned,semester,1,This set has fine print. Read it before O'Brien Hall advising has thoughts.
+compound,easter_egg_complete,,both,0.1,Everything is complete. This planner can finally log off fr.
+compound,easter_egg_complete,,both,0.1,All requirements cleared. The degree grid has no comeback.
+compound,easter_egg_complete,,both,0.1,Complete across the board. Zero crumbs.
+compound,easter_egg_complete,,both,0.1,You finished the whole thing. Deeply satisfying admin.
+compound,easter_egg_complete,,both,0.1,Every box is checked. Historic behavior.
+compound,easter_egg_complete,,both,0.1,Full completion. The system lost the plot.
+compound,easter_egg_complete,,progress,0.1,Progress hit 100% and kept the receipts.
+compound,easter_egg_complete,,progress,0.1,The degree is fully assembled. No missing parts.
+compound,easter_egg_complete,,progress,0.1,All progress bars are full. Screenshot-worthy.
+compound,easter_egg_complete,,progress,0.1,This is what complete looks like when the planning actually works.
+compound,easter_egg_full_plan,,semester,0.1,You planned all eight semesters. Weaponized organization with O'Brien Hall aura.
+compound,easter_egg_full_plan,,semester,0.1,Whole timeline mapped. Future-you owes you a thank-you.
+compound,easter_egg_full_plan,,semester,0.1,All the way to the end? That is serious foresight.
+compound,easter_egg_full_plan,,semester,0.1,This is the full cinematic universe of your transcript.
+compound,easter_egg_full_plan,,semester,0.1,Eight-semester planning is lowkey overpowered.
+compound,easter_egg_full_plan,,semester,0.1,You mapped the entire arc from intro to credits.
+compound,easter_egg_full_plan,,semester,0.1,Full-plan behavior. Swift Student Center drop-in would just nod.
+compound,easter_egg_full_plan,,semester,0.1,The whole roadmap is here. AIM Research Lab levels of locked in.
+compound,easter_egg_full_plan,,semester,0.1,You really said show me the entire saga.
+compound,easter_egg_full_plan,,semester,0.1,Complete long-range plan. Borderline suspicious levels of organization.
+compound,freshman_mountain,,progress,1,"Freshman with the full mountain visible. Canon event, better than doom-scrolling CheckMarq."
+compound,freshman_mountain,,progress,1,Year one and already staring down the whole degree. Respect.
+compound,freshman_mountain,,progress,0.5,Freshman standing plus triple-digit credits left: classic opening frame.
+compound,freshman_mountain,,progress,1,"This is the true first-year experience, just with better data."
+compound,freshman_mountain,,progress,0.5,You are at the start with the whole map open. Lowkey powerful.
+compound,freshman_mountain,,progress,1,"Freshman mountain arc. Big number, no delusion."
+compound,freshman_mountain,,progress,1,"Everything is ahead of you, which is terrifying and useful."
+compound,freshman_mountain,,progress,0.5,"New student, full workload horizon, zero illusions."
+compound,freshman_mountain,,progress,0.5,This is the part where planning beats pure optimism.
+compound,freshman_mountain,,progress,1,Freshman energy with full-picture awareness. Rare combo.
+compound,senior_homestretch,,both,1,Senior and close to done. Land the plane before one elective gets silly.
+compound,senior_homestretch,,both,1,"Final-year homestretch. No side quests, no speeches."
+compound,senior_homestretch,,both,0.5,"Senior arc, near finish. Just land the plane."
+compound,senior_homestretch,,both,0.5,You are basically at the credits. No director's cut.
+compound,senior_homestretch,,both,1,"Senior standing with a short runway left. Locked in, O'Brien Hall aura farming."
+compound,senior_homestretch,,both,1,This is the clean-up phase of the final season.
+compound,senior_homestretch,,both,0.5,Almost done and officially too close to get weird.
+compound,senior_homestretch,,both,1,"Senior endgame. Calm hands, sharp choices."
+compound,senior_homestretch,,both,0.5,The diploma is on-screen now. Time to act like the Handshake tab matters.
+compound,senior_homestretch,,both,1,You made it to the last lap. Respect the lap.
+compound,senior_done,,both,1,"Senior and done. Handshake tab open, diploma pending, aura intact."
+compound,senior_done,,both,0.5,Final-year status with zero left. Beautiful combo.
+compound,senior_done,,both,0.5,Senior arc complete. Roll credits.
+compound,senior_done,,both,1,You finished before the degree could get petty.
+compound,senior_done,,both,0.5,"Senior standing, no remaining requirements, no notes."
+compound,senior_done,,both,1,This is what a clean senior finish looks like.
+compound,senior_done,,both,0.5,Final season ended with a sweep.
+compound,senior_done,,both,0.5,"Senior done-state unlocked. W achievement, send the screenshot."
+compound,senior_done,,both,1,You understood the assignment and then deleted the assignment.
+compound,senior_done,,both,1,"Degree complete in senior year, as the calendar intended."
+compound,almost_clean,,progress,1,Almost clean across the board. Just a few loose ends.
+compound,almost_clean,,progress,1,You are one tidy semester away from making this look easy.
+compound,almost_clean,,progress,1,Most things are done. The leftovers are just being dramatic.
+compound,almost_clean,,progress,1,This degree is nearly wrapped with very little mess.
+compound,almost_clean,,progress,1,Almost-clean status. The cleanup montage just dropped somewhere between Raynor and O'Brien.
+compound,almost_clean,,progress,1,Only a few gaps left and all of them think they are important.
+compound,almost_clean,,progress,0.5,You are close enough that the remaining issues have names.
+compound,almost_clean,,progress,1,This is what near-finished admin excellence looks like.
+compound,almost_clean,,progress,1,Almost everything is handled. The finish wants precision.
+compound,almost_clean,,progress,1,The grid is nearly full. Just a little final cleanup.
+compound,summer_grind,,semester,1,"Summer recs are live. Quiet campus, loud ambition."
+compound,summer_grind,,semester,1,You saw summer and said what if I locked in and got ahead.
+compound,summer_grind,,semester,1,"Summer grind mode. Sun out, syllabus out."
+compound,summer_grind,,semester,1,These summer picks are pure progress behavior.
+compound,summer_grind,,semester,1,Summer semester with actual recs. Locked in.
+compound,summer_grind,,semester,1,You did not let summer become decorative. Respect.
+compound,summer_grind,,semester,0.5,"Short term, sharp choices, strong value."
+compound,summer_grind,,semester,1,This is the academic version of a productive side quest with Handshake open.
+compound,summer_grind,,semester,1,Summer planning that actually moves the needle. We love that.
+compound,summer_grind,,semester,1,"The campus chills, the degree does not."
+compound,summer_empty,,semester,1,No summer recs. The planner said go outside before Raynor becomes your summer address.
+compound,summer_empty,,semester,1,This summer is giving recovery arc.
+compound,summer_empty,,semester,1,Empty summer term. Sometimes rest is the efficient move.
+compound,summer_empty,,semester,1,No picks for summer. The planner is allowing peace.
+compound,summer_empty,,semester,1,"Summer came back blank, which is not automatically bad."
+compound,summer_empty,,semester,1,Nothing recommended for summer. Go touch non-academic grass fr.
+compound,summer_empty,,semester,0.5,This timeline leaves summer open. Rare kindness.
+compound,summer_empty,,semester,1,No summer load here. Recharge without guilt and avoid Raynor for a minute.
+compound,summer_empty,,semester,1,The degree is not asking for summer labor this time.
+compound,summer_empty,,semester,1,A blank summer can still be strategic. No panic.
+compound,sophomore_building,,progress,1,Sophomore and building. Quietly beating the what-is-my-plan allegations.
+compound,sophomore_building,,progress,1,Year two with real momentum. That plays.
+compound,sophomore_building,,progress,1,Sophomore standing plus steady progress is a good look.
+compound,sophomore_building,,progress,1,This is the post-tutorial build phase done correctly.
+compound,sophomore_building,,progress,0.5,"You are in the sophomore sweet spot: enough experience, lots of runway."
+compound,sophomore_building,,progress,1,Second-year momentum is underrated and powerful.
+compound,sophomore_building,,progress,1,Sophomore build season. Very healthy pacing.
+compound,sophomore_building,,progress,1,Year two is stacking credits and minding business.
+compound,sophomore_building,,progress,1,This is where the foundation starts acting like a structure.
+compound,sophomore_building,,progress,1,Sophomore progress with visible momentum. Respect.
+compound,junior_midway,,progress,1,Junior and halfway. The bit is still working and the advisor would nod.
+compound,junior_midway,,progress,1,Midway through as a junior is clean positioning.
+compound,junior_midway,,progress,1,This is the exact point where the degree starts looking inevitable.
+compound,junior_midway,,progress,0.5,"Junior midpoint. Serious era, strong trajectory."
+compound,junior_midway,,progress,1,Half done in year three. No complaints from the algorithm.
+compound,junior_midway,,progress,1,"This is a very normal, very useful kind of on-track."
+compound,junior_midway,,progress,1,Junior standing with midpoint progress. Good bones.
+compound,junior_midway,,progress,1,You are in the middle and the timeline still makes sense.
+compound,junior_midway,,progress,1,Mid-junior arc. Enough progress to feel real.
+compound,junior_midway,,progress,1,Halfway through and already in the upper-division plot. Nice.
+compound,first_semester_heavy,,semester,0.5,First semester and you immediately chose hard mode. Be fr.
+compound,first_semester_heavy,,semester,1,Opening term with a heavy load. Bold launch.
+compound,first_semester_heavy,,semester,1,"This first semester is stacked like you clicked skip intro, be fr."
+compound,first_semester_heavy,,semester,0.5,Heavy opening lineup. Ambition detected.
+compound,first_semester_heavy,,semester,1,You really opened the degree with the director's cut.
+compound,first_semester_heavy,,semester,0.5,"First-term heavy plan. Not chill, but strategic if you can carry it."
+compound,first_semester_heavy,,semester,1,Starting strong is one thing. Starting this strong is another.
+compound,first_semester_heavy,,semester,1,This launch semester has no easing-in energy whatsoever.
+compound,first_semester_heavy,,semester,1,A packed first term means the calendar speaks first.
+compound,first_semester_heavy,,semester,0.5,"First semester, heavy recs, instant lore."
+compound,heavy_warned,,semester,1,Heavy semester with warnings. This is not a skim-and-hope situation before add/drop.
+compound,heavy_warned,,semester,0.5,"Big course load, plus caveats. Not the week to freeload."
+compound,heavy_warned,,semester,1,This term is packed and the fine print is loud.
+compound,heavy_warned,,semester,1,A stacked schedule with warnings is not casual business.
+compound,heavy_warned,,semester,0.5,Heavy and warned. Strategy only.
+compound,heavy_warned,,semester,1,"There is a lot here, and some of it has conditions."
+compound,heavy_warned,,semester,0.5,This lineup wants discipline more than confidence.
+compound,heavy_warned,,semester,1,A full plate with yellow flags. Respect the flags.
+compound,heavy_warned,,semester,1,Busy semester plus warnings. The details are sprinting.
+compound,heavy_warned,,semester,0.5,This is the kind of term where reading matters more than vibes.
+compound,deep_planning,,semester,1,Deep planning mode. Future-you leaked the spoilers and the registration window.
+compound,deep_planning,,semester,0.5,You are several semesters ahead of the chaos.
+compound,deep_planning,,semester,1,"This is long-game behavior, plain and simple."
+compound,deep_planning,,semester,0.5,Planning this far out is giving chess brain.
+compound,deep_planning,,semester,0.5,The timeline is deep and surprisingly coherent.
+compound,deep_planning,,semester,1,You are solving future problems before they become lore.
+compound,deep_planning,,semester,0.5,"Deep plan arc. Calm, weirdly powerful."
+compound,deep_planning,,semester,1,Not everyone looks this far ahead. Probably should.
+compound,deep_planning,,semester,1,You are planning in 4D while registration is still in 2D.
+compound,deep_planning,,semester,0.5,This much foresight is mildly terrifying in a good way.
+compound,multibucket_stacking,,semester,1,This lineup is stacking buckets like it wants Business Career Center bragging rights.
+compound,multibucket_stacking,,semester,0.5,"Multi-bucket overlap everywhere. Very efficient, very pretty."
+compound,multibucket_stacking,,semester,0.5,These courses are doing two jobs and not complaining.
+compound,multibucket_stacking,,semester,0.5,Requirement overlap is carrying this term beautifully.
+compound,multibucket_stacking,,semester,1,This is one of those semesters where every class has range.
+compound,multibucket_stacking,,semester,1,Several picks are double-dipping in the most legal way possible.
+compound,multibucket_stacking,,semester,0.5,"The efficiency here is kind of disrespectful, in a beautiful way."
+compound,multibucket_stacking,,semester,1,This lineup squeezes value out of every seat.
+compound,multibucket_stacking,,semester,1,Multi-bucket stacking is live and thriving.
+compound,multibucket_stacking,,semester,0.5,"One class, multiple boxes, minimal waste. Poetry."

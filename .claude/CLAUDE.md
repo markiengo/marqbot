@@ -11,42 +11,13 @@ MarqBot is a deterministic degree-planning assistant for Marquette business stud
 - `marquette_courses_full.xlsx`: legacy Excel source; still present but no longer the default. Override with `DATA_PATH=marquette_courses_full.xlsx` to use it.
 
 # Commands
-## Setup
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-cd frontend && npm ci
-```
-
-## Build / Run (Local)
-```powershell
-# Preferred full stack (auto-build frontend export if missing)
-.\.venv\Scripts\python.exe scripts/run_local.py
-
-# Backend only (reads data/ CSVs by default)
-.\.venv\Scripts\python.exe backend/server.py
-
-# Frontend dev (separate shell)
-cd frontend && npm run dev
-
-# Frontend production export
-cd frontend && npm run build
-```
-
-## Test / Validate
-```powershell
-.\.venv\Scripts\python.exe scripts/validate_track.py --all
-.\.venv\Scripts\python.exe -m pytest tests/backend -q
-cd frontend && npm run test && npm run lint && npm run build
-```
-
-## Docker / Deploy
-```powershell
-docker build -f infra/docker/Dockerfile -t marqbot:local .
-docker run --rm -p 5000:5000 -e PORT=5000 -e WEB_CONCURRENCY=1 marqbot:local
-```
-- Render deploys from `render.yaml` at repo root using `infra/docker/Dockerfile`.
+- **Setup**: `python -m venv .venv && .\.venv\Scripts\python.exe -m pip install -r requirements.txt && cd frontend && npm ci`
+- **Full stack**: `.\.venv\Scripts\python.exe scripts/run_local.py`
+- **Backend only**: `.\.venv\Scripts\python.exe backend/server.py`
+- **Frontend dev**: `cd frontend && npm run dev` | **Build**: `npm run build`
+- **Tests**: `pytest tests/backend -q` | `cd frontend && npm run test && npm run lint && npm run build`
+- **Validate tracks**: `.\.venv\Scripts\python.exe scripts/validate_track.py --all`
+- **Docker**: `docker build -f infra/docker/Dockerfile -t marqbot:local .` → `docker run --rm -p 5000:5000 -e PORT=5000 -e WEB_CONCURRENCY=1 marqbot:local`
 
 # Conventions
 - Keep backend logic deterministic and data-first (no LLM/external API calls in request paths).
@@ -55,6 +26,7 @@ docker run --rm -p 5000:5000 -e PORT=5000 -e WEB_CONCURRENCY=1 marqbot:local
 - Normalize user/program/course inputs consistently (uppercase canonical IDs/codes).
 - Keep frontend API access centralized in `frontend/src/lib/api.ts` and shared payload types in `frontend/src/lib/types.ts`.
 - Preserve static-export compatibility in frontend code (no production assumptions requiring `next start` server features).
+- Keep student-facing writing short, plain, and understandable to students first. Avoid jargon unless the page is explicitly technical.
 - Environment variables used by runtime: `DATA_PATH`, `PORT`, `FLASK_DEBUG`, `BCC_DECAY_ENABLED`, `WEB_CONCURRENCY`, `PYTHON_VERSION`.
 
 # Deployment Rules
@@ -66,15 +38,6 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - Always bind to `0.0.0.0` and always honor `$PORT`.
 - Default `WEB_CONCURRENCY` is `1`; increase only with measured evidence on Render Starter.
 - Keep production frontend serving model as Flask + static export (`frontend/out`).
-
-# Token Management
-Global Rules:
-- Only include context that is directly relevant to the current coding task.
-- Do NOT scan unnecessary files or unrelated folders.
-- If asked to explore the codebase, restrict to the specific paths mentioned in the prompt.
-- Keep all sections concise; avoid redundant explanations.
-- For multi-file changes, reference detailed docs only when required (don’t load them automatically).
-- If you feel like there are tasks that need extensive tokens, ask me. 
 
 # Data Model Rules
 - All seven CSVs in `data/` must be read with `encoding="utf-8-sig"` (BOM-safe) when using Python's csv module directly.
@@ -112,6 +75,7 @@ Global Rules:
 - Bucket satisfaction uses OR logic: if either course-count or credit threshold is met, the bucket is satisfied (`_compute_satisfied()` in `semester_recommender.py`).
 - `hard_prereq_complex` tag should only exist on courses with genuinely unparseable prerequisites. All courses with parseable prereqs (type = single, and, or, none) must NOT have this tag.
 - Non-recommendable course groups (filtered by `_is_non_recommendable_course` in `eligibility.py`): **internships**, **work periods**, **independent studies**, and **"Topics in..." courses**. These still count toward bucket progress when completed/in-progress.
+- Standing-recovery fallback: if unmet requirements remain but the remaining path is blocked only by `min_standing`, recommend eligible filler courses that build credits toward the blocked standing requirement instead of returning an empty semester.
 
 # Performance Rules
 - Workbook parsing is expensive: load once at startup and refresh via controlled reload path only.
@@ -127,6 +91,7 @@ Global Rules:
 - `local`'s `.gitignore` does NOT list the above paths; `main`'s does.
 - Always work on `local`. To push: checkout `main`, merge `local`, restore/unstage local-only files, push, return to `local`. Or: commit pushable work on `main` directly, then `git checkout local && git merge main`.
 - **Never push the `local` branch to remote.**
+- `.github/workflows/nightly-dead-end-sweep.yml` targets Milwaukee `2:39 AM` with two UTC cron entries (`07:39`, `08:39`) plus an `America/Chicago` runtime gate. Keep both pieces together if you edit the schedule.
 
 # Never Do
 - Never switch production away from static Next export without redesigning backend static serving.

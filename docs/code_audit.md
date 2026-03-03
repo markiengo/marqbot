@@ -1,151 +1,146 @@
-# Code Audit Playbook (Hardcore, AI-Executable)
+# Code Audit: Real Review Checklist
 
-Role: relentless reviewer. Goal: simplify, speed up, and remove what no longer matters without changing behavior unless explicitly approved.
+Use this when reviewing MarqBot for bugs, slow paths, dead code, or risky design.
+Default mode: review first, patch second.
 
-## Why this format
-This audit guide is tuned for AI agents:
-- Explicit success criteria
-- Consistent severity ordering
-- Evidence-backed findings
-- Deterministic output contract
+## 1) What a good audit does
+A good audit should answer:
+- what can break users
+- what is slower than it should be
+- what code looks dead or duplicated
+- what should be fixed now vs later
 
-## Instruction precedence
-1. System/developer/runtime instructions
-2. Repository-wide instructions (for example `AGENTS.md`)
-3. This playbook
-4. Task-specific prompt
+Do not start with style nitpicks.
+Start with real risk.
 
-If conflicts exist, follow higher-priority instructions and flag the mismatch.
+## 2) Severity order
+Always report findings in this order:
+- `S0`
+  - release blocker, data-loss, security, or obviously wrong recommendations
+- `S1`
+  - likely production bug or major regression risk
+- `S2`
+  - meaningful maintainability or performance issue
+- `S3`
+  - low-value cleanup or code noise
 
-## Required task packet
-Before auditing, define:
-- Scope (files/modules/services)
-- Audit mode: `review_only` or `review_and_patch`
-- Allowed behavior change: `none` by default
-- Performance target (if optimization requested)
-- Validation commands
+If there are no findings, say that clearly.
 
-Missing inputs default to safest mode: `review_only` + explicit assumptions.
+## 3) MarqBot hotspots
+Check these areas first.
 
-## Core principles
-- Prefer deletion over cleverness.
-- Preserve behavior unless explicitly authorized.
-- Make each change easy to review and revert.
-- Back every meaningful claim with evidence (file refs, call paths, test outcomes).
-- If code is removed, provide coverage or clear verification steps.
+### Backend
+- `backend/server.py`
+  - routes, validation, caching, shared globals, reload logic
+- `backend/semester_recommender.py`
+  - ranking, dead-end handling, filler logic, bucket satisfaction
+- `backend/eligibility.py`
+  - prereqs, standing checks, offering filters
+- `backend/allocator.py`
+  - bucket assignment and double-count behavior
+- `backend/validators.py`
+  - contradictions, cycles, ambiguous input
+- `backend/prereq_parser.py`
+  - OR/AND parsing edge cases
 
-## Severity model (required ordering)
-- `S0` Critical: correctness/security/data-loss risk, release blocker
-- `S1` High: likely production bug, major regression risk, severe perf issue
-- `S2` Medium: maintainability debt with real execution cost
-- `S3` Low: style/noise with minimal runtime impact
+### Frontend
+- `frontend/src/hooks/`
+  - async fetch state, stale responses, duplicate requests, error resets
+- `frontend/src/lib/api.ts`
+  - payload shape and backend contract drift
+- `frontend/src/lib/types.ts`
+  - type mismatches that hide bugs
+- planner UI and context/reducer flow
+  - onboarding, modal data, track selection, recommendation rendering
 
-Report findings in strict severity order (`S0` -> `S3`).
+### Data
+- `data/course_prereqs.csv`
+- `data/child_buckets.csv`
+- `data/master_bucket_courses.csv`
+- `data/double_count_policy.csv`
+- `data/quips.csv`
 
-## What to hunt
-### 1) Dead and redundant code
-- Unused imports, vars, functions, types
-- Unreachable branches and stale flags
-- Duplicated logic across hooks/components/modules
-- One-off helpers that add indirection without reuse
-- Commented-out code
+### Workflows and scripts
+- `.github/workflows/`
+- `scripts/compile_quips.py`
+- `scripts/validate_track.py`
 
-### 2) Legacy artifacts
-- Scripts not referenced by CI, docs, or workflows
-- Obsolete harnesses and replaced implementations
-- Temporary utilities that became permanent
+## 4) Main questions to ask
+### Correctness
+- Can this return the wrong recommendation?
+- Can this hide a real blocker?
+- Can this break for a valid major/track combination?
+- Can this fail only in later semesters or edge standing cases?
 
-### 3) Correctness and performance hazards
-- Expensive repeated calls in loops/hot paths
-- N+1 request or query patterns
-- Recomputing derived values instead of caching/memoization
-- Missing pagination/filtering in large datasets
-- Over-fetching and oversized payload construction
-- Repeated normalization/parsing that can be centralized
+### Performance
+- Is the same expensive work repeated in loops?
+- Is data being reparsed or rescanned too often?
+- Is frontend making duplicate fetches?
+- Is backend doing repeated full-list scans in hot paths?
 
-## Audit workflow (required)
-1. Map architecture and entry points
-- Identify API boundaries, planner flow, rules engine, and data load pipeline.
+### Cleanup
+- Is this helper duplicated somewhere else?
+- Is this branch unreachable?
+- Is this script still used?
+- Is this comment or doc now lying?
 
-2. Identify hotspots
-- Prioritize high-frequency paths (`/recommend`, eligibility, allocation, progress).
+## 5) Evidence rule
+Every finding should include:
+- severity
+- impact
+- exact file reference
+- why it is real and not just a guess
+- what to do next
 
-3. Collect evidence before edits
-- Trace usage, dependencies, and runtime effect of suspected issues.
+Good finding format:
+- `S1` | `[backend/semester_recommender.py](/abs/path)` | empty semester returned too early | standing gate blocks last requirement and no filler fallback | patch logic + add regression test
 
-4. Simplify first
-- Remove dead paths and reduce duplication before optimization.
+## 6) Audit flow
+1. Map the path
+- figure out the entry point and the full call path
 
-5. Optimize second
-- Apply targeted improvements with measurable or explainable benefit.
+2. Reproduce or trace
+- use code search, tests, and local commands before making claims
 
-6. Validate
-- Run approved lint/test/build commands.
-- Add focused tests for changed behavior-critical logic.
+3. Find the highest-value issue first
+- bugs and regressions beat style
 
-## Evidence requirements per finding
-Each finding must include:
-- Severity (`S0`-`S3`)
-- Impact statement (what can break or slow down)
-- File references (path + line)
-- Why this is not a false positive
-- Recommended action (delete/refactor/optimize/monitor)
+4. Patch only if allowed
+- keep fixes small
+- preserve behavior unless change is explicitly wanted
 
-## Required output schema
-- `Findings (ordered by severity)`
-  - `Sx` | file refs | impact | evidence | recommendation
-- `Open questions / assumptions`
-- `Applied changes` (if in `review_and_patch`)
-  - `Deleted` | `Refactored` | `Optimized`
-- `Validation run`
-  - command | result
+5. Validate
+- run the closest focused tests first
+- then run broader checks if needed
+
+## 7) MarqBot validation shortcuts
+### Backend logic change
+- `python -m pytest tests/backend -q`
+- if recommendation logic changed:
+  - `python -m pytest tests/backend/test_dead_end_fast.py -q`
+
+### Frontend logic change
+- `cd frontend && npm run test`
+- `cd frontend && npm run build`
+
+### Quip change
+- `python scripts/compile_quips.py`
+- `cd frontend && npm test -- --run ../tests/frontend/quips.test.ts`
+
+### Data-model change
+- backend tests
+- `python scripts/validate_track.py --all`
+
+## 8) Final audit output
+Use this order:
+- `Findings`
+  - severity, file refs, impact, evidence, recommendation
+- `Open questions`
+- `Applied changes`
+  - only if patching was allowed
+- `Validation`
+  - command and result
 - `Residual risks`
-  - untested path | reason
 
-If no findings are discovered, state that explicitly and still list residual risk/test gaps.
-
-## Iterative prompting pattern
-For large audits, run in phases:
-1. "Map architecture and list likely hotspots only."
-2. "Produce severity-ordered findings with evidence, no edits."
-3. "Apply approved high-confidence fixes in small batches."
-4. "Run validation and publish final report schema."
-
-## Ready-to-paste prompt template
-```text
-<role>
-You are a relentless senior code reviewer focused on simplification, correctness, and measurable performance improvements.
-</role>
-
-<objective>
-Audit this codebase and identify the highest-value deletions/refactors/optimizations while preserving behavior unless explicitly approved otherwise.
-</objective>
-
-<scope>
-In scope: [paths/modules]
-Out of scope: [paths/modules]
-Mode: review_only or review_and_patch
-</scope>
-
-<constraints>
-- Use severity ordering S0 -> S3.
-- Every finding must include file refs and evidence.
-- Prefer deletion/simplification before optimization.
-- Do not make behavior changes unless explicitly allowed.
-</constraints>
-
-<process>
-1) Map architecture and hotspots.
-2) Produce severity-ordered findings (no edits unless mode permits).
-3) Apply approved changes in small batches.
-4) Run validation commands and report outcomes.
-</process>
-
-<output_format>
-- Findings (S0..S3): severity | file refs | impact | evidence | recommendation
-- Open questions / assumptions
-- Applied changes: Deleted / Refactored / Optimized
-- Validation run: command | result
-- Residual risks
-</output_format>
-```
+## 9) Simple rule
+If a note would not matter to a user, a developer, or a test failure, it is probably not a good audit finding.

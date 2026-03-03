@@ -138,9 +138,15 @@ export interface SessionSnapshot {
   lastRequestedCount?: number;
 }
 
+export type LoadStatus = "idle" | "loading" | "ready" | "error";
+
 export interface AppState {
   courses: Course[];
+  coursesLoadStatus: LoadStatus;
+  coursesLoadError: string | null;
   programs: ProgramsData;
+  programsLoadStatus: LoadStatus;
+  programsLoadError: string | null;
   completed: Set<string>;
   inProgress: Set<string>;
   selectedMajors: Set<string>;

@@ -12,7 +12,11 @@ import {
 
 export type AppAction =
   | { type: "SET_COURSES"; payload: Course[] }
+  | { type: "LOAD_COURSES_START" }
+  | { type: "LOAD_COURSES_FAILURE"; payload: string }
   | { type: "SET_PROGRAMS"; payload: ProgramsData }
+  | { type: "LOAD_PROGRAMS_START" }
+  | { type: "LOAD_PROGRAMS_FAILURE"; payload: string }
   | { type: "ADD_MAJOR"; payload: string }
   | { type: "REMOVE_MAJOR"; payload: string }
   | { type: "ADD_TRACK"; payload: string }
@@ -33,12 +37,15 @@ export type AppAction =
   | { type: "SET_NAV_TAB"; payload: string }
   | { type: "SET_RECOMMENDATIONS"; payload: { data: RecommendationResponse; count: number } }
   | { type: "RESTORE_SESSION"; payload: SessionSnapshot }
-  | { type: "MARK_ONBOARDING_COMPLETE" }
-  | { type: "CLEAR_RECOMMENDATIONS" };
+  | { type: "MARK_ONBOARDING_COMPLETE" };
 
 export const initialState: AppState = {
   courses: [],
+  coursesLoadStatus: "idle",
+  coursesLoadError: null,
   programs: { majors: [], tracks: [], minors: [], default_track_id: "FIN_MAJOR" },
+  programsLoadStatus: "idle",
+  programsLoadError: null,
   completed: new Set<string>(),
   inProgress: new Set<string>(),
   selectedMajors: new Set<string>(),
@@ -75,10 +82,48 @@ function sanitizeAimProgramSelections(
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "SET_COURSES":
-      return { ...state, courses: action.payload };
+      return {
+        ...state,
+        courses: action.payload,
+        coursesLoadStatus: "ready",
+        coursesLoadError: null,
+      };
+
+    case "LOAD_COURSES_START":
+      return {
+        ...state,
+        coursesLoadStatus: "loading",
+        coursesLoadError: null,
+      };
+
+    case "LOAD_COURSES_FAILURE":
+      return {
+        ...state,
+        coursesLoadStatus: "error",
+        coursesLoadError: action.payload,
+      };
 
     case "SET_PROGRAMS":
-      return { ...state, programs: action.payload };
+      return {
+        ...state,
+        programs: action.payload,
+        programsLoadStatus: "ready",
+        programsLoadError: null,
+      };
+
+    case "LOAD_PROGRAMS_START":
+      return {
+        ...state,
+        programsLoadStatus: "loading",
+        programsLoadError: null,
+      };
+
+    case "LOAD_PROGRAMS_FAILURE":
+      return {
+        ...state,
+        programsLoadStatus: "error",
+        programsLoadError: action.payload,
+      };
 
     case "ADD_MAJOR": {
       const next = new Set(state.selectedMajors);
@@ -276,9 +321,6 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         lastRequestedCount: Number(snap.lastRequestedCount) || state.lastRequestedCount,
       };
     }
-
-    case "CLEAR_RECOMMENDATIONS":
-      return { ...state, lastRecommendationData: null };
 
     case "MARK_ONBOARDING_COMPLETE":
       return { ...state, onboardingComplete: true, lastRecommendationData: null };

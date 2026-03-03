@@ -5,6 +5,15 @@ import { useAppContext } from "@/context/AppContext";
 import { postCanTake } from "@/lib/api";
 import type { CanTakeResponse } from "@/lib/types";
 
+export function isCanTakeResultForQuery(
+  query: string,
+  data: CanTakeResponse | null,
+): boolean {
+  const normalizedQuery = query.trim().toUpperCase();
+  const normalizedRequestedCourse = data?.requested_course?.trim().toUpperCase() ?? "";
+  return normalizedQuery.length > 0 && normalizedQuery === normalizedRequestedCourse;
+}
+
 export function useCanTake() {
   const { state } = useAppContext();
   const [data, setData] = useState<CanTakeResponse | null>(null);
@@ -12,10 +21,21 @@ export function useCanTake() {
   const [error, setError] = useState<string | null>(null);
   const reqId = useRef(0);
 
+  const clearCanTake = useCallback(() => {
+    reqId.current += 1;
+    setData(null);
+    setError(null);
+    setLoading(false);
+  }, []);
+
   const checkCanTake = useCallback(
     async (courseCode: string) => {
-      if (!courseCode.trim()) return null;
+      if (!courseCode.trim()) {
+        clearCanTake();
+        return null;
+      }
       const id = ++reqId.current;
+      setData(null);
       setLoading(true);
       setError(null);
 
@@ -38,14 +58,15 @@ export function useCanTake() {
       } catch (err) {
         if (id !== reqId.current) return null;
         const msg = err instanceof Error ? err.message : "Request failed";
+        setData(null);
         setError(msg);
         return null;
       } finally {
         if (id === reqId.current) setLoading(false);
       }
     },
-    [state.completed, state.inProgress, state.targetSemester, state.selectedMajors, state.selectedTracks],
+    [clearCanTake, state.completed, state.inProgress, state.targetSemester, state.selectedMajors, state.selectedTracks],
   );
 
-  return { data, loading, error, checkCanTake };
+  return { data, loading, error, checkCanTake, clearCanTake };
 }

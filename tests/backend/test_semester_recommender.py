@@ -1214,3 +1214,344 @@ def test_only_one_bridge_course_per_target_bucket():
     assert len(bridge_codes) == 1, (
         f"Expected 1 bridge course, got {len(bridge_codes)}: {bridge_codes}"
     )
+
+
+def test_freshman_level_balance_defers_upper_level_courses_when_lower_level_options_exist():
+    courses = [
+        {
+            "course_code": "UPPER_A",
+            "course_name": "Upper A",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "UPPER_B",
+            "course_name": "Upper B",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "LOWER_A",
+            "course_name": "Lower A",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "LOWER_B",
+            "course_name": "Lower B",
+            "credits": 3,
+            "level": 2000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "BCC::BCC_REQUIRED",
+            "bucket_label": "BCC Required",
+            "priority": 1,
+            "needed_count": 4,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "parent_bucket_id": "BCC_CORE",
+            "role": "core",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::FINA_ELEC",
+            "bucket_label": "Finance Elective",
+            "priority": 2,
+            "needed_count": 2,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": True,
+            "parent_bucket_id": "FIN_MAJOR",
+            "role": "elective",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "CB_TRACK::CB_ELEC",
+            "bucket_label": "Track Elective",
+            "priority": 3,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": True,
+            "parent_bucket_id": "CB_TRACK",
+            "role": "elective",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "UPPER_A"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::FINA_ELEC", "course_code": "UPPER_A"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "UPPER_B"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "CB_TRACK::CB_ELEC", "course_code": "UPPER_B"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "LOWER_A"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "LOWER_B"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=3,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        current_standing=2,
+        completed_only_standing=1,
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    assert codes[:2] == ["LOWER_A", "LOWER_B"]
+    assert any(code.startswith("UPPER_") for code in codes)
+
+
+def test_bcc_child_bucket_cap_remains_independent_not_parent_level():
+    courses = [
+        {
+            "course_code": "REQ_A",
+            "course_name": "Req A",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+        },
+        {
+            "course_code": "REQ_B",
+            "course_name": "Req B",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+        },
+        {
+            "course_code": "ETH_A",
+            "course_name": "Ethics A",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+        },
+        {
+            "course_code": "ENH_A",
+            "course_name": "Enhance A",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "BCC::BCC_REQUIRED",
+            "bucket_label": "BCC Required",
+            "priority": 1,
+            "needed_count": 4,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "parent_bucket_id": "BCC_CORE",
+            "role": "core",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "BCC::BCC_ETHICS",
+            "bucket_label": "BCC Ethics",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "parent_bucket_id": "BCC_CORE",
+            "role": "core",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "BCC::BCC_ENHANCE",
+            "bucket_label": "BCC Enhance",
+            "priority": 3,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "parent_bucket_id": "BCC_CORE",
+            "role": "core",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "REQ_A"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "REQ_B"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_ETHICS", "course_code": "ETH_A"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_ENHANCE", "course_code": "ENH_A"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=4,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        current_standing=1,
+        completed_only_standing=2,
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    assert codes[:2] == ["REQ_A", "REQ_B"]
+    assert set(codes[2:]) == {"ETH_A", "ENH_A"}
+
+
+def test_standing_recovery_recommends_declared_path_filler_when_only_required_course_is_blocked():
+    courses = [
+        {
+            "course_code": "CORE_DONE",
+            "course_name": "Core Done",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "CAPSTONE 4000",
+            "course_name": "Senior Capstone",
+            "credits": 3,
+            "level": 4000,
+            "prereq_hard": "none",
+            "prereq_soft": "standing_requirement",
+            "prereq_level": 4,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "ELEC_DONE",
+            "course_name": "Completed Elective",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "ELEC_FILL",
+            "course_name": "Filler Elective",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "TEST_MAJOR",
+            "bucket_id": "TEST_MAJOR::REQ_CORE",
+            "bucket_label": "Required Core",
+            "priority": 1,
+            "needed_count": 2,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "parent_bucket_id": "TEST_MAJOR",
+            "role": "core",
+        },
+        {
+            "track_id": "TEST_MAJOR",
+            "bucket_id": "TEST_MAJOR::ELEC_POOL",
+            "bucket_label": "Elective Pool",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "parent_bucket_id": "TEST_MAJOR",
+            "role": "elective",
+        },
+    ]
+    course_map = [
+        {"track_id": "TEST_MAJOR", "bucket_id": "TEST_MAJOR::REQ_CORE", "course_code": "CORE_DONE"},
+        {"track_id": "TEST_MAJOR", "bucket_id": "TEST_MAJOR::REQ_CORE", "course_code": "CAPSTONE 4000"},
+        {"track_id": "TEST_MAJOR", "bucket_id": "TEST_MAJOR::ELEC_POOL", "course_code": "ELEC_DONE"},
+        {"track_id": "TEST_MAJOR", "bucket_id": "TEST_MAJOR::ELEC_POOL", "course_code": "ELEC_FILL"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+
+    out = run_recommendation_semester(
+        completed=["CORE_DONE", "ELEC_DONE"],
+        in_progress=[],
+        target_semester_label="Spring 2029",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="TEST_MAJOR",
+        current_standing=3,
+        completed_only_standing=3,
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    assert codes == ["ELEC_FILL"]
+    assert out["eligible_count"] >= 1
+    assert "standing needed" in out["recommendations"][0]["why"].lower()

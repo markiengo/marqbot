@@ -242,6 +242,8 @@ def get_eligible_courses(
     equivalencies_df: pd.DataFrame = None,
     track_id: str = DEFAULT_TRACK_ID,
     reverse_map: dict[str, list[str]] | None = None,
+    *,
+    restrict_to_unmet_buckets: bool = True,
 ) -> list[dict]:
     """
     Returns eligible courses for the target term, sorted by:
@@ -364,6 +366,7 @@ def get_eligible_courses(
 
     for _, row in courses_df.iterrows():
         code = row["course_code"]
+        course_level = course_level_index.get(code)
 
         # Skip already taken / in-progress
         if code in completed_set or code in in_progress_set:
@@ -450,9 +453,9 @@ def get_eligible_courses(
             _course_level_index=course_level_index,
         )
 
-        # Keep only courses that can fill at least one unmet bucket slot.
-        # This avoids recommending extra courses for already-satisfied buckets
-        # (e.g., MCC_ESSV1 after its single-slot requirement is fulfilled).
+        # Default recommendation lane keeps only courses that can fill at least
+        # one unmet bucket slot. Standing-recovery fallback can opt into a
+        # broader declared-path pool by disabling this filter.
         unmet_buckets = [
             b for b in eligible_buckets
             if allocator_remaining.get(b["bucket_id"], {}).get("slots_remaining", 0) > 0
@@ -489,7 +492,10 @@ def get_eligible_courses(
         )
 
         if not unmet_buckets and not bridge_target_buckets:
-            continue
+            if not restrict_to_unmet_buckets and eligible_buckets:
+                pass
+            else:
+                continue
 
         # Multi-bucket score reflects unmet buckets for ranking, while
         # fills_buckets shows only direct bucket mappings (never bridge targets).
@@ -546,6 +552,7 @@ def get_eligible_courses(
             "course_code": code,
             "course_name": str(row.get("course_name", "")),
             "credits": int(row.get("credits", 3)) if not pd.isna(row.get("credits", 3)) else 3,
+            "course_level": course_level,
             "prereq_level": min_standing,
             "min_standing": min_standing,
             "primary_bucket": primary["bucket_id"] if primary else None,
