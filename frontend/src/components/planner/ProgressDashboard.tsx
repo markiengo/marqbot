@@ -30,7 +30,7 @@ export function ProgressDashboard({ onViewDetails }: ProgressDashboardProps) {
   const hasData = state.completed.size > 0 || state.inProgress.size > 0;
 
   return (
-    <div className="h-full min-h-0 rounded-2xl border border-border-subtle bg-[#0b2143]/70 p-3 flex flex-col gap-1.5">
+    <div className="lg:h-full lg:min-h-0 rounded-2xl border border-border-subtle bg-[#0b2143]/70 p-3 flex flex-col gap-1.5">
       <p className="text-xs font-semibold text-gold leading-tight">
         Always double-check with your advisor and Checkmarq.
       </p>
@@ -68,7 +68,7 @@ export function ProgressDashboard({ onViewDetails }: ProgressDashboardProps) {
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col gap-2.5 pb-1">
-        <div className="grid grid-cols-3 gap-3 flex-[1.4] min-h-0">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 flex-[1.4] min-h-0">
           <KpiTile value={metrics.completedCredits} label="Credits Completed" valueClass="text-ok" />
           <KpiTile value={metrics.inProgressCredits} label="Credits In Progress" valueClass="text-gold" />
           <KpiTile value={metrics.remainingCredits} label="Credits Remaining" valueClass="text-bad" />
@@ -95,8 +95,8 @@ function KpiTile({
   valueClass: string;
 }) {
   return (
-    <div className="h-full rounded-lg border border-border-subtle bg-surface-card/40 p-3 text-center min-h-0 flex flex-col items-center justify-center">
-      <div className={`text-3xl font-bold font-[family-name:var(--font-sora)] leading-none ${valueClass}`}>
+    <div className="h-full rounded-lg border border-border-subtle bg-surface-card/40 p-2 sm:p-3 text-center min-h-0 flex flex-col items-center justify-center">
+      <div className={`text-xl sm:text-3xl font-bold font-[family-name:var(--font-sora)] leading-none ${valueClass}`}>
         {value}
       </div>
       <div className="text-xs text-ink-secondary mt-1 leading-tight">{label}</div>

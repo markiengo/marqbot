@@ -1743,6 +1743,8 @@ def recommend():
 
     completed = comp_result["valid"]
     in_progress = ip_result["valid"]
+    completed_input = list(completed)
+    in_progress_input = list(in_progress)
     not_in_catalog_warn = comp_result["not_in_catalog"] + ip_result["not_in_catalog"]
 
     # Build a course→credits lookup for standing projection.
@@ -1753,7 +1755,7 @@ def recommend():
     ))
     # Initial standing from completed + in-progress courses (in-progress are assumed
     # finishing by the time semester 1 recommendations apply).
-    running_credits: int = sum(_credits_lookup.get(c, 3) for c in completed) + sum(_credits_lookup.get(c, 3) for c in in_progress)
+    running_credits: int = sum(_credits_lookup.get(c, 3) for c in completed_input) + sum(_credits_lookup.get(c, 3) for c in in_progress_input)
 
     inconsistencies = find_inconsistent_completed_courses(
         completed, in_progress, effective_data["prereq_map"]
@@ -1838,13 +1840,17 @@ def recommend():
         semester_labels = filtered[:target_semester_count]
 
     semesters_payload = []
-    completed_cursor = list(dict.fromkeys(completed + in_progress))
+    completed_for_sem1 = list(dict.fromkeys(completed + in_progress))
+    completed_cursor = list(completed_for_sem1)
     for idx, semester_label in enumerate(semester_labels):
         current_standing = _credits_to_standing(running_credits)
         if idx == 0:
+            completed_only_standing = _credits_to_standing(
+                sum(_credits_lookup.get(c, 3) for c in completed)
+            )
             semester_payload = run_recommendation_semester(
-                completed,
-                in_progress,
+                completed_for_sem1,
+                [],
                 semester_label,
                 effective_data,
                 max_recs,
@@ -1853,9 +1859,14 @@ def recommend():
                 debug=debug_mode,
                 debug_limit=debug_limit,
                 current_standing=current_standing,
+                completed_only_standing=completed_only_standing,
+                assumes_in_progress_completion=bool(in_progress_input),
                 chain_depths=_chain_depths,
             )
         else:
+            completed_only_standing = _credits_to_standing(
+                sum(_credits_lookup.get(c, 3) for c in completed_cursor)
+            )
             semester_payload = run_recommendation_semester(
                 completed_cursor,
                 [],
@@ -1867,6 +1878,7 @@ def recommend():
                 debug=debug_mode,
                 debug_limit=debug_limit,
                 current_standing=current_standing,
+                completed_only_standing=completed_only_standing,
                 chain_depths=_chain_depths,
             )
         semesters_payload.append(semester_payload)
@@ -1981,6 +1993,33 @@ def can_take_endpoint():
     # "Can I Take This Next Semester?" semantics:
     # treat currently in-progress courses as completed by next term.
     completed_for_next_term = _dedupe_codes(completed + in_progress)
+
+    # Standing check: use next-term credits (completed + in-progress will all be done)
+    next_term_credits = sum(_credits_lookup.get(c, 3) for c in completed_for_next_term)
+    next_term_standing = _credits_to_standing(next_term_credits)
+    _standing_labels = {1: "Freshman", 2: "Sophomore", 3: "Junior", 4: "Senior"}
+
+    course_rows_ct = effective_data["courses_df"][
+        effective_data["courses_df"]["course_code"] == requested_course
+    ]
+    if len(course_rows_ct) > 0:
+        min_standing_val = float(course_rows_ct.iloc[0].get("min_standing") or 0)
+        if 2.0 <= min_standing_val <= 4.0 and min_standing_val > next_term_standing:
+            req_label = _standing_labels.get(int(min_standing_val), f"standing {int(min_standing_val)}")
+            cur_label = _standing_labels.get(next_term_standing, f"standing {next_term_standing}")
+            _standing_resp = {
+                "mode": "can_take",
+                "requested_course": requested_course,
+                "can_take": False,
+                "why_not": f"Requires {req_label} standing. You'll have {cur_label} standing next semester.",
+                "missing_prereqs": [],
+                "not_offered_this_term": False,
+                "unsupported_prereq_format": False,
+                "next_best_alternatives": [],
+            }
+            if _cache_enabled():
+                _can_take_response_cache.set(cache_key, _standing_resp)
+            return jsonify(_standing_resp)
 
     result = check_can_take(
         requested_course,

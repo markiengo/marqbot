@@ -82,9 +82,9 @@ export function RecommendationsPanel({
 
   return (
     <div className="h-full min-h-0 rounded-xl border border-border-subtle/70 bg-[#0c2348]/55 shadow-[inset_0_1px_0_rgba(122,179,255,0.08)] p-2">
-      <div className="h-full min-h-0 flex flex-col lg:flex-row gap-3">
+      <div className="h-full min-h-0 flex flex-col lg:flex-row gap-2 lg:gap-3">
         {semesters.length > 1 && (
-          <div className="lg:w-[210px] h-full min-h-0 shrink-0">
+          <div className="shrink-0 lg:w-[210px] lg:h-full lg:min-h-0">
             <SemesterSelector
               semesters={semesters}
               selectedIndex={selectedIdx}

@@ -23,6 +23,16 @@ export function SingleSelect({
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const refocusInput = () => {
+    const input = inputRef.current;
+    if (!input) return;
+    try {
+      input.focus({ preventScroll: true });
+    } catch {
+      input.focus();
+    }
+  };
+
   const matches =
     value.trim().length >= 2
       ? filterCourses(value, new Set(), courses)
@@ -32,7 +42,7 @@ export function SingleSelect({
     onChange(course.course_code);
     setIsOpen(false);
     onSelect?.(course);
-    inputRef.current?.focus();
+    refocusInput();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -41,6 +51,22 @@ export function SingleSelect({
       onChange("");
       return;
     }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (isOpen && matches.length > 0 && activeIndex >= 0 && activeIndex < matches.length) {
+        // Dropdown open — select highlighted item
+        handleSelect(matches[activeIndex]);
+      } else {
+        // Dropdown closed — try exact match on typed value
+        const exact = courses.find(
+          (c) => c.course_code.toUpperCase() === value.trim().toUpperCase()
+        );
+        if (exact) handleSelect(exact);
+      }
+      return;
+    }
+
     if (!isOpen || matches.length === 0) return;
 
     if (e.key === "ArrowDown") {
@@ -49,11 +75,6 @@ export function SingleSelect({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (activeIndex >= 0 && activeIndex < matches.length) {
-        handleSelect(matches[activeIndex]);
-      }
     }
   };
 
@@ -92,7 +113,7 @@ export function SingleSelect({
                   : "hover:bg-surface-hover"
               }`}
             >
-              <span className="font-medium text-[#7ab3ff]">{c.course_code}</span>
+              <span className="font-medium text-[#7ab3ff] shrink-0 w-24">{c.course_code}</span>
               <span className="text-ink-muted truncate">{c.course_name || ""}</span>
             </div>
           ))}

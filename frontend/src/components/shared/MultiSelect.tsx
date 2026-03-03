@@ -33,6 +33,16 @@ export function MultiSelect({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const refocusInput = useCallback(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    try {
+      input.focus({ preventScroll: true });
+    } catch {
+      input.focus();
+    }
+  }, []);
+
   const excludeSet = useMemo(
     () => new Set([...selected, ...otherSet]),
     [selected, otherSet],
@@ -64,9 +74,9 @@ export function MultiSelect({
       onAdd(course.course_code);
       setQuery("");
       setIsOpen(false);
-      inputRef.current?.focus();
+      refocusInput();
     },
-    [onAdd, maxSelections, selected.size],
+    [onAdd, maxSelections, refocusInput, selected.size],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -157,7 +167,7 @@ export function MultiSelect({
                     : "hover:bg-surface-hover"
                 }`}
               >
-                <span className="font-medium text-[#7ab3ff]">{c.course_code}</span>
+                <span className="font-medium text-[#7ab3ff] shrink-0 w-24">{c.course_code}</span>
                 <span className="text-ink-muted truncate">{c.course_name || ""}</span>
               </div>
             ))}

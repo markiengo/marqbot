@@ -65,11 +65,12 @@
 - feedback form inside app
 - configure UI from iphone perspective
 - add more tests 
-- add about me
-- quips?
+- add about me -> done
+- quips? -> done ![alt text](image.png)
 
 ## critical upcoming after 
 - add essv2
 - add writ
 - add full-fledged discovery themes courses
-- add tests for no dead-end routes 
+- add tests for no dead-end routes -> done in v2.0.1 
+- add mascots?      

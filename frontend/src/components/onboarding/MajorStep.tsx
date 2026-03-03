@@ -213,7 +213,7 @@ export function MajorStep() {
           What&apos;s your major?
         </h2>
         <p className="text-sm text-ink-muted mt-0.5">
-          Select your major(s), any minors, and optional concentrations.
+          Pick your major(s). If your major has a track or concentration (like AIM or CFA), add that too.
         </p>
       </div>
 
@@ -234,7 +234,7 @@ export function MajorStep() {
         </div>
         {allRequirePrimary && (
           <div className="rounded-lg bg-warn-light px-2.5 py-1.5 text-xs text-warn mb-1.5">
-            All selected majors are secondary-only and require a primary major alongside them. Add a standalone major (e.g., Finance, Marketing) to complete your program.
+            The major(s) you picked can&apos;t stand alone — they need to be paired with a primary major like Finance or Marketing. Add one more major to fix this.
           </div>
         )}
         {!atLimit && (
@@ -275,7 +275,7 @@ export function MajorStep() {
                   >
                     {m.label}
                     {m.requires_primary_major && (
-                      <span className="text-xs text-ink-faint ml-2">(requires primary)</span>
+                      <span className="text-xs text-ink-faint ml-2">(must pair with another major)</span>
                     )}
                   </button>
                 ))}
@@ -292,7 +292,7 @@ export function MajorStep() {
 
       {/* ── 2. Minors ─────────────────────────────────────────────────────────── */}
       <div>
-        <SectionLabel title="Track / Concentration" sub="optional separate program" />
+        <SectionLabel title="Track / Concentration" sub="optional — only if your major has one" />
         <div className="flex flex-wrap gap-1.5 min-h-[26px] mb-1.5">
           <AnimatePresence mode="popLayout">
             {selectedProgramTracks.map((track) => (

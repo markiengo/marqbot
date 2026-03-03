@@ -382,9 +382,10 @@ class TestServerTrackValidation:
         assert current_bucket["assumed_done"] == 6
 
         semester_bucket = data["semesters"][0]["progress"]["FIN_MAJOR::FINA-ELEC-4"]
-        assert semester_bucket["completed_done"] == 3
-        assert semester_bucket["done_count"] == 3
-        assert semester_bucket["in_progress_increment"] == 3
+        assert semester_bucket["completed_done"] == 6
+        assert semester_bucket["done_count"] == 6
+        assert semester_bucket["in_progress_increment"] == 0
+        assert "current in-progress courses are completed" in data["semesters"][0]["in_progress_note"]
 
     def test_required_bucket_progress_uses_credit_totals(self, client):
         resp = client.post("/recommend", json={
@@ -438,7 +439,7 @@ class TestServerTrackValidation:
         """
         resp = self._post(
             client,
-            completed_courses="FINA 3001, PHIL 1001, ENGL 1001, MATH 1450, BUAD 1560, INGS 1001",
+            completed_courses="FINA 3001, PHIL 1001, ENGL 1001, MATH 1400, BUAD 1560, INGS 1001",
             in_progress_courses="MARK 3001, INSY 3001, BUAD 2001, LEAD 2000",
             target_semester_primary="Fall 2026",
             target_semester_count=3,
@@ -458,6 +459,41 @@ class TestServerTrackValidation:
 
         sem1_bucket = data["semesters"][0]["progress"]["FIN_MAJOR::FINA-ELEC-4"]
         assert len(sem1_bucket.get("remaining_courses", [])) > 0
+
+    def test_semester_one_uses_next_term_semantics_for_recommendations(self, client):
+        resp = self._post(
+            client,
+            completed_courses="MATH 1200, BUAD 1001",
+            in_progress_courses="MATH 1400",
+            target_semester_primary="Fall 2026",
+            max_recommendations=6,
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        rec_codes = [r.get("course_code") for r in data.get("recommendations", [])]
+        assert "BUAD 1560" in rec_codes
+        assert "current in-progress courses are completed" in data["semesters"][0]["in_progress_note"]
+
+    def test_reproduced_essv1_case_does_not_recommend_soci_and_carries_to_sem2(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "ACCO 1030, THEO 1001, ENGL 1001, LEAD 1050, MATH 1200, BUAD 1001",
+            "in_progress_courses": "ACCO 1031, ENTP 3001, PHIL 1001, MATH 1400, ECON 1103, HIST 1101",
+            "target_semester_primary": "Fall 2026",
+            "target_semester_count": 4,
+            "max_recommendations": 6,
+            "declared_majors": ["FIN_MAJOR"],
+            "track_ids": ["AIM_IB_TRACK"],
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        sem1_codes = [r.get("course_code") for r in data["semesters"][0].get("recommendations", [])]
+        sem2_codes = [r.get("course_code") for r in data["semesters"][1].get("recommendations", [])]
+
+        assert "SOCI 1001" not in sem1_codes
+        assert "SOCI 1001" not in sem2_codes
+        assert "BUAD 1560" in sem1_codes
+        assert "ECON 1104" in sem1_codes
+        assert "current in-progress courses are completed" in data["semesters"][0]["in_progress_note"]
 
     def test_declared_majors_must_be_array(self, client):
         resp = client.post("/recommend", json={
@@ -659,6 +695,13 @@ class TestServerTrackValidation:
             level = row.get("prereq_level")
             assert course_level is None or isinstance(course_level, int)
             assert level is None or isinstance(level, int)
+
+    def test_runtime_catalog_no_longer_contains_math_1450(self, client):
+        resp = client.get("/api/courses")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        codes = {row.get("course_code") for row in data.get("courses", [])}
+        assert "MATH 1450" not in codes
 
     def test_empty_tracks_rejects_non_default_track(self, client, monkeypatch):
         """When tracks_df is empty, non-default tracks should be rejected."""
@@ -937,7 +980,10 @@ class TestServerTrackValidation:
                 for tag in str(row.get("prereq_soft") or "").replace(";", ",").split(",")
                 if tag.strip()
             }
-            assert prereq_level == 0.0, course_code
+            if course_code == "AIM 4400":
+                assert prereq_level == 2.0, course_code
+            else:
+                assert prereq_level == 0.0, course_code
             assert "major_restriction" in soft_tags, course_code
             assert "standing_requirement" not in soft_tags, course_code
 

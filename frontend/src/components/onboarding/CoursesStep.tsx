@@ -58,9 +58,14 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
 
       {/* Completed courses */}
       <div className="space-y-2 pt-1">
-        <label className="text-sm font-medium text-ink-secondary">
-          Completed courses
-        </label>
+        <div>
+          <label className="text-sm font-medium text-ink-secondary">
+            Courses you&apos;ve already passed
+          </label>
+          <p className="text-xs text-ink-faint mt-0.5">
+            Every class you&apos;ve officially finished — even from last semester. Include transfer credits too.
+          </p>
+        </div>
         <MultiSelect
           courses={state.courses}
           selected={state.completed}
@@ -74,9 +79,14 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
 
       {/* In-progress courses */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-ink-secondary">
-          Currently in progress
-        </label>
+        <div>
+          <label className="text-sm font-medium text-ink-secondary">
+            Courses you&apos;re taking right now
+          </label>
+          <p className="text-xs text-ink-faint mt-0.5">
+            This semester only — classes you&apos;re enrolled in but haven&apos;t finished yet.
+          </p>
+        </div>
         <MultiSelect
           courses={state.courses}
           selected={state.inProgress}
@@ -92,7 +102,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
       {inconsistencies.length > 0 && (
         <div className="bg-bad-light rounded-xl p-4 text-sm text-bad">
           <p className="font-semibold mb-1">
-            Some completed courses have prerequisites still in-progress:
+            Hold on — some courses you marked as done still have unfinished prereqs:
           </p>
           <ul className="list-disc list-inside space-y-0.5">
             {inconsistencies.map((i) => (
@@ -103,7 +113,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
             ))}
           </ul>
           <p className="mt-2 text-xs opacity-80">
-            Move these to in-progress, or remove the courses that list them as prerequisites.
+            Move the prerequisite out of &ldquo;right now&rdquo; into completed, or remove the course that needs it.
           </p>
         </div>
       )}

@@ -56,9 +56,9 @@ export function CourseRow({ course, courseCount }: CourseRowProps) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.14 }}
-      className={`flex-1 ${density.row} rounded-lg border border-border-subtle/60 bg-[#0e2a52]/45 overflow-hidden flex items-center border-l-2 border-l-gold/40`}
+      className={`flex-none lg:flex-1 ${density.row} rounded-lg border border-border-subtle/60 bg-[#0e2a52]/45 overflow-hidden flex items-center border-l-2 border-l-gold/40`}
     >
-      <div className="min-w-0 flex items-center gap-2">
+      <div className="min-w-0 flex items-center gap-1.5 sm:gap-2">
         <span className={`shrink-0 font-semibold text-ink-primary ${density.code}`}>
           {esc(c.course_code || "")}
         </span>

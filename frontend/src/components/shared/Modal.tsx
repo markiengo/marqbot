@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 
 interface ModalProps {
@@ -20,12 +21,19 @@ const sizeClasses = {
 
 export function Modal({ open, onClose, title, titleClassName, size = "default", children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const handleClose = useEffectEvent(() => {
+    onClose();
+  });
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!open) return;
 
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleClose();
     };
     document.addEventListener("keydown", handleKey);
 
@@ -35,7 +43,13 @@ export function Modal({ open, onClose, title, titleClassName, size = "default", 
       const focusable = dialog.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
-      if (focusable.length) focusable[0].focus();
+      if (focusable.length) {
+        try {
+          focusable[0].focus({ preventScroll: true });
+        } catch {
+          focusable[0].focus();
+        }
+      }
     }
 
     // Prevent body scroll
@@ -45,9 +59,11 @@ export function Modal({ open, onClose, title, titleClassName, size = "default", 
       document.removeEventListener("keydown", handleKey);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -98,6 +114,7 @@ export function Modal({ open, onClose, title, titleClassName, size = "default", 
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

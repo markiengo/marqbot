@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { ProgressDashboard, useProgressMetrics } from "./ProgressDashboard";
 import { ProgressModal } from "./ProgressModal";
 import { SemesterModal } from "./SemesterModal";
 import { ProfileModal } from "./ProfileModal";
-import { DegreeSummary } from "./DegreeSummary";
 import { CanTakeSection } from "./CanTakeSection";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { Button } from "@/components/shared/Button";
+import { Modal } from "@/components/shared/Modal";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useAppContext } from "@/context/AppContext";
 import { getProgramLabelMap } from "@/lib/rendering";
@@ -20,6 +20,8 @@ export function PlannerLayout() {
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [semesterModalIdx, setSemesterModalIdx] = useState<number | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [explainerOpen, setExplainerOpen] = useState(false);
+  const closeExplainer = useCallback(() => setExplainerOpen(false), []);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
@@ -71,14 +73,14 @@ export function PlannerLayout() {
     <div className="planner-shell">
       {/* ── Header bar ────────────────────────────────────────────── */}
       {hasProgram ? (
-        <div className="px-4 py-2 mb-2 rounded-xl bg-surface-card/60 border border-border-subtle/50 flex flex-wrap items-center justify-between gap-2 accent-top-gold">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-sm text-ink-faint shrink-0">Planning for: </span>
-            <span className="text-sm font-semibold font-[family-name:var(--font-sora)] text-gold truncate">
+        <div className="px-3 sm:px-4 py-2 mb-2 rounded-xl bg-surface-card/60 border border-border-subtle/50 flex flex-wrap items-center justify-between gap-2 accent-top-gold">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span className="text-xs sm:text-sm text-ink-faint shrink-0">Planning for: </span>
+            <span className="text-xs sm:text-sm font-semibold font-[family-name:var(--font-sora)] text-gold truncate">
               {primaryProgramLabel}
             </span>
             {majorLabels.length > 0 && trackLabels.length > 0 && (
-              <span className="text-sm text-ink-secondary truncate">
+              <span className="hidden sm:inline text-sm text-ink-secondary truncate">
                 &bull; {trackLabels.join(" & ")}
               </span>
             )}
@@ -126,26 +128,15 @@ export function PlannerLayout() {
 
       {/* ── Dual-column layout: Progress (40%) + Recommendations (60%) ── */}
       <div className="planner-columns">
-        {/* LEFT: Progress + Degree Summary (40%) */}
+        {/* LEFT: Progress (60%) + Can I Take (40%) */}
         <div className="planner-panel planner-left">
-          <div className="h-full min-h-0 flex flex-col gap-3">
-            <div className="flex-1 min-h-0">
+          <div className="lg:h-full lg:min-h-0 flex flex-col gap-3">
+            <div className="lg:flex-[3] lg:min-h-0">
               <ProgressDashboard onViewDetails={() => setProgressModalOpen(true)} />
             </div>
 
-            <div className="flex-1 min-h-0">
-              {data?.current_progress ? (
-                <DegreeSummary
-                  currentProgress={data.current_progress}
-                  programLabelMap={programLabelMap}
-                />
-              ) : (
-                <div className="h-full rounded-2xl border border-border-subtle bg-gradient-to-br from-[#0f2a52]/70 to-[#10284a]/55 p-4 flex items-center justify-center text-center">
-                  <p className="text-sm text-ink-faint">
-                    Hit &ldquo;Get My Plan&rdquo; to see your degree breakdown.
-                  </p>
-                </div>
-              )}
+            <div className="lg:flex-[2] lg:min-h-0">
+              <CanTakeSection />
             </div>
           </div>
         </div>
@@ -157,14 +148,18 @@ export function PlannerLayout() {
               <p className="text-xs font-semibold text-gold leading-tight">
                 Ranked by actual degree logic. Expand each semester for details.
               </p>
-              <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white mt-2 leading-tight">
-                Here&apos;s what to take next.
-              </h3>
-            </div>
-
-            {/* Can I Take — compact inline */}
-            <div className="mb-2 pb-2 border-b border-border-subtle/50">
-              <CanTakeSection />
+              <div className="flex items-center justify-between gap-2 mt-2">
+                <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
+                  Here&apos;s what to take next.
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setExplainerOpen(true)}
+                  className="shrink-0 text-[11px] text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"
+                >
+                  How Marqbot recommends
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -262,6 +257,126 @@ export function PlannerLayout() {
         open={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
       />
+      <Modal
+        open={explainerOpen}
+        onClose={closeExplainer}
+        title="How Marqbot Recommends Courses"
+        titleClassName="!text-[clamp(1.25rem,2.5vw,1.75rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
+        size="planner-detail"
+      >
+        <div className="space-y-4 text-[16px] text-ink-secondary">
+          <div className="space-y-4">
+            <p className="text-ink-faint text-[14px]">
+              Here&apos;s the simple version: I only show classes that make sense right now, then I put the best ones at the top.
+            </p>
+            <ol className="space-y-3 list-none">
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">1</span>
+                <div>
+                  <p className="font-semibold text-white text-[16px]">Can you take it right now?</p>
+                  <p className="text-ink-faint text-[14px] mt-0.5">If not, I hide it. No prereq? Not offered this term? Not enough credits yet? Then it does not make the list.</p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">2</span>
+                <div>
+                  <p className="font-semibold text-white text-[16px]">Does it help with required stuff?</p>
+                  <p className="text-ink-faint text-[14px] mt-0.5">Classes that fill required boxes usually come before random extras. Core first. Major next. Flexible stuff later.</p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">3</span>
+                <div>
+                  <p className="font-semibold text-white text-[16px]">Is it blocking other classes?</p>
+                  <p className="text-ink-faint text-[14px] mt-0.5">Some classes unlock a bunch of other classes. If one class is blocking the road, I push it up.</p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">4</span>
+                <div>
+                  <p className="font-semibold text-white text-[16px]">Do you need to start it early?</p>
+                  <p className="text-ink-faint text-[14px] mt-0.5">Some classes are step 1 of a long path. If waiting would mess up later semesters, I move that class higher now.</p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">5</span>
+                <div>
+                  <p className="font-semibold text-white text-[16px]">Does one class count for two things?</p>
+                  <p className="text-ink-faint text-[14px] mt-0.5">If one class helps with more than one requirement, that&apos;s a great deal. Those usually move up.</p>
+                </div>
+              </li>
+            </ol>
+            <p className="text-ink-faint text-[14px] pt-1 border-t border-border-subtle/40">
+              I assume you pass the classes in your plan. If your courses change, update them here.
+            </p>
+            <p className="text-ink-muted text-[13px]">
+              This is strong, not perfect. Some rules are still being added. Full picture{" "}
+              <a
+                href="/about"
+                className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"
+              >
+                here
+              </a>
+              .
+            </p>
+          </div>
+          <div className="hidden">
+          <p className="text-ink-faint text-[14px]">
+            Hey! Here&apos;s how I pick your courses. No guessing — just rules, top to bottom:
+          </p>
+          <ol className="space-y-3 list-none">
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">1</span>
+              <div>
+                <p className="font-semibold text-white text-[16px]">Can you actually take it?</p>
+                <p className="text-ink-faint text-[14px] mt-0.5">First, I remove anything you can&apos;t register for. Missing a prereq? Not offered this semester? Not enough credits to qualify? It&apos;s gone. I only show you courses you can actually sign up for.</p>
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">2</span>
+              <div>
+                <p className="font-semibold text-white text-[16px]">What does it count toward?</p>
+                <p className="text-ink-faint text-[14px] mt-0.5">University requirements (PHIL, THEO, ENGL) and business core (BUAD, ECON, ACCO) come first. Then your major. Then your track or concentration. Electives come last. I knock out the important stuff before the flexible stuff.</p>
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">3</span>
+              <div>
+                <p className="font-semibold text-white text-[16px]">Is it blocking you?</p>
+                <p className="text-ink-faint text-[14px] mt-0.5">Some courses are gatekeepers — you can&apos;t take a bunch of other classes until you finish them. I find those bottlenecks and push them to the front so you don&apos;t get stuck later.</p>
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">4</span>
+              <div>
+                <p className="font-semibold text-white text-[16px]">How long is the chain?</p>
+                <p className="text-ink-faint text-[14px] mt-0.5">Some courses kick off a sequence that takes multiple semesters to finish. The longer that chain, the earlier you need to start. I make sure you&apos;re not scrambling senior year because you started a 4-course sequence too late.</p>
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold text-[14px] font-bold flex items-center justify-center">5</span>
+              <div>
+                <p className="font-semibold text-white text-[16px]">Does it knock out multiple requirements?</p>
+                <p className="text-ink-faint text-[14px] mt-0.5">If one course counts toward your major AND your business core at the same time, that&apos;s a two-for-one. Those move up the list because they save you time and credits.</p>
+              </div>
+            </li>
+          </ol>
+          <p className="text-ink-faint text-[14px] pt-1 border-t border-border-subtle/40">
+            I assume you&apos;ll pass everything. Keep your courses updated so I don&apos;t accidentally plan your downfall.
+          </p>
+          <p className="text-ink-muted text-[13px]">
+            Good, not perfect — some factors aren&apos;t in the engine yet. Full picture{" "}
+            <a
+              href="/about"
+              className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"
+            >
+              here
+            </a>
+            .
+          </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
