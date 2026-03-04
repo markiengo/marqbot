@@ -367,7 +367,7 @@ The suite is healthiest if it stays heavy on invariants and light on brittle sna
 
 MarqBot's planner is deterministic and data-driven -- great for accuracy, but students still want to ask questions about their degree plan in natural language. The AI Advisor is a standalone chat feature that lets students ask "What should I take next?" or "Is it worth adding a minor?" and get answers grounded in their actual profile data. It does **not** replace or modify the deterministic recommendation engine.
 
-**Cost**: gpt-4o-mini at $0.15/1M input + $0.60/1M output. A full 10-message session costs <$0.005.
+**Cost**: gpt-4o-mini at $0.15/1M input + $0.60/1M output. A full 20-message session costs <$0.01. At estimated scale (50-200 users/month, ~5 sessions each), total monthly cost is **~$0.50-$2.00**.
 
 ---
 
@@ -375,14 +375,18 @@ MarqBot's planner is deterministic and data-driven -- great for accuracy, but st
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| LLM provider | OpenAI `gpt-4o-mini` | Already configured in `.env`. Extremely cheap. |
+| LLM provider | OpenAI `gpt-4o-mini` | Best tone control for MarqBot's dry/witty voice at budget pricing. $0.15/$0.60 per 1M tokens. Considered Gemini 2.0 Flash (free tier) and gpt-4.1-nano (cheaper) but gpt-4o-mini has strongest personality consistency for brand voice. |
 | LLM routing | Backend proxy (`POST /api/chat`) | API key stays server-side. Enables rate limiting, logging, cost control. |
-| Capabilities | Chat only (no tool use) | Simple. AI answers questions based on injected student context -- no plan mutations. |
+| Capabilities | Chat only (no tool use) | Simple. AI answers questions based on injected student context -- no plan mutations. Context-only: student profile injected into system prompt. No live engine calls (potential v2.4 enhancement). |
+| Streaming | Non-streaming | Full response appears at once. Simpler implementation. Streaming could be a v2.4 enhancement. |
 | UI paradigm | Dedicated page at `/ai-advisor` | Placeholder page and nav item already wired. Clean separation from planner. |
 | Chat persistence | localStorage (`marqbot_chat_v1`) | Survives page refreshes. Same pattern as session state. No server-side storage. |
-| Message cap | 10 messages per session | Cost control. Clear chat to start fresh. Server-side IP rate limit (30 req/hr) as abuse backstop. |
-| Tone | MarqBot brand voice | Witty upperclassman -- casual, direct, dry humor. Matches quip system tone. |
-| Scope | Degree planning + light Marquette context | Courses, prereqs, scheduling, campus basics. Refuses off-topic questions. |
+| Message cap | **20 messages** per session | Enough room for follow-up conversations. Still cheap at ~$0.01/session. Server-side IP rate limit (30 req/hr) as abuse backstop. |
+| Tone | MarqBot brand voice (see `docs/branding.md`) | Witty upperclassman -- casual, direct, dry humor. "Roast the system, not the student." Clear first, funny second. No emojis. Max 200 words per response. |
+| Scope | Degree planning + light Marquette context | Courses, prereqs, scheduling, campus basics. Refuses truly off-topic questions. Deflects gracefully. |
+| No-profile UX | Allow generic chat with disclaimer | Students who haven't completed onboarding can still chat. AI warns it doesn't know their specific situation. Prevents blocking but sets expectations. |
+| Suggested prompts | **Mix of static + dynamic** | 2 static prompts + 2 dynamic prompts that adapt to student's declared majors/progress. More personalized first impression. |
+| Scale target | 50-200 users/month | Early adoption phase. All budget models handle this at <$2/month. No free tier needed. |
 
 ---
 
@@ -443,18 +447,24 @@ In `server.py` near existing rate limiter (~line 60). Separate from `/recommend`
 
 ### 1c. System Prompt Constant
 
-Module-level `_CHAT_SYSTEM_PROMPT_BASE` string:
+Module-level `_CHAT_SYSTEM_PROMPT_BASE` string. Voice guidelines sourced from `docs/branding.md`:
 
 - **Persona**: "MarqBot -- savvy upperclassman who actually read the catalog"
-- **Voice**: casual, direct, dry humor, no emojis, max one exclamation point per conversation
-- **Can discuss**: degree requirements, prereqs, scheduling strategy, light Marquette campus context, how MarqBot works
-- **Must not**: fabricate course codes, give definitive graduation audit advice, discuss unrelated topics
-- **Guardrails**: always caveat with "check Checkmarq / confirm with your advisor", acknowledge uncertainty
+- **Voice** (from branding.md §3-5):
+  - Clear first, funny second. Every line communicates logic, then optionally adds personality.
+  - Casual, direct, dry humor. No emojis. No corporate buzzwords. No excessive slang.
+  - Roast the system, not the student. Light sarcasm about prereqs/gatekeeping is OK. Never mock the user.
+  - Slightly dramatic, strategically: "Bold choice." "Ambitious." "Four-course saga."
+  - Use short sentences. Active voice. "You." Prioritize scannability.
+- **Can discuss**: degree requirements, prereqs, scheduling strategy, light Marquette campus context (dining, housing, registration tips), how MarqBot works
+- **Must not**: fabricate course codes, give definitive graduation audit advice, discuss truly unrelated topics (politics, dating, etc.)
+- **Guardrails**: always caveat with "check Checkmarq / confirm with your advisor", acknowledge uncertainty, never claim to be an official Marquette resource
 - **Format**: responses under 200 words, markdown formatting, bold course codes
+- **No-profile behavior**: when `student_context` is null/empty, AI should note it doesn't have the student's specific info and give general Marquette business advice. Suggest they "set up their profile in the Planner for personalized answers."
 
 ### 1d. Context Builder Functions
 
-`_build_chat_system_prompt(student_context)` -- appends formatted student profile to base prompt.
+`_build_chat_system_prompt(student_context)` -- appends formatted student profile to base prompt. When `student_context` is None or empty, appends a "No student profile available" note instead.
 
 `_format_student_context(ctx)` -- formats the dict into compact text:
 - Declared majors, tracks, minors (display labels, not IDs)
@@ -494,7 +504,7 @@ Request body example:
 ```
 
 Validation:
-- `messages` must be non-empty array, max 22 items
+- `messages` must be non-empty array, max 42 items (20 user + 20 assistant + 2 buffer)
 - Each message: `role` in `["user", "assistant"]`, `content` non-empty string, max 2000 chars
 - Returns 503 if `OPENAI_API_KEY` not set
 - Returns 429 if IP rate limited
@@ -528,6 +538,19 @@ export interface ChatSession {
   messageCount: number;   // user messages sent (for cap tracking)
   createdAt: number;
 }
+
+export interface StudentChatContext {
+  declaredMajors?: string[];
+  declaredMinors?: string[];
+  declaredTracks?: string[];
+  standingLabel?: string;
+  completedCredits?: number;
+  inProgressCredits?: number;
+  completedCourses?: string[];
+  inProgressCourses?: string[];
+  targetSemester?: string;
+  progressSummary?: string;
+}
 ```
 
 ### 2b. API Client (`frontend/src/lib/api.ts`)
@@ -538,7 +561,7 @@ export interface ChatSession {
 
 ```typescript
 export const CHAT_STORAGE_KEY = "marqbot_chat_v1";
-export const CHAT_MESSAGE_LIMIT = 10;
+export const CHAT_MESSAGE_LIMIT = 20;
 ```
 
 ---
@@ -553,11 +576,13 @@ Self-contained chat state -- **not** part of AppState/AppReducer. Chat is epheme
 - `useState` for `messages[]`, `messageCount`, `loading`, `error`
 - Restore from localStorage on mount; debounced 300ms save on changes
 - `buildStudentContext()` -- reads `useAppContext().state` and `useProgressMetrics()` (from `ProgressDashboard.tsx`):
+  - Returns `null` if no onboarding complete and no majors selected (no-profile case)
   - Maps major/track/minor IDs -> labels via `state.programs`
   - Pulls standing + credits from `useProgressMetrics()`
   - Pulls completed/in-progress course codes from state Sets
   - Builds compact progress summary from `state.lastRecommendationData?.current_progress` (unsatisfied buckets only)
-- `sendMessage(content)` -- enforces 10-message cap, appends user message optimistically, calls `postChat`, appends AI reply. On error: rolls back message count and removes the failed user message
+- `hasProfile` -- derived boolean: `true` when student has at least one declared major or completed course
+- `sendMessage(content)` -- enforces 20-message cap, appends user message optimistically, calls `postChat`, appends AI reply. On error: rolls back message count and removes the failed user message
 - `clearChat()` -- resets all state, removes localStorage key
 - Stale request cancellation via `useRef` counter (same pattern as `useRecommendations`)
 
@@ -572,6 +597,7 @@ Self-contained chat state -- **not** part of AppState/AppReducer. Chat is epheme
   sendMessage: (content: string) => void;
   clearChat: () => void;
   isAtLimit: boolean;
+  hasProfile: boolean;
 }
 ```
 
@@ -604,23 +630,26 @@ All in `frontend/src/components/chat/`.
 
 ### ChatHeader.tsx
 - "AI Advisor" in Sora bold, white
-- Subtitle: "X of 10 messages remaining" (active) / "Ask questions about your degree plan" (empty)
+- Subtitle: "X of 20 messages remaining" (active) / "Ask questions about your degree plan" (empty)
 - "Clear Chat" button only when messages exist
 
 ### ChatWelcome.tsx
 - Gold "M" icon in rounded badge
-- "Hey, what can I help with?" heading
-- "I know your courses, your major, and your progress." subtitle
-- 2x2 grid of suggested prompt cards:
-  1. "What should I take next semester?"
-  2. "How do prereq chains work for Finance?"
-  3. "Is it worth adding a minor?"
-  4. "What's the best order to tackle BCC courses?"
+- **With profile**: "Hey, what can I help with?" heading + "I know your courses, your major, and your progress." subtitle
+- **Without profile**: "Hey, what can I help with?" heading + "I don't know your courses yet — set up your profile in the Planner for personalized answers." subtitle (with link to `/planner`)
+- 2x2 grid of suggested prompt cards (mix of static + dynamic):
+  - **Static** (always shown):
+    1. "What's the best order to tackle BCC courses?"
+    2. "Is it worth adding a minor?"
+  - **Dynamic** (adapt to student profile, fall back to generic if no profile):
+    3. With major: "What {majorLabel} courses should I prioritize?" / Without: "What should I take next semester?"
+    4. With progress: "What's blocking my longest prereq chain?" / Without: "How do prereq chains work?"
 - Clicking a card calls `sendMessage()` directly
+- Dynamic prompts read from `useAppContext().state` (selectedMajors, programs, lastRecommendationData)
 
 ### ChatLimitBanner.tsx
 - Replaces ChatInput when `isAtLimit` is true
-- "That's a wrap for this session. You've used all 10 messages."
+- "That's a wrap for this session. You've used all 20 messages."
 - "Clear the chat to start a new conversation with fresh context."
 - Gold "Start New Chat" button -> `clearChat()`
 
@@ -642,25 +671,27 @@ All in `frontend/src/components/chat/`.
 | Conversation > 22 messages | 400 |
 | Single message > 2000 chars | 400 |
 | `OPENAI_API_KEY` not set | 503 with `CHAT_UNAVAILABLE` |
-| `_build_chat_system_prompt(None)` | Contains "MarqBot", no "Current Student Profile" |
+| `_build_chat_system_prompt(None)` | Contains "MarqBot", contains "No student profile available" |
 | `_build_chat_system_prompt({...})` | Contains "Current Student Profile" + student data |
 | Valid request with mocked OpenAI | 200 with `{ reply: "..." }` |
+| Conversation > 42 messages | 400 |
 
 ### Frontend Tests (`tests/frontend/chat.test.ts`)
 
 | Test | Expected |
 |------|----------|
-| `CHAT_MESSAGE_LIMIT` value | Equals 10 |
+| `CHAT_MESSAGE_LIMIT` value | Equals 20 |
 | `CHAT_STORAGE_KEY` value | Equals `"marqbot_chat_v1"` |
 
 ### Manual Testing Checklist
 
 - [ ] Send a message -> AI response appears
 - [ ] Refresh page -> chat history persists
-- [ ] Send 10 messages -> limit banner appears, input disappears
+- [ ] Send 20 messages -> limit banner appears, input disappears
 - [ ] Click "Start New Chat" -> chat clears, counter resets
-- [ ] Test with no onboarding (empty student profile)
-- [ ] Test with full profile (majors, courses, progress data)
+- [ ] Test with no onboarding (empty student profile) -> generic disclaimer shown, AI warns about limited context
+- [ ] Test with full profile (majors, courses, progress data) -> personalized prompts shown
+- [ ] Dynamic suggested prompts reflect declared major label
 - [ ] "MarqBot is thinking..." animation visible during loading
 - [ ] Disconnect network -> error banner appears
 - [ ] Mobile viewport (375px) -> layout works
