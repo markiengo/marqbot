@@ -1,4 +1,5 @@
 import pandas as pd
+from prereq_parser import parse_prereqs
 
 from requirements import (
     DEFAULT_TRACK_ID,
@@ -11,6 +12,15 @@ def _safe_int(val, default=None):
         if pd.isna(val):
             return default
         return int(val)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_float(val, default=None):
+    try:
+        if pd.isna(val):
+            return default
+        return float(val)
     except (TypeError, ValueError):
         return default
 
@@ -29,6 +39,280 @@ def _infer_requirement_mode(row: pd.Series) -> str:
     if role == "elective" or (needed_count is not None and needed_count > 0):
         return "choose_n"
     return "required"
+
+
+def _normalize_track_key(track_id: str | None) -> str:
+    return str(track_id or "").strip().upper()
+
+
+def _safe_bool(val) -> bool:
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.strip().upper() == "TRUE"
+    return bool(val)
+
+
+def _normalize_text(value, default: str = "") -> str:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return default
+    return str(value)
+
+
+def _normalize_optional_text(value) -> str | None:
+    text = _normalize_text(value).strip()
+    if not text or text.lower() == "nan":
+        return None
+    return text
+
+
+def _build_course_runtime_indexes(courses_df: pd.DataFrame) -> dict:
+    rows: list[dict] = []
+    by_code: dict[str, dict] = {}
+    credits: dict[str, int] = {}
+    levels: dict[str, int | None] = {}
+
+    if courses_df is None or len(courses_df) == 0:
+        return {
+            "rows": rows,
+            "by_code": by_code,
+            "credits": credits,
+            "levels": levels,
+        }
+
+    for _, row in courses_df.iterrows():
+        code = str(row.get("course_code", "") or "").strip()
+        if not code or code in by_code:
+            continue
+
+        course_credits = _safe_int(row.get("credits"), 3)
+        course_level = _safe_int(row.get("level"))
+        prereq_concurrent = _normalize_text(row.get("prereq_concurrent", "none"), "none")
+        prereq_soft = _normalize_text(row.get("prereq_soft", ""))
+        min_standing = _safe_float(row.get("prereq_level"))
+        if min_standing is None:
+            min_standing = _safe_float(row.get("min_standing"), 0.0)
+        if min_standing is None:
+            min_standing = 0.0
+        course_row = {
+            "course_code": code,
+            "course_name": _normalize_text(row.get("course_name", "")),
+            "credits": course_credits if course_credits is not None else 3,
+            "level": course_level,
+            "prereq_concurrent": prereq_concurrent,
+            "parsed_concurrent": parse_prereqs(prereq_concurrent if prereq_concurrent.strip() else "none"),
+            "prereq_soft": prereq_soft,
+            "soft_tags": [t.strip() for t in prereq_soft.split(";") if t.strip()],
+            "warning_text": _normalize_optional_text(row.get("warning_text")),
+            "notes": _normalize_optional_text(row.get("notes")),
+            "offered_fall": _safe_bool(row.get("offered_fall", False)),
+            "offered_spring": _safe_bool(row.get("offered_spring", False)),
+            "offered_summer": _safe_bool(row.get("offered_summer", False)),
+            "offering_confidence": _normalize_text(row.get("offering_confidence", "high"), "high").lower(),
+            "prereq_level": min_standing,
+            "min_standing": min_standing,
+        }
+        rows.append(course_row)
+        by_code[code] = course_row
+        credits[code] = course_row["credits"]
+        levels[code] = course_level
+
+    return {
+        "rows": rows,
+        "by_code": by_code,
+        "credits": credits,
+        "levels": levels,
+    }
+
+
+def _build_track_runtime_index(
+    buckets_df: pd.DataFrame,
+    course_bucket_map_df: pd.DataFrame,
+    courses_df: pd.DataFrame,
+    equivalencies_df: pd.DataFrame,
+    track_id: str,
+    double_count_policy_df: pd.DataFrame | None = None,
+    course_indexes: dict | None = None,
+) -> dict | None:
+    if buckets_df is None or len(buckets_df) == 0:
+        return None
+
+    track_key = _normalize_track_key(track_id)
+    track_buckets = buckets_df[
+        buckets_df["track_id"].astype(str).str.strip().str.upper() == track_key
+    ].copy()
+    if len(track_buckets) == 0:
+        return None
+
+    base_track_map = course_bucket_map_df[
+        course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
+    ].copy()
+    track_map = _expand_map_with_equivalencies(base_track_map, equivalencies_df, track_key)
+
+    course_bucket_index: dict[str, list[str]] = {}
+    bucket_course_index: dict[str, list[str]] = {}
+    base_bucket_course_index: dict[str, list[str]] = {}
+
+    for _, row in track_map.iterrows():
+        course_code = str(row.get("course_code", "") or "").strip()
+        bucket_id = str(row.get("bucket_id", "") or "").strip()
+        if not course_code or not bucket_id:
+            continue
+
+        course_bucket_index.setdefault(course_code, [])
+        if bucket_id not in course_bucket_index[course_code]:
+            course_bucket_index[course_code].append(bucket_id)
+
+        bucket_course_index.setdefault(bucket_id, [])
+        if course_code not in bucket_course_index[bucket_id]:
+            bucket_course_index[bucket_id].append(course_code)
+
+    for _, row in base_track_map.iterrows():
+        course_code = str(row.get("course_code", "") or "").strip()
+        bucket_id = str(row.get("bucket_id", "") or "").strip()
+        if not course_code or not bucket_id:
+            continue
+        base_bucket_course_index.setdefault(bucket_id, [])
+        if course_code not in base_bucket_course_index[bucket_id]:
+            base_bucket_course_index[bucket_id].append(course_code)
+
+    allowed_pairs = get_allowed_double_count_pairs(
+        track_buckets,
+        track_id=track_key,
+        double_count_policy_df=double_count_policy_df,
+    )
+
+    if "priority" in track_buckets.columns:
+        sort_priority = pd.to_numeric(track_buckets["priority"], errors="coerce").fillna(99)
+        track_buckets = track_buckets.assign(_priority_sort=sort_priority).sort_values(
+            ["_priority_sort", "bucket_id"], kind="stable"
+        )
+    else:
+        track_buckets = track_buckets.sort_values("bucket_id", kind="stable")
+
+    bucket_order = track_buckets["bucket_id"].astype(str).tolist()
+    bucket_meta_template: dict[str, dict] = {}
+    selection_bucket_meta: dict[str, dict] = {}
+    bucket_parent_map: dict[str, str] = {}
+    bucket_track_required_map: dict[str, str] = {}
+    bucket_role_map: dict[str, str] = {}
+
+    for _, row in track_buckets.iterrows():
+        bid = str(row.get("bucket_id", "") or "").strip()
+        if not bid:
+            continue
+        needed_count = _safe_int(row.get("needed_count"))
+        needed_credits = _safe_int(row.get("needed_credits"))
+        min_level = _safe_int(row.get("min_level"))
+        priority = _safe_int(row.get("priority"), 99) or 99
+        parent_bucket_priority = _safe_int(row.get("parent_bucket_priority"), 99) or 99
+        requirement_mode = _infer_requirement_mode(row)
+        parent_bucket_id = str(row.get("parent_bucket_id", "") or "").strip()
+        bucket_meta_template[bid] = {
+            "label": str(row.get("bucket_label", bid)),
+            "priority": priority,
+            "parent_bucket_priority": parent_bucket_priority,
+            "needed_count": needed_count,
+            "needed_credits": needed_credits,
+            "min_level": min_level,
+            "requirement_mode": requirement_mode,
+            "parent_bucket_id": parent_bucket_id,
+            "double_count_family_id": str(row.get("double_count_family_id", "") or "").strip(),
+        }
+        selection_bucket_meta[bid] = {
+            "priority": priority,
+            "parent_bucket_id": parent_bucket_id,
+            "requirement_mode": requirement_mode,
+        }
+        bucket_parent_map[bid.upper()] = parent_bucket_id.strip().upper()
+        bucket_track_required_map[bid] = str(row.get("track_required", "") or "").strip().upper()
+        bucket_role_map[bid] = str(row.get("role", "") or "").strip().lower()
+
+    course_indexes = course_indexes or _build_course_runtime_indexes(courses_df)
+    return {
+        "track_key": track_key,
+        "bucket_order": bucket_order,
+        "bucket_meta_template": bucket_meta_template,
+        "selection_bucket_meta": selection_bucket_meta,
+        "course_bucket_index": course_bucket_index,
+        "bucket_course_index": bucket_course_index,
+        "base_bucket_course_index": base_bucket_course_index,
+        "allowed_pairs": allowed_pairs,
+        "course_credits_index": course_indexes["credits"],
+        "course_level_index": course_indexes["levels"],
+        "bucket_parent_map": bucket_parent_map,
+        "bucket_track_required_map": bucket_track_required_map,
+        "bucket_role_map": bucket_role_map,
+    }
+
+
+def get_runtime_track_index(runtime_indexes: dict | None, track_id: str) -> dict | None:
+    if not runtime_indexes:
+        return None
+    return runtime_indexes.get("tracks", {}).get(_normalize_track_key(track_id))
+
+
+def get_runtime_course_index(runtime_indexes: dict | None) -> dict | None:
+    if not runtime_indexes:
+        return None
+    return runtime_indexes.get("courses")
+
+
+def ensure_runtime_indexes(data: dict, *, force: bool = False) -> dict:
+    runtime_indexes = data.get("runtime_indexes")
+    if runtime_indexes is not None and not force:
+        return data
+
+    courses_df = data.get("courses_df", pd.DataFrame())
+    buckets_df = data.get("buckets_df", pd.DataFrame())
+    course_bucket_map_df = data.get("course_bucket_map_df", pd.DataFrame())
+    equivalencies_df = data.get("equivalencies_df")
+    double_count_policy_df = data.get("v2_double_count_policy_df")
+
+    tracks: dict[str, dict] = {}
+    course_indexes = _build_course_runtime_indexes(courses_df)
+    track_ids: set[str] = set()
+    if buckets_df is not None and len(buckets_df) > 0 and "track_id" in buckets_df.columns:
+        track_ids.update(
+            _normalize_track_key(track_id)
+            for track_id in buckets_df["track_id"].tolist()
+            if _normalize_track_key(track_id)
+        )
+    if course_bucket_map_df is not None and len(course_bucket_map_df) > 0 and "track_id" in course_bucket_map_df.columns:
+        track_ids.update(
+            _normalize_track_key(track_id)
+            for track_id in course_bucket_map_df["track_id"].tolist()
+            if _normalize_track_key(track_id)
+        )
+
+    for track_key in sorted(track_ids):
+        track_index = _build_track_runtime_index(
+            buckets_df,
+            course_bucket_map_df,
+            courses_df,
+            equivalencies_df,
+            track_key,
+            double_count_policy_df=double_count_policy_df,
+            course_indexes=course_indexes,
+        )
+        if track_index is not None:
+            tracks[track_key] = track_index
+
+    parent_type_map: dict[str, str] = {}
+    parent_buckets_df = data.get("parent_buckets_df")
+    if parent_buckets_df is not None and len(parent_buckets_df) > 0 and "parent_bucket_id" in parent_buckets_df.columns:
+        for _, row in parent_buckets_df.iterrows():
+            pid = str(row.get("parent_bucket_id", "") or "").strip().upper()
+            ptype = str(row.get("type", "") or "").strip().lower()
+            if pid and ptype:
+                parent_type_map[pid] = ptype
+
+    data["runtime_indexes"] = {
+        "courses": course_indexes,
+        "tracks": tracks,
+        "parent_type_map": parent_type_map,
+    }
+    return data
 
 
 def get_applied_bucket_progress_units(
@@ -144,6 +428,7 @@ def allocate_courses(
     equivalencies_df: pd.DataFrame = None,
     track_id: str = DEFAULT_TRACK_ID,
     double_count_policy_df: pd.DataFrame | None = None,
+    runtime_indexes: dict | None = None,
 ) -> dict:
     """
     Deterministically allocate completed courses to requirement buckets.
@@ -160,90 +445,41 @@ def allocate_courses(
             "bucket_order": [],
         }
 
-    # Filter to requested track/program.
-    track_key = str(track_id).strip().upper()
-    track_buckets = buckets_df[
-        buckets_df["track_id"].astype(str).str.strip().str.upper() == track_key
-    ].copy()
-    base_track_map = course_bucket_map_df[
-        course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
-    ].copy()
-    track_map = _expand_map_with_equivalencies(base_track_map, equivalencies_df, track_key)
-
-    # Pre-index course<->bucket mappings once to avoid repeated dataframe scans.
-    course_bucket_index: dict[str, list[str]] = {}
-    bucket_course_index: dict[str, list[str]] = {}
-    base_bucket_course_index: dict[str, list[str]] = {}
-    for _, row in track_map.iterrows():
-        course_code = str(row.get("course_code", "") or "").strip()
-        bucket_id = str(row.get("bucket_id", "") or "").strip()
-        if not course_code or not bucket_id:
-            continue
-
-        per_course = course_bucket_index.setdefault(course_code, [])
-        if bucket_id not in per_course:
-            per_course.append(bucket_id)
-
-        per_bucket = bucket_course_index.setdefault(bucket_id, [])
-        if course_code not in per_bucket:
-            per_bucket.append(course_code)
-
-    for _, row in base_track_map.iterrows():
-        course_code = str(row.get("course_code", "") or "").strip()
-        bucket_id = str(row.get("bucket_id", "") or "").strip()
-        if not course_code or not bucket_id:
-            continue
-        per_bucket = base_bucket_course_index.setdefault(bucket_id, [])
-        if course_code not in per_bucket:
-            per_bucket.append(course_code)
-
-    # Allowed double-count pairs from policy engine (or legacy fallback).
-    allowed_pairs = get_allowed_double_count_pairs(
-        track_buckets,
-        track_id=track_key,
-        double_count_policy_df=double_count_policy_df,
-    )
-
-    # Priority order: smaller value first.
-    if "priority" in track_buckets.columns:
-        sort_priority = pd.to_numeric(track_buckets["priority"], errors="coerce").fillna(99)
-        track_buckets = track_buckets.assign(_priority_sort=sort_priority).sort_values(
-            ["_priority_sort", "bucket_id"], kind="stable"
+    track_key = _normalize_track_key(track_id)
+    track_runtime = get_runtime_track_index(runtime_indexes, track_key)
+    if track_runtime is None:
+        track_runtime = _build_track_runtime_index(
+            buckets_df,
+            course_bucket_map_df,
+            courses_df,
+            equivalencies_df,
+            track_key,
+            double_count_policy_df=double_count_policy_df,
         )
-    else:
-        track_buckets = track_buckets.sort_values("bucket_id", kind="stable")
-    bucket_order = track_buckets["bucket_id"].astype(str).tolist()
+    if track_runtime is None:
+        return {
+            "applied_by_bucket": {},
+            "double_counted_courses": [],
+            "remaining": {},
+            "notes": [],
+            "bucket_order": [],
+        }
 
-    # Bucket metadata.
-    bucket_meta: dict[str, dict] = {}
-    for _, row in track_buckets.iterrows():
-        bid = str(row["bucket_id"])
-        needed_count = _safe_int(row.get("needed_count"))
-        needed_credits = _safe_int(row.get("needed_credits"))
-        min_level = _safe_int(row.get("min_level"))
-        requirement_mode = _infer_requirement_mode(row)
-        bucket_meta[bid] = {
-            "label": str(row.get("bucket_label", bid)),
-            "priority": _safe_int(row.get("priority"), 99),
-            "needed_count": needed_count,
-            "needed_credits": needed_credits,
-            "min_level": min_level,
-            "requirement_mode": requirement_mode,
-            "parent_bucket_id": str(row.get("parent_bucket_id", "") or "").strip(),
-            # mutable tracking:
+    bucket_order = list(track_runtime["bucket_order"])
+    course_bucket_index = track_runtime["course_bucket_index"]
+    bucket_course_index = track_runtime["bucket_course_index"]
+    base_bucket_course_index = track_runtime["base_bucket_course_index"]
+    allowed_pairs = track_runtime["allowed_pairs"]
+    course_credits_index = dict(track_runtime["course_credits_index"])
+    course_level_index = dict(track_runtime["course_level_index"])
+    bucket_meta = {
+        bid: {
+            **meta,
             "slots_used": 0,
             "credits_used": 0,
         }
-
-    course_credits_index: dict[str, int] = {}
-    course_level_index: dict[str, int | None] = {}
-    for _, row in courses_df.iterrows():
-        code = str(row.get("course_code", "") or "").strip()
-        if not code or code in course_credits_index:
-            continue
-        credits = _safe_int(row.get("credits"), 3)
-        course_credits_index[code] = credits if credits is not None else 3
-        course_level_index[code] = _safe_int(row.get("level"))
+        for bid, meta in track_runtime["bucket_meta_template"].items()
+    }
 
     def get_course_credits(course_code: str) -> int:
         return course_credits_index.get(course_code, 3)

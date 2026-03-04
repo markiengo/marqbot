@@ -12,6 +12,7 @@ import {
   computeCreditKpiMetrics,
   sumCreditsForCourseCodes,
 } from "@/lib/rendering";
+import { formatSavedPlanDate, resolveProgramLabels } from "@/lib/savedPlanPresentation";
 import { FreshnessBadge } from "./FreshnessBadge";
 import type {
   Course,
@@ -31,42 +32,28 @@ interface SavedPlanViewModalProps {
   onDelete(): void;
 }
 
-function formatTimestamp(value: string): string {
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return "Unknown";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(parsed));
-}
-
-function resolveProgramLabels(ids: string[], collection: { id: string; label: string }[]): string[] {
-  const labelById = new Map(collection.map((item) => [item.id, item.label]));
-  return ids.map((id) => labelById.get(id) || id);
-}
-
 function SemesterCard({ sem, index }: { sem: SemesterData; index: number }) {
   return (
-    <div className="rounded-xl border border-border-subtle bg-[#0d1f3c]/60 p-3 space-y-2 border-l-2 border-l-gold/30">
-      <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wide">
+    <div className="relative overflow-hidden rounded-xl glass-card stat-card-decor card-glow-hover p-3 space-y-2 border-l-2 border-l-gold/30">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,204,0,0.06),transparent_50%),radial-gradient(ellipse_at_bottom_right,rgba(0,114,206,0.05),transparent_55%)] pointer-events-none" />
+      <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wide relative z-[1]">
         Semester {index + 1}
         {sem.target_semester ? ` \u00b7 ${sem.target_semester}` : ""}
         {sem.standing_label ? ` \u00b7 ${sem.standing_label}` : ""}
       </p>
       {(sem.recommendations ?? []).length === 0 ? (
-        <p className="text-xs text-ink-faint italic pl-1">All requirements satisfied.</p>
+        <p className="text-xs text-ink-faint italic pl-1 relative z-[1]">All requirements satisfied.</p>
       ) : (
         (sem.recommendations ?? []).map((c) => (
-          <div key={c.course_code} className="space-y-0.5">
+          <div key={c.course_code} className="space-y-0.5 relative z-[1]">
             <div className="flex items-baseline gap-2">
-              <span className="font-mono text-xs w-[5.5rem] shrink-0 text-ink-primary">{c.course_code}</span>
+              <span className="font-mono text-xs w-[5.5rem] shrink-0 text-mu-blue">{c.course_code}</span>
               <span className="text-xs text-ink-secondary truncate flex-1">{c.course_name}</span>
             </div>
             {(c.fills_buckets ?? []).length > 0 && (
               <div className="flex gap-1 flex-wrap pl-[calc(5.5rem+0.5rem)]">
                 {(c.fills_buckets ?? []).map((b) => (
-                  <span key={b} className="text-[10px] px-1.5 py-0.5 rounded bg-gold/10 text-gold/80 border border-gold/20">
+                  <span key={b} className="text-[10px] px-1.5 py-0.5 rounded bg-gold/12 text-gold border border-gold/25">
                     {compactKpiBucketLabel(b)}
                   </span>
                 ))}
@@ -135,57 +122,66 @@ export function SavedPlanViewModal({
       titleClassName="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary"
     >
       {!plan ? null : (
-        <div className="space-y-5">
+        <div className="relative space-y-5">
+          <div className="absolute -inset-4 bg-[radial-gradient(ellipse_at_top_right,rgba(255,204,0,0.04),transparent_50%),radial-gradient(ellipse_at_bottom_left,rgba(0,114,206,0.05),transparent_50%)] pointer-events-none" />
           {/* Freshness + timestamp */}
           <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faint">
             <FreshnessBadge freshness={freshness} />
-            <span>Updated {formatTimestamp(plan.updatedAt)}</span>
+            <span>Updated {formatSavedPlanDate(plan.updatedAt)}</span>
             {plan.notes && (
               <span className="text-ink-secondary italic">&mdash; {plan.notes}</span>
             )}
           </div>
 
           {/* Metadata strip */}
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-secondary">
+          <div className="flex flex-wrap gap-1.5">
             {majorLabels.length > 0 && (
-              <span>
+              <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
                 <span className="text-ink-faint">Major </span>
                 {majorLabels.join(", ")}
               </span>
             )}
             {trackLabels.length > 0 && (
-              <span>
+              <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
                 <span className="text-ink-faint">Track </span>
                 {trackLabels.join(", ")}
               </span>
             )}
-            <span>
+            <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
               <span className="text-ink-faint">Target </span>
               {plan.inputs.targetSemester}
             </span>
-            <span>
+            <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
               <span className="text-ink-faint">Semesters </span>
               {plan.inputs.semesterCount}
             </span>
-            <span>
+            <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
               <span className="text-ink-faint">Max/sem </span>
               {plan.inputs.maxRecs}
             </span>
           </div>
+
+          <div className="divider-fade" />
 
           {/* Credit progress bar */}
           {metrics && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs text-ink-faint">
                 <span>{metrics.completedCredits} cr done</span>
-                <span>{metrics.inProgressCredits} cr in progress</span>
-                <span className="font-medium text-ink-secondary">{metrics.standingLabel}</span>
+                <span className="text-gold/70">{metrics.inProgressCredits} cr in progress</span>
+                <span className="font-medium text-gold drop-shadow-[0_0_6px_rgba(255,204,0,0.25)]">{metrics.standingLabel}</span>
               </div>
-              <div className="h-1.5 rounded-full bg-border-subtle overflow-hidden">
+              <div className="h-2.5 rounded-full bg-surface-hover overflow-hidden flex">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-gold/60 to-gold transition-all"
+                  className="h-full rounded-l-full bg-gradient-to-r from-ok/80 to-ok bar-animate-in bar-glow-ok shrink-0"
                   style={{ width: `${Math.min(metrics.donePercent, 100)}%` }}
                 />
+                {metrics.inProgressCredits > 0 && (
+                  <div
+                    className="h-full bg-gradient-to-r from-gold/50 to-gold/30 bar-animate-in shrink-0"
+                    style={{ width: `${Math.min((metrics.inProgressCredits / 120) * 100, 100 - metrics.donePercent)}%` }}
+                  />
+                )}
               </div>
             </div>
           )}
@@ -197,7 +193,7 @@ export function SavedPlanViewModal({
             <div>
               {rows.map((row, yearIdx) => (
                 <div key={yearIdx}>
-                  <p className={`text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2 ${yearIdx > 0 ? "mt-5" : "mt-3"}`}>
+                  <p className={`section-kicker !text-[10px] mb-2 ${yearIdx > 0 ? "mt-5" : "mt-3"}`}>
                     Year {yearIdx + 1}
                   </p>
                   <div className={`grid gap-3 ${row.length === 1 ? "grid-cols-1" : cols === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`}>
@@ -211,7 +207,8 @@ export function SavedPlanViewModal({
           )}
 
           {/* Actions */}
-          <div className="flex items-center justify-between pt-2 border-t border-border-subtle/40">
+          <div className="divider-fade" />
+          <div className="flex items-center justify-between pt-2">
             <Button
               variant="ghost"
               size="sm"
@@ -220,7 +217,7 @@ export function SavedPlanViewModal({
             >
               Delete
             </Button>
-            <Button variant="gold" size="sm" onClick={handleLoadIntoPlanner}>
+            <Button variant="gold" size="sm" onClick={handleLoadIntoPlanner} className="shadow-[0_0_24px_rgba(255,204,0,0.22)] pulse-gold-soft">
               Edit in Planner
             </Button>
           </div>

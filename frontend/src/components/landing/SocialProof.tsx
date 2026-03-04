@@ -57,7 +57,7 @@ function StatItem({
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.45, delay }}
       whileHover={{ scale: 1.05, y: -4 }}
-      className="group relative rounded-2xl p-7 text-center border cursor-default overflow-hidden"
+      className="group relative rounded-2xl p-10 text-center border cursor-default overflow-hidden"
       style={{
         background: "linear-gradient(135deg, rgba(15,35,70,0.80) 0%, rgba(8,20,42,0.65) 100%)",
         borderColor: isGold ? "rgba(255,204,0,0.18)" : "rgba(24,68,160,0.25)",
@@ -84,12 +84,12 @@ function StatItem({
       <motion.div
         animate={done ? { scale: [1, 1.08, 1] } : {}}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="text-4xl sm:text-5xl font-bold font-[family-name:var(--font-sora)] text-gold leading-none"
+        className="text-6xl sm:text-7xl font-bold font-[family-name:var(--font-sora)] text-gold leading-none"
       >
         {count}
         {suffix}
       </motion.div>
-      <div className="mt-2.5 text-sm font-medium text-slate-400">{label}</div>
+      <div className="mt-3 text-lg font-medium text-slate-400">{label}</div>
     </motion.div>
   );
 }
@@ -99,20 +99,20 @@ export function SocialProof() {
   const inView = useInView(ref, { once: true, margin: "-50px" });
 
   return (
-    <section ref={ref} className="relative py-16 band-gold band-fade-top band-fade-bottom">
-      <AnchorLine variant="gold" className="mb-10" />
+    <section ref={ref} className="relative py-20 band-gold band-fade-top band-fade-bottom">
+      <AnchorLine variant="gold" className="mb-14" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[96rem] mx-auto px-5 sm:px-7 lg:px-10">
         <motion.p
           initial={{ opacity: 0, y: 8 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.4 }}
-          className="text-center text-xs uppercase tracking-widest font-semibold text-gold mb-8"
+          className="text-center text-sm uppercase tracking-widest font-semibold text-gold mb-10"
         >
           Built on actual degree rules
         </motion.p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-7 max-w-[72rem] mx-auto">
           {stats.map((s, idx) => (
             <StatItem
               key={s.label}

@@ -1,102 +1,121 @@
 "use client";
 
+import { motion } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import {
   SEMESTER_OPTIONS,
   SEMESTER_COUNT_OPTIONS,
   MAX_RECS_OPTIONS,
 } from "@/lib/constants";
+import { OnboardingStepHeader } from "./OnboardingStepHeader";
 
 export function PreferencesStep() {
   const { state, dispatch } = useAppContext();
+  const selectCls =
+    "w-full rounded-xl border border-border-medium bg-surface-input px-4 py-3 text-[0.95rem] text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40";
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-ink-primary">
-          Let&apos;s build your plan.
-        </h2>
-        <p className="text-base text-ink-muted mt-1">
-          Pick your semester. Pick your load. We&apos;ll do the rest.
-        </p>
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <OnboardingStepHeader
+        eyebrow="Choose your plan"
+        helper="You can change this later"
+        title={
+          <>
+            Tell MarqBot what <span className="text-emphasis-gold">kind of plan</span>{" "}
+            <span className="whitespace-nowrap">you want.</span>
+          </>
+        }
+        description="Pick the semester, how far ahead you want to look, and how heavy you want each term to be. Then MarqBot builds the plan."
+      />
 
-      <div className="space-y-7">
-        {/* Target semester */}
-        <div className="space-y-2">
-          <div>
-            <label className="text-base font-medium text-ink-secondary">
+      <div className="grid min-h-0 flex-1 items-stretch gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)] shine-sweep">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-ink-secondary">
               What&apos;s your next semester?
             </label>
-            <p className="text-xs text-ink-faint mt-0.5">
-              The semester you&apos;re planning for — the one you haven&apos;t started yet.
+            <p className="mt-0.5 text-xs text-ink-faint">
+              The semester you are planning for next. Not the one you are in right now.
             </p>
           </div>
-          <select
-            value={state.targetSemester}
-            onChange={(e) =>
-              dispatch({ type: "SET_TARGET_SEMESTER", payload: e.target.value })
-            }
-            className="w-full px-4 py-3 bg-surface-input border border-border-medium rounded-xl text-base text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40"
-          >
-            {SEMESTER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <div className="mt-auto pt-3">
+            <select
+              value={state.targetSemester}
+              onChange={(event) =>
+                dispatch({ type: "SET_TARGET_SEMESTER", payload: event.target.value })
+              }
+              className={selectCls}
+            >
+              {SEMESTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Semester count */}
-        <div className="space-y-2">
-          <div>
-            <label className="text-base font-medium text-ink-secondary">
+        <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-ink-secondary">
               How far ahead do you want to plan?
             </label>
-            <p className="text-xs text-ink-faint mt-0.5">
-              Pick 1 if you just want next semester. Pick 8 if you want a full roadmap to graduation.
+            <p className="mt-0.5 text-xs text-ink-faint">
+              Pick 1 for next semester only, or go bigger if you want the long game.
             </p>
           </div>
-          <select
-            value={state.semesterCount}
-            onChange={(e) =>
-              dispatch({ type: "SET_SEMESTER_COUNT", payload: e.target.value })
-            }
-            className="w-full px-4 py-3 bg-surface-input border border-border-medium rounded-xl text-base text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40"
-          >
-            {SEMESTER_COUNT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <div className="mt-auto pt-3">
+            <select
+              value={state.semesterCount}
+              onChange={(event) =>
+                dispatch({ type: "SET_SEMESTER_COUNT", payload: event.target.value })
+              }
+              className={selectCls}
+            >
+              {SEMESTER_COUNT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Max recommendations */}
-        <div className="space-y-2">
-          <div>
-            <label className="text-base font-medium text-ink-secondary">
-              How many courses do you want each semester?
+        <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-ink-secondary">
+              How many classes do you want each semester?
             </label>
-            <p className="text-xs text-ink-faint mt-0.5">
-              MarqBot will suggest this many courses per semester. Most students do 4–5. 6 is a lot. You&apos;ve been warned.
+            <p className="mt-0.5 text-xs text-ink-faint">
+              Most students pick 4 or 5. Six is brave. MarqBot will use this number in each term.
             </p>
           </div>
-          <select
-            value={state.maxRecs}
-            onChange={(e) =>
-              dispatch({ type: "SET_MAX_RECS", payload: e.target.value })
-            }
-            className="w-full px-4 py-3 bg-surface-input border border-border-medium rounded-xl text-base text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40"
-          >
-            {MAX_RECS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <div className="mt-auto pt-3">
+            <select
+              value={state.maxRecs}
+              onChange={(event) =>
+                dispatch({ type: "SET_MAX_RECS", payload: event.target.value })
+              }
+              className={selectCls}
+            >
+              {MAX_RECS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.2 }}
+        className="rounded-[1.5rem] border border-gold/18 bg-gold/[0.07] px-4 py-3.5 text-[0.92rem] leading-relaxed text-ink-secondary"
+      >
+        MarqBot will rank classes that count, unlock more classes, and fit the plan you just picked.
+      </motion.div>
     </div>
   );
 }

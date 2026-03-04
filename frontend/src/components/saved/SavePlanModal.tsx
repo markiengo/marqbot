@@ -46,29 +46,30 @@ export function SavePlanModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Save Plan">
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <p className="text-sm text-ink-secondary">
+      <form className="relative space-y-5" onSubmit={handleSubmit}>
+        <div className="absolute -inset-4 bg-[radial-gradient(ellipse_at_top_right,rgba(255,204,0,0.05),transparent_50%),radial-gradient(ellipse_at_bottom_left,rgba(0,114,206,0.06),transparent_50%)] pointer-events-none" />
+        <p className="relative text-sm text-ink-secondary">
           Save this recommendation set in this browser so you can compare it later.
         </p>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-ink-primary">Plan name</label>
+          <label className="section-kicker">Plan name</label>
           <input
             ref={nameInputRef}
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="w-full rounded-xl border border-border-medium bg-surface-input px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40"
+            className="w-full rounded-xl border border-border-medium bg-surface-input/80 backdrop-blur-sm px-4 py-2.5 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors"
           />
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-ink-primary">Notes</label>
+          <label className="section-kicker">Notes</label>
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             rows={4}
-            className="w-full rounded-xl border border-border-medium bg-surface-input px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40"
+            className="w-full rounded-xl border border-border-medium bg-surface-input/80 backdrop-blur-sm px-4 py-2.5 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors"
             placeholder="Optional context like ‘aggressive summer version’ or ‘double major draft’"
           />
         </div>
@@ -79,6 +80,7 @@ export function SavePlanModal({
           </div>
         )}
 
+        <div className="divider-fade" />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel

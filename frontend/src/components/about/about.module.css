@@ -1,0 +1,91 @@
+.page {
+  position: relative;
+}
+
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.heroBackdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 110% 55% at 50% -5%, rgba(24, 68, 160, 0.5) 0%, transparent 68%);
+}
+
+.heroBackdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 204, 0, 0.08) 0%, transparent 26%),
+    radial-gradient(circle at 84% 24%, rgba(0, 114, 206, 0.14) 0%, transparent 30%);
+}
+
+.gridOverlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 1) 1px, transparent 1px);
+  background-size: 72px 72px;
+  pointer-events: none;
+}
+
+.sectionGlow {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  filter: blur(72px);
+  opacity: 0.9;
+}
+
+.photoPanel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(145deg, rgba(15, 35, 70, 0.88), rgba(8, 20, 42, 0.7));
+  box-shadow:
+    0 12px 42px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.photoPanel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at top, rgba(255, 204, 0, 0.06) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.miniPill {
+  border: 1px solid rgba(255, 204, 0, 0.22);
+  background: rgba(255, 204, 0, 0.08);
+  color: #f3d980;
+  backdrop-filter: blur(8px);
+}
+
+.statPill {
+  border: 1px solid rgba(141, 170, 224, 0.14);
+  background: linear-gradient(145deg, rgba(18, 33, 63, 0.70), rgba(22, 43, 80, 0.55));
+  backdrop-filter: blur(12px);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.statPill:hover {
+  border-color: rgba(255, 204, 0, 0.25);
+  box-shadow: 0 0 16px rgba(255, 204, 0, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statPill {
+    transition: none;
+  }
+
+  .statPill:hover {
+    transform: none;
+  }
+}

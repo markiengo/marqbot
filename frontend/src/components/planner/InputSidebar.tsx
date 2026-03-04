@@ -5,12 +5,7 @@ import { AnimatePresence } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { MultiSelect } from "@/components/shared/MultiSelect";
 import { Chip } from "@/components/shared/Chip";
-import {
-  MAX_MAJORS,
-  AIM_CFA_TRACK_ID,
-  AIM_CFA_FINANCE_RULE_MSG,
-  FIN_MAJOR_ID,
-} from "@/lib/constants";
+import { MAX_MAJORS } from "@/lib/constants";
 
 interface InputSidebarProps {
   hideHeader?: boolean;
@@ -23,7 +18,6 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
   const tracks = state.programs.tracks;
   const minors = state.programs.minors;
   const selectedMajorIds = useMemo(() => [...state.selectedMajors], [state.selectedMajors]);
-  const hasFinanceMajor = state.selectedMajors.has(FIN_MAJOR_ID);
   const discoveryThemeTracks = useMemo(
     () => tracks.filter((t) => String(t.parent_major_id || "").trim().toUpperCase() === "MCC_DISC"),
     [tracks],
@@ -106,30 +100,37 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
   const trackInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const trackListRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const trackComboId = useId();
-  const aimCfaSelectedWithoutFinance =
-    state.selectedTracks.includes(AIM_CFA_TRACK_ID) && !hasFinanceMajor;
-  const effectiveTrackRuleWarning = !hasFinanceMajor
-    ? (trackRuleWarning || (aimCfaSelectedWithoutFinance ? AIM_CFA_FINANCE_RULE_MSG : null))
-    : null;
+  const effectiveTrackRuleWarning = trackRuleWarning;
+
+  const trackRequirementMessage = useCallback((trackId: string) => {
+    const track = trackById.get(trackId);
+    const requiredMajorId = String(track?.required_major_id || "").trim();
+    if (!requiredMajorId || state.selectedMajors.has(requiredMajorId)) return null;
+    const trackLabel = String(track?.label || trackId).trim();
+    const majorLabel = majorLabelById.get(requiredMajorId) ?? requiredMajorId;
+    return `${trackLabel} requires a declared major in ${majorLabel}.`;
+  }, [majorLabelById, state.selectedMajors, trackById]);
 
   const selectTrack = useCallback((majorId: string, trackId: string) => {
-    if (trackId === AIM_CFA_TRACK_ID && !hasFinanceMajor) {
-      setTrackRuleWarning(AIM_CFA_FINANCE_RULE_MSG);
+    const warning = trackRequirementMessage(trackId);
+    if (warning) {
+      setTrackRuleWarning(warning);
       return;
     }
     setTrackRuleWarning(null);
     dispatch({ type: "SET_TRACK", payload: { majorId, trackId } });
     setTrackOpen((prev) => ({ ...prev, [majorId]: false }));
     setTrackQuery((prev) => ({ ...prev, [majorId]: "" }));
-  }, [dispatch, hasFinanceMajor]);
+  }, [dispatch, trackRequirementMessage]);
   const addStandaloneTrack = useCallback((trackId: string) => {
-    if (trackId === AIM_CFA_TRACK_ID && !hasFinanceMajor) {
-      setTrackRuleWarning(AIM_CFA_FINANCE_RULE_MSG);
+    const warning = trackRequirementMessage(trackId);
+    if (warning) {
+      setTrackRuleWarning(warning);
       return;
     }
     setTrackRuleWarning(null);
     dispatch({ type: "ADD_TRACK", payload: trackId });
-  }, [dispatch, hasFinanceMajor]);
+  }, [dispatch, trackRequirementMessage]);
 
   // Close track dropdowns on outside click
   useEffect(() => {

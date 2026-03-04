@@ -4,10 +4,6 @@ import {
   DEFAULT_SEMESTER,
   DEFAULT_SEMESTER_COUNT,
   DEFAULT_MAX_RECS,
-  AIM_MAJOR_ID,
-  AIM_CFA_TRACK_ID,
-  AIM_TRACK_PROGRAM_IDS,
-  FIN_MAJOR_ID,
 } from "@/lib/constants";
 
 export type AppAction =
@@ -44,7 +40,7 @@ export const initialState: AppState = {
   courses: [],
   coursesLoadStatus: "idle",
   coursesLoadError: null,
-  programs: { majors: [], tracks: [], minors: [], default_track_id: "FIN_MAJOR" },
+  programs: { majors: [], tracks: [], minors: [], default_track_id: "" },
   programsLoadStatus: "idle",
   programsLoadError: null,
   completed: new Set<string>(),
@@ -64,20 +60,25 @@ export const initialState: AppState = {
   lastRequestedCount: 3,
 };
 
-function isAimTrackProgram(trackId: string): boolean {
-  return AIM_TRACK_PROGRAM_IDS.includes(trackId as (typeof AIM_TRACK_PROGRAM_IDS)[number]);
+function getTrackById(programs: ProgramsData, trackId: string) {
+  return programs.tracks.find((track) => track.id === trackId) || null;
 }
 
-function sanitizeAimProgramSelections(
+function trackRequiredMajorId(programs: ProgramsData, trackId: string): string {
+  return String(getTrackById(programs, trackId)?.required_major_id || "").trim();
+}
+
+function trackParentMajorId(programs: ProgramsData, trackId: string): string {
+  return String(getTrackById(programs, trackId)?.parent_major_id || "").trim();
+}
+
+function canSelectTrack(
+  programs: ProgramsData,
   selectedMajors: Set<string>,
-  selectedTracks: string[],
-): { selectedMajors: Set<string>; selectedTracks: string[] } {
-  const nextMajors = new Set(selectedMajors);
-  const nextTracks = selectedTracks.slice();
-  if (nextTracks.some(isAimTrackProgram)) {
-    nextMajors.delete(AIM_MAJOR_ID);
-  }
-  return { selectedMajors: nextMajors, selectedTracks: nextTracks };
+  trackId: string,
+): boolean {
+  const requiredMajorId = trackRequiredMajorId(programs, trackId);
+  return !requiredMajorId || selectedMajors.has(requiredMajorId);
 }
 
 interface NormalizedSessionPayload {
@@ -131,26 +132,21 @@ function normalizeSessionSnapshot(
   const filteredTracks = selectedTracks.filter(
     (tid) =>
       (validTrackIds.size === 0 || validTrackIds.has(tid)) &&
-      (tid !== AIM_CFA_TRACK_ID || selectedMajors.has(FIN_MAJOR_ID)),
+      canSelectTrack(state.programs, selectedMajors, tid),
   );
-  const {
-    selectedMajors: sanitizedMajors,
-    selectedTracks: sanitizedTracks,
-  } = sanitizeAimProgramSelections(selectedMajors, filteredTracks);
   const selectedMinors = new Set(
     (snap.declaredMinors || []).filter(
       (minorId) => Boolean(minorId) && (validMinorIds.size === 0 || validMinorIds.has(minorId)),
     ),
   );
   const selectionWasSanitized =
-    sanitizedMajors.size !== selectedMajors.size ||
-    sanitizedTracks.length !== selectedTracks.length;
+    filteredTracks.length !== selectedTracks.length;
 
   return {
     completed,
     inProgress,
-    selectedMajors: sanitizedMajors,
-    selectedTracks: sanitizedTracks,
+    selectedMajors,
+    selectedTracks: filteredTracks,
     selectedMinors,
     discoveryTheme: snap.discoveryTheme || "",
     targetSemester: snap.targetSemester || DEFAULT_SEMESTER,
@@ -214,61 +210,43 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "ADD_MAJOR": {
       const next = new Set(state.selectedMajors);
       next.add(action.payload);
-      let nextTracks = state.selectedTracks.slice();
-      if (action.payload === AIM_MAJOR_ID) {
-        nextTracks = nextTracks.filter((tid) => !isAimTrackProgram(tid));
-      }
-      return { ...state, selectedMajors: next, selectedTracks: nextTracks };
+      return { ...state, selectedMajors: next };
     }
 
     case "REMOVE_MAJOR": {
       const next = new Set(state.selectedMajors);
       next.delete(action.payload);
-      let nextTracks = state.selectedTracks.slice();
-      // AIM CFA track requires Finance major.
-      if (action.payload === FIN_MAJOR_ID) {
-        nextTracks = nextTracks.filter((tid) => tid !== AIM_CFA_TRACK_ID);
-      }
-      // Remove tracks whose parent_major_id matches the removed major.
-      nextTracks = nextTracks.filter((tid) => {
-        const tr = state.programs.tracks.find((t) => t.id === tid);
-        return !tr?.parent_major_id || tr.parent_major_id !== action.payload;
+      const nextTracks = state.selectedTracks.filter((tid) => {
+        const parentMajorId = trackParentMajorId(state.programs, tid);
+        const requiredMajorId = trackRequiredMajorId(state.programs, tid);
+        return parentMajorId !== action.payload && requiredMajorId !== action.payload;
       });
       return { ...state, selectedMajors: next, selectedTracks: nextTracks };
     }
 
     case "ADD_TRACK": {
       const trackId = action.payload;
-      if (trackId === AIM_CFA_TRACK_ID && !state.selectedMajors.has(FIN_MAJOR_ID)) {
+      if (!canSelectTrack(state.programs, state.selectedMajors, trackId)) {
         return state;
       }
       if (state.selectedTracks.includes(trackId)) {
         return state;
       }
       const nextTracks = [...state.selectedTracks, trackId];
-      const nextMajors = new Set(state.selectedMajors);
-      if (isAimTrackProgram(trackId)) {
-        nextMajors.delete(AIM_MAJOR_ID);
-      }
-      return { ...state, selectedMajors: nextMajors, selectedTracks: nextTracks };
+      return { ...state, selectedTracks: nextTracks };
     }
 
     case "SET_TRACK": {
       const { majorId, trackId } = action.payload;
-      if (trackId === AIM_CFA_TRACK_ID && !state.selectedMajors.has(FIN_MAJOR_ID)) {
+      if (trackId && !canSelectTrack(state.programs, state.selectedMajors, trackId)) {
         return state;
       }
       // Discovery and other single-slot selectors replace the existing track in that family.
       const filtered = state.selectedTracks.filter((tid) => {
-        const tr = state.programs.tracks.find((t) => t.id === tid);
-        return tr?.parent_major_id !== majorId;
+        return trackParentMajorId(state.programs, tid) !== majorId;
       });
       const nextTracks = trackId ? [...filtered, trackId] : filtered;
-      const nextMajors = new Set(state.selectedMajors);
-      if (trackId && isAimTrackProgram(trackId)) {
-        nextMajors.delete(AIM_MAJOR_ID);
-      }
-      return { ...state, selectedMajors: nextMajors, selectedTracks: nextTracks };
+      return { ...state, selectedTracks: nextTracks };
     }
 
     case "REMOVE_TRACK":

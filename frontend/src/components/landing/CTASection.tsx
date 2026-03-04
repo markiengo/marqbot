@@ -11,13 +11,13 @@ export function CTASection() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="py-20 band-blue-gold band-fade-top">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section ref={ref} className="py-24 band-blue-gold band-fade-top">
+      <div className="max-w-[96rem] mx-auto px-5 sm:px-7 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.55 }}
-          className="relative rounded-3xl px-8 py-14 md:px-14 text-center overflow-hidden border"
+          className="relative rounded-3xl px-10 py-[4.5rem] md:px-[4.5rem] text-center overflow-hidden border"
           style={{
             background: "linear-gradient(135deg, rgba(15,35,70,0.92) 0%, rgba(10,24,50,0.80) 50%, rgba(14,28,58,0.88) 100%)",
             borderColor: "rgba(255,255,255,0.09)",
@@ -32,26 +32,27 @@ export function CTASection() {
             style={{ background: "rgba(24,68,160,0.12)", filter: "blur(60px)" }} />
 
           <div className="relative">
-            <AnchorLine variant="gold" className="mb-7" />
+            <AnchorLine variant="gold" className="mb-9" />
 
             <motion.h2
               initial={{ opacity: 0, y: 14 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.12 }}
-              className="text-3xl md:text-4xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight mb-4"
+              className="text-[2.8rem] md:text-[4rem] font-bold font-[family-name:var(--font-sora)] text-white leading-tight mb-5"
             >
-              Stop spiraling.<br />
-              <em className="mu-accent text-gold">Get a plan.</em>
+              Build your next semester
+              <br />
+              <em className="mu-accent text-gold">before registration gets weird.</em>
             </motion.h2>
 
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.45, delay: 0.22 }}
-              className="text-slate-400 max-w-md mx-auto leading-relaxed mb-8"
+              className="text-[1.2rem] sm:text-[1.45rem] text-slate-400 max-w-[42rem] mx-auto leading-relaxed mb-10"
             >
-              Drop your major. Drop your courses. MarqBot handles the rest.
-              No logins. No spreadsheets.
+              Pick your major. Drop your courses. Get a ranked plan you can actually
+              use. No logins. No spreadsheets. No guessing.
             </motion.p>
 
             <motion.div
@@ -64,7 +65,7 @@ export function CTASection() {
                   <Button
                     variant="gold"
                     size="lg"
-                    className="shadow-[0_0_24px_rgba(255,204,0,0.22),0_0_48px_rgba(255,204,0,0.10)] hover:shadow-[0_0_32px_rgba(255,204,0,0.34),0_0_60px_rgba(255,204,0,0.15)] transition-shadow duration-300"
+                    className="min-w-[220px] shadow-[0_0_24px_rgba(255,204,0,0.22),0_0_48px_rgba(255,204,0,0.10)] hover:shadow-[0_0_32px_rgba(255,204,0,0.34),0_0_60px_rgba(255,204,0,0.15)] transition-shadow duration-300"
                   >
                     Get My Plan
                   </Button>
@@ -72,7 +73,19 @@ export function CTASection() {
               </Link>
             </motion.div>
 
-            <AnchorLine variant="fade" className="mt-8" />
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm text-slate-400">
+              <span className="rounded-full border border-white/8 px-3 py-1.5">
+                No account required
+              </span>
+              <span className="rounded-full border border-white/8 px-3 py-1.5">
+                540 active courses tracked
+              </span>
+              <span className="rounded-full border border-white/8 px-3 py-1.5">
+                Double-check with your advisor
+              </span>
+            </div>
+
+            <AnchorLine variant="fade" className="mt-10" />
           </div>
         </motion.div>
       </div>

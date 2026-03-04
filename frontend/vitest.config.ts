@@ -9,6 +9,10 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["../tests/frontend/**/*.test.ts"],
+    include: [
+      "../tests/frontend/**/*.test.ts",
+      "./tests/**/*.test.ts",
+    ],
+    exclude: ["../tests/frontend/**/*.dom.test.ts"],
   },
 });

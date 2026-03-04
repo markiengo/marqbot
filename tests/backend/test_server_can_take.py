@@ -132,9 +132,9 @@ class TestCanTakeEligibility:
     def test_in_progress_prereqs_count_as_completed_for_next_semester(self, client):
         """Can-take endpoint checks next-semester eligibility, so in-progress prereqs count."""
         _, data = post_can_take(client, {
-            "requested_course": "FINA 3001",
-            "completed_courses": "ECON 1103",
-            "in_progress_courses": "ACCO 1031, BUAD 1560",
+            "requested_course": "ACCO 1031",
+            "completed_courses": "",
+            "in_progress_courses": "ACCO 1030",
             "target_semester": "Fall 2026",
         })
         assert data["can_take"] is True

@@ -159,6 +159,11 @@ def _build_in_progress_note(
 
 
 def _build_bucket_role_map(data: dict, track_id: str) -> dict[str, str]:
+    runtime_indexes = data.get("runtime_indexes", {})
+    runtime_track = runtime_indexes.get("tracks", {}).get(str(track_id or "").strip().upper())
+    if runtime_track is not None:
+        return dict(runtime_track.get("bucket_role_map", {}))
+
     buckets_df = data.get("buckets_df")
     if buckets_df is None or len(buckets_df) == 0:
         return {}
@@ -225,6 +230,7 @@ def _build_standing_recovery_candidates(
         data["equivalencies_df"],
         track_id=track_id,
         reverse_map=reverse_map,
+        runtime_indexes=data.get("runtime_indexes"),
         restrict_to_unmet_buckets=False,
     )
     filler_candidates = [
@@ -265,6 +271,11 @@ def _local_bucket_id(bucket_id: str) -> str:
 
 
 def _build_selection_bucket_meta(data: dict, track_id: str) -> dict[str, dict]:
+    runtime_indexes = data.get("runtime_indexes", {})
+    runtime_track = runtime_indexes.get("tracks", {}).get(str(track_id or "").strip().upper())
+    if runtime_track is not None:
+        return dict(runtime_track.get("selection_bucket_meta", {}))
+
     buckets_df = data.get("buckets_df")
     if buckets_df is None or len(buckets_df) == 0:
         return {}
@@ -392,6 +403,11 @@ def _build_parent_type_map(data: dict) -> dict[str, str]:
     """
     Build parent bucket id -> type map from parent_buckets_df when available.
     """
+    runtime_indexes = data.get("runtime_indexes", {})
+    cached = runtime_indexes.get("parent_type_map")
+    if cached is not None:
+        return dict(cached)
+
     parent_buckets_df = data.get("parent_buckets_df")
     if parent_buckets_df is None or len(parent_buckets_df) == 0:
         return {}
@@ -410,6 +426,11 @@ def _build_bucket_track_required_map(data: dict, track_id: str) -> dict[str, str
     """
     Build runtime bucket_id -> track_required map for the current runtime track.
     """
+    runtime_indexes = data.get("runtime_indexes", {})
+    runtime_track = runtime_indexes.get("tracks", {}).get(str(track_id or "").strip().upper())
+    if runtime_track is not None:
+        return dict(runtime_track.get("bucket_track_required_map", {}))
+
     buckets_df = data.get("buckets_df")
     if buckets_df is None or len(buckets_df) == 0:
         return {}
@@ -434,6 +455,11 @@ def _build_bucket_track_required_map(data: dict, track_id: str) -> dict[str, str
 
 def _build_bucket_parent_map(data: dict, track_id: str) -> dict[str, str]:
     """Build runtime bucket_id -> parent_bucket_id map for the current runtime track."""
+    runtime_indexes = data.get("runtime_indexes", {})
+    runtime_track = runtime_indexes.get("tracks", {}).get(str(track_id or "").strip().upper())
+    if runtime_track is not None:
+        return dict(runtime_track.get("bucket_parent_map", {}))
+
     buckets_df = data.get("buckets_df")
     if buckets_df is None or len(buckets_df) == 0:
         return {}
@@ -671,6 +697,7 @@ def _build_projected_outputs(
         data["equivalencies_df"],
         track_id=track_id,
         double_count_policy_df=data.get("v2_double_count_policy_df"),
+        runtime_indexes=data.get("runtime_indexes"),
     )
     projected_progress = build_progress_output(
         projected_alloc_for_progress,
@@ -719,6 +746,7 @@ def _build_deterministic_recommendations(candidates: list[dict], max_recommendat
         rec = {
             "course_code": cand["course_code"],
             "course_name": cand.get("course_name", ""),
+            "credits": cand.get("credits", 3),
             "why": why,
             "tier": cand.get("tier"),
             "prereq_check": cand.get("prereq_check", ""),
@@ -833,6 +861,7 @@ def run_recommendation_semester(
         data["equivalencies_df"],
         track_id=track_id,
         double_count_policy_df=data.get("v2_double_count_policy_df"),
+        runtime_indexes=data.get("runtime_indexes"),
     )
 
     eligible_sem = get_eligible_courses(
@@ -847,6 +876,7 @@ def run_recommendation_semester(
         data["equivalencies_df"],
         track_id=track_id,
         reverse_map=reverse_map,
+        runtime_indexes=data.get("runtime_indexes"),
     )
     standing_blocked_sem = [
         c for c in eligible_sem
@@ -1069,20 +1099,21 @@ def run_recommendation_semester(
             break
 
         remaining_slots_to_fill = max_recs - len(selected_sem)
-        remaining_candidates = ranked_sem[idx:]
-        viable_unmet_buckets: set[str] = set()
-        for rc in remaining_candidates:
-            viable_unmet_buckets.update(
-                _select_assignable_buckets_allocator_style(
-                    _selection_bucket_ids(rc),
-                    virtual_remaining,
-                    picks_per_bucket,
-                    enforce_bucket_cap=True,
-                    max_per_bucket=_MAX_PER_BUCKET_PER_SEM,
-                    allowed_pairs=allowed_pairs,
-                    bucket_meta=selection_bucket_meta,
+        if not cap_relaxed:
+            remaining_candidates = ranked_sem[idx:]
+            viable_unmet_buckets: set[str] = set()
+            for rc in remaining_candidates:
+                viable_unmet_buckets.update(
+                    _select_assignable_buckets_allocator_style(
+                        _selection_bucket_ids(rc),
+                        virtual_remaining,
+                        picks_per_bucket,
+                        enforce_bucket_cap=True,
+                        max_per_bucket=_MAX_PER_BUCKET_PER_SEM,
+                        allowed_pairs=allowed_pairs,
+                        bucket_meta=selection_bucket_meta,
+                    )
                 )
-            )
         if (not cap_relaxed) and (len(viable_unmet_buckets) < remaining_slots_to_fill):
             cap_relaxed = True
         enforce_bucket_cap = not cap_relaxed

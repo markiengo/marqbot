@@ -63,7 +63,7 @@ export function FeatureSection() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-20 overflow-hidden band-blue band-fade-top">
+    <section ref={ref} className="relative py-24 overflow-hidden band-blue band-fade-top">
       {/* Subtle background depth */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full blur-[120px]"
@@ -72,15 +72,15 @@ export function FeatureSection() {
           style={{ background: "rgba(24,68,160,0.08)" }} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[96rem] mx-auto px-5 sm:px-7 lg:px-10">
 
         {/* Problem block */}
-        <div className="text-center mb-12 space-y-3">
+        <div className="text-center mb-16 space-y-4">
           <motion.p
             initial={{ opacity: 0, y: 8 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.4 }}
-            className="text-gold text-xs uppercase tracking-widest font-semibold"
+            className="text-gold text-sm uppercase tracking-widest font-semibold"
           >
             Sound familiar?
           </motion.p>
@@ -88,7 +88,7 @@ export function FeatureSection() {
             initial={{ opacity: 0, y: 14 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.08 }}
-            className="text-3xl md:text-4xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight"
+            className="text-[2.7rem] md:text-[3.9rem] font-bold font-[family-name:var(--font-sora)] text-white leading-tight"
           >
             You Googled your prereqs the night before registration.{" "}
             <em className="mu-accent" style={{ color: "rgba(255,255,255,0.45)", fontStyle: "italic" }}>Again.</em>
@@ -97,22 +97,22 @@ export function FeatureSection() {
             initial={{ opacity: 0, y: 10 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.45, delay: 0.16 }}
-            className="text-slate-400 max-w-[560px] mx-auto text-base sm:text-lg leading-relaxed"
+            className="text-slate-400 max-w-[780px] mx-auto text-[1.2rem] sm:text-[1.5rem] leading-relaxed"
           >
             Cross-referencing the catalog. Emailing advisors. Opening CheckMarq five times.
             Registration shouldn&apos;t need detective work.
           </motion.p>
         </div>
 
-        <AnchorLine variant="gold" className="mb-10" />
+        <AnchorLine variant="gold" className="mb-14" />
 
         {/* Solution block */}
-        <div className="text-center mb-10 space-y-2">
+        <div className="text-center mb-14 space-y-3">
           <motion.p
             initial={{ opacity: 0, y: 8 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.4, delay: 0.28 }}
-            className="text-gold text-xs uppercase tracking-widest font-semibold"
+            className="text-gold text-sm uppercase tracking-widest font-semibold"
           >
             Here&apos;s what changes.
           </motion.p>
@@ -120,7 +120,7 @@ export function FeatureSection() {
             initial={{ opacity: 0, y: 12 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.45, delay: 0.36 }}
-            className="text-2xl sm:text-3xl font-bold font-[family-name:var(--font-sora)] text-white"
+            className="text-[2.2rem] sm:text-[3.1rem] font-bold font-[family-name:var(--font-sora)] text-white"
           >
             MarqBot runs the logic.{" "}
             <span className="text-gold">You just pick the classes.</span>
@@ -128,7 +128,7 @@ export function FeatureSection() {
         </div>
 
         {/* Feature cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
           {features.map((f, idx) => (
             <motion.div
               key={f.title}
@@ -136,7 +136,7 @@ export function FeatureSection() {
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.44 + idx * 0.12 }}
               whileHover={{ y: -6, scale: 1.018 }}
-              className="group relative rounded-2xl p-6 border cursor-default overflow-hidden"
+              className="group relative rounded-2xl p-8 border cursor-default overflow-hidden"
               style={{
                 background: "linear-gradient(135deg, rgba(15,35,70,0.85) 0%, rgba(10,24,50,0.70) 100%)",
                 borderColor: "rgba(255,255,255,0.08)",
@@ -149,21 +149,21 @@ export function FeatureSection() {
 
               <div className="relative">
                 {/* Stat */}
-                <div className="text-4xl font-bold font-[family-name:var(--font-sora)] text-gold mb-0.5">
+                <div className="text-[3.35rem] font-bold font-[family-name:var(--font-sora)] text-gold mb-1">
                   {f.stat}
                 </div>
-                <div className="text-[11px] text-slate-500 uppercase tracking-wide mb-4">{f.statLabel}</div>
+                <div className="text-[13px] text-slate-500 uppercase tracking-wide mb-5">{f.statLabel}</div>
 
                 {/* Icon */}
-                <div className="w-11 h-11 rounded-xl bg-gold/10 group-hover:bg-gold/18 text-gold flex items-center justify-center mb-4 transition-colors duration-200">
+                <div className="w-14 h-14 rounded-xl bg-gold/10 group-hover:bg-gold/18 text-gold flex items-center justify-center mb-5 transition-colors duration-200">
                   {f.icon}
                 </div>
 
                 {/* Text */}
-                <h4 className="text-base font-semibold font-[family-name:var(--font-sora)] text-white mb-2">
+                <h4 className="text-[1.35rem] font-semibold font-[family-name:var(--font-sora)] text-white mb-3">
                   {f.title}
                 </h4>
-                <p className="text-sm text-slate-400 leading-relaxed">{f.description}</p>
+                <p className="text-[1rem] sm:text-[1.1rem] text-slate-400 leading-relaxed">{f.description}</p>
               </div>
             </motion.div>
           ))}

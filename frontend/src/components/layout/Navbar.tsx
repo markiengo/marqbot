@@ -6,10 +6,15 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { NAV_ITEMS } from "@/lib/constants";
+import { Button } from "@/components/shared/Button";
 
 export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isLanding = pathname === "/";
+  const navItems = isLanding
+    ? NAV_ITEMS.filter((item) => item.id !== "home")
+    : NAV_ITEMS;
 
   return (
     <nav className="sticky top-0 z-40 bg-surface-overlay/80 backdrop-blur-md border-b-[3px] border-b-gold/20">
@@ -24,7 +29,7 @@ export function Navbar() {
               height={32}
               className="rounded-lg"
             />
-            <span className="font-[family-name:var(--font-sora)] font-bold text-gold text-lg">
+            <span className="font-[family-name:var(--font-sora)] font-bold text-gold text-[1.3rem]">
               MarqBot
             </span>
           </Link>
@@ -32,13 +37,13 @@ export function Navbar() {
           {/* Desktop nav — absolutely centered in viewport */}
           <div className="hidden md:flex items-center gap-1 absolute inset-0 justify-center pointer-events-none">
             <div className="flex items-center gap-1 pointer-events-auto">
-              {NAV_ITEMS.map((item) => {
+              {navItems.map((item) => {
                 const active = pathname === item.href;
                 return (
                   <Link
                     key={item.id}
                     href={item.href}
-                    className={`relative px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                    className={`relative px-3.5 py-2 rounded-xl text-[1rem] font-semibold transition-colors ${
                       active
                         ? "text-gold"
                         : "text-ink-muted hover:text-ink-primary hover:bg-surface-hover"
@@ -57,17 +62,24 @@ export function Navbar() {
             </div>
           </div>
 
-          {/* Avatar */}
           <div className="hidden md:flex items-center relative z-10">
-            <div className="w-8 h-8 rounded-full bg-surface-card flex items-center justify-center border border-border-subtle">
-              <Image
-                src="/assets/avatar_silhouette.svg"
-                alt="Profile"
-                width={20}
-                height={20}
-                className="opacity-40"
-              />
-            </div>
+            {isLanding ? (
+              <Link href="/onboarding">
+                <Button variant="gold" size="sm" className="min-w-[136px]">
+                  Get My Plan
+                </Button>
+              </Link>
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-surface-card flex items-center justify-center border border-border-subtle">
+                <Image
+                  src="/assets/avatar_silhouette.svg"
+                  alt="Profile"
+                  width={20}
+                  height={20}
+                  className="opacity-40"
+                />
+              </div>
+            )}
           </div>
 
           {/* Mobile hamburger */}
@@ -98,14 +110,14 @@ export function Navbar() {
             className="md:hidden overflow-hidden border-t border-border-subtle bg-surface-overlay"
           >
             <div className="px-4 py-3 space-y-1">
-              {NAV_ITEMS.map((item) => {
+              {navItems.map((item) => {
                 const active = pathname === item.href;
                 return (
                   <Link
                     key={item.id}
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    className={`block px-3 py-2.5 rounded-xl text-sm font-semibold ${
+                    className={`block px-3 py-2.5 rounded-xl text-[1rem] font-semibold ${
                       active
                         ? "bg-gold/10 text-gold"
                         : "text-ink-muted hover:bg-surface-hover"
@@ -115,6 +127,15 @@ export function Navbar() {
                   </Link>
                 );
               })}
+              {isLanding && (
+                <div className="pt-2">
+                  <Link href="/onboarding" onClick={() => setMobileOpen(false)}>
+                    <Button variant="gold" size="md" className="w-full">
+                      Get My Plan
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

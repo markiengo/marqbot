@@ -65,7 +65,12 @@ describe("appReducer APPLY_PLANNER_SNAPSHOT", () => {
           { id: "AIM_MAJOR", label: "AIM" },
         ],
         tracks: [
-          { id: "AIM_CFA_TRACK", label: "AIM CFA", parent_major_id: "AIM_MAJOR" },
+          {
+            id: "AIM_CFA_TRACK",
+            label: "AIM CFA",
+            parent_major_id: "AIM_MAJOR",
+            required_major_id: "FIN_MAJOR",
+          },
         ],
         minors: [{ id: "MKT_MINOR", label: "Marketing" }],
         default_track_id: "FIN_MAJOR",
@@ -119,7 +124,14 @@ describe("appReducer APPLY_PLANNER_SNAPSHOT", () => {
       ],
       programs: {
         majors: [{ id: "FIN_MAJOR", label: "Finance" }],
-        tracks: [{ id: "AIM_CFA_TRACK", label: "AIM CFA", parent_major_id: "AIM_MAJOR" }],
+        tracks: [
+          {
+            id: "AIM_CFA_TRACK",
+            label: "AIM CFA",
+            parent_major_id: "AIM_MAJOR",
+            required_major_id: "FIN_MAJOR",
+          },
+        ],
         minors: [{ id: "MKT_MINOR", label: "Marketing" }],
         default_track_id: "FIN_MAJOR",
       },
@@ -149,5 +161,47 @@ describe("appReducer APPLY_PLANNER_SNAPSHOT", () => {
     expect([...next.selectedMajors]).toEqual(["FIN_MAJOR"]);
     expect(next.selectedTracks).toEqual(["AIM_CFA_TRACK"]);
     expect([...next.selectedMinors]).toEqual(["MKT_MINOR"]);
+  });
+
+  test("drops tracks whose required major is missing during snapshot restore", () => {
+    const state = {
+      ...initialState,
+      courses: [{ course_code: "ACCO 1030", course_name: "Accounting", credits: 3 }],
+      programs: {
+        majors: [{ id: "ACCO_MAJOR", label: "Accounting" }],
+        tracks: [
+          {
+            id: "AIM_CFA_TRACK",
+            label: "AIM CFA",
+            parent_major_id: "AIM_MAJOR",
+            required_major_id: "FIN_MAJOR",
+          },
+        ],
+        minors: [],
+        default_track_id: "ACCO_MAJOR",
+      },
+    };
+
+    const next = appReducer(state, {
+      type: "APPLY_PLANNER_SNAPSHOT",
+      payload: {
+        completed: ["ACCO 1030"],
+        inProgress: [],
+        targetSemester: "Fall 2026",
+        semesterCount: "2",
+        maxRecs: "4",
+        includeSummer: false,
+        canTake: "",
+        declaredMajors: ["ACCO_MAJOR"],
+        declaredTracks: ["AIM_CFA_TRACK"],
+        declaredMinors: [],
+        discoveryTheme: "",
+        activeNavTab: "saved",
+        onboardingComplete: false,
+      },
+    });
+
+    expect([...next.selectedMajors]).toEqual(["ACCO_MAJOR"]);
+    expect(next.selectedTracks).toEqual([]);
   });
 });

@@ -46,32 +46,40 @@ export function CourseCard({ course, programLabelMap }: CourseCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2, boxShadow: "0 8px 25px -5px rgba(0,0,0,0.3)" }}
-      className="bg-surface-card/80 backdrop-blur-sm rounded-2xl border border-border-subtle p-5 transition-shadow accent-left-gold"
+      whileHover={{ y: -4, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
+      className="glass-card card-glow-hover course-card-accent rounded-2xl p-6 accent-left-gold relative overflow-hidden"
+      style={{ willChange: "transform" }}
     >
+      {/* Subtle radial glow overlay */}
+      <div className="absolute inset-0 rounded-2xl pointer-events-none opacity-60" style={{
+        background: "radial-gradient(ellipse 70% 50% at 85% 10%, rgba(255, 204, 0, 0.06), transparent)"
+      }} />
+
       {/* Header */}
-      <div className="mb-3">
-        <div className="flex items-start justify-between gap-2">
+      <div className="mb-4 relative">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <span className="font-semibold text-[#7ab3ff] text-base">
+            <span className="font-bold text-mu-blue text-[1.35rem]">
               {esc(c.course_code || "")}
             </span>
             {courseName && (
               <>
                 <span className="text-ink-faint mx-1.5">&mdash;</span>
-                <span className="text-ink-primary text-base">{esc(courseName)}</span>
+                <span className="text-ink-primary text-[1.35rem]">{esc(courseName)}</span>
               </>
             )}
           </div>
-          <span className="text-lg font-bold font-[family-name:var(--font-sora)] text-gold shrink-0">
-            {c.credits || 3}<span className="text-xs font-normal text-ink-faint ml-0.5">cr</span>
-          </span>
+          <div className="shrink-0 w-11 h-11 rounded-full bg-gold/15 border border-gold/30 flex items-center justify-center pulse-gold-soft">
+            <span className="text-base font-bold text-gold" style={{ fontVariantNumeric: "tabular-nums" }}>
+              {c.credits || 3}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Bucket tags */}
       {bucketIds.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="flex flex-wrap gap-2.5 mb-5">
           {bucketIds.map((bid, idx) => {
             const isBcc = bid.includes("BCC_REQUIRED");
             const variant = isBcc
@@ -93,7 +101,7 @@ export function CourseCard({ course, programLabelMap }: CourseCardProps) {
       {/* Why recommendation */}
       {c.why && (
         <p
-          className={`text-sm leading-relaxed mb-2 ${
+          className={`text-[1.05rem] leading-relaxed mb-3 ${
             c.why.startsWith("This course advances your")
               ? "text-gold-dark font-medium"
               : "text-ink-muted"
@@ -106,21 +114,21 @@ export function CourseCard({ course, programLabelMap }: CourseCardProps) {
       {/* Prerequisites */}
       {prereqHtml && (
         <div
-          className="text-sm text-ink-secondary mb-2"
+          className="text-[1.05rem] text-ink-secondary mb-3"
           dangerouslySetInnerHTML={{ __html: prereqHtml }}
         />
       )}
 
       {/* Warnings */}
       {dedupedWarnings.length > 0 && (
-        <div className="bg-bad-light rounded-lg px-3 py-2 text-sm text-bad">
-          {dedupedWarnings.map((w) => `Warning: ${esc(w)}`).join(" \u00b7 ")}
+        <div className="bg-bad-light rounded-lg px-4 py-3 text-[1.05rem] text-bad">
+          Warning: {dedupedWarnings.map((w) => esc(w)).join("; ")}
         </div>
       )}
 
       {/* Notes */}
       {c.notes && (
-        <p className="text-sm text-ink-faint mt-2 italic">
+        <p className="text-[1.05rem] text-ink-faint mt-3 italic">
           {formatCourseNotes(c.notes)}
         </p>
       )}

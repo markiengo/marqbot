@@ -17,6 +17,7 @@ export interface Track {
   id: string;
   label: string;
   parent_major_id?: string;
+  required_major_id?: string;
 }
 
 export interface Minor {
@@ -92,6 +93,10 @@ export interface SemesterData {
 export interface RecommendationResponse {
   mode: "recommendations" | "error" | "can_take";
   semesters?: SemesterData[];
+  input_completed_courses?: string[];
+  input_in_progress_courses?: string[];
+  current_completed_courses?: string[];
+  current_in_progress_courses?: string[];
   current_progress?: Record<string, BucketProgress>;
   current_assumption_notes?: string[];
   selection_context?: SelectionContext;

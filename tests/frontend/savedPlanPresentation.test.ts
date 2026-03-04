@@ -3,7 +3,6 @@ import { describe, expect, test } from "vitest";
 import {
   buildSavedPlanProgramLine,
   getSavedPlanFreshnessCopy,
-  matchesSavedPlanQuery,
   sortSavedPlans,
 } from "../../frontend/src/lib/savedPlanPresentation";
 import type { ProgramsData, SavedPlanRecord } from "../../frontend/src/lib/types";
@@ -45,14 +44,6 @@ function makePlan(overrides: Partial<SavedPlanRecord> = {}): SavedPlanRecord {
 describe("savedPlanPresentation", () => {
   test("builds the program summary line from labels", () => {
     expect(buildSavedPlanProgramLine(makePlan(), programs)).toBe("Finance / Fintech");
-  });
-
-  test("matches saved plans across names, notes, and program labels", () => {
-    const plan = makePlan();
-    expect(matchesSavedPlanQuery(plan, programs, "summer")).toBe(true);
-    expect(matchesSavedPlanQuery(plan, programs, "finance")).toBe(true);
-    expect(matchesSavedPlanQuery(plan, programs, "acco 1030")).toBe(true);
-    expect(matchesSavedPlanQuery(plan, programs, "biology")).toBe(false);
   });
 
   test("sorts by name and date in stable directions", () => {

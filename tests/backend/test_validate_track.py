@@ -7,7 +7,9 @@ All fixtures are synthetic â€” no real Marquette data is used.
 import pytest
 import pandas as pd
 
-from validate_track import validate_track, ValidationResult
+from pathlib import Path
+
+from validate_track import validate_track, ValidationResult, main
 
 
 # â”€â”€ Shared helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -582,3 +584,10 @@ class TestV2SubBucketCoursesRequiredSatisfiable:
         v2_sub = pd.DataFrame([self._sub_bucket("SB1", 0)])
         result = _run_v2("FIN_MAJOR", v2_sub_buckets=v2_sub)
         assert not any("SB1" in w and "requires" in w for w in result.warnings)
+
+
+def test_validate_all_tracks_live():
+    """Run the real validate_track CLI against the checked-in data directory."""
+    data_dir = Path(__file__).resolve().parents[2] / "data"
+    exit_code = main(["--all", "--path", str(data_dir)])
+    assert exit_code == 0

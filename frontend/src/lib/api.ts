@@ -24,6 +24,7 @@ export async function loadPrograms(): Promise<ProgramsData> {
       id: t.track_id ?? t.id,
       label: t.label,
       parent_major_id: t.parent_major_id,
+      required_major_id: t.required_major_id,
     })),
     minors: (data.minors ?? []).map((m: Record<string, unknown>) => ({
       id: String(m.minor_id || m.id || ""),

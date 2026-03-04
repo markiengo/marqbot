@@ -14,8 +14,10 @@ import {
   getSavedPlanFreshnessCopy,
   resolveProgramLabels,
 } from "@/lib/savedPlanPresentation";
+import { RecommendationsPanel } from "@/components/planner/RecommendationsPanel";
+import { SemesterModal } from "@/components/planner/SemesterModal";
 import { FreshnessBadge } from "./FreshnessBadge";
-import { SavedPlanSnapshot } from "./SavedPlanSnapshot";
+import type { SemesterData } from "@/lib/types";
 
 export function SavedPlanDetailPage({ planId }: { planId: string }) {
   const router = useRouter();
@@ -31,12 +33,13 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [isEditingMeta, setIsEditingMeta] = useState(false);
+  const [semesterModalIdx, setSemesterModalIdx] = useState<number | null>(null);
 
   const plan = loadPlan(planId);
   const freshness = plan ? getFreshness(plan) : "missing";
   const freshnessCopy = getSavedPlanFreshnessCopy(freshness);
 
-  // Sync form fields when the plan record becomes available
   useEffect(() => {
     if (!plan) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -66,6 +69,22 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
     () => (plan ? resolveProgramLabels(plan.inputs.declaredMinors, programs.minors) : []),
     [plan, programs.minors],
   );
+  const programLabelMap = useMemo(() => {
+    const map = new Map<string, string>();
+    programs.majors.forEach((item) => map.set(item.id, item.label));
+    programs.tracks.forEach((item) => map.set(item.id, item.label));
+    programs.minors.forEach((item) => map.set(item.id, item.label));
+    return map;
+  }, [programs]);
+  const programOrder = useMemo(
+    () => (plan ? [...plan.inputs.declaredMajors, ...plan.inputs.declaredTracks, ...plan.inputs.declaredMinors] : []),
+    [plan],
+  );
+  const recommendationData = plan?.recommendationData ?? null;
+  const modalSemester =
+    semesterModalIdx !== null
+      ? recommendationData?.semesters?.[semesterModalIdx] ?? null
+      : null;
 
   const handleRetry = () => {
     if (!courses.length) retryCourses();
@@ -97,6 +116,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
       return;
     }
     setFormError(null);
+    setIsEditingMeta(false);
   };
 
   const handleDelete = () => {
@@ -111,9 +131,9 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
 
   if (!hydrated || isLoading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin mx-auto" />
+      <div className="bg-orbs min-h-[calc(100vh-4rem)] flex items-center justify-center">
+        <div className="text-center space-y-4 glass-card rounded-2xl px-8 py-6">
+          <div className="w-10 h-10 border-2 border-gold/60 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-ink-muted">Loading saved plan...</p>
         </div>
       </div>
@@ -123,7 +143,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
   if (bootstrapError) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
-        <div className="max-w-md text-center space-y-4 rounded-3xl border border-border-subtle bg-surface-card/80 p-6">
+        <div className="max-w-md text-center space-y-4 rounded-3xl glass-card p-6">
           <h1 className="text-2xl font-semibold text-ink-primary">Could not load plan detail</h1>
           <p className="text-sm text-ink-muted">{bootstrapError}</p>
           <Button variant="gold" onClick={handleRetry}>Try Again</Button>
@@ -135,8 +155,8 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
   if (!plan) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
-        <div className="max-w-xl rounded-[28px] border border-border-subtle bg-surface-card/80 p-8 text-center space-y-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-gold">Saved / Detail</p>
+        <div className="max-w-xl rounded-[28px] glass-card p-8 text-center space-y-4">
+          <p className="section-kicker justify-center">Saved / Detail</p>
           <h1 className="text-3xl font-semibold text-ink-primary">Plan not found</h1>
           <p className="text-sm text-ink-secondary">
             This local saved-plan record is missing. It may have been deleted in another tab.
@@ -150,143 +170,224 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1500px] px-4 py-6 md:px-6 md:py-8">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)]">
-        <section className="relative overflow-hidden rounded-[30px] border border-border-subtle bg-[linear-gradient(155deg,rgba(8,24,47,.98),rgba(10,34,64,.92)_55%,rgba(26,21,8,.82))] p-6 shadow-[0_32px_100px_rgba(0,0,0,0.28)]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.16),transparent_28%),repeating-linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.03)_1px,transparent_1px,transparent_18px)] opacity-70" />
-          <div className="relative space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="space-y-2">
-                <Link href="/saved" className="inline-flex text-xs uppercase tracking-[0.28em] text-gold/80 hover:text-gold">
-                  Saved Library
-                </Link>
-                <h1 className="max-w-[14ch] text-4xl font-semibold leading-[0.95] text-ink-primary">
-                  {plan.name}
-                </h1>
-              </div>
-              <FreshnessBadge freshness={freshness} />
-            </div>
+    <>
+      <div className="planner-shell bg-orbs h-[calc(100vh-4rem)] min-h-0 overflow-hidden">
+        <div className="planner-columns">
+          <section className="planner-panel planner-left relative overflow-hidden">
+            <div className="absolute inset-0 bg-[linear-gradient(155deg,rgba(6,18,38,0.99),rgba(9,34,66,0.96)_52%,rgba(34,24,8,0.9))]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.22),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(0,114,206,0.18),transparent_30%),repeating-linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.045)_1px,transparent_1px,transparent_16px)] opacity-90" />
+            <div className="relative h-full min-h-0 flex flex-col gap-2 overflow-hidden">
+              <div className="shrink-0 rounded-xl glass-card shine-sweep shadow-[inset_0_1px_0_rgba(122,179,255,0.08)] p-4 overflow-hidden">
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="space-y-2">
+                      <Link href="/saved" className="section-kicker hover:text-gold transition-colors">
+                        Saved Library
+                      </Link>
+                      <h3 className="max-w-[22ch] text-[10px] font-semibold leading-[1.2] text-ink-primary">
+                        {plan.name}
+                      </h3>
+                    </div>
+                    <FreshnessBadge freshness={freshness} />
+                  </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-border-subtle bg-black/15 p-4">
-                <p className="text-[11px] uppercase tracking-[0.25em] text-ink-faint">Snapshot</p>
-                <p className="mt-2 text-xl font-semibold text-ink-primary">{freshnessCopy.label}</p>
-                <p className="mt-2 text-sm text-ink-secondary">{freshnessCopy.reason}</p>
-              </div>
-              <div className="rounded-2xl border border-border-subtle bg-black/15 p-4">
-                <p className="text-[11px] uppercase tracking-[0.25em] text-ink-faint">Updated</p>
-                <p className="mt-2 text-xl font-semibold text-ink-primary">{formatSavedPlanDate(plan.updatedAt)}</p>
-                <p className="mt-2 text-sm text-ink-secondary">
-                  Created {formatSavedPlanDate(plan.createdAt, { month: "short", day: "numeric" })}
-                </p>
-              </div>
-            </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="relative overflow-hidden rounded-2xl glass-card stat-card-decor kpi-glow-gold p-4">
+                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,204,0,0.09),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(0,114,206,0.07),transparent_50%)] pointer-events-none" />
+                      <p className="relative z-[1] text-[11px] uppercase tracking-[0.25em] text-ink-faint">Snapshot</p>
+                      <p className="relative z-[1] mt-2 text-xl font-semibold text-ink-primary">{freshnessCopy.label}</p>
+                      <p className="relative z-[1] mt-2 text-sm text-ink-secondary">{freshnessCopy.reason}</p>
+                    </div>
+                    <div className="relative overflow-hidden rounded-2xl glass-card stat-card-decor kpi-glow-gold p-4">
+                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(0,114,206,0.08),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(255,204,0,0.07),transparent_50%)] pointer-events-none" />
+                      <p className="relative z-[1] text-[11px] uppercase tracking-[0.25em] text-ink-faint">Updated</p>
+                      <p className="relative z-[1] mt-2 text-xl font-semibold text-ink-primary">{formatSavedPlanDate(plan.updatedAt)}</p>
+                      <p className="relative z-[1] mt-2 text-sm text-ink-secondary">
+                        Created {formatSavedPlanDate(plan.createdAt, { month: "short", day: "numeric" })}
+                      </p>
+                    </div>
+                  </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-2xl border border-border-subtle bg-[#07162d]/75 p-4">
-                <p className="text-[11px] uppercase tracking-[0.25em] text-ink-faint">Program</p>
-                <div className="mt-3 space-y-2 text-sm text-ink-secondary">
-                  <p>{majorLabels.length > 0 ? majorLabels.join(", ") : "No major saved"}</p>
-                  <p>{trackLabels.length > 0 ? trackLabels.join(", ") : "No track saved"}</p>
-                  <p>{minorLabels.length > 0 ? minorLabels.join(", ") : "No minors saved"}</p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="relative overflow-hidden rounded-2xl glass-card p-4">
+                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,114,206,0.07),transparent_60%),linear-gradient(160deg,rgba(255,255,255,0.03),transparent_40%)] pointer-events-none" />
+                      <p className="relative z-[1] text-[11px] uppercase tracking-[0.25em] text-ink-faint">Program</p>
+                      <div className="relative z-[1] mt-3 space-y-2 text-sm text-ink-secondary">
+                        <p>{majorLabels.length > 0 ? majorLabels.join(", ") : "No major saved"}</p>
+                        <p>{trackLabels.length > 0 ? trackLabels.join(", ") : "No track saved"}</p>
+                        <p>{minorLabels.length > 0 ? minorLabels.join(", ") : "No minors saved"}</p>
+                      </div>
+                    </div>
+                    <div className="relative overflow-hidden rounded-2xl glass-card p-4">
+                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(255,204,0,0.06),transparent_55%),linear-gradient(160deg,rgba(255,255,255,0.03),transparent_40%)] pointer-events-none" />
+                      <p className="relative z-[1] text-[11px] uppercase tracking-[0.25em] text-ink-faint">Planner Settings</p>
+                      <div className="relative z-[1] mt-3 grid grid-cols-2 gap-3 text-sm text-ink-secondary">
+                        <div>
+                          <p className="text-ink-faint">Target</p>
+                          <p>{plan.inputs.targetSemester}</p>
+                        </div>
+                        <div>
+                          <p className="text-ink-faint">Semesters</p>
+                          <p>{plan.inputs.semesterCount}</p>
+                        </div>
+                        <div>
+                          <p className="text-ink-faint">Max per term</p>
+                          <p>{plan.inputs.maxRecs}</p>
+                        </div>
+                        <div>
+                          <p className="text-ink-faint">Summer</p>
+                          <p>{plan.inputs.includeSummer ? "Included" : "Skipped"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3 pt-1">
+                    <Button variant="gold" onClick={handleResume} className="shadow-[0_0_24px_rgba(255,204,0,0.22)] pulse-gold-soft">Resume in Planner</Button>
+                    <Link href="/saved" className="inline-flex">
+                      <Button variant="secondary">Back to Library</Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
-              <div className="rounded-2xl border border-border-subtle bg-[#07162d]/75 p-4">
-                <p className="text-[11px] uppercase tracking-[0.25em] text-ink-faint">Planner Settings</p>
-                <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-ink-secondary">
-                  <div>
-                    <p className="text-ink-faint">Target</p>
-                    <p>{plan.inputs.targetSemester}</p>
+
+              <div className="relative flex-1 min-h-0 rounded-[28px] glass-card p-6 shadow-[0_24px_80px_rgba(0,0,0,0.2)] overflow-hidden">
+                <div className="absolute inset-0 rounded-[28px] bg-[radial-gradient(ellipse_60%_40%_at_80%_10%,rgba(255,204,0,0.05),transparent),radial-gradient(ellipse_50%_50%_at_10%_90%,rgba(0,114,206,0.06),transparent),linear-gradient(175deg,rgba(255,255,255,0.02),transparent_30%)] pointer-events-none" />
+                <div className="relative z-[1] flex items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <p className="section-kicker">Plan Details</p>
+                    <h3 className="max-w-[22ch] text-[10px] font-semibold leading-[1.2] text-ink-primary">Plan name and notes</h3>
+                    <p className="text-sm text-ink-faint">
+                      Update the title and context for this saved plan without changing the saved recommendation snapshot.
+                    </p>
                   </div>
-                  <div>
-                    <p className="text-ink-faint">Semesters</p>
-                    <p>{plan.inputs.semesterCount}</p>
-                  </div>
-                  <div>
-                    <p className="text-ink-faint">Max per term</p>
-                    <p>{plan.inputs.maxRecs}</p>
-                  </div>
-                  <div>
-                    <p className="text-ink-faint">Summer</p>
-                    <p>{plan.inputs.includeSummer ? "Included" : "Skipped"}</p>
+                  {!isEditingMeta ? (
+                    <Button variant="secondary" size="sm" onClick={() => setIsEditingMeta(true)}>
+                      Edit
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setName(plan.name);
+                        setNotes(plan.notes);
+                        setFormError(null);
+                        setIsEditingMeta(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+
+                <div className="relative z-[1] mt-5 space-y-4">
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-ink-primary">Plan name</span>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      disabled={!isEditingMeta}
+                      className="w-full rounded-2xl border border-border-medium bg-surface-input/80 backdrop-blur-sm px-4 py-3 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors disabled:opacity-70"
+                    />
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-ink-primary">Notes</span>
+                    <textarea
+                      rows={4}
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value)}
+                      disabled={!isEditingMeta}
+                      className="w-full rounded-2xl border border-border-medium bg-surface-input/80 backdrop-blur-sm px-4 py-3 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors disabled:opacity-70"
+                      placeholder="Context like recruiter-heavy semester, transfer-credit version, or summer-heavy draft."
+                    />
+                  </label>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <Button variant="ghost" className="text-bad hover:bg-bad-light/25" onClick={handleDelete}>
+                        Delete Plan
+                      </Button>
+                      <p className="text-sm text-ink-faint">
+                        Snapshot data stays attached unless you regenerate this plan in Planner.
+                      </p>
+                    </div>
+                    {isEditingMeta && (
+                      <Button variant="gold" onClick={handleSaveMeta} disabled={!name.trim()}>
+                        Save Changes
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Button variant="gold" onClick={handleResume}>Resume in Planner</Button>
-              <Link href="/saved" className="inline-flex">
-                <Button variant="secondary">Back to Library</Button>
-              </Link>
+              {(storageError || formError) && (
+                <div className="rounded-2xl border border-bad/20 bg-bad-light px-4 py-3 text-sm text-bad">
+                  {formError || storageError}
+                </div>
+              )}
             </div>
+          </section>
 
-            {(storageError || formError) && (
-              <div className="rounded-2xl border border-bad/20 bg-bad-light px-4 py-3 text-sm text-bad">
-                {formError || storageError}
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <div className="rounded-[28px] border border-border-subtle bg-surface-card/80 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.2)]">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-gold">Metadata</p>
-                <h2 className="mt-2 text-2xl font-semibold text-ink-primary">Edit labels, keep the snapshot</h2>
-              </div>
-              <Button variant="ghost" className="text-bad hover:bg-bad-light/25" onClick={handleDelete}>
-                Delete
-              </Button>
-            </div>
-            <div className="mt-5 space-y-4">
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-ink-primary">Plan name</span>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  className="w-full rounded-2xl border border-border-medium bg-surface-input px-4 py-3 text-sm text-ink-primary"
-                />
-              </label>
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-ink-primary">Notes</span>
-                <textarea
-                  rows={4}
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  className="w-full rounded-2xl border border-border-medium bg-surface-input px-4 py-3 text-sm text-ink-primary"
-                  placeholder="Context like recruiter-heavy semester, transfer-credit version, or summer-heavy draft."
-                />
-              </label>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-ink-faint">
-                  Snapshot data stays attached unless you regenerate this plan in Planner.
+          <section className="planner-panel planner-right relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_90%_10%,rgba(0,114,206,0.08),transparent),radial-gradient(ellipse_60%_40%_at_10%_80%,rgba(255,204,0,0.05),transparent)] pointer-events-none" />
+            <div className="relative h-full min-h-0 flex flex-col">
+              <div className="mb-2">
+                <p className="section-kicker">
+                  Saved snapshot. Same planner layout, frozen in time.
                 </p>
-                <Button variant="gold" onClick={handleSaveMeta} disabled={!name.trim()}>
-                  Save Metadata
-                </Button>
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
+                    Saved semester preview.
+                  </h3>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="rounded-[28px] border border-border-subtle bg-surface-card/80 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.2)]">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-gold">Snapshot Preview</p>
-                <h2 className="mt-2 text-2xl font-semibold text-ink-primary">Semester preview</h2>
-              </div>
-              <p className="max-w-md text-sm text-ink-faint">
-                This remains viewable even when stale so you can compare old planning assumptions before resuming.
-              </p>
+              {recommendationData ? (
+                <div className="flex-1 min-h-0">
+                  <RecommendationsPanel
+                    data={recommendationData}
+                    onExpandSemester={setSemesterModalIdx}
+                  />
+                </div>
+              ) : (
+                <div className="relative flex flex-col items-center justify-center h-full text-center px-4 py-8 space-y-4">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,204,0,0.04),transparent_60%)] pointer-events-none" />
+                  <div className="relative w-16 h-16 glass-card rounded-2xl flex items-center justify-center float-soft">
+                    <svg className="w-8 h-8 text-gold/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      />
+                    </svg>
+                  </div>
+                  <div className="relative">
+                    <p className="section-kicker justify-center mb-2">No Snapshot</p>
+                    <h2 className="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
+                      No saved recommendation snapshot.
+                    </h2>
+                    <p className="text-sm text-ink-faint mt-1 max-w-sm">
+                      Save a plan after generating recommendations in Planner to see the semester layout here.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="mt-5">
-              <SavedPlanSnapshot plan={plan} courses={courses} programs={programs} />
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
-    </div>
+
+      <SemesterModal
+        open={semesterModalIdx !== null && modalSemester !== null}
+        onClose={() => setSemesterModalIdx(null)}
+        semester={modalSemester as SemesterData | null}
+        index={semesterModalIdx ?? 0}
+        requestedCount={Number(plan.inputs.maxRecs) || 3}
+        programLabelMap={programLabelMap}
+        programOrder={programOrder}
+      />
+    </>
   );
 }

@@ -358,4 +358,156 @@ If a line of copy sounds like:
 
 ---
 
+# 11. Research Notes: Audience + Decision Rationale
+
+This section records the reasoning behind the current homepage and onboarding language choices.
+
+The goal is not to sound more startup. The goal is to:
+
+- make the value obvious fast
+- reduce first-use friction
+- get students to the useful output quickly
+- keep personality without slowing comprehension
+
+---
+
+## Audience Insights
+
+The current target audience behaves like this:
+
+- They are stressed, busy, and trying to avoid a bad registration decision.
+- They scan first and read second.
+- They do not want a lecture before they get value.
+- They trust plain language more than polished jargon.
+- They respond well to dry humor, but only after the point is clear.
+- They care about "what do I take next?" more than "how sophisticated is the engine?"
+
+Implication:
+
+- Lead with the outcome.
+- Use student words like "classes," "major," and "plan."
+- Push proof right after the promise.
+- Keep the witty line as a garnish, not the main course.
+
+---
+
+## What The Research Suggested
+
+Across YC messaging advice and Demand Curve / TechCrunch guidance, the recurring pattern was:
+
+1. Say what the product does in plain English.
+2. Make the benefit obvious immediately.
+3. Reduce the number of decisions before the user sees value.
+4. Use specific CTAs instead of vague ones.
+5. Treat onboarding as a fast path to the "aha" moment, not a mini-tour.
+
+In plain terms for MarqBot:
+
+- "Pick your major. Add your classes. Get your plan." beats clever copy that needs decoding.
+- "Show My Plan" beats a vague CTA when the final action matters.
+- Short setup steps feel safer than dense explanations.
+- Students should feel like they are already in the tool, not being sold to inside onboarding.
+
+---
+
+## Wording Decisions
+
+These wording choices are intentional:
+
+- Use "classes" more often than "courses" on first-touch screens.
+- Use "plan" instead of internal system language.
+- Use "major" before "track" and "concentration" because that matches how students think.
+- Put explanation after the headline, not inside it.
+- Keep humor to one light hit per block at most.
+
+Why:
+
+- Average students process concrete school words faster.
+- The job-to-be-done is practical, not aspirational.
+- Overly smart-sounding language makes the product feel less trustworthy, not more.
+- Witty lines work better when they confirm the point instead of replacing it.
+
+Examples of the shift:
+
+- Better: "Add what you've already finished."
+- Worse: "Input your academic history."
+
+- Better: "Tell MarqBot what kind of plan you want."
+- Worse: "Configure recommendation preferences."
+
+- Better: "That program needs a primary major too."
+- Worse: "This major must be paired with a primary major to proceed."
+
+---
+
+## Onboarding Design Decisions
+
+The current onboarding structure is designed around speed and stability:
+
+- Keep each step visually focused on entry, not explanation.
+- Use compact side guidance on desktop instead of a large header stack.
+- Let internal UI pieces scroll before the full page scrolls.
+- Keep the step count visible so users know the finish line.
+- Use color emphasis only on key words that matter to decision-making.
+- Use motion as signposting, not decoration-only theater.
+
+Specific rationale:
+
+- Desktop side rail:
+  Keeps context visible without taking vertical space away from the form.
+
+- Compact step headers:
+  Reinforces the job of the screen without creating a second homepage above the form.
+
+- Capped chip areas in course entry:
+  Users can add many classes without blowing up the entire page height.
+
+- Internal dropdown limits:
+  Search results stay usable on shorter laptop screens.
+
+- Gold / blue emphasis on a few words:
+  Helps scanning and tells the eye where the important decision is.
+
+- Short transitions and floating accents:
+  Make the flow feel modern and alive, but do not slow input.
+
+---
+
+## Messaging Guardrails From This Research
+
+For future homepage, onboarding, and planner copy:
+
+- Clarity first. Always.
+- Outcome before mechanism.
+- Keep proof concrete, not inflated.
+- One joke max per block.
+- If a line sounds clever but slows understanding, cut it.
+- If a label sounds like admin software, rewrite it.
+
+Default copy order:
+
+1. What this screen does
+2. What the student should enter or decide
+3. Why it matters
+4. Reassurance that it is quick or editable
+
+---
+
+## Source Notes
+
+These decisions were informed primarily by:
+
+- YC Library, "How to Launch a Startup"
+- YC Library, "How to Pitch Your Startup"
+- TechCrunch / Demand Curve, "How to Write Home Page CTAs That Get More Clicks"
+- Demand Curve / TechCrunch onboarding guidance emphasizing faster activation, reduced friction, and earlier value moments
+
+Interpretation rule:
+
+- YC was most useful for "say it simply and fast."
+- Demand Curve / TechCrunch was most useful for CTA clarity and activation framing.
+- Founder-style video advice reviewed during this pass matched the same pattern: get to value quickly, do not make onboarding feel like homework.
+
+---
+
 End of file.

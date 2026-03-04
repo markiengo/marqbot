@@ -8,6 +8,29 @@ Format per release:
 
 ---
 
+## [v2.2.1] - 2026-03-04
+
+### Changes
+
+**Saved Plans is now live**
+- You can save recommendation runs, reopen them later, and compare plan snapshots without rerunning onboarding each time.
+- Saved plan pages now show clearer progress KPIs so alternatives are easier to compare before registration.
+
+**Planner progress display is more consistent**
+- Progress cards, modal views, and bucket breakdowns were refactored to use shared rendering components.
+- Assumption notes are surfaced in the progress modal so inferred prerequisite chains are visible to users.
+
+**Program data rules are stricter**
+- Program metadata now supports explicit default-major selection and required-major gating for dependent tracks.
+- Course/catalog and validation updates tighten recommendation behavior around program constraints.
+
+### Design Decisions
+- Saved-plan UX was implemented as reusable components so planner and saved views share the same progress semantics.
+- Program selection logic is now data-driven from `parent_buckets.csv` (`required_major`, `is_default`) to reduce hardcoded behavior.
+- Focused API-contract and rendering tests were prioritized for closeout speed while preserving high-risk coverage.
+
+---
+
 ## [v2.2.0] - 2026-03-03
 
 ### Changes

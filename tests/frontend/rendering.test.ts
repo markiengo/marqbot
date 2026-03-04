@@ -7,6 +7,7 @@ import {
   deriveStandingFromCredits,
   getProgramLabelMap,
   groupProgressByParent,
+  groupProgressByTierWithMajors,
   groupProgressByTierSections,
   sortProgressEntries,
   sumCreditsForCourseCodes,
@@ -89,6 +90,52 @@ describe("rendering.groupProgressByTierSections", () => {
       "Business Core (BCC)",
       "Major Requirements",
       "Tracks & Minors",
+    ]);
+  });
+});
+
+describe("rendering.groupProgressByTierWithMajors", () => {
+  test("puts core-labeled buckets first within a major subgroup", () => {
+    const sections = groupProgressByTierWithMajors(
+      {
+        "ACCO_MAJOR::acco-choose-2": {
+          needed: 2,
+          completed_done: 0,
+          recommendation_tier: 2,
+          label: "ACCO: Choose 2",
+        },
+        "ACCO_MAJOR::acco-electives": {
+          needed: 6,
+          completed_done: 0,
+          recommendation_tier: 2,
+          label: "ACCO: 2 Business Electives (6 credits)",
+        },
+        "ACCO_MAJOR::acco-req-core": {
+          needed: 7,
+          completed_done: 0,
+          recommendation_tier: 2,
+          label: "ACCO: ACCO Core Requirements",
+        },
+        "MARK_MAJOR::mark-elective": {
+          needed: 3,
+          completed_done: 0,
+          recommendation_tier: 2,
+          label: "Marketing: Choose 3",
+        },
+      },
+      new Map([
+        ["ACCO_MAJOR", "Accounting"],
+        ["MARK_MAJOR", "Marketing"],
+      ]),
+      ["ACCO_MAJOR", "MARK_MAJOR"],
+    );
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0].subGroups).toHaveLength(2);
+    expect(sections[0].subGroups?.[0].entries.map(([bucketId]) => bucketId)).toEqual([
+      "ACCO_MAJOR::acco-req-core",
+      "ACCO_MAJOR::acco-choose-2",
+      "ACCO_MAJOR::acco-electives",
     ]);
   });
 });

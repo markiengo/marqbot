@@ -54,23 +54,6 @@ export function getSavedPlanFreshnessCopy(freshness: SavedPlanFreshness): { labe
   }
 }
 
-export function matchesSavedPlanQuery(plan: SavedPlanRecord, programs: ProgramsData, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  const haystack = [
-    plan.name,
-    plan.notes,
-    plan.inputs.targetSemester,
-    ...resolveProgramLabels(plan.inputs.declaredMajors, programs.majors),
-    ...resolveProgramLabels(plan.inputs.declaredTracks, programs.tracks),
-    ...plan.inputs.completed,
-    ...plan.inputs.inProgress,
-  ]
-    .join(" ")
-    .toLowerCase();
-  return haystack.includes(q);
-}
-
 export function sortSavedPlans(plans: SavedPlanRecord[], sort: "recent" | "oldest" | "name"): SavedPlanRecord[] {
   const next = plans.slice();
   if (sort === "name") {
