@@ -173,10 +173,10 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
     <>
       <div className="planner-shell bg-orbs h-[calc(100vh-4rem)] min-h-0 overflow-hidden">
         <div className="planner-columns">
-          <section className="planner-panel planner-left relative overflow-hidden">
+          <section className="planner-panel planner-left relative">
             <div className="absolute inset-0 bg-[linear-gradient(155deg,rgba(6,18,38,0.99),rgba(9,34,66,0.96)_52%,rgba(34,24,8,0.9))]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.22),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(0,114,206,0.18),transparent_30%),repeating-linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.045)_1px,transparent_1px,transparent_16px)] opacity-90" />
-            <div className="relative h-full min-h-0 flex flex-col gap-2 overflow-hidden">
+            <div className="relative min-h-0 flex flex-col gap-2">
               <div className="shrink-0 rounded-xl glass-card shine-sweep shadow-[inset_0_1px_0_rgba(122,179,255,0.08)] p-4 overflow-hidden">
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -251,7 +251,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
                 </div>
               </div>
 
-              <div className="relative flex-1 min-h-0 rounded-[28px] glass-card p-6 shadow-[0_24px_80px_rgba(0,0,0,0.2)] overflow-hidden">
+              <div className="relative rounded-[28px] glass-card p-6 shadow-[0_24px_80px_rgba(0,0,0,0.2)] overflow-hidden">
                 <div className="absolute inset-0 rounded-[28px] bg-[radial-gradient(ellipse_60%_40%_at_80%_10%,rgba(255,204,0,0.05),transparent),radial-gradient(ellipse_50%_50%_at_10%_90%,rgba(0,114,206,0.06),transparent),linear-gradient(175deg,rgba(255,255,255,0.02),transparent_30%)] pointer-events-none" />
                 <div className="relative z-[1] flex items-start justify-between gap-3">
                   <div className="space-y-2">
