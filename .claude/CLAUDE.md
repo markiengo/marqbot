@@ -87,7 +87,7 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 
 # Branch Strategy
 - Two branches: `main` (pushed to remote, clean) and `local` (never pushed, superset of main).
-- `local` branch tracks local-only files: `.claude/`, `todo.md`, `docs/branding.md`, `docs/data_injection_stage1.md`, `docs/data_injection_stage2.md`, `docs/session_end.md`.
+- `local` branch tracks local-only files, including `.claude/CLAUDE.md` and all docs except `docs/CHANGELOG.md`, `docs/PRD.md`, and `docs/data_model.md`.
 - `local`'s `.gitignore` does NOT list the above paths; `main`'s does.
 - Always work on `local`. To push: checkout `main`, merge `local`, restore/unstage local-only files, push, return to `local`. Or: commit pushable work on `main` directly, then `git checkout local && git merge main`.
 - **Never push the `local` branch to remote.**
@@ -104,7 +104,8 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - Never define React components inside render functions (move to module scope or a separate file).
 - Never define helper functions in multiple backend modules — import from the canonical source (e.g., `_safe_int` from `allocator`).
 - Never push the `local` branch to remote.
-- Inside docs, only push `changelog.md` and `data_model.md`. Everything else stays on `local` only.
+- Inside `docs/`, only push `docs/CHANGELOG.md`, `docs/PRD.md`, and `docs/data_model.md`.
+- Keep `.claude/CLAUDE.md` local-only (offline), never pushed to `main`.
 
 # Quip System
 - `data/quips.csv` is the source of truth for contextual one-liners shown in Progress and Semester modals. ~500 messages across dimension slots and compound conditions.

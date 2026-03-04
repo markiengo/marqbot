@@ -16,14 +16,17 @@ Keep user-facing writing simple enough for a student to understand.
   - Add a new top entry for user-visible changes.
 - `README.md`
   - Update if setup, commands, pages, or user workflow changed.
+- `docs/PRD.md`
+  - Update if product behavior, scope, or user-facing requirements changed.
 - `docs/data_model.md`
   - Update if data shape, buckets, or program modeling changed.
 - `.claude/CLAUDE.md`
-  - Add important repo rules, user preferences, or decisions from the session.
+  - Add important repo rules, user preferences, or decisions from the session (local-only, do not push).
 
 ### Important push rule
 - Inside `docs/`, only push:
   - `docs/CHANGELOG.md`
+  - `docs/PRD.md`
   - `docs/data_model.md`
 - Keep other docs local-only unless the user clearly asks otherwise.
 
@@ -55,7 +58,7 @@ Keep user-facing writing simple enough for a student to understand.
 
 ## 5) Keep the push clean
 - Do not push local-only files such as:
-  - `.claude/`
+  - `.claude/CLAUDE.md`
   - `todo.md`
   - `docs/branding.md`
   - `docs/data_injection_stage1.md`

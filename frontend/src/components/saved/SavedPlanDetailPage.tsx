@@ -329,7 +329,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
             </div>
           </section>
 
-          <section className="planner-panel planner-right relative overflow-hidden">
+          <section className="planner-panel planner-right relative">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_90%_10%,rgba(0,114,206,0.08),transparent),radial-gradient(ellipse_60%_40%_at_10%_80%,rgba(255,204,0,0.05),transparent)] pointer-events-none" />
             <div className="relative h-full min-h-0 flex flex-col">
               <div className="mb-2">
