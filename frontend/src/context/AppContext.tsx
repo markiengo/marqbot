@@ -11,8 +11,13 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+interface AppProviderProps {
+  children: React.ReactNode;
+  initialStateValue?: AppState;
+}
+
+export function AppProvider({ children, initialStateValue }: AppProviderProps) {
+  const [state, dispatch] = useReducer(appReducer, initialStateValue ?? initialState);
   return (
     <AppContext.Provider value={{ state, dispatch }}>
       {children}

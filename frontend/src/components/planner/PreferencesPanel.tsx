@@ -9,11 +9,16 @@ import {
 } from "@/lib/constants";
 
 interface PreferencesPanelProps {
-  onSubmit: () => void;
-  loading: boolean;
+  onSubmit?: () => void;
+  loading?: boolean;
+  submitLabel?: string;
 }
 
-export function PreferencesPanel({ onSubmit, loading }: PreferencesPanelProps) {
+export function PreferencesPanel({
+  onSubmit,
+  loading = false,
+  submitLabel = "Get My Plan",
+}: PreferencesPanelProps) {
   const { state, dispatch } = useAppContext();
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
 
@@ -111,29 +116,31 @@ export function PreferencesPanel({ onSubmit, loading }: PreferencesPanelProps) {
         </button>
       </div>
 
-      <div className="pt-2">
-        <Button
-          variant="gold"
-          size="md"
-          onClick={onSubmit}
-          disabled={loading || !hasProgram}
-          className="w-full shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-navy border-t-transparent rounded-full animate-spin" />
-              Loading...
-            </span>
-          ) : (
-            "Get My Plan"
+      {onSubmit !== undefined && (
+        <div className="pt-2">
+          <Button
+            variant="gold"
+            size="md"
+            onClick={onSubmit}
+            disabled={loading || !hasProgram}
+            className="w-full shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+                Loading...
+              </span>
+            ) : (
+              submitLabel
+            )}
+          </Button>
+          {!hasProgram && (
+            <p className="text-xs text-ink-faint text-center mt-2">
+              Select a major or track above to get started
+            </p>
           )}
-        </Button>
-        {!hasProgram && (
-          <p className="text-xs text-ink-faint text-center mt-2">
-            Select a major or track above to get started
-          </p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

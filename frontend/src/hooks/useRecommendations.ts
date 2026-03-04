@@ -13,7 +13,6 @@ export function useRecommendations() {
 
   const fetchRecommendations = useCallback(async () => {
     const id = ++reqId.current;
-    dispatch({ type: "CLEAR_RECOMMENDATIONS" });
     setLoading(true);
     setError(null);
 
