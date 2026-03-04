@@ -369,6 +369,25 @@ MarqBot's planner is deterministic and data-driven -- great for accuracy, but st
 
 **Cost**: gpt-4o-mini at $0.15/1M input + $0.60/1M output. A full 20-message session costs <$0.01. At estimated scale (50-200 users/month, ~5 sessions each), total monthly cost is **~$0.50-$2.00**.
 
+### Known Data Gap: No Course Descriptions
+
+`courses.csv` has a `description` column but it is **currently empty for all courses**. This means the AI Advisor launches with a significant blind spot:
+
+- **What it knows**: course codes, names, credits, prereq chains, bucket mappings, offering semesters, and the student's progress against those buckets.
+- **What it does NOT know**: what a course actually covers, what skills it teaches, or what careers it connects to.
+
+**Impact on AI quality**: Career-oriented questions like *"I want to be an investment banker — what should I take?"* or *"Which elective teaches Excel modeling?"* will get structurally correct but shallow answers. The AI can say "FINA 3001 is required for your Finance major" but cannot say "FINA 3001 covers time value of money, bond pricing, and DCF analysis." It can point to the right buckets but can't explain *why* a course matters beyond degree completion.
+
+**Mitigation in v2.3 (this release)**:
+- System prompt explicitly tells the AI: "You do not have course descriptions. Do not fabricate what a course covers. If a student asks what a course teaches or which courses fit a career goal, say you only know degree structure and recommend they check the Marquette course catalog or ask their advisor for content details."
+- The AI can still give useful structural advice: prereq order, what counts toward which requirement, scheduling strategy, double-count opportunities.
+
+**Fix (future data injection)**:
+- Populate `description` column in `courses.csv` with 1-2 sentence catalog descriptions for business courses (~200 courses).
+- Once descriptions exist, inject them into the student context sent to the AI (append to `_format_student_context()` output, or send a separate `course_catalog` field with descriptions for courses relevant to the student's program).
+- This transforms career-mapping questions from "I can't answer that" to grounded, useful advice.
+- **Token cost impact**: ~200 courses × ~30 words each = ~6K tokens added to system prompt. At gpt-4o-mini pricing this adds ~$0.001 per session — negligible.
+
 ---
 
 ## Design Decisions
@@ -457,7 +476,8 @@ Module-level `_CHAT_SYSTEM_PROMPT_BASE` string. Voice guidelines sourced from `d
   - Slightly dramatic, strategically: "Bold choice." "Ambitious." "Four-course saga."
   - Use short sentences. Active voice. "You." Prioritize scannability.
 - **Can discuss**: degree requirements, prereqs, scheduling strategy, light Marquette campus context (dining, housing, registration tips), how MarqBot works
-- **Must not**: fabricate course codes, give definitive graduation audit advice, discuss truly unrelated topics (politics, dating, etc.)
+- **Must not**: fabricate course codes, **fabricate what a course covers or teaches**, give definitive graduation audit advice, discuss truly unrelated topics (politics, dating, etc.)
+- **No-description guardrail**: "You do not have course descriptions. You know course codes, names, credits, prereqs, and which requirements they fill — but not what they teach. If asked what a course covers or which courses fit a career goal, be honest that you only know degree structure. Recommend checking the Marquette course catalog or asking an advisor for course content details."
 - **Guardrails**: always caveat with "check Checkmarq / confirm with your advisor", acknowledge uncertainty, never claim to be an official Marquette resource
 - **Format**: responses under 200 words, markdown formatting, bold course codes
 - **No-profile behavior**: when `student_context` is null/empty, AI should note it doesn't have the student's specific info and give general Marquette business advice. Suggest they "set up their profile in the Planner for personalized answers."
