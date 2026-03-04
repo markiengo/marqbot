@@ -369,24 +369,89 @@ MarqBot's planner is deterministic and data-driven -- great for accuracy, but st
 
 **Cost**: gpt-4o-mini at $0.15/1M input + $0.60/1M output. A full 20-message session costs <$0.01. At estimated scale (50-200 users/month, ~5 sessions each), total monthly cost is **~$0.50-$2.00**.
 
-### Known Data Gap: No Course Descriptions
+### What the AI Actually Sees (and Doesn't See)
 
-`courses.csv` has a `description` column but it is **currently empty for all courses**. This means the AI Advisor launches with a significant blind spot:
+The AI does **not** receive the raw CSVs. It receives a **compact text snapshot** of the student's dashboard, assembled by `buildStudentContext()` on the frontend and formatted by `_format_student_context()` on the backend. This is injected into the system prompt once per request.
 
-- **What it knows**: course codes, names, credits, prereq chains, bucket mappings, offering semesters, and the student's progress against those buckets.
-- **What it does NOT know**: what a course actually covers, what skills it teaches, or what careers it connects to.
+**What gets injected (example for a Finance junior)**:
+```
+=== Current Student Profile ===
+Declared Majors: Finance
+Declared Tracks: Fintech
+Declared Minors: none
+Standing: Junior Standing (65 credits completed, 15 in progress)
+Target Semester: Fall 2026
 
-**Impact on AI quality**: Career-oriented questions like *"I want to be an investment banker — what should I take?"* or *"Which elective teaches Excel modeling?"* will get structurally correct but shallow answers. The AI can say "FINA 3001 is required for your Finance major" but cannot say "FINA 3001 covers time value of money, bond pricing, and DCF analysis." It can point to the right buckets but can't explain *why* a course matters beyond degree completion.
+Completed Courses (18): ACCO 1030, ACCO 1031, BUAD 1500, BUAD 1950,
+  ECON 1001, ECON 1002, FINA 3001, FINA 3041, MATH 1400, MATH 1410,
+  MGMT 3010, MKTG 3010, COMM 1100, ENGL 1001, PHIL 1001, THEO 1001,
+  MATH 2450, BULA 3010
+In Progress (3): FINA 3310, INSY 3010, OSCM 3010
+
+Unsatisfied Requirements (progress toward completion):
+  Finance Core Requirements: 4/7 done
+  Fintech Track Electives: 0/3 done
+  BCC Required Courses: 14/18 done
+  Business Elective Pool: 6/9 credits done
+  MCC Foundation: 4/5 done
+```
+
+**What the AI does NOT see**:
+- The full course catalog (all ~300 courses in `courses.csv`)
+- Course descriptions (the `description` column exists but is **empty for all courses**)
+- The prereq graph (which courses require which prereqs)
+- Bucket-to-course mappings (which specific courses can fill "Finance Core Requirements")
+- Course offering schedules (which semester each course is offered)
+- Other students' data
+
+**Why this matters — the "I want to be a public accountant" problem**:
+
+If a student asks *"I want to be a public accountant, what should I take?"*, the AI only knows:
+- They're an Accounting major (from declared majors)
+- They have X courses left in "Accounting Core Requirements" (from progress summary)
+- Which courses they've already taken (from completed list)
+
+The AI **cannot** answer:
+- "Take ACCO 4040 early — that's the auditing course you need for CPA"
+- "ACCO 4060 covers tax, which is less critical for public accounting"
+- "You need 150 credit hours for CPA licensure in Wisconsin"
+- "These electives teach the analytical skills Big Four firms look for"
+
+Because the AI has no course descriptions, no career pathway data, and no knowledge of what any course actually teaches. It can only say "you still need 3 courses in your Accounting Core bucket" — which the student already sees on their dashboard.
+
+The same problem applies to any career-oriented or content-oriented question:
+- *"Which elective teaches Excel modeling?"* → Can't answer (no descriptions)
+- *"What's the difference between FINA 3310 and FINA 4931?"* → Can only say codes/names, not content
+- *"Should I take MKTG 4050 or MKTG 4070 for digital marketing?"* → No idea what either covers
 
 **Mitigation in v2.3 (this release)**:
 - System prompt explicitly tells the AI: "You do not have course descriptions. Do not fabricate what a course covers. If a student asks what a course teaches or which courses fit a career goal, say you only know degree structure and recommend they check the Marquette course catalog or ask their advisor for content details."
-- The AI can still give useful structural advice: prereq order, what counts toward which requirement, scheduling strategy, double-count opportunities.
+- The AI can still give genuinely useful **structural** advice:
+  - "You have 3 courses left in Accounting Core — knock those out before electives"
+  - "You're a junior with 65 credits — you're on track for 4-semester graduation"
+  - "You've finished all BCC prereqs, so your schedule has room for electives next semester"
+  - "Adding a minor would add ~5 courses to your remaining plan"
+- For career questions, the AI should be upfront: *"I know your degree structure but not what each course teaches. For CPA-specific course advice, your Accounting advisor would know which courses map to the exam sections."*
+
+**What v2.3 is actually good at** (without descriptions):
+1. Scheduling strategy — "what order should I take my remaining courses?"
+2. Progress interpretation — "am I on track to graduate in 4 years?"
+3. Requirement explanation — "what does this bucket mean and how many courses do I need?"
+4. Trade-off framing — "if I add a minor, how does that change my timeline?"
+5. Prereq awareness — "which courses am I eligible for next semester?" (inferred from completed list)
+
+**What v2.3 is bad at** (needs descriptions to fix):
+1. Career mapping — "what should I take to become a ___?"
+2. Course content — "what does ___ actually teach?"
+3. Skill-based recommendations — "which courses teach data analysis?"
+4. Course comparison — "what's the difference between these two electives?"
 
 **Fix (future data injection)**:
 - Populate `description` column in `courses.csv` with 1-2 sentence catalog descriptions for business courses (~200 courses).
-- Once descriptions exist, inject them into the student context sent to the AI (append to `_format_student_context()` output, or send a separate `course_catalog` field with descriptions for courses relevant to the student's program).
+- Once descriptions exist, inject a **program-scoped course catalog** into the student context: only courses mapped to the student's declared programs, with code + name + description. This keeps token count bounded (~50-80 relevant courses per student instead of all ~300).
+- Also consider injecting the remaining-course list with descriptions: "Courses you still need: **ACCO 4040** Auditing — covers audit procedures, internal controls, and professional standards."
 - This transforms career-mapping questions from "I can't answer that" to grounded, useful advice.
-- **Token cost impact**: ~200 courses × ~30 words each = ~6K tokens added to system prompt. At gpt-4o-mini pricing this adds ~$0.001 per session — negligible.
+- **Token cost impact**: ~80 program-scoped courses × ~40 words each = ~3.2K tokens added to system prompt. At gpt-4o-mini pricing this adds ~$0.0005 per session — negligible.
 
 ---
 
