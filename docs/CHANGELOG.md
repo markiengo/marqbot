@@ -8,6 +8,58 @@ Format per release:
 
 ---
 
+## [v2.2.1] - 2026-03-04
+
+### Changes
+
+**Saved Plans is now live**
+- You can save recommendation runs, reopen them later, and compare plan snapshots without rerunning onboarding each time.
+- Saved plan pages now show clearer progress KPIs so alternatives are easier to compare before registration.
+
+**Planner progress display is more consistent**
+- Progress cards, modal views, and bucket breakdowns were refactored to use shared rendering components.
+- Assumption notes are surfaced in the progress modal so inferred prerequisite chains are visible to users.
+
+**Program data rules are stricter**
+- Program metadata now supports explicit default-major selection and required-major gating for dependent tracks.
+- Course/catalog and validation updates tighten recommendation behavior around program constraints.
+
+### Design Decisions
+- Saved-plan UX was implemented as reusable components so planner and saved views share the same progress semantics.
+- Program selection logic is now data-driven from `parent_buckets.csv` (`required_major`, `is_default`) to reduce hardcoded behavior.
+- Focused API-contract and rendering tests were prioritized for closeout speed while preserving high-risk coverage.
+
+---
+
+## [v2.2.0] - 2026-03-03
+
+### Changes
+
+**Planner avoids senior-standing dead ends**
+- If your last required course is blocked only by class standing, MarqBot now keeps recommending credit-building courses instead of returning an empty semester. This prevents cases like Business Administration getting stuck just short of Senior standing before `MANA 4101`.
+
+**Planner startup can recover from load failures**
+- Onboarding and Planner no longer sit on an endless spinner if the course catalog or program list fails to load. You now get a clear error message and a retry button.
+
+**Can-take answers no longer go stale**
+- If a `Can I take this?` request fails, MarqBot no longer leaves the old course answer on screen under the new course name.
+
+**Recommendation refresh keeps your last plan visible**
+- Refreshing recommendations no longer wipes out your current plan before the next request succeeds. If the refresh fails, your last good plan stays visible.
+
+**Nightly dead-end sweep now runs automatically**
+- Added a GitHub Actions workflow that runs the nightly dead-end test sweep every day at 2:39 AM Milwaukee time, with a manual run option too.
+
+**Quips got a student-life rewrite**
+- Progress and semester one-liners now sound more like actual Marquette students: more campus references, more student-life humor, and stronger Gen Z phrasing without getting inappropriate.
+
+### Design Decisions
+- Standing is still credit-based, not semester-based. The planner only uses filler recommendations when requirements remain but the path forward is blocked by standing.
+- Startup data loading now has explicit `loading / error / retry` behavior so the UI can recover cleanly from failed bootstrap fetches.
+- The nightly workflow uses two UTC cron entries plus an `America/Chicago` time check so `2:39 AM` stays correct across CST and CDT.
+
+---
+
 ## [v2.1.1] - 2026-03-02
 
 ### Changes

@@ -6,7 +6,7 @@ export default function AiAdvisorPage() {
   return (
     <PlaceholderPage
       title="AI Advisor"
-      description="Chat with an AI advisor that knows Marquette's curriculum. Ask questions about your degree plan and get instant guidance."
+      description="Ask MarqBot your degree-plan chaos in plain English. It knows the curriculum, so you can stop decoding CheckMarq like ancient scripture."
       coverImage="/assets/covers/screen_aiadvisor_cover.jpg"
     />
   );

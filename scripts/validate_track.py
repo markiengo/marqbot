@@ -548,30 +548,56 @@ def check_v2_program_flag_rules(
 
     p = programs_v2_df.copy()
     p["program_id"] = p["program_id"].astype(str).str.strip().str.upper()
+    p["kind"] = p.get("kind", "major").fillna("major").astype(str).str.strip().str.lower()
+    majors = set(
+        p[p["kind"] == "major"]["program_id"].astype(str).str.strip().str.upper().tolist()
+    )
     p = p[p["program_id"] == program_id]
     if len(p) == 0:
         return
 
     row = p.iloc[0]
     applies_to_all = bool(row.get("applies_to_all", False))
-    if not applies_to_all:
-        return
 
     kind = str(row.get("kind", "major") or "major").strip().lower()
     parent = str(row.get("parent_major_id", "") or "").strip().upper()
     requires_primary = bool(row.get("requires_primary_major", False))
+    required_major = str(row.get("required_major_id", "") or "").strip().upper()
+    is_default = bool(row.get("is_default", False))
 
-    if kind != "major":
+    if applies_to_all:
+        if kind != "major":
+            result.error(
+                f"Program '{program_id}' has applies_to_all=TRUE but kind='{kind}'. Universal programs must be major-kind."
+            )
+        if parent:
+            result.error(
+                f"Program '{program_id}' has applies_to_all=TRUE but parent_major_id='{parent}'. Universal programs cannot have parents."
+            )
+        if requires_primary:
+            result.error(
+                f"Program '{program_id}' has applies_to_all=TRUE and requires_primary_major=TRUE. This combination is invalid."
+            )
+        if required_major:
+            result.error(
+                f"Program '{program_id}' has applies_to_all=TRUE and required_major_id='{required_major}'. Universal programs cannot require a specific major."
+            )
+        if is_default:
+            result.error(
+                f"Program '{program_id}' has applies_to_all=TRUE and is_default=TRUE. Universal programs cannot be defaults."
+            )
+
+    if required_major and required_major not in majors:
         result.error(
-            f"Program '{program_id}' has applies_to_all=TRUE but kind='{kind}'. Universal programs must be major-kind."
+            f"Program '{program_id}' has required_major_id='{required_major}', but no such major exists."
         )
-    if parent:
+    if is_default and kind != "major":
         result.error(
-            f"Program '{program_id}' has applies_to_all=TRUE but parent_major_id='{parent}'. Universal programs cannot have parents."
+            f"Program '{program_id}' has is_default=TRUE but kind='{kind}'. Only majors can be defaults."
         )
-    if requires_primary:
+    if is_default and requires_primary:
         result.error(
-            f"Program '{program_id}' has applies_to_all=TRUE and requires_primary_major=TRUE. This combination is invalid."
+            f"Program '{program_id}' has is_default=TRUE and requires_primary_major=TRUE. Defaults must be standalone majors."
         )
 
 
@@ -797,9 +823,13 @@ def main(args=None):
         progs = data["v2_programs_df"].copy()
         if "kind" not in progs.columns:
             progs["kind"] = "major"
+        if "active" not in progs.columns:
+            progs["active"] = True
         progs["kind"] = progs["kind"].fillna("major").astype(str).str.strip().str.lower()
         progs["program_id"] = progs["program_id"].astype(str).str.strip().str.upper()
-        v2_major_ids = progs[progs["kind"] == "major"]["program_id"].tolist()
+        v2_major_ids = progs[
+            (progs["kind"] == "major") & (progs["active"] == True)
+        ]["program_id"].tolist()
 
     if opts.all:
         if data.get("v2_detected") and v2_major_ids:

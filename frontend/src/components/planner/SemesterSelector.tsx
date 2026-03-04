@@ -20,7 +20,7 @@ export function SemesterSelector({
 
   return (
     <div
-      className="h-full min-h-0 flex flex-col gap-3 overflow-y-auto pr-1"
+      className="flex flex-row lg:flex-col gap-2 lg:gap-3 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:h-full lg:min-h-0 lg:pr-1 pb-1 lg:pb-0"
       role="tablist"
       aria-label="Semester selector"
     >
@@ -31,24 +31,36 @@ export function SemesterSelector({
         return (
           <motion.div
             key={idx}
-            whileHover={{ y: -1 }}
-            className={`relative flex-1 min-h-0 rounded-xl border transition-colors ${
-              active
-                ? "bg-gradient-to-br from-[#344738]/65 to-[#223e5d]/70 border-gold"
-                : "bg-[#14325b]/55 border-border-medium"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            className={`relative shrink-0 lg:flex-1 lg:min-h-0 rounded-xl overflow-hidden ${
+              active ? "semester-tab-active" : "semester-tab-idle"
             }`}
           >
+            {/* Animated active indicator */}
+            {active && (
+              <motion.div
+                layoutId="semester-indicator"
+                className="absolute inset-0 rounded-xl semester-tab-active"
+                style={{ zIndex: 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+
             <button
               type="button"
               onClick={() => onSelect(idx)}
               role="tab"
               aria-selected={active}
-              className="w-full h-full text-left px-2.5 py-2 pr-8 cursor-pointer"
+              className="relative z-[1] w-full h-full text-left px-2.5 py-1.5 lg:py-2 lg:pr-8 cursor-pointer whitespace-nowrap lg:whitespace-normal"
             >
-              <div className="text-[15px] font-bold font-[family-name:var(--font-sora)] text-white leading-[1.22]">
-                Semester {idx + 1}
+              <div className={`text-[13px] lg:text-[15px] font-bold font-[family-name:var(--font-sora)] leading-[1.22] ${
+                active ? "text-gold" : "text-white"
+              }`}>
+                <span className="lg:hidden">S{idx + 1}</span>
+                <span className="hidden lg:inline">Semester {idx + 1}</span>
               </div>
-              <div className={`text-[14px] mt-1 leading-[1.25] ${active ? "text-ink-primary" : "text-ink-secondary"}`}>
+              <div className={`text-[12px] lg:text-[14px] mt-0.5 lg:mt-1 leading-[1.25] ${active ? "text-ink-primary" : "text-ink-faint"}`}>
                 {term}
               </div>
             </button>
@@ -56,7 +68,11 @@ export function SemesterSelector({
             <button
               type="button"
               onClick={() => onExpand(idx)}
-              className="absolute right-1.5 top-1.5 h-6 w-6 inline-flex items-center justify-center rounded-md border border-border-medium text-ink-secondary hover:text-gold hover:border-gold/60 cursor-pointer"
+              className={`hidden lg:inline-flex absolute right-1.5 top-1.5 z-[2] h-6 w-6 items-center justify-center rounded-md cursor-pointer transition-colors ${
+                active
+                  ? "border border-gold/40 text-gold hover:bg-gold/10"
+                  : "border border-border-medium text-ink-secondary hover:text-gold hover:border-gold/60"
+              }`}
               aria-label={`Expand semester ${idx + 1} details`}
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

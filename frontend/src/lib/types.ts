@@ -17,6 +17,7 @@ export interface Track {
   id: string;
   label: string;
   parent_major_id?: string;
+  required_major_id?: string;
 }
 
 export interface Minor {
@@ -92,6 +93,10 @@ export interface SemesterData {
 export interface RecommendationResponse {
   mode: "recommendations" | "error" | "can_take";
   semesters?: SemesterData[];
+  input_completed_courses?: string[];
+  input_in_progress_courses?: string[];
+  current_completed_courses?: string[];
+  current_in_progress_courses?: string[];
   current_progress?: Record<string, BucketProgress>;
   current_assumption_notes?: string[];
   selection_context?: SelectionContext;
@@ -138,9 +143,49 @@ export interface SessionSnapshot {
   lastRequestedCount?: number;
 }
 
+export interface SavedPlanInputs {
+  completed: string[];
+  inProgress: string[];
+  declaredMajors: string[];
+  declaredTracks: string[];
+  declaredMinors: string[];
+  discoveryTheme: string;
+  targetSemester: string;
+  semesterCount: string;
+  maxRecs: string;
+  includeSummer: boolean;
+}
+
+export interface SavedPlanRecord {
+  id: string;
+  name: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  inputs: SavedPlanInputs;
+  recommendationData: RecommendationResponse | null;
+  lastRequestedCount: number;
+  inputHash: string;
+  resultsInputHash: string | null;
+  lastGeneratedAt: string | null;
+}
+
+export interface SavedPlansStore {
+  version: 1;
+  plans: SavedPlanRecord[];
+}
+
+export type SavedPlanFreshness = "fresh" | "stale" | "missing";
+
+export type LoadStatus = "idle" | "loading" | "ready" | "error";
+
 export interface AppState {
   courses: Course[];
+  coursesLoadStatus: LoadStatus;
+  coursesLoadError: string | null;
   programs: ProgramsData;
+  programsLoadStatus: LoadStatus;
+  programsLoadError: string | null;
   completed: Set<string>;
   inProgress: Set<string>;
   selectedMajors: Set<string>;

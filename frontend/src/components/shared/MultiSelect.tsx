@@ -33,6 +33,16 @@ export function MultiSelect({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const refocusInput = useCallback(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    try {
+      input.focus({ preventScroll: true });
+    } catch {
+      input.focus();
+    }
+  }, []);
+
   const excludeSet = useMemo(
     () => new Set([...selected, ...otherSet]),
     [selected, otherSet],
@@ -64,9 +74,9 @@ export function MultiSelect({
       onAdd(course.course_code);
       setQuery("");
       setIsOpen(false);
-      inputRef.current?.focus();
+      refocusInput();
     },
-    [onAdd, maxSelections, selected.size],
+    [onAdd, maxSelections, refocusInput, selected.size],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -105,9 +115,10 @@ export function MultiSelect({
   const atLimit = maxSelections ? selected.size >= maxSelections : false;
 
   return (
-    <div className="space-y-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-visible">
       {/* Chips */}
-      <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+      <div className="min-h-[3rem] max-h-[clamp(4rem,18vh,8.5rem)] overflow-y-auto pr-1">
+        <div className="flex flex-wrap gap-1.5">
         <AnimatePresence mode="popLayout">
           {[...selected].map((code) => (
             <Chip
@@ -118,10 +129,11 @@ export function MultiSelect({
             />
           ))}
         </AnimatePresence>
+        </div>
       </div>
 
       {/* Search input */}
-      <div className="relative">
+      <div className="relative z-20">
         <input
           ref={inputRef}
           type="text"
@@ -135,14 +147,14 @@ export function MultiSelect({
           onKeyDown={handleKeyDown}
           placeholder={atLimit ? `Maximum ${maxSelections} selected` : placeholder}
           disabled={atLimit}
-          className="w-full px-3 py-2 bg-surface-input border border-border-medium rounded-xl text-sm text-ink-primary placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-xl border border-border-medium bg-surface-input px-4 py-3 text-[0.95rem] text-ink-primary placeholder:text-ink-faint focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-50"
         />
 
         {/* Dropdown */}
         {isOpen && matches.length > 0 && (
           <div
             ref={dropdownRef}
-            className="absolute z-40 w-full mt-1 bg-surface-card border border-border-medium rounded-xl shadow-lg max-h-60 overflow-y-auto"
+            className="absolute z-50 mt-1 max-h-[min(18rem,36vh)] w-full overflow-y-auto rounded-xl border border-border-medium bg-surface-card shadow-lg"
           >
             {matches.map((c, idx) => (
               <div
@@ -151,20 +163,20 @@ export function MultiSelect({
                   e.preventDefault();
                   handleSelect(c);
                 }}
-                className={`px-3 py-2 cursor-pointer text-sm flex items-center gap-2 ${
+                className={`flex cursor-pointer items-center gap-2 px-4 py-2.5 text-sm ${
                   idx === activeIndex
                     ? "bg-gold/10 text-gold"
                     : "hover:bg-surface-hover"
                 }`}
               >
-                <span className="font-medium text-[#7ab3ff]">{c.course_code}</span>
+                <span className="w-28 shrink-0 font-medium text-[#7ab3ff]">{c.course_code}</span>
                 <span className="text-ink-muted truncate">{c.course_name || ""}</span>
               </div>
             ))}
           </div>
         )}
         {isOpen && query.trim() && matches.length === 0 && (
-          <div className="absolute z-40 w-full mt-1 bg-surface-card border border-border-medium rounded-xl shadow-lg p-3 text-sm text-ink-faint">
+          <div className="absolute z-50 mt-1 w-full rounded-xl border border-border-medium bg-surface-card p-3 text-sm text-ink-faint shadow-lg">
             No results
           </div>
         )}

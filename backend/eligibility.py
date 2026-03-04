@@ -3,6 +3,7 @@ import pandas as pd
 from prereq_parser import prereq_course_codes, prereqs_satisfied, build_prereq_check_string
 from requirements import SOFT_WARNING_TAGS, COMPLEX_PREREQ_TAG, CONCURRENT_TAGS, DEFAULT_TRACK_ID
 from unlocks import build_reverse_prereq_map
+from allocator import get_runtime_course_index, get_runtime_track_index, _safe_bool
 
 
 def parse_term(s: str) -> str:
@@ -11,14 +12,6 @@ def parse_term(s: str) -> str:
         if t.lower() in s.lower():
             return t
     raise ValueError(f"Cannot parse term from: {s!r}")
-
-
-def _safe_bool(val) -> bool:
-    if isinstance(val, bool):
-        return val
-    if isinstance(val, str):
-        return val.strip().upper() == "TRUE"
-    return bool(val)
 
 
 def _is_none_prereq(raw_val) -> bool:
@@ -242,6 +235,9 @@ def get_eligible_courses(
     equivalencies_df: pd.DataFrame = None,
     track_id: str = DEFAULT_TRACK_ID,
     reverse_map: dict[str, list[str]] | None = None,
+    runtime_indexes: dict | None = None,
+    *,
+    restrict_to_unmet_buckets: bool = True,
 ) -> list[dict]:
     """
     Returns eligible courses for the target term, sorted by:
@@ -285,62 +281,81 @@ def get_eligible_courses(
     if reverse_map is None:
         reverse_map = build_reverse_prereq_map(courses_df, prereq_map)
 
-    # Build per-request indexes to avoid repeated dataframe scans in the loop below.
-    course_bucket_index: dict[str, list[str]] = {}
-    if (
-        course_bucket_map_df is not None
-        and len(course_bucket_map_df) > 0
-        and {"track_id", "course_code", "bucket_id"}.issubset(course_bucket_map_df.columns)
-    ):
-        track_map = course_bucket_map_df[
-            course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
-        ]
-        for _, map_row in track_map.iterrows():
-            code = str(map_row.get("course_code", "") or "").strip()
-            bid = str(map_row.get("bucket_id", "") or "").strip()
-            if not code or not bid:
-                continue
-            bucket_ids = course_bucket_index.setdefault(code, [])
-            if bid not in bucket_ids:
-                bucket_ids.append(bid)
+    runtime_track = get_runtime_track_index(runtime_indexes, track_key)
+    runtime_courses = get_runtime_course_index(runtime_indexes)
 
-    bucket_meta: dict[str, dict] = {}
-    if (
-        buckets_df is not None
-        and len(buckets_df) > 0
-        and "bucket_id" in buckets_df.columns
-    ):
-        if "track_id" in buckets_df.columns:
-            track_bucket_rows = buckets_df[
-                buckets_df["track_id"].astype(str).str.strip().str.upper() == track_key
-            ]
-        else:
-            track_bucket_rows = buckets_df
-        for _, bucket_row in track_bucket_rows.iterrows():
-            bid = str(bucket_row.get("bucket_id", "") or "").strip()
-            if not bid:
-                continue
-            bucket_meta[bid] = {
-                "bucket_label": str(bucket_row.get("bucket_label", bid)),
-                "priority": bucket_row.get("priority", 99),
-                "parent_bucket_priority": bucket_row.get("parent_bucket_priority", 99),
-                "parent_bucket_id": str(bucket_row.get("parent_bucket_id", "") or "").strip().upper(),
-                "double_count_family_id": str(bucket_row.get("double_count_family_id", "") or "").strip(),
-                "requirement_mode": str(bucket_row.get("requirement_mode", "") or "").strip().lower(),
-                "min_level": bucket_row.get("min_level"),
+    if runtime_track is not None:
+        course_bucket_index = runtime_track["course_bucket_index"]
+        bucket_meta = {
+            bid: {
+                "bucket_label": meta.get("label", bid),
+                "priority": meta.get("priority", 99),
+                "parent_bucket_priority": meta.get("parent_bucket_priority", 99),
+                "parent_bucket_id": meta.get("parent_bucket_id", ""),
+                "double_count_family_id": meta.get("double_count_family_id", ""),
+                "requirement_mode": meta.get("requirement_mode", ""),
+                "min_level": meta.get("min_level"),
             }
+            for bid, meta in runtime_track["bucket_meta_template"].items()
+        }
+        course_level_index = runtime_track["course_level_index"]
+    else:
+        # Build per-request indexes to avoid repeated dataframe scans in the loop below.
+        course_bucket_index: dict[str, list[str]] = {}
+        if (
+            course_bucket_map_df is not None
+            and len(course_bucket_map_df) > 0
+            and {"track_id", "course_code", "bucket_id"}.issubset(course_bucket_map_df.columns)
+        ):
+            track_map = course_bucket_map_df[
+                course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
+            ]
+            for _, map_row in track_map.iterrows():
+                code = str(map_row.get("course_code", "") or "").strip()
+                bid = str(map_row.get("bucket_id", "") or "").strip()
+                if not code or not bid:
+                    continue
+                bucket_ids = course_bucket_index.setdefault(code, [])
+                if bid not in bucket_ids:
+                    bucket_ids.append(bid)
 
-    course_level_index: dict[str, int | None] = {}
-    if courses_df is not None and len(courses_df) > 0 and "course_code" in courses_df.columns:
-        for _, course_row in courses_df.iterrows():
-            code = str(course_row.get("course_code", "") or "").strip()
-            if not code or code in course_level_index:
-                continue
-            lvl = course_row.get("level")
-            if lvl is not None and not (isinstance(lvl, float) and pd.isna(lvl)):
-                course_level_index[code] = int(lvl)
+        bucket_meta: dict[str, dict] = {}
+        if (
+            buckets_df is not None
+            and len(buckets_df) > 0
+            and "bucket_id" in buckets_df.columns
+        ):
+            if "track_id" in buckets_df.columns:
+                track_bucket_rows = buckets_df[
+                    buckets_df["track_id"].astype(str).str.strip().str.upper() == track_key
+                ]
             else:
-                course_level_index[code] = None
+                track_bucket_rows = buckets_df
+            for _, bucket_row in track_bucket_rows.iterrows():
+                bid = str(bucket_row.get("bucket_id", "") or "").strip()
+                if not bid:
+                    continue
+                bucket_meta[bid] = {
+                    "bucket_label": str(bucket_row.get("bucket_label", bid)),
+                    "priority": bucket_row.get("priority", 99),
+                    "parent_bucket_priority": bucket_row.get("parent_bucket_priority", 99),
+                    "parent_bucket_id": str(bucket_row.get("parent_bucket_id", "") or "").strip().upper(),
+                    "double_count_family_id": str(bucket_row.get("double_count_family_id", "") or "").strip(),
+                    "requirement_mode": str(bucket_row.get("requirement_mode", "") or "").strip().lower(),
+                    "min_level": bucket_row.get("min_level"),
+                }
+
+        course_level_index: dict[str, int | None] = {}
+        if courses_df is not None and len(courses_df) > 0 and "course_code" in courses_df.columns:
+            for _, course_row in courses_df.iterrows():
+                code = str(course_row.get("course_code", "") or "").strip()
+                if not code or code in course_level_index:
+                    continue
+                lvl = course_row.get("level")
+                if lvl is not None and not (isinstance(lvl, float) and pd.isna(lvl)):
+                    course_level_index[code] = int(lvl)
+                else:
+                    course_level_index[code] = None
 
     unmet_course_buckets: dict[str, list[str]] = {}
     for bucket_id, remaining in (allocator_remaining or {}).items():
@@ -360,10 +375,15 @@ def get_eligible_courses(
                 target_buckets.append(bucket_id)
     unmet_remaining_courses = set(unmet_course_buckets.keys())
 
+    course_rows = runtime_courses["rows"] if runtime_courses is not None else None
+    if course_rows is None:
+        course_rows = [row for _, row in courses_df.iterrows()]
+
     results = []
 
-    for _, row in courses_df.iterrows():
+    for row in course_rows:
         code = row["course_code"]
+        course_level = course_level_index.get(code)
 
         # Skip already taken / in-progress
         if code in completed_set or code in in_progress_set:
@@ -378,7 +398,9 @@ def get_eligible_courses(
         # Parse prereqs
         parsed = prereq_map.get(code, {"type": "none"})
         raw_concurrent = row.get("prereq_concurrent", "none")
-        parsed_concurrent = prereq_map.get(f"{code}::__concurrent__")
+        parsed_concurrent = row.get("parsed_concurrent")
+        if parsed_concurrent is None:
+            parsed_concurrent = prereq_map.get(f"{code}::__concurrent__")
         if parsed_concurrent is None:
             from prereq_parser import parse_prereqs
             parsed_concurrent = parse_prereqs(raw_concurrent if not _is_none_prereq(raw_concurrent) else "none")
@@ -386,8 +408,12 @@ def get_eligible_courses(
         manual_review = parsed["type"] == "unsupported"
 
         # Parse prereq_soft tags
-        soft_raw = str(row.get("prereq_soft", "") or "")
-        soft_tags = [t.strip() for t in soft_raw.split(";") if t.strip()] if soft_raw else []
+        soft_tags = row.get("soft_tags")
+        if soft_tags is None:
+            soft_raw = str(row.get("prereq_soft", "") or "")
+            soft_tags = [t.strip() for t in soft_raw.split(";") if t.strip()] if soft_raw else []
+        else:
+            soft_tags = list(soft_tags)
         allow_concurrent = any(t in CONCURRENT_TAGS for t in soft_tags)
         has_explicit_concurrent = not _is_none_prereq(raw_concurrent)
 
@@ -431,12 +457,16 @@ def get_eligible_courses(
         low_confidence = confidence in ("medium", "low", "unknown") or not offered_this_term
 
         # Course notes
-        course_notes = str(row.get("notes", "") or "")
-        if not course_notes or course_notes == "nan":
-            course_notes = None
-        warning_text = str(row.get("warning_text", "") or "").strip()
-        if not warning_text or warning_text.lower() == "nan":
-            warning_text = None
+        course_notes = row.get("notes")
+        if course_notes is None:
+            course_notes = str(row.get("notes", "") or "")
+            if not course_notes or course_notes == "nan":
+                course_notes = None
+        warning_text = row.get("warning_text")
+        if warning_text is None:
+            warning_text = str(row.get("warning_text", "") or "").strip()
+            if not warning_text or warning_text.lower() == "nan":
+                warning_text = None
 
         # Bucket info
         eligible_buckets = get_course_eligible_buckets(
@@ -450,9 +480,9 @@ def get_eligible_courses(
             _course_level_index=course_level_index,
         )
 
-        # Keep only courses that can fill at least one unmet bucket slot.
-        # This avoids recommending extra courses for already-satisfied buckets
-        # (e.g., MCC_ESSV1 after its single-slot requirement is fulfilled).
+        # Default recommendation lane keeps only courses that can fill at least
+        # one unmet bucket slot. Standing-recovery fallback can opt into a
+        # broader declared-path pool by disabling this filter.
         unmet_buckets = [
             b for b in eligible_buckets
             if allocator_remaining.get(b["bucket_id"], {}).get("slots_remaining", 0) > 0
@@ -489,7 +519,10 @@ def get_eligible_courses(
         )
 
         if not unmet_buckets and not bridge_target_buckets:
-            continue
+            if not restrict_to_unmet_buckets and eligible_buckets:
+                pass
+            else:
+                continue
 
         # Multi-bucket score reflects unmet buckets for ranking, while
         # fills_buckets shows only direct bucket mappings (never bridge targets).
@@ -546,6 +579,7 @@ def get_eligible_courses(
             "course_code": code,
             "course_name": str(row.get("course_name", "")),
             "credits": int(row.get("credits", 3)) if not pd.isna(row.get("credits", 3)) else 3,
+            "course_level": course_level,
             "prereq_level": min_standing,
             "min_standing": min_standing,
             "primary_bucket": primary["bucket_id"] if primary else None,
@@ -592,6 +626,7 @@ def check_can_take(
     in_progress: list[str],
     target_term: str,
     prereq_map: dict,
+    runtime_indexes: dict | None = None,
 ) -> dict:
     """
     Returns a can-take assessment for a specific requested course.
@@ -609,8 +644,21 @@ def check_can_take(
     in_progress_set = set(in_progress)
     satisfied_codes = completed_set | in_progress_set
 
-    course_rows = courses_df[courses_df["course_code"] == requested_code]
-    if len(course_rows) == 0:
+    runtime_courses = get_runtime_course_index(runtime_indexes)
+    row = runtime_courses.get("by_code", {}).get(requested_code) if runtime_courses else None
+    if row is None:
+        course_rows = courses_df[courses_df["course_code"] == requested_code]
+        if len(course_rows) == 0:
+            return {
+                "can_take": False,
+                "why_not": f"{requested_code} is not in the course catalog.",
+                "missing_prereqs": [],
+                "not_offered_this_term": False,
+                "unsupported_prereq_format": False,
+            }
+        row = course_rows.iloc[0]
+
+    if row is None:
         return {
             "can_take": False,
             "why_not": f"{requested_code} is not in the course catalog.",
@@ -618,8 +666,6 @@ def check_can_take(
             "not_offered_this_term": False,
             "unsupported_prereq_format": False,
         }
-
-    row = course_rows.iloc[0]
 
     # Check offering
     term_col = {
@@ -650,12 +696,18 @@ def check_can_take(
 
     parsed = prereq_map.get(requested_code, {"type": "none"})
     raw_concurrent = row.get("prereq_concurrent", "none")
-    from prereq_parser import parse_prereqs
-    parsed_concurrent = parse_prereqs(raw_concurrent if not _is_none_prereq(raw_concurrent) else "none")
+    parsed_concurrent = row.get("parsed_concurrent")
+    if parsed_concurrent is None:
+        from prereq_parser import parse_prereqs
+        parsed_concurrent = parse_prereqs(raw_concurrent if not _is_none_prereq(raw_concurrent) else "none")
 
     # Check soft tags
-    soft_raw = str(row.get("prereq_soft", "") or "")
-    soft_tags = [t.strip() for t in soft_raw.split(";") if t.strip()] if soft_raw else []
+    soft_tags = row.get("soft_tags")
+    if soft_tags is None:
+        soft_raw = str(row.get("prereq_soft", "") or "")
+        soft_tags = [t.strip() for t in soft_raw.split(";") if t.strip()] if soft_raw else []
+    else:
+        soft_tags = list(soft_tags)
     allow_concurrent = any(t in CONCURRENT_TAGS for t in soft_tags)
     has_explicit_concurrent = not _is_none_prereq(raw_concurrent)
 

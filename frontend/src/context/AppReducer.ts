@@ -4,15 +4,15 @@ import {
   DEFAULT_SEMESTER,
   DEFAULT_SEMESTER_COUNT,
   DEFAULT_MAX_RECS,
-  AIM_MAJOR_ID,
-  AIM_CFA_TRACK_ID,
-  AIM_TRACK_PROGRAM_IDS,
-  FIN_MAJOR_ID,
 } from "@/lib/constants";
 
 export type AppAction =
   | { type: "SET_COURSES"; payload: Course[] }
+  | { type: "LOAD_COURSES_START" }
+  | { type: "LOAD_COURSES_FAILURE"; payload: string }
   | { type: "SET_PROGRAMS"; payload: ProgramsData }
+  | { type: "LOAD_PROGRAMS_START" }
+  | { type: "LOAD_PROGRAMS_FAILURE"; payload: string }
   | { type: "ADD_MAJOR"; payload: string }
   | { type: "REMOVE_MAJOR"; payload: string }
   | { type: "ADD_TRACK"; payload: string }
@@ -33,12 +33,16 @@ export type AppAction =
   | { type: "SET_NAV_TAB"; payload: string }
   | { type: "SET_RECOMMENDATIONS"; payload: { data: RecommendationResponse; count: number } }
   | { type: "RESTORE_SESSION"; payload: SessionSnapshot }
-  | { type: "MARK_ONBOARDING_COMPLETE" }
-  | { type: "CLEAR_RECOMMENDATIONS" };
+  | { type: "APPLY_PLANNER_SNAPSHOT"; payload: SessionSnapshot }
+  | { type: "MARK_ONBOARDING_COMPLETE" };
 
 export const initialState: AppState = {
   courses: [],
-  programs: { majors: [], tracks: [], minors: [], default_track_id: "FIN_MAJOR" },
+  coursesLoadStatus: "idle",
+  coursesLoadError: null,
+  programs: { majors: [], tracks: [], minors: [], default_track_id: "" },
+  programsLoadStatus: "idle",
+  programsLoadError: null,
   completed: new Set<string>(),
   inProgress: new Set<string>(),
   selectedMajors: new Set<string>(),
@@ -56,88 +60,193 @@ export const initialState: AppState = {
   lastRequestedCount: 3,
 };
 
-function isAimTrackProgram(trackId: string): boolean {
-  return AIM_TRACK_PROGRAM_IDS.includes(trackId as (typeof AIM_TRACK_PROGRAM_IDS)[number]);
+function getTrackById(programs: ProgramsData, trackId: string) {
+  return programs.tracks.find((track) => track.id === trackId) || null;
 }
 
-function sanitizeAimProgramSelections(
+function trackRequiredMajorId(programs: ProgramsData, trackId: string): string {
+  return String(getTrackById(programs, trackId)?.required_major_id || "").trim();
+}
+
+function trackParentMajorId(programs: ProgramsData, trackId: string): string {
+  return String(getTrackById(programs, trackId)?.parent_major_id || "").trim();
+}
+
+function canSelectTrack(
+  programs: ProgramsData,
   selectedMajors: Set<string>,
-  selectedTracks: string[],
-): { selectedMajors: Set<string>; selectedTracks: string[] } {
-  const nextMajors = new Set(selectedMajors);
-  const nextTracks = selectedTracks.slice();
-  if (nextTracks.some(isAimTrackProgram)) {
-    nextMajors.delete(AIM_MAJOR_ID);
-  }
-  return { selectedMajors: nextMajors, selectedTracks: nextTracks };
+  trackId: string,
+): boolean {
+  const requiredMajorId = trackRequiredMajorId(programs, trackId);
+  return !requiredMajorId || selectedMajors.has(requiredMajorId);
+}
+
+interface NormalizedSessionPayload {
+  completed: Set<string>;
+  inProgress: Set<string>;
+  selectedMajors: Set<string>;
+  selectedTracks: string[];
+  selectedMinors: Set<string>;
+  discoveryTheme: string;
+  targetSemester: string;
+  semesterCount: string;
+  maxRecs: string;
+  includeSummer: boolean;
+  canTakeQuery: string;
+  activeNavTab: string;
+  onboardingComplete: boolean;
+  lastRecommendationData: RecommendationResponse | null;
+  lastRequestedCount: number;
+}
+
+function normalizeSessionSnapshot(
+  state: AppState,
+  snap: SessionSnapshot,
+  options?: { forceOnboardingComplete?: boolean; activeNavTab?: string },
+): NormalizedSessionPayload {
+  const catalog = new Set(state.courses.map((c) => c.course_code));
+  const validMajorIds = new Set(state.programs.majors.map((major) => major.id));
+  const validTrackIds = new Set(state.programs.tracks.map((track) => track.id));
+  const validMinorIds = new Set(state.programs.minors.map((minor) => minor.id));
+  const validCode = (code: string) =>
+    typeof code === "string" && catalog.has(code);
+
+  const completed = new Set(
+    (snap.completed || []).filter(validCode),
+  );
+  const inProgress = new Set(
+    (snap.inProgress || []).filter(
+      (code) => validCode(code) && !completed.has(code),
+    ),
+  );
+  const selectedMajors = new Set(
+    (snap.declaredMajors || []).filter(
+      (majorId) => Boolean(majorId) && (validMajorIds.size === 0 || validMajorIds.has(majorId)),
+    ),
+  );
+  const selectedTracks = Array.isArray(snap.declaredTracks)
+    ? snap.declaredTracks.filter(Boolean)
+    : (snap as unknown as { declaredTrack?: string }).declaredTrack
+      ? [(snap as unknown as { declaredTrack: string }).declaredTrack]
+      : [];
+  const filteredTracks = selectedTracks.filter(
+    (tid) =>
+      (validTrackIds.size === 0 || validTrackIds.has(tid)) &&
+      canSelectTrack(state.programs, selectedMajors, tid),
+  );
+  const selectedMinors = new Set(
+    (snap.declaredMinors || []).filter(
+      (minorId) => Boolean(minorId) && (validMinorIds.size === 0 || validMinorIds.has(minorId)),
+    ),
+  );
+  const selectionWasSanitized =
+    filteredTracks.length !== selectedTracks.length;
+
+  return {
+    completed,
+    inProgress,
+    selectedMajors,
+    selectedTracks: filteredTracks,
+    selectedMinors,
+    discoveryTheme: snap.discoveryTheme || "",
+    targetSemester: snap.targetSemester || DEFAULT_SEMESTER,
+    semesterCount: snap.semesterCount || DEFAULT_SEMESTER_COUNT,
+    maxRecs: snap.maxRecs || DEFAULT_MAX_RECS,
+    includeSummer: snap.includeSummer ?? false,
+    canTakeQuery: snap.canTake || "",
+    activeNavTab: options?.activeNavTab || snap.activeNavTab || "plan",
+    onboardingComplete: options?.forceOnboardingComplete ?? (snap.onboardingComplete || false),
+    lastRecommendationData: selectionWasSanitized ? null : (snap.lastRecommendationData || null),
+    lastRequestedCount: Number(snap.lastRequestedCount) || state.lastRequestedCount,
+  };
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "SET_COURSES":
-      return { ...state, courses: action.payload };
+      return {
+        ...state,
+        courses: action.payload,
+        coursesLoadStatus: "ready",
+        coursesLoadError: null,
+      };
+
+    case "LOAD_COURSES_START":
+      return {
+        ...state,
+        coursesLoadStatus: "loading",
+        coursesLoadError: null,
+      };
+
+    case "LOAD_COURSES_FAILURE":
+      return {
+        ...state,
+        coursesLoadStatus: "error",
+        coursesLoadError: action.payload,
+      };
 
     case "SET_PROGRAMS":
-      return { ...state, programs: action.payload };
+      return {
+        ...state,
+        programs: action.payload,
+        programsLoadStatus: "ready",
+        programsLoadError: null,
+      };
+
+    case "LOAD_PROGRAMS_START":
+      return {
+        ...state,
+        programsLoadStatus: "loading",
+        programsLoadError: null,
+      };
+
+    case "LOAD_PROGRAMS_FAILURE":
+      return {
+        ...state,
+        programsLoadStatus: "error",
+        programsLoadError: action.payload,
+      };
 
     case "ADD_MAJOR": {
       const next = new Set(state.selectedMajors);
       next.add(action.payload);
-      let nextTracks = state.selectedTracks.slice();
-      if (action.payload === AIM_MAJOR_ID) {
-        nextTracks = nextTracks.filter((tid) => !isAimTrackProgram(tid));
-      }
-      return { ...state, selectedMajors: next, selectedTracks: nextTracks };
+      return { ...state, selectedMajors: next };
     }
 
     case "REMOVE_MAJOR": {
       const next = new Set(state.selectedMajors);
       next.delete(action.payload);
-      let nextTracks = state.selectedTracks.slice();
-      // AIM CFA track requires Finance major.
-      if (action.payload === FIN_MAJOR_ID) {
-        nextTracks = nextTracks.filter((tid) => tid !== AIM_CFA_TRACK_ID);
-      }
-      // Remove tracks whose parent_major_id matches the removed major.
-      nextTracks = nextTracks.filter((tid) => {
-        const tr = state.programs.tracks.find((t) => t.id === tid);
-        return !tr?.parent_major_id || tr.parent_major_id !== action.payload;
+      const nextTracks = state.selectedTracks.filter((tid) => {
+        const parentMajorId = trackParentMajorId(state.programs, tid);
+        const requiredMajorId = trackRequiredMajorId(state.programs, tid);
+        return parentMajorId !== action.payload && requiredMajorId !== action.payload;
       });
       return { ...state, selectedMajors: next, selectedTracks: nextTracks };
     }
 
     case "ADD_TRACK": {
       const trackId = action.payload;
-      if (trackId === AIM_CFA_TRACK_ID && !state.selectedMajors.has(FIN_MAJOR_ID)) {
+      if (!canSelectTrack(state.programs, state.selectedMajors, trackId)) {
         return state;
       }
       if (state.selectedTracks.includes(trackId)) {
         return state;
       }
       const nextTracks = [...state.selectedTracks, trackId];
-      const nextMajors = new Set(state.selectedMajors);
-      if (isAimTrackProgram(trackId)) {
-        nextMajors.delete(AIM_MAJOR_ID);
-      }
-      return { ...state, selectedMajors: nextMajors, selectedTracks: nextTracks };
+      return { ...state, selectedTracks: nextTracks };
     }
 
     case "SET_TRACK": {
       const { majorId, trackId } = action.payload;
-      if (trackId === AIM_CFA_TRACK_ID && !state.selectedMajors.has(FIN_MAJOR_ID)) {
+      if (trackId && !canSelectTrack(state.programs, state.selectedMajors, trackId)) {
         return state;
       }
       // Discovery and other single-slot selectors replace the existing track in that family.
       const filtered = state.selectedTracks.filter((tid) => {
-        const tr = state.programs.tracks.find((t) => t.id === tid);
-        return tr?.parent_major_id !== majorId;
+        return trackParentMajorId(state.programs, tid) !== majorId;
       });
       const nextTracks = trackId ? [...filtered, trackId] : filtered;
-      const nextMajors = new Set(state.selectedMajors);
-      if (trackId && isAimTrackProgram(trackId)) {
-        nextMajors.delete(AIM_MAJOR_ID);
-      }
-      return { ...state, selectedMajors: nextMajors, selectedTracks: nextTracks };
+      return { ...state, selectedTracks: nextTracks };
     }
 
     case "REMOVE_TRACK":
@@ -221,64 +330,26 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
       const snap = action.payload;
       if (!Array.isArray(state.courses) || state.courses.length === 0) return state;
-      const catalog = new Set(state.courses.map((c) => c.course_code));
-      const validCode = (code: string) =>
-        typeof code === "string" && catalog.has(code);
-
-      const completed = new Set(
-        (snap.completed || []).filter(validCode),
-      );
-      const inProgress = new Set(
-        (snap.inProgress || []).filter(
-          (code) => validCode(code) && !completed.has(code),
-        ),
-      );
-      const selectedMajors = new Set(
-        (snap.declaredMajors || []).filter(Boolean),
-      );
-      // Support new declaredTracks array; fall back to legacy declaredTrack string
-      const selectedTracks = Array.isArray(snap.declaredTracks)
-        ? snap.declaredTracks.filter(Boolean)
-        : (snap as unknown as { declaredTrack?: string }).declaredTrack
-          ? [(snap as unknown as { declaredTrack: string }).declaredTrack]
-          : [];
-      const filteredTracks = selectedTracks.filter(
-        (tid) => tid !== AIM_CFA_TRACK_ID || selectedMajors.has(FIN_MAJOR_ID),
-      );
-      const {
-        selectedMajors: sanitizedMajors,
-        selectedTracks: sanitizedTracks,
-      } = sanitizeAimProgramSelections(selectedMajors, filteredTracks);
-
-      const selectedMinors = new Set(
-        (snap.declaredMinors || []).filter(Boolean),
-      );
-      const selectionWasSanitized =
-        sanitizedMajors.size !== selectedMajors.size ||
-        sanitizedTracks.length !== selectedTracks.length;
+      const next = normalizeSessionSnapshot(state, snap);
 
       return {
         ...state,
-        completed,
-        inProgress,
-        selectedMajors: sanitizedMajors,
-        selectedTracks: sanitizedTracks,
-        selectedMinors,
-        discoveryTheme: snap.discoveryTheme || "",
-        targetSemester: snap.targetSemester || DEFAULT_SEMESTER,
-        semesterCount: snap.semesterCount || DEFAULT_SEMESTER_COUNT,
-        maxRecs: snap.maxRecs || DEFAULT_MAX_RECS,
-        includeSummer: snap.includeSummer ?? false,
-        canTakeQuery: snap.canTake || "",
-        activeNavTab: snap.activeNavTab || "plan",
-        onboardingComplete: snap.onboardingComplete || false,
-        lastRecommendationData: selectionWasSanitized ? null : (snap.lastRecommendationData || null),
-        lastRequestedCount: Number(snap.lastRequestedCount) || state.lastRequestedCount,
+        ...next,
       };
     }
 
-    case "CLEAR_RECOMMENDATIONS":
-      return { ...state, lastRecommendationData: null };
+    case "APPLY_PLANNER_SNAPSHOT": {
+      const snap = action.payload;
+      if (!Array.isArray(state.courses) || state.courses.length === 0) return state;
+      const next = normalizeSessionSnapshot(state, snap, {
+        forceOnboardingComplete: true,
+        activeNavTab: "plan",
+      });
+      return {
+        ...state,
+        ...next,
+      };
+    }
 
     case "MARK_ONBOARDING_COMPLETE":
       return { ...state, onboardingComplete: true, lastRecommendationData: null };

@@ -24,7 +24,7 @@ from validators import (
 from unlocks import build_reverse_prereq_map, compute_chain_depths
 from eligibility import check_can_take, parse_term
 from data_loader import load_data
-from allocator import allocate_courses, get_applied_bucket_progress_units
+from allocator import allocate_courses, ensure_runtime_indexes, get_applied_bucket_progress_units
 from semester_recommender import (
     SEM_RE,
     normalize_semester_label,
@@ -115,6 +115,7 @@ class _LruResponseCache:
 
 _recommend_response_cache = _LruResponseCache(_REQUEST_CACHE_SIZE)
 _can_take_response_cache = _LruResponseCache(_REQUEST_CACHE_SIZE)
+_program_data_cache = _LruResponseCache(_REQUEST_CACHE_SIZE)
 
 
 def _cache_enabled() -> bool:
@@ -140,9 +141,14 @@ def _request_cache_key(prefix: str, payload) -> str:
     return f"{prefix}:{_data_version_tag()}:{_stable_payload_hash(payload)}"
 
 
+def _program_data_cache_key(prefix: str, payload) -> str:
+    return _request_cache_key(prefix, payload)
+
+
 def _clear_request_caches() -> None:
     _recommend_response_cache.clear()
     _can_take_response_cache.clear()
+    _program_data_cache.clear()
 
 
 def _check_rate_limit(ip: str) -> bool:
@@ -305,10 +311,10 @@ def _validate_recommend_body(body):
     max_recs_raw = body.get("max_recommendations", 3)
     try:
         max_recs = int(max_recs_raw)
-        if not (1 <= max_recs <= 6):
+        if not (1 <= max_recs <= 15):
             raise ValueError
     except (TypeError, ValueError):
-        return "INVALID_INPUT", "max_recommendations must be an integer between 1 and 6."
+        return "INVALID_INPUT", "max_recommendations must be an integer between 1 and 15."
     semester_count_raw = body.get("target_semester_count")
     if semester_count_raw not in (None, ""):
         try:
@@ -331,12 +337,6 @@ def _validate_recommend_body(body):
 
 
 PHASE5_PLAN_TRACK_ID = "__DECLARED_PLAN__"
-AIM_CFA_TRACK_ID = "AIM_CFA_TRACK"
-FIN_MAJOR_ID = "FIN_MAJOR"
-AIM_CFA_FINANCE_RULE_MSG = (
-    "Students in the AIM CFA: Investments Concentration must also have a declared "
-    "primary major in Finance."
-)
 _MAJOR_CODE_LABEL_OVERRIDES = {
     "FIN": "FINA",
     "INSY": "IS",
@@ -370,6 +370,47 @@ def _canonical_program_label(program_id: str, kind: str, fallback_label: str | N
     return str(program_id or "").strip().upper()
 
 
+def _required_major_message(program_label: str, required_major_label: str) -> str:
+    return (
+        f"{program_label} must be paired with a declared major in {required_major_label}."
+    )
+
+
+def _program_required_major_id(row) -> str:
+    return str(getattr(row, "get", lambda *_: "")("required_major_id", "") or "").strip().upper()
+
+
+def _default_program_id_from_catalog(catalog_df: pd.DataFrame) -> str:
+    if catalog_df is None or len(catalog_df) == 0:
+        return ""
+
+    publishable = catalog_df.copy()
+    if "applies_to_all" in publishable.columns:
+        publishable = publishable[publishable["applies_to_all"] != True].copy()
+    if "active" in publishable.columns:
+        publishable = publishable[publishable["active"] == True].copy()
+    if len(publishable) == 0:
+        return ""
+
+    majors = publishable[publishable["kind"] == "major"].copy()
+    explicit_default = majors[majors.get("is_default", False) == True]
+    if len(explicit_default) > 0:
+        explicit_default = explicit_default.sort_values("track_id", kind="stable")
+        return str(explicit_default.iloc[0]["track_id"]).strip().upper()
+
+    standalone = majors[majors.get("requires_primary_major", False) != True].copy()
+    if len(standalone) > 0:
+        standalone = standalone.sort_values("track_id", kind="stable")
+        return str(standalone.iloc[0]["track_id"]).strip().upper()
+
+    if len(majors) > 0:
+        majors = majors.sort_values("track_id", kind="stable")
+        return str(majors.iloc[0]["track_id"]).strip().upper()
+
+    publishable = publishable.sort_values("track_id", kind="stable")
+    return str(publishable.iloc[0]["track_id"]).strip().upper()
+
+
 def _normalize_program_catalog(tracks_df):
     """Return normalized program catalog dataframe used by /programs and /recommend."""
     if tracks_df is None or len(tracks_df) == 0:
@@ -382,6 +423,8 @@ def _normalize_program_catalog(tracks_df):
                 "parent_major_id",
                 "requires_primary_major",
                 "applies_to_all",
+                "required_major_id",
+                "is_default",
             ]
         )
 
@@ -405,13 +448,21 @@ def _normalize_program_catalog(tracks_df):
         df["requires_primary_major"] = False
     if "applies_to_all" not in df.columns:
         df["applies_to_all"] = False
+    if "required_major_id" not in df.columns and "required_major" in df.columns:
+        df = df.rename(columns={"required_major": "required_major_id"})
+    if "required_major_id" not in df.columns:
+        df["required_major_id"] = ""
+    if "is_default" not in df.columns:
+        df["is_default"] = False
 
     df["track_id"] = df["track_id"].astype(str).str.strip().str.upper()
     df["track_label"] = df["track_label"].fillna("").astype(str).str.strip()
     df["parent_major_id"] = df["parent_major_id"].fillna("").astype(str).str.strip().str.upper()
+    df["required_major_id"] = df["required_major_id"].fillna("").astype(str).str.strip().str.upper()
     df["active"] = df["active"].apply(lambda v: bool(v) if pd.notna(v) else False)
     df["requires_primary_major"] = df["requires_primary_major"].apply(lambda v: bool(v) if pd.notna(v) else False)
     df["applies_to_all"] = df["applies_to_all"].apply(lambda v: bool(v) if pd.notna(v) else False)
+    df["is_default"] = df["is_default"].apply(lambda v: bool(v) if pd.notna(v) else False)
 
     def _normalize_kind(row):
         kind = str(row.get("kind", "") or "").strip().lower()
@@ -451,6 +502,8 @@ def _normalize_program_catalog(tracks_df):
             "parent_major_id",
             "requires_primary_major",
             "applies_to_all",
+            "required_major_id",
+            "is_default",
         ]
     ]
 
@@ -489,6 +542,10 @@ def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
                         if pd.notna(row.get("applies_to_all", False))
                         else False
                     ),
+                    "required_major_id": str(row.get("required_major_id", "") or "").strip().upper(),
+                    "is_default": bool(row.get("is_default", False))
+                    if pd.notna(row.get("is_default", False))
+                    else False,
                 }
             )
 
@@ -502,6 +559,8 @@ def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
                 "parent_major_id",
                 "requires_primary_major",
                 "applies_to_all",
+                "required_major_id",
+                "is_default",
             ]
         )
     return pd.DataFrame(rows)
@@ -589,6 +648,16 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
     """
     major_id = str(major_id or "").strip().upper()
     selected_track = str(selected_track_id or "").strip().upper()
+    cache_key = _program_data_cache_key(
+        "single-major-v2",
+        {
+            "major_id": major_id,
+            "selected_track_id": selected_track,
+        },
+    )
+    cached = _program_data_cache.get(cache_key)
+    if cached is not None:
+        return cached
 
     v2_buckets = data.get("v2_buckets_df", pd.DataFrame()).copy()
     v2_sub = data.get("v2_sub_buckets_df", pd.DataFrame()).copy()
@@ -597,7 +666,9 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
     program_scope = {major_id} | universal_program_ids
 
     if len(v2_buckets) == 0 or len(v2_sub) == 0:
-        return dict(data)
+        merged = ensure_runtime_indexes(dict(data))
+        _program_data_cache.set(cache_key, merged)
+        return merged
 
     buckets = v2_buckets.copy()
     buckets["program_id"] = buckets["program_id"].astype(str).str.strip().str.upper()
@@ -814,6 +885,8 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
     merged = dict(data)
     merged["buckets_df"] = runtime_buckets
     merged["course_bucket_map_df"] = runtime_map
+    merged = ensure_runtime_indexes(merged, force=True)
+    _program_data_cache.set(cache_key, merged)
     return merged
 
 
@@ -874,6 +947,19 @@ def _build_declared_plan_data_v2(
 ) -> dict:
     """Build synthetic merged runtime view from V2 model for declared majors and minors."""
     declared_minors = declared_minors or []
+    cache_key = _program_data_cache_key(
+        "declared-plan-v2",
+        {
+            "declared_majors": list(declared_majors),
+            "selected_track_ids": list(selected_track_ids),
+            "declared_minors": list(declared_minors),
+            "discovery_theme": discovery_theme,
+        },
+    )
+    cached = _program_data_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     label_map = {str(r["track_id"]): str(r["track_label"] or r["track_id"]) for _, r in catalog_df.iterrows()}
     universal_programs = _universal_program_ids(data)
 
@@ -994,6 +1080,8 @@ def _build_declared_plan_data_v2(
         )
     else:
         merged["course_bucket_map_df"] = pd.DataFrame(columns=data["course_bucket_map_df"].columns)
+    merged = ensure_runtime_indexes(merged, force=True)
+    _program_data_cache.set(cache_key, merged)
     return merged
 
 
@@ -1078,6 +1166,7 @@ def _resolve_program_selection(body, data: dict):
         selectable_catalog_df = catalog_df[catalog_df["applies_to_all"] != True].copy()
     else:
         selectable_catalog_df = catalog_df.copy()
+    default_program_id = _default_program_id_from_catalog(selectable_catalog_df) or DEFAULT_TRACK_ID
     alias_map = _track_alias_map(selectable_catalog_df)
     label_map = {
         str(r["track_id"]): str(r["track_label"] or r["track_id"])
@@ -1108,11 +1197,11 @@ def _resolve_program_selection(body, data: dict):
 
     # Single-program path (backward compatibility input shape).
     if declared_majors is None and raw_track_ids is None and not declared_minors:
-        raw_track_id = str(body.get("track_id", DEFAULT_TRACK_ID) or DEFAULT_TRACK_ID).strip().upper()
+        raw_track_id = str(body.get("track_id", "") or "").strip().upper()
         track_warning = None
         # V2 mode: body.track_id is optional track selection, not major ID.
         if using_v2_catalog:
-            major_id = DEFAULT_TRACK_ID
+            major_id = default_program_id
             selected_track_id = None
 
             # Backward compatibility: explicit default major means "no track".
@@ -1143,6 +1232,18 @@ def _resolve_program_selection(body, data: dict):
                 track_row = track_row.iloc[0]
                 if track_row["kind"] != "track":
                     return None, (_build_unknown_track_error(raw_track_id), 400)
+                required_major_id = _program_required_major_id(track_row)
+                if required_major_id:
+                    return None, ({
+                        "mode": "error",
+                        "error": {
+                            "error_code": "PRIMARY_MAJOR_REQUIRED",
+                            "message": _required_major_message(
+                                _program_label(selected_track_id),
+                                _program_label(required_major_id),
+                            ),
+                        },
+                    }, 400)
                 if not track_row.get("active", True):
                     track_warning = (
                         f"Track '{_program_label(selected_track_id)}' is not yet published (active=0). "
@@ -1163,6 +1264,14 @@ def _resolve_program_selection(body, data: dict):
                     "effective_data": effective_data,
                 }, None
 
+            if not major_id:
+                return None, ({
+                    "mode": "error",
+                    "error": {
+                        "error_code": "INVALID_INPUT",
+                        "message": "No default major is configured in the program catalog.",
+                    },
+                }, 400)
             effective_data = _build_single_major_data_v2(data, major_id, None)
             return {
                 "mode": "legacy",
@@ -1179,7 +1288,7 @@ def _resolve_program_selection(body, data: dict):
             }, None
 
         # Legacy catalog path.
-        track_id = raw_track_id
+        track_id = raw_track_id or default_program_id
         if len(selectable_catalog_df) > 0:
             row = selectable_catalog_df[selectable_catalog_df["track_id"] == track_id]
             if len(row) == 0:
@@ -1189,7 +1298,7 @@ def _resolve_program_selection(body, data: dict):
                     f"Track '{_program_label(track_id)}' is not yet published (active=0). "
                     "Results may be incomplete."
                 )
-        elif track_id != DEFAULT_TRACK_ID:
+        elif track_id != default_program_id:
             return None, (_build_unknown_track_error(track_id), 400)
 
         return {
@@ -1292,12 +1401,16 @@ def _resolve_program_selection(body, data: dict):
                     "message": f"track_id '{t_id}' is not a track.",
                 },
             }, 400)
-        if t_id == AIM_CFA_TRACK_ID and FIN_MAJOR_ID not in declared_majors:
+        required_major_id = _program_required_major_id(track_row)
+        if required_major_id and required_major_id not in declared_majors:
             return None, ({
                 "mode": "error",
                 "error": {
                     "error_code": "PRIMARY_MAJOR_REQUIRED",
-                    "message": AIM_CFA_FINANCE_RULE_MSG,
+                    "message": _required_major_message(
+                        _program_label(t_id),
+                        _program_label(required_major_id),
+                    ),
                 },
             }, 400)
         if not track_row.get("active", True):
@@ -1348,6 +1461,16 @@ def _resolve_program_selection(body, data: dict):
 
 def _build_declared_plan_data(data: dict, selected_program_ids: list[str], catalog_df: pd.DataFrame) -> dict:
     """Build synthetic single-track data view for merged major/track planning."""
+    cache_key = _program_data_cache_key(
+        "declared-plan-legacy",
+        {
+            "selected_program_ids": list(selected_program_ids),
+        },
+    )
+    cached = _program_data_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     label_map = {
         r["track_id"]: r["track_label"]
         for _, r in catalog_df.iterrows()
@@ -1387,6 +1510,8 @@ def _build_declared_plan_data(data: dict, selected_program_ids: list[str], catal
     merged = dict(data)
     merged["buckets_df"] = buckets
     merged["course_bucket_map_df"] = course_map
+    merged = ensure_runtime_indexes(merged, force=True)
+    _program_data_cache.set(cache_key, merged)
     return merged
 
 
@@ -1409,6 +1534,7 @@ def _build_current_progress(completed, in_progress, data, track_id):
         data["equivalencies_df"],
         track_id=track_id,
         double_count_policy_df=data.get("v2_double_count_policy_df"),
+        runtime_indexes=data.get("runtime_indexes"),
     )
     assumed_alloc = allocate_courses(
         _dedupe_codes(completed + in_progress),
@@ -1419,6 +1545,7 @@ def _build_current_progress(completed, in_progress, data, track_id):
         data["equivalencies_df"],
         track_id=track_id,
         double_count_policy_df=data.get("v2_double_count_policy_df"),
+        runtime_indexes=data.get("runtime_indexes"),
     )
 
     bucket_order = list(dict.fromkeys(
@@ -1462,6 +1589,20 @@ def _build_current_progress(completed, in_progress, data, track_id):
             "in_progress_courses": len(baseline.get("in_progress_applied", [])),
         }
     return annotate_progress_with_recommendation_hierarchy(out, data, track_id)
+
+
+def _course_credit_lookup(data: dict) -> dict[str, int]:
+    runtime_indexes = data.get("runtime_indexes", {})
+    course_indexes = runtime_indexes.get("courses", {})
+    credits = course_indexes.get("credits")
+    if credits:
+        return credits
+
+    courses_df = data["courses_df"]
+    return dict(zip(
+        courses_df["course_code"].astype(str),
+        courses_df["credits"].fillna(3).apply(lambda x: max(0, int(x)) if pd.notna(x) else 3),
+    ))
 
 
 def _build_current_assumption_notes(
@@ -1582,12 +1723,13 @@ def get_programs():
         return jsonify({"error": "Data not loaded"}), 500
 
     catalog_df, _, _ = _get_program_catalog(_data)
+    default_program_id = _default_program_id_from_catalog(catalog_df)
     if len(catalog_df) == 0:
         return jsonify({
             "majors": [],
             "tracks": [],
             "minors": [],
-            "default_track_id": DEFAULT_TRACK_ID,
+            "default_track_id": default_program_id,
         })
 
     publishable = catalog_df[catalog_df.get("applies_to_all", False) != True].copy()
@@ -1609,6 +1751,7 @@ def get_programs():
             "track_id": str(row["track_id"]),
             "label": str(row.get("track_label", row["track_id"])),
             "parent_major_id": str(row.get("parent_major_id", "") or ""),
+            "required_major_id": str(row.get("required_major_id", "") or ""),
             "active": bool(row.get("active", True)),
         }
         for _, row in tracks.iterrows()
@@ -1626,7 +1769,7 @@ def get_programs():
         "majors": majors_payload,
         "tracks": tracks_payload,
         "minors": minors_payload,
-        "default_track_id": DEFAULT_TRACK_ID,
+        "default_track_id": default_program_id,
     })
 
 
@@ -1719,7 +1862,7 @@ def recommend():
         target_semester_count = max(1, min(8, int(target_semester_count_raw)))
 
     requested_course_raw = body.get("requested_course") or None
-    max_recs = max(1, min(6, int(body.get("max_recommendations", 3) or 3)))
+    max_recs = max(1, min(15, int(body.get("max_recommendations", 3) or 3)))
     include_summer = bool(body.get("include_summer", False))
     debug_mode = bool(body.get("debug", False))
     debug_limit = max(1, min(100, int(body.get("debug_limit", 30) or 30)))
@@ -1743,17 +1886,15 @@ def recommend():
 
     completed = comp_result["valid"]
     in_progress = ip_result["valid"]
+    completed_input = list(completed)
+    in_progress_input = list(in_progress)
     not_in_catalog_warn = comp_result["not_in_catalog"] + ip_result["not_in_catalog"]
 
     # Build a course→credits lookup for standing projection.
-    _cdf = effective_data["courses_df"]
-    _credits_lookup: dict[str, int] = dict(zip(
-        _cdf["course_code"].astype(str),
-        _cdf["credits"].fillna(3).apply(lambda x: max(0, int(x)) if pd.notna(x) else 3),
-    ))
+    _credits_lookup = _course_credit_lookup(effective_data)
     # Initial standing from completed + in-progress courses (in-progress are assumed
     # finishing by the time semester 1 recommendations apply).
-    running_credits: int = sum(_credits_lookup.get(c, 3) for c in completed) + sum(_credits_lookup.get(c, 3) for c in in_progress)
+    running_credits: int = sum(_credits_lookup.get(c, 3) for c in completed_input) + sum(_credits_lookup.get(c, 3) for c in in_progress_input)
 
     inconsistencies = find_inconsistent_completed_courses(
         completed, in_progress, effective_data["prereq_map"]
@@ -1799,7 +1940,17 @@ def recommend():
     requested_course = None
     if requested_course_raw:
         requested_course = normalize_code(str(requested_course_raw).strip())
-        if requested_course and requested_course not in catalog_codes:
+        if not requested_course:
+            return jsonify({
+                "mode": "error",
+                "error": {
+                    "error_code": "INVALID_INPUT",
+                    "message": f"{requested_course_raw} is not a valid course code.",
+                    "invalid_courses": [str(requested_course_raw).strip()],
+                    "not_in_catalog": [],
+                },
+            }), 400
+        if requested_course not in catalog_codes:
             return jsonify({
                 "mode": "error",
                 "error": {
@@ -1808,7 +1959,7 @@ def recommend():
                     "invalid_courses": [],
                     "not_in_catalog": [requested_course],
                 },
-            })
+            }), 400
 
     explicit_labels = [
         target_semester_secondary,
@@ -1838,13 +1989,17 @@ def recommend():
         semester_labels = filtered[:target_semester_count]
 
     semesters_payload = []
-    completed_cursor = list(dict.fromkeys(completed + in_progress))
+    completed_for_sem1 = list(dict.fromkeys(completed + in_progress))
+    completed_cursor = list(completed_for_sem1)
     for idx, semester_label in enumerate(semester_labels):
         current_standing = _credits_to_standing(running_credits)
         if idx == 0:
+            completed_only_standing = _credits_to_standing(
+                sum(_credits_lookup.get(c, 3) for c in completed)
+            )
             semester_payload = run_recommendation_semester(
-                completed,
-                in_progress,
+                completed_for_sem1,
+                [],
                 semester_label,
                 effective_data,
                 max_recs,
@@ -1853,9 +2008,14 @@ def recommend():
                 debug=debug_mode,
                 debug_limit=debug_limit,
                 current_standing=current_standing,
+                completed_only_standing=completed_only_standing,
+                assumes_in_progress_completion=bool(in_progress_input),
                 chain_depths=_chain_depths,
             )
         else:
+            completed_only_standing = _credits_to_standing(
+                sum(_credits_lookup.get(c, 3) for c in completed_cursor)
+            )
             semester_payload = run_recommendation_semester(
                 completed_cursor,
                 [],
@@ -1867,6 +2027,7 @@ def recommend():
                 debug=debug_mode,
                 debug_limit=debug_limit,
                 current_standing=current_standing,
+                completed_only_standing=completed_only_standing,
                 chain_depths=_chain_depths,
             )
         semesters_payload.append(semester_payload)
@@ -1887,6 +2048,10 @@ def recommend():
         "mode": "recommendations",
         "semesters": semesters_payload,
         **sem1,
+        "input_completed_courses": completed_input,
+        "input_in_progress_courses": in_progress_input,
+        "current_completed_courses": completed,
+        "current_in_progress_courses": in_progress,
         "current_progress": current_progress,
         "current_assumption_notes": current_assumption_notes,
         "not_in_catalog_warning": not_in_catalog_warn if not_in_catalog_warn else None,
@@ -1982,6 +2147,35 @@ def can_take_endpoint():
     # treat currently in-progress courses as completed by next term.
     completed_for_next_term = _dedupe_codes(completed + in_progress)
 
+    # Build a course→credits lookup for standing projection (same as /recommend).
+    _credits_lookup = _course_credit_lookup(effective_data)
+
+    # Standing check: use next-term credits (completed + in-progress will all be done)
+    next_term_credits = sum(_credits_lookup.get(c, 3) for c in completed_for_next_term)
+    next_term_standing = _credits_to_standing(next_term_credits)
+    _standing_labels = {1: "Freshman", 2: "Sophomore", 3: "Junior", 4: "Senior"}
+
+    runtime_courses = effective_data.get("runtime_indexes", {}).get("courses", {}).get("by_code", {})
+    course_info = runtime_courses.get(requested_course)
+    if course_info is not None:
+        min_standing_val = float(course_info.get("min_standing") or 0)
+        if 2.0 <= min_standing_val <= 4.0 and min_standing_val > next_term_standing:
+            req_label = _standing_labels.get(int(min_standing_val), f"standing {int(min_standing_val)}")
+            cur_label = _standing_labels.get(next_term_standing, f"standing {next_term_standing}")
+            _standing_resp = {
+                "mode": "can_take",
+                "requested_course": requested_course,
+                "can_take": False,
+                "why_not": f"Requires {req_label} standing. You'll have {cur_label} standing next semester.",
+                "missing_prereqs": [],
+                "not_offered_this_term": False,
+                "unsupported_prereq_format": False,
+                "next_best_alternatives": [],
+            }
+            if _cache_enabled():
+                _can_take_response_cache.set(cache_key, _standing_resp)
+            return jsonify(_standing_resp)
+
     result = check_can_take(
         requested_course,
         effective_data["courses_df"],
@@ -1989,6 +2183,7 @@ def can_take_endpoint():
         [],
         target_term,
         effective_data["prereq_map"],
+        runtime_indexes=effective_data.get("runtime_indexes"),
     )
 
     response_payload = {

@@ -1,13 +1,25 @@
 "use client";
 
-import { PlaceholderPage } from "@/components/layout/PlaceholderPage";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { SavedPlansLibraryPage } from "@/components/saved/SavedPlansLibraryPage";
+import { SavedPlanDetailPage } from "@/components/saved/SavedPlanDetailPage";
+
+function SavedPageInner() {
+  const searchParams = useSearchParams();
+  const planId = searchParams.get("plan");
+
+  if (planId) {
+    return <SavedPlanDetailPage planId={planId} />;
+  }
+
+  return <SavedPlansLibraryPage />;
+}
 
 export default function SavedPage() {
   return (
-    <PlaceholderPage
-      title="Saved Plans"
-      description="Save and compare different semester plans. Come back to your favorites anytime."
-      coverImage="/assets/covers/screen_saved_cover.jpg"
-    />
+    <Suspense>
+      <SavedPageInner />
+    </Suspense>
   );
 }

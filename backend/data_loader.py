@@ -3,6 +3,7 @@ import re
 
 import pandas as pd
 
+from allocator import ensure_runtime_indexes
 from prereq_parser import parse_prereqs
 
 
@@ -85,12 +86,17 @@ def _normalize_programs_df(programs_df: pd.DataFrame) -> pd.DataFrame:
         out["requires_primary_major"] = False
     if "applies_to_all" not in out.columns:
         out["applies_to_all"] = False
+    if "required_major_id" not in out.columns:
+        out["required_major_id"] = ""
+    if "is_default" not in out.columns:
+        out["is_default"] = False
 
     out["program_id"] = out["program_id"].fillna("").astype(str).str.strip().str.upper()
     out["program_label"] = out["program_label"].fillna("").astype(str).str.strip()
     out["kind"] = out["kind"].fillna("major").astype(str).str.strip().str.lower()
     out["kind"] = out["kind"].where(out["kind"].isin({"major", "track", "minor"}), "major")
     out["parent_major_id"] = out["parent_major_id"].fillna("").astype(str).str.strip().str.upper()
+    out["required_major_id"] = out["required_major_id"].fillna("").astype(str).str.strip().str.upper()
 
     # If only one major exists, auto-parent orphan track rows to that major.
     major_ids = [
@@ -107,6 +113,8 @@ def _normalize_programs_df(programs_df: pd.DataFrame) -> pd.DataFrame:
     out = _safe_bool_col(out, "active")
     out = _safe_bool_col(out, "requires_primary_major")
     out = _safe_bool_col(out, "applies_to_all")
+    out = _safe_bool_col(out, "is_default")
+    out.loc[out["kind"] == "major", "required_major_id"] = ""
     return out[
         [
             "program_id",
@@ -116,6 +124,8 @@ def _normalize_programs_df(programs_df: pd.DataFrame) -> pd.DataFrame:
             "active",
             "requires_primary_major",
             "applies_to_all",
+            "required_major_id",
+            "is_default",
         ]
     ]
 
@@ -244,6 +254,10 @@ def _normalize_parent_buckets_df(parent_buckets_df: pd.DataFrame) -> pd.DataFram
         out["requires_primary_major"] = False
     if "double_count_family_id" not in out.columns:
         out["double_count_family_id"] = ""
+    if "required_major" not in out.columns:
+        out["required_major"] = ""
+    if "is_default" not in out.columns:
+        out["is_default"] = False
 
     out["parent_bucket_id"] = out["parent_bucket_id"].fillna("").astype(str).str.strip().str.upper()
     out["parent_bucket_label"] = out["parent_bucket_label"].fillna("").astype(str).str.strip()
@@ -253,6 +267,7 @@ def _normalize_parent_buckets_df(parent_buckets_df: pd.DataFrame) -> pd.DataFram
         "major",
     )
     out["parent_major"] = out["parent_major"].fillna("").astype(str).str.strip().str.upper()
+    out["required_major"] = out["required_major"].fillna("").astype(str).str.strip().str.upper()
     out["double_count_family_id"] = (
         out["double_count_family_id"]
         .fillna("")
@@ -265,6 +280,7 @@ def _normalize_parent_buckets_df(parent_buckets_df: pd.DataFrame) -> pd.DataFram
         out.loc[missing_family, "double_count_family_id"] = out.loc[missing_family, "parent_bucket_id"]
     out = _safe_bool_col(out, "active")
     out = _safe_bool_col(out, "requires_primary_major")
+    out = _safe_bool_col(out, "is_default")
 
     # Normalize parent linkage by type.
     out.loc[out["type"].isin({"major", "universal"}), "parent_major"] = ""
@@ -277,6 +293,8 @@ def _normalize_parent_buckets_df(parent_buckets_df: pd.DataFrame) -> pd.DataFram
             "active",
             "requires_primary_major",
             "double_count_family_id",
+            "required_major",
+            "is_default",
         ]
     ]
 
@@ -428,6 +446,8 @@ def _convert_parent_child_model_to_v2(
         active = bool(row.get("active", True))
         req_primary = bool(row.get("requires_primary_major", False))
         is_universal = ptype == "universal"
+        required_major_id = str(row.get("required_major", "") or "").strip().upper()
+        is_default = bool(row.get("is_default", False))
 
         kind = "minor" if ptype == "minor" else ("track" if ptype == "track" else "major")
         program_parent = parent_major if kind == "track" else ""
@@ -440,6 +460,8 @@ def _convert_parent_child_model_to_v2(
                 "active": active,
                 "requires_primary_major": req_primary,
                 "applies_to_all": is_universal,
+                "required_major_id": required_major_id,
+                "is_default": is_default,
             }
         )
         parent_meta[pid] = {
@@ -1281,7 +1303,7 @@ def load_data(data_path: str) -> dict:
     else:
         print("[INFO] Loaded legacy V2 workbook model (compatibility mode).")
 
-    return {
+    data = {
         "courses_df": courses_df,
         "equivalencies_df": equivalencies_df,
         "buckets_df": buckets_df,
@@ -1302,3 +1324,4 @@ def load_data(data_path: str) -> dict:
         "v2_course_sub_buckets_df": v2_courses_all_buckets_df,
         "v2_double_count_policy_df": v2_double_count_policy_df,
     }
+    return ensure_runtime_indexes(data)

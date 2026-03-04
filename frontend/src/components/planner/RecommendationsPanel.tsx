@@ -57,7 +57,7 @@ export function RecommendationsPanel({
 
   if (allSatisfied) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 rounded-xl border border-gold/30 bg-[#0c2348]/55 p-8 text-center">
+      <div className="h-full flex flex-col items-center justify-center gap-4 rounded-xl border border-gold/30 surface-depth-2 p-8 text-center">
         <div className="text-5xl">🎓</div>
         <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-gold">
           You did it. We love to see it.
@@ -81,10 +81,15 @@ export function RecommendationsPanel({
     courseCount >= 6 ? "px-1.5 py-1.5" : courseCount >= 5 ? "px-2 py-1.5" : "px-2 py-2";
 
   return (
-    <div className="h-full min-h-0 rounded-xl border border-border-subtle/70 bg-[#0c2348]/55 shadow-[inset_0_1px_0_rgba(122,179,255,0.08)] p-2">
-      <div className="h-full min-h-0 flex flex-col lg:flex-row gap-3">
+    <div className="h-full min-h-0 rounded-xl glass-card p-2 relative overflow-hidden">
+      {/* Atmospheric overlay */}
+      <div className="absolute inset-0 rounded-xl pointer-events-none" style={{
+        background: "radial-gradient(ellipse 55% 45% at 92% 8%, rgba(255, 204, 0, 0.05), transparent), radial-gradient(ellipse 50% 40% at 8% 90%, rgba(0, 114, 206, 0.04), transparent)"
+      }} />
+
+      <div className="relative z-[1] h-full min-h-0 flex flex-col lg:flex-row gap-3 lg:gap-4">
         {semesters.length > 1 && (
-          <div className="lg:w-[210px] h-full min-h-0 shrink-0">
+          <div className="shrink-0 lg:w-[210px] lg:h-full lg:min-h-0">
             <SemesterSelector
               semesters={semesters}
               selectedIndex={selectedIdx}
@@ -94,8 +99,8 @@ export function RecommendationsPanel({
           </div>
         )}
 
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg bg-[#0b2143]/55 shadow-[inset_0_0_0_1px_rgba(141,170,224,0.2)] flex flex-col overflow-hidden">
-          <div className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-border-subtle/60">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg glass-card flex flex-col overflow-hidden">
+          <div className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-gold/15">
             <h4 className="text-[11px] md:text-[13px] font-bold font-[family-name:var(--font-sora)] text-gold leading-[1.25] tracking-[0.01em] hash-mark">
               Semester {selectedIdx + 1}
               {activeSemester.target_semester && ` - ${activeSemester.target_semester}`}
@@ -104,7 +109,7 @@ export function RecommendationsPanel({
               <button
                 type="button"
                 onClick={() => onExpandSemester(selectedIdx)}
-                className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-border-medium text-ink-secondary hover:text-gold hover:border-gold/70 cursor-pointer"
+                className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-gold/25 text-gold/70 hover:text-gold hover:border-gold/50 hover:bg-gold/8 cursor-pointer transition-all"
                 aria-label={`Expand semester ${selectedIdx + 1} details`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -130,8 +135,8 @@ export function RecommendationsPanel({
                 className={`h-full min-h-0 flex flex-col ${listGapClass} overflow-hidden`}
               >
                 {activeRecs.length > 0 ? (
-                  activeRecs.map((c) => (
-                    <CourseRow key={c.course_code} course={c} courseCount={courseCount} />
+                  activeRecs.map((c, idx) => (
+                    <CourseRow key={c.course_code} course={c} courseCount={courseCount} index={idx} />
                   ))
                 ) : (() => {
                   const pp = activeSemester.projected_progress;

@@ -1,11 +1,13 @@
 "use client";
 
+import { motion } from "motion/react";
 import type { CreditKpiMetrics, BucketProgress } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
+import { AnimatedNumber } from "@/components/shared/AnimatedNumber";
 import { ProgressRing } from "./ProgressRing";
-import { groupProgressByTierWithMajors, compactKpiBucketLabel, getBucketDisplay } from "@/lib/rendering";
+import { groupProgressByTierWithMajors } from "@/lib/rendering";
 import { getProgressQuip } from "@/lib/quips";
-import { bucketLabel } from "@/lib/utils";
+import { BucketProgressGrid } from "./BucketProgressGrid";
 
 interface ProgressModalProps {
   open: boolean;
@@ -31,66 +33,77 @@ export function ProgressModal({
 
   return (
     <Modal open={open} onClose={onClose} size="planner-detail" title="Degree Progress">
-      <div className="space-y-8">
+      <div className="space-y-10">
         {/* Top section: ring + credit metrics */}
-        <div className="flex flex-col sm:flex-row items-center gap-8">
-          <div className="shrink-0">
+        <div className="flex flex-col sm:flex-row items-center gap-10">
+          <div className="shrink-0 ring-glow float-soft">
             <ProgressRing
               pct={metrics.donePercent}
               inProgressPct={metrics.inProgressPercent}
               displayPct={metrics.overallPercent}
-              size={160}
-              stroke={14}
+              size={208}
+              stroke={18}
             />
           </div>
-          <div className="flex-1 grid grid-cols-2 gap-4">
+          <div className="flex-1 grid grid-cols-2 gap-5">
             <MetricCard
               label="Completed"
-              value={`${metrics.completedCredits}`}
+              value={metrics.completedCredits}
               unit="credits"
               color="text-ok"
+              delay={0.05}
             />
             <MetricCard
               label="In Progress"
-              value={`${metrics.inProgressCredits}`}
+              value={metrics.inProgressCredits}
               unit="credits"
               color="text-gold"
+              delay={0.1}
             />
             <MetricCard
               label="Remaining"
-              value={`${metrics.remainingCredits}`}
+              value={metrics.remainingCredits}
               unit="credits"
               color="text-bad"
               detail={`to ${metrics.minGradCredits}`}
+              delay={0.15}
             />
             <MetricCard
               label="Target"
-              value={`${metrics.minGradCredits}`}
+              value={metrics.minGradCredits}
               unit="credits"
               color="text-ink-faint"
+              delay={0.2}
             />
           </div>
         </div>
 
         {/* Contextual quip */}
-        <p className="text-center text-sm text-ink-muted italic py-2">
+        <motion.p
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          className="text-center text-[1.05rem] text-ink-muted italic py-3"
+        >
           {getProgressQuip({ metrics, currentProgress: currentProgress ?? null })}
-        </p>
+        </motion.p>
+
+        <div className="divider-fade" />
 
         {/* Assumption notes */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gold uppercase tracking-wider hash-mark">
+        <div className="space-y-4">
+          <h3 className="text-[1.05rem] font-semibold text-gold uppercase tracking-wider hash-mark">
             Assumptions Applied
           </h3>
-          <div className="rounded-xl border border-border-subtle/50 bg-surface-card/40 p-4 space-y-2">
+          <div className="rounded-xl glass-card stat-card-decor p-5 space-y-3">
             {notes.length > 0 ? (
               notes.map((note) => (
-                <p key={note} className="text-sm text-ink-secondary leading-relaxed">
+                <p key={note} className="text-[1.05rem] text-ink-secondary leading-relaxed relative z-[1]">
                   {note}
                 </p>
               ))
             ) : (
-              <p className="text-sm text-ink-faint">
+              <p className="text-[1.05rem] text-ink-faint relative z-[1]">
                 No assumptions applied. Clean slate.
               </p>
             )}
@@ -99,37 +112,39 @@ export function ProgressModal({
 
         {/* Standing */}
         <div className="text-center">
-          <span className="text-sm text-ink-faint">Current Standing: </span>
-          <span className="text-sm font-semibold text-gold">
+          <span className="text-[1.05rem] text-ink-faint">Current Standing: </span>
+          <span className="text-[1.05rem] font-semibold text-gold drop-shadow-[0_0_8px_rgba(255,204,0,0.3)]">
             {metrics.standingLabel}
           </span>
         </div>
 
+        <div className="divider-fade" />
+
         {/* Bucket breakdown — grouped by program */}
         {sections.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gold uppercase tracking-wider hash-mark">
+          <div className="space-y-5">
+            <h3 className="text-[1.05rem] font-semibold text-gold uppercase tracking-wider hash-mark">
               Requirement Breakdown
             </h3>
-            <div className="space-y-6">
+            <div className="space-y-7">
               {sections.map((section) => (
-                <div key={section.sectionKey} className="space-y-3">
-                  <h4 className="text-sm font-bold text-mu-blue uppercase tracking-wider border-b border-border-subtle/30 pb-1">
+                <div key={section.sectionKey} className="space-y-4">
+                  <h4 className="text-[1.05rem] font-bold text-mu-blue uppercase tracking-wider border-b border-border-subtle/30 pb-1.5">
                     {section.label}
                   </h4>
                   {section.subGroups ? (
-                    <div className="space-y-5">
+                    <div className="space-y-6">
                       {section.subGroups.map((group) => (
-                        <div key={group.parentId} className="space-y-2">
-                          <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wider pl-1">
+                        <div key={group.parentId} className="space-y-3">
+                          <p className="text-sm font-semibold text-ink-secondary uppercase tracking-wider pl-1">
                             {group.label}
                           </p>
-                          <BucketGrid entries={group.entries} programLabelMap={programLabelMap} />
+                          <BucketProgressGrid entries={group.entries} programLabelMap={programLabelMap} />
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <BucketGrid entries={section.entries} programLabelMap={programLabelMap} />
+                    <BucketProgressGrid entries={section.entries} programLabelMap={programLabelMap} />
                   )}
                 </div>
               ))}
@@ -141,75 +156,6 @@ export function ProgressModal({
   );
 }
 
-function BucketGrid({
-  entries,
-  programLabelMap,
-}: {
-  entries: [string, BucketProgress][];
-  programLabelMap?: Map<string, string>;
-}) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-      {entries.map(([bid, prog]) => {
-        const { done, inProg, needed, unit } = getBucketDisplay(prog);
-        const ipCodes = prog.in_progress_applied || [];
-        const label = compactKpiBucketLabel(
-          prog.label || bucketLabel(bid, programLabelMap),
-        );
-        const creditNeeded = Number(prog.needed || 0);
-        const creditDone = Number(prog.completed_done ?? prog.done_count ?? 0);
-        const creditInProg = Number(prog.in_progress_increment ?? 0);
-        const pct = creditNeeded > 0 ? (creditDone / creditNeeded) * 100 : 0;
-        const totalPct = creditNeeded > 0 ? ((creditDone + creditInProg) / creditNeeded) * 100 : 0;
-        const satisfied = prog.satisfied || (creditNeeded > 0 && creditDone >= creditNeeded);
-
-        return (
-          <div
-            key={bid}
-            className={`rounded-xl border border-border-subtle/50 p-4 h-full ${satisfied ? "opacity-60" : ""}`}
-          >
-            <div className="flex justify-between items-baseline mb-2">
-              <span className="text-sm font-medium text-ink-primary">
-                {label}
-              </span>
-              <span className="text-xs text-ink-faint">
-                {done}
-                {inProg > 0 && (
-                  <span className="text-gold">+{inProg}</span>
-                )}
-                /{needed} {unit}
-                {satisfied && (
-                  <span className="text-ok ml-1">(Done)</span>
-                )}
-              </span>
-            </div>
-            <div className="h-2 bg-surface-hover rounded-full overflow-hidden">
-              <div className="h-full flex">
-                <div
-                  className="h-full bg-ok rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, pct)}%` }}
-                />
-                {inProg > 0 && (
-                  <div
-                    className="h-full bg-gold rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.min(100 - Math.min(100, pct), totalPct - pct)}%`,
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-            {ipCodes.length > 0 && (
-              <p className="text-xs text-gold/70 mt-1.5">
-                In progress courses: {ipCodes.join(", ")}
-              </p>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 function MetricCard({
   label,
@@ -217,23 +163,38 @@ function MetricCard({
   unit,
   color,
   detail,
+  delay = 0,
 }: {
   label: string;
-  value: string;
+  value: number;
   unit: string;
   color: string;
   detail?: string;
+  delay?: number;
 }) {
+  const glowClass = color.includes("ok")
+    ? "kpi-glow-ok"
+    : color.includes("gold")
+      ? "kpi-glow-gold"
+      : color.includes("bad")
+        ? "kpi-glow-bad"
+        : "";
   return (
-    <div className="bg-surface-card/60 rounded-xl border border-border-subtle/50 p-3 text-center stat-card-decor">
-      <div className={`text-2xl font-bold font-[family-name:var(--font-sora)] ${color}`}>
-        {value}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, transition: { duration: 0.18 } }}
+      transition={{ duration: 0.25, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={`glass-card ${glowClass} rounded-xl p-4 text-center stat-card-decor`}
+    >
+      <div className={`text-[2rem] font-bold font-[family-name:var(--font-sora)] tabular-nums ${color}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+        <AnimatedNumber value={value} />
       </div>
-      <div className="text-xs text-ink-faint">
+      <div className="text-sm text-ink-faint">
         {unit}
       </div>
-      <div className="text-xs text-ink-muted mt-0.5">{label}</div>
-      {detail && <div className="text-xs text-ink-faint">{detail}</div>}
-    </div>
+      <div className="text-sm text-ink-muted mt-1">{label}</div>
+      {detail && <div className="text-sm text-ink-faint">{detail}</div>}
+    </motion.div>
   );
 }

@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { motion, useSpring, useTransform } from "motion/react";
+
 interface ProgressRingProps {
   pct: number;
   size?: number;
@@ -30,6 +33,17 @@ export function ProgressRing({
   const ipRotation = -90 + donePct * 3.6;
   const cx = size / 2;
 
+  // Animated stroke offsets via springs — guarded in useEffect so they
+  // only fire when the target value actually changes, not on every render.
+  const doneSpring = useSpring(circ, { stiffness: 60, damping: 20 });
+  const ipSpring = useSpring(circ, { stiffness: 60, damping: 20 });
+  useEffect(() => { doneSpring.set(doneOffset); }, [doneSpring, doneOffset]);
+  useEffect(() => { ipSpring.set(ipOffset); }, [ipSpring, ipOffset]);
+  const doneAnimated = useTransform(doneSpring, (v) => v.toFixed(3));
+  const ipAnimated = useTransform(ipSpring, (v) => v.toFixed(3));
+
+  const filterId = `glow-${size}`;
+
   return (
     <svg
       width={size}
@@ -39,6 +53,15 @@ export function ProgressRing({
       aria-label={`${Math.round(centerPct)}% progress${ipPct ? ` (${Math.round(donePct)}% complete, ${Math.round(ipPct)}% in progress)` : ""}`}
       role="img"
     >
+      <defs>
+        <filter id={filterId}>
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
       {/* Background track */}
       <circle
         cx={cx}
@@ -49,7 +72,7 @@ export function ProgressRing({
         strokeWidth={stroke}
       />
       {/* Completed arc */}
-      <circle
+      <motion.circle
         cx={cx}
         cy={cx}
         r={r}
@@ -57,14 +80,14 @@ export function ProgressRing({
         stroke="var(--ok)"
         strokeWidth={stroke}
         strokeDasharray={circ.toFixed(3)}
-        strokeDashoffset={doneOffset.toFixed(3)}
+        strokeDashoffset={doneAnimated}
         strokeLinecap="round"
         transform={`rotate(-90 ${cx} ${cx})`}
-        className="transition-all duration-700"
+        filter={donePct > 0 ? `url(#${filterId})` : undefined}
       />
       {/* In-progress arc */}
       {ipPct > 0 && (
-        <circle
+        <motion.circle
           cx={cx}
           cy={cx}
           r={r}
@@ -72,10 +95,9 @@ export function ProgressRing({
           stroke="var(--mu-gold)"
           strokeWidth={stroke}
           strokeDasharray={circ.toFixed(3)}
-          strokeDashoffset={ipOffset.toFixed(3)}
+          strokeDashoffset={ipAnimated}
           strokeLinecap="round"
           transform={`rotate(${ipRotation.toFixed(3)} ${cx} ${cx})`}
-          className="transition-all duration-700"
         />
       )}
       {/* Center text */}

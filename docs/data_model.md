@@ -20,11 +20,13 @@ erDiagram
     parent_buckets {
         string parent_bucket_id PK
         string parent_bucket_label
-        string type "major | track | universal"
+        string type "major | track | minor | universal"
         string parent_major FK "self-ref for tracks"
         bool active
         bool requires_primary_major
         string double_count_family_id
+        string required_major "track requires a declared major"
+        bool is_default "default standalone major"
     }
 
     child_buckets {
@@ -87,7 +89,14 @@ erDiagram
 |------|---------|----------|
 | `major` | Finance, Accounting | Selectable by student. Tier 2 priority. |
 | `track` | Corporate Banking, CFA | Scoped to a parent major via `parent_major`. Tier 3 priority. |
+| `minor` | Business Administration minor | Optional secondary program. |
 | `universal` | BCC Core, MCC Foundation | Auto-included for all students. Tier 1 priority. |
+
+**Program gating/defaults** (`parent_buckets.required_major`, `parent_buckets.is_default`)
+| Field | Rule |
+|------|------|
+| `required_major` | Optional major ID that must be declared to use this program (typically a track). |
+| `is_default` | Marks the major selected by default when the user has not picked a major yet. |
 
 **Requirement modes** (`child_buckets.requirement_mode`)
 | Mode | Rule |

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Sora, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
@@ -17,6 +18,23 @@ const jakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
+export const metadata: Metadata = {
+  title: "MarqBot",
+  description: "MarqBot",
+  applicationName: "MarqBot",
+  openGraph: {
+    title: "MarqBot",
+    description: "MarqBot",
+    siteName: "MarqBot",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "MarqBot",
+    description: "MarqBot",
+  },
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -24,13 +42,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${sora.variable} ${jakarta.variable}`}>
-      <head>
-        <title>MarqBot — Marquette Course Planner</title>
-        <meta
-          name="description"
-          content="Smart course recommendations for Marquette finance students"
-        />
-      </head>
       <body className="min-h-screen bg-orbs">
         <AppProvider>
           <Navbar />

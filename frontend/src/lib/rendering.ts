@@ -267,6 +267,39 @@ export interface ProgressSectionWithGroups extends ProgressSection {
   subGroups?: ProgressSubGroup[];
 }
 
+function bucketOrderingLabel(
+  bucketId: string,
+  prog: BucketProgress,
+  programLabelMap?: Map<string, string>,
+): string {
+  return String(prog.label || bucketLabel(bucketId, programLabelMap)).trim();
+}
+
+function bucketSemanticRank(
+  bucketId: string,
+  prog: BucketProgress,
+  programLabelMap?: Map<string, string>,
+): number {
+  const normalized = bucketOrderingLabel(bucketId, prog, programLabelMap).toLowerCase();
+  if (/\bcore\b/.test(normalized)) return 0;
+  return 1;
+}
+
+function sortProgramGroupEntries(
+  entries: [string, BucketProgress][],
+  programLabelMap?: Map<string, string>,
+): [string, BucketProgress][] {
+  return entries
+    .map((entry, index) => ({ entry, index }))
+    .sort((a, b) => {
+      const aRank = bucketSemanticRank(a.entry[0], a.entry[1], programLabelMap);
+      const bRank = bucketSemanticRank(b.entry[0], b.entry[1], programLabelMap);
+      if (aRank !== bRank) return aRank - bRank;
+      return a.index - b.index;
+    })
+    .map(({ entry }) => entry);
+}
+
 export function groupProgressByTierSections(
   progressObj: Record<string, BucketProgress> | null | undefined,
 ): ProgressSection[] {
@@ -340,7 +373,13 @@ export function groupProgressByTierWithMajors(
 
     return {
       ...section,
-      subGroups: orderedIds.map((id) => groupMap.get(id)!),
+      subGroups: orderedIds.map((id) => {
+        const group = groupMap.get(id)!;
+        return {
+          ...group,
+          entries: sortProgramGroupEntries(group.entries, programLabelMap),
+        };
+      }),
     } satisfies ProgressSectionWithGroups;
   });
 }

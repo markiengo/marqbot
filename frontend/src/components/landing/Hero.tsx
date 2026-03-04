@@ -5,93 +5,218 @@ import { motion } from "motion/react";
 import { Button } from "@/components/shared/Button";
 import { AnchorLine } from "@/components/shared/AnchorLine";
 
+const trustPills = ["540 active courses", "12 business majors", "8 built-in tracks"];
+
+const heroStats = [
+  { value: "688", label: "requirement mappings" },
+  { value: "449", label: "classes tied to requirements" },
+  { value: "29", label: "top-level requirement groups" },
+];
+
+const heroChecks = [
+  "If you cannot take it yet, it drops.",
+  "Classes that unlock more classes move up.",
+  "Classes that count for real requirements move up.",
+];
+
 export function Hero() {
   return (
-    <section className="relative overflow-hidden min-h-[86vh] flex items-center band-deep">
-      <div className="absolute inset-0 -z-10">
+    <section className="relative overflow-hidden band-deep" style={{ background: "#07101e" }}>
+      {/* Single aurora — one clean bloom at top-center, nothing competing */}
+      <div className="absolute inset-0 pointer-events-none">
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(1200px 520px at 15% 0%, rgba(56,124,210,0.24), transparent 62%), radial-gradient(900px 460px at 85% 10%, rgba(255,204,0,0.14), transparent 66%), linear-gradient(180deg, rgba(20,64,124,0.25) 0%, rgba(9,28,58,0.10) 60%, rgba(7,18,39,0.04) 100%)",
+              "radial-gradient(ellipse 110% 55% at 50% -5%, rgba(24,68,160,0.50) 0%, transparent 68%)",
           }}
         />
+        {/* Subtle gold warmth under the headline */}
         <div
-          className="absolute inset-0 opacity-[0.02]"
+          className="absolute"
+          style={{
+            top: "10%",
+            left: "12%",
+            width: "520px",
+            height: "520px",
+            background: "radial-gradient(circle, rgba(255,204,0,0.08) 0%, transparent 68%)",
+            filter: "blur(36px)",
+          }}
+        />
+        {/* Subtle grid */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(255,204,0,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,204,0,0.3) 1px, transparent 1px)",
+              "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
             backgroundSize: "72px 72px",
           }}
         />
-        <motion.div
-          animate={{ scale: [1, 1.03, 1], opacity: [0.09, 0.14, 0.09] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] h-[440px] bg-gold/15 rounded-full blur-[90px]"
+        <div
+          className="absolute -right-24 top-28 h-[26rem] w-[26rem] rounded-full"
+          style={{
+            background: "radial-gradient(circle, rgba(0,114,206,0.18) 0%, transparent 72%)",
+            filter: "blur(48px)",
+          }}
         />
       </div>
 
-      <div className="absolute inset-0 flex items-center justify-center -z-[5] pointer-events-none">
-        <div className="w-[min(940px,96vw)] h-[min(620px,82vh)] rounded-3xl bg-white/[0.02] backdrop-blur-[2px] border border-white/[0.05] shadow-[0_6px_24px_rgba(0,0,0,0.22)]" />
-      </div>
+      <div className="max-w-[96rem] mx-auto px-5 sm:px-7 lg:px-10 py-20 sm:py-24 w-full">
+        <div className="max-w-[58rem] mx-auto text-center">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16 w-full">
-        <div className="max-w-3xl mx-auto text-center space-y-7">
+          {/* Badge */}
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: "easeOut" }}
-            className="space-y-4"
+            transition={{ duration: 0.4 }}
+            className="mb-11"
           >
-            <motion.span
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.08 }}
-              className="inline-block px-4 py-1.5 bg-gold/12 text-gold rounded-full text-xs sm:text-sm font-semibold tracking-widest uppercase border border-gold/20"
-            >
+            <span className="inline-block px-5 py-2 rounded-full text-sm font-semibold tracking-widest uppercase border border-gold/25 bg-gold/8 text-gold">
               For Marquette Business Students
-            </motion.span>
-
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[72px] font-bold font-[family-name:var(--font-sora)] text-ink-primary leading-[1.08] tracking-tight">
-              Stop spiraling. Start{" "}
-              <span className="text-gold"><em className="mu-accent">planning.</em></span>
-            </h1>
-
-            <p className="text-base sm:text-lg text-ink-secondary max-w-[620px] mx-auto leading-relaxed">
-              MarqBot tells you what to take next — based on what you&apos;ve
-              actually completed. No logins. No spreadsheets. No guessing.
-            </p>
+            </span>
           </motion.div>
 
+          {/* Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 22 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="text-6xl sm:text-7xl md:text-[95px] lg:text-[106px] font-bold font-[family-name:var(--font-sora)] text-white leading-[1.04] tracking-tight mb-8"
+          >
+            Know <span className="text-emphasis-gold">what to take next.</span>
+            <br />
+            <span className="text-emphasis-blue">Before registration sneaks up on you.</span>
+          </motion.h1>
+
+          {/* Subline */}
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.22, ease: "easeOut" }}
+            className="text-[1.55rem] sm:text-[1.7rem] text-slate-400 max-w-[820px] mx-auto leading-relaxed mb-14"
+          >
+            MarqBot tells you exactly what to take next — based on your transcript,
+            prereqs, and actual degree rules. No logins. No spreadsheets. No guessing.
+          </motion.p>
+
+          {/* CTA */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex items-center justify-center"
+            transition={{ duration: 0.5, delay: 0.34 }}
+            className="flex flex-col items-center gap-5 mb-16"
           >
             <Link href="/onboarding">
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <motion.div whileHover={{ scale: 1.025 }} whileTap={{ scale: 0.975 }}>
                 <Button
                   variant="gold"
                   size="lg"
-                  className="min-w-[220px] shadow-[0_0_16px_rgba(255,204,0,0.2)] hover:shadow-[0_0_22px_rgba(255,204,0,0.28)] transition-shadow"
+                  className="min-w-[200px] shadow-[0_0_28px_rgba(255,204,0,0.25)] hover:shadow-[0_0_40px_rgba(255,204,0,0.35)] transition-shadow duration-300"
                 >
                   Get My Plan
                 </Button>
               </motion.div>
             </Link>
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.55, duration: 0.4 }}
+              className="text-base text-slate-500"
+            >
+              Built by a Marquette student. Powered by real degree rules.
+            </motion.span>
           </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
-            className="text-[17px] text-ink-faint"
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.45 }}
+            className="grid gap-3 sm:grid-cols-3 mb-10"
           >
-            Built by a Marquette student. Powered by real degree rules.
-          </motion.p>
+            {trustPills.map((pill) => (
+              <div
+                key={pill}
+                className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-slate-200 backdrop-blur"
+              >
+                {pill}
+              </div>
+            ))}
+          </motion.div>
 
-          <AnchorLine variant="gold" className="mt-6" />
+          <AnchorLine variant="gold" />
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.5 }}
+            className="mt-10 rounded-[2rem] border border-white/10 bg-[linear-gradient(145deg,rgba(12,29,56,0.95),rgba(10,24,50,0.82))] p-4 shadow-[0_28px_80px_rgba(0,0,0,0.24)] text-left"
+          >
+            <div className="flex items-center justify-between rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
+              <div className="flex items-center gap-3">
+                <span className="h-2.5 w-2.5 rounded-full bg-gold shadow-[0_0_14px_rgba(255,204,0,0.45)]" />
+                Planning engine snapshot
+              </div>
+              <div className="rounded-full border border-white/8 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-400">
+                Real product scope
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              {heroStats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-[1.4rem] border border-white/8 bg-white/[0.04] p-4 text-center"
+                >
+                  <div className="text-4xl font-bold leading-none text-gold">{stat.value}</div>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-300">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_0.95fr]">
+              <div className="rounded-[1.5rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                  What the engine prioritizes
+                </p>
+                <div className="mt-4 space-y-3">
+                  {heroChecks.map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-xl border border-white/8 bg-black/10 px-3 py-3 text-sm leading-relaxed text-slate-200"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-[1.5rem] border border-white/8 bg-gold/[0.06] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold/80">
+                    Coverage
+                  </p>
+                  <p className="mt-3 text-lg font-semibold text-white">
+                    Business core, majors, tracks, and MCC requirement buckets.
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    Enough structure to be useful. Clear enough to stay fast.
+                  </p>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                    Guarantee
+                  </p>
+                  <p className="mt-3 text-base leading-relaxed text-white">
+                    Ranked by actual degree logic. Not guesswork.
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                    Same inputs in. Same plan out.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>

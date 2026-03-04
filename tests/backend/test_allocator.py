@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from allocator import allocate_courses
+from allocator import allocate_courses, ensure_runtime_indexes
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -76,6 +76,33 @@ def run_with_policy(completed, in_progress, buckets, course_map, courses, policy
         track_id=track_id,
         double_count_policy_df=policy,
     )
+
+
+def test_runtime_course_index_uses_prereq_level_for_min_standing():
+    data = {
+        "courses_df": pd.DataFrame([
+            {
+                "course_code": "TEST 4000",
+                "course_name": "Standing Gate Course",
+                "credits": 3,
+                "level": 4000,
+                "prereq_level": 3.0,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+            }
+        ]),
+        "buckets_df": pd.DataFrame(),
+        "course_bucket_map_df": pd.DataFrame(),
+        "equivalencies_df": pd.DataFrame(),
+        "parent_buckets_df": pd.DataFrame(),
+    }
+
+    indexed = ensure_runtime_indexes(data, force=True)
+    course = indexed["runtime_indexes"]["courses"]["by_code"]["TEST 4000"]
+
+    assert course["prereq_level"] == 3.0
+    assert course["min_standing"] == 3.0
 
 
 class TestBasicAllocation:

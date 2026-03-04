@@ -1,25 +1,48 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import Link from "next/link";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { motion } from "motion/react";
 import { ProgressDashboard, useProgressMetrics } from "./ProgressDashboard";
 import { ProgressModal } from "./ProgressModal";
 import { SemesterModal } from "./SemesterModal";
 import { ProfileModal } from "./ProfileModal";
-import { DegreeSummary } from "./DegreeSummary";
 import { CanTakeSection } from "./CanTakeSection";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { Button } from "@/components/shared/Button";
+import { Modal } from "@/components/shared/Modal";
+import { Skeleton } from "@/components/shared/Skeleton";
+import { SavePlanModal } from "@/components/saved/SavePlanModal";
 import { useRecommendations } from "@/hooks/useRecommendations";
+import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
+import { postRecommend } from "@/lib/api";
 import { getProgramLabelMap } from "@/lib/rendering";
+import { buildSavedPlanInputsFromAppState } from "@/lib/savedPlans";
+import type { RecommendedCourse, RecommendationResponse, SemesterData } from "@/lib/types";
+
+function formatPlanDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export function PlannerLayout() {
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const { data, requestedCount, loading, error, fetchRecommendations } =
     useRecommendations();
+  const { hydrated: savedPlansReady, createPlan } = useSavedPlans();
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [semesterModalIdx, setSemesterModalIdx] = useState<number | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [explainerOpen, setExplainerOpen] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccessName, setSaveSuccessName] = useState<string | null>(null);
+  const [semEditCandidates, setSemEditCandidates] = useState<RecommendedCourse[] | null>(null);
+  const [semEditLoading, setSemEditLoading] = useState(false);
+  const closeExplainer = useCallback(() => setExplainerOpen(false), []);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
@@ -64,21 +87,152 @@ export function PlannerLayout() {
     .filter(Boolean) as string[];
   const primaryProgramLabel =
     majorLabels.length > 0 ? majorLabels.join(" & ") : trackLabels.join(" & ");
+  const canSavePlan = Boolean(data && data.mode !== "error");
+  const defaultSaveName = `${primaryProgramLabel || "Plan"} - ${state.targetSemester} - ${formatPlanDate(new Date())}`;
   const modalSemester =
     semesterModalIdx !== null ? data?.semesters?.[semesterModalIdx] ?? null : null;
 
+  const handleSavePlan = ({ name, notes }: { name: string; notes: string }) => {
+    if (!data || data.mode === "error") {
+      setSaveError("Generate recommendations before saving a plan.");
+      return;
+    }
+    const result = createPlan({
+      name,
+      notes,
+      inputs: buildSavedPlanInputsFromAppState(state),
+      recommendationData: data,
+      lastRequestedCount: requestedCount,
+    });
+    if (!result.ok) {
+      setSaveError(result.error || "Could not save this plan.");
+      return;
+    }
+    setSaveError(null);
+    setSaveSuccessName(result.plan?.name || name);
+    setSaveModalOpen(false);
+  };
+
+  const fetchCandidatesForSemester = async (semIdx: number) => {
+    if (!data?.semesters) return;
+    setSemEditLoading(true);
+    setSemEditCandidates(null);
+    try {
+      const priorCourses = data.semesters
+        .slice(0, semIdx)
+        .flatMap((s) => (s.recommendations ?? []).map((r) => r.course_code));
+      // Merge completed + in-progress + prior recs into one completed set.
+      // In-progress are treated as done for this projection to avoid validation errors.
+      const allCompleted = new Set([...state.completed, ...state.inProgress, ...priorCourses]);
+      const extCompleted = [...allCompleted].join(", ");
+      const majors = [...state.selectedMajors];
+      const payload: Record<string, unknown> = {
+        completed_courses: extCompleted,
+        in_progress_courses: "",
+        target_semester: data.semesters[semIdx]?.target_semester ?? state.targetSemester,
+        target_semester_primary: data.semesters[semIdx]?.target_semester ?? state.targetSemester,
+        target_semester_count: 1,
+        max_recommendations: 15,
+      };
+      if (majors.length > 0) payload.declared_majors = majors;
+      if (state.selectedTracks.length > 0) payload.track_ids = state.selectedTracks;
+      if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
+      if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
+      if (state.includeSummer) payload.include_summer = true;
+      const result = await postRecommend(payload);
+      setSemEditCandidates(result.semesters?.[0]?.recommendations ?? []);
+    } catch {
+      setSemEditCandidates([]); // surface empty pool rather than leaving null
+    } finally {
+      setSemEditLoading(false);
+    }
+  };
+
+  const handleSemesterEditApply = async (semIdx: number, chosenCourses: RecommendedCourse[]) => {
+    if (!data?.semesters) return;
+    const totalSems = data.semesters.length;
+    const remainingCount = totalSems - semIdx - 1;
+
+    const originalSem = data.semesters[semIdx];
+    const editedSem: SemesterData = {
+      ...originalSem,
+      recommendations: chosenCourses,
+      projected_progress: undefined,
+    };
+
+    // Last semester: no downstream re-run needed, just splice the edit in
+    if (remainingCount <= 0) {
+      const newSemesters = [
+        ...data.semesters.slice(0, semIdx),
+        editedSem,
+      ];
+      const newData: RecommendationResponse = {
+        ...data,
+        semesters: newSemesters,
+      };
+      dispatch({
+        type: "SET_RECOMMENDATIONS",
+        payload: { data: newData, count: Number(state.maxRecs) || 3 },
+      });
+      setSemEditCandidates(null);
+      return;
+    }
+
+    const priorCourses = data.semesters
+      .slice(0, semIdx)
+      .flatMap((s) => (s.recommendations ?? []).map((r) => r.course_code));
+    const editedCodes = chosenCourses.map((c) => c.course_code);
+    // Merge original completed + in-progress + prior semester recs + edited courses
+    // into a single completed set. In-progress courses are treated as done for
+    // downstream projection, avoiding the "prereq still in-progress" validation error.
+    const allCompleted = new Set([...state.completed, ...state.inProgress, ...priorCourses, ...editedCodes]);
+    const extCompleted = [...allCompleted].join(", ");
+    const majors = [...state.selectedMajors];
+    const nextSemTarget = data.semesters[semIdx + 1]?.target_semester ?? state.targetSemester;
+    const payload: Record<string, unknown> = {
+      completed_courses: extCompleted,
+      in_progress_courses: "",
+      target_semester: nextSemTarget,
+      target_semester_primary: nextSemTarget,
+      target_semester_count: remainingCount,
+      max_recommendations: Number(state.maxRecs) || 3,
+    };
+    if (majors.length > 0) payload.declared_majors = majors;
+    if (state.selectedTracks.length > 0) payload.track_ids = state.selectedTracks;
+    if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
+    if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
+    if (state.includeSummer) payload.include_summer = true;
+
+    const downstream: RecommendationResponse = await postRecommend(payload);
+
+    const newSemesters = [
+      ...data.semesters.slice(0, semIdx),
+      editedSem,
+      ...(downstream.semesters ?? []),
+    ];
+    const newData: RecommendationResponse = {
+      ...downstream,
+      semesters: newSemesters,
+    };
+    dispatch({
+      type: "SET_RECOMMENDATIONS",
+      payload: { data: newData, count: Number(state.maxRecs) || 3 },
+    });
+    setSemEditCandidates(null);
+  };
+
   return (
-    <div className="planner-shell">
+    <div className="planner-shell bg-orbs">
       {/* ── Header bar ────────────────────────────────────────────── */}
       {hasProgram ? (
-        <div className="px-4 py-2 mb-2 rounded-xl bg-surface-card/60 border border-border-subtle/50 flex flex-wrap items-center justify-between gap-2 accent-top-gold">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-sm text-ink-faint shrink-0">Planning for: </span>
-            <span className="text-sm font-semibold font-[family-name:var(--font-sora)] text-gold truncate">
+        <div className="px-3 sm:px-4 py-2 mb-2 rounded-xl surface-depth-2 shine-sweep flex flex-wrap items-center justify-between gap-2 accent-top-gradient">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span className="text-xs sm:text-sm text-ink-faint shrink-0">Planning for: </span>
+            <span className="text-xs sm:text-sm font-semibold font-[family-name:var(--font-sora)] text-gold truncate">
               {primaryProgramLabel}
             </span>
             {majorLabels.length > 0 && trackLabels.length > 0 && (
-              <span className="text-sm text-ink-secondary truncate">
+              <span className="hidden sm:inline text-sm text-ink-secondary truncate">
                 &bull; {trackLabels.join(" & ")}
               </span>
             )}
@@ -94,25 +248,39 @@ export function PlannerLayout() {
               </svg>
             </button>
           </div>
-          <Button
-            variant="gold"
-            size="sm"
-            onClick={fetchRecommendations}
-            disabled={loading || !hasProgram}
-            className="shrink-0"
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
-                Loading...
-              </span>
-            ) : (
-              "Get My Plan"
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setSaveError(null);
+                setSaveModalOpen(true);
+              }}
+              disabled={!savedPlansReady || !canSavePlan}
+              className="shrink-0"
+            >
+              Save Plan
+            </Button>
+            <Button
+              variant="gold"
+              size="sm"
+              onClick={fetchRecommendations}
+              disabled={loading || !hasProgram}
+              className="shrink-0 shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+                  Loading...
+                </span>
+              ) : (
+                "Get My Plan"
+              )}
+            </Button>
+          </div>
         </div>
       ) : (
-        <div className="px-4 py-2 mb-2 rounded-xl bg-surface-card/60 border border-border-subtle/50 flex items-center justify-between gap-3">
+        <div className="px-4 py-2 mb-2 rounded-xl surface-depth-2 flex items-center justify-between gap-3">
           <span className="text-sm text-ink-faint">No program selected</span>
           <button
             type="button"
@@ -124,28 +292,26 @@ export function PlannerLayout() {
         </div>
       )}
 
+      {saveSuccessName && (
+        <div className="mb-3 rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok flex flex-wrap items-center justify-between gap-3">
+          <span>Saved &ldquo;{saveSuccessName}&rdquo; to this browser.</span>
+          <Link href="/saved" className="font-semibold underline underline-offset-2">
+            View saved plans
+          </Link>
+        </div>
+      )}
+
       {/* ── Dual-column layout: Progress (40%) + Recommendations (60%) ── */}
       <div className="planner-columns">
-        {/* LEFT: Progress + Degree Summary (40%) */}
+        {/* LEFT: Progress (60%) + Can I Take (40%) */}
         <div className="planner-panel planner-left">
-          <div className="h-full min-h-0 flex flex-col gap-3">
-            <div className="flex-1 min-h-0">
+          <div className="lg:h-full lg:min-h-0 flex flex-col gap-3">
+            <div className="lg:flex-[3] lg:min-h-0">
               <ProgressDashboard onViewDetails={() => setProgressModalOpen(true)} />
             </div>
 
-            <div className="flex-1 min-h-0">
-              {data?.current_progress ? (
-                <DegreeSummary
-                  currentProgress={data.current_progress}
-                  programLabelMap={programLabelMap}
-                />
-              ) : (
-                <div className="h-full rounded-2xl border border-border-subtle bg-gradient-to-br from-[#0f2a52]/70 to-[#10284a]/55 p-4 flex items-center justify-center text-center">
-                  <p className="text-sm text-ink-faint">
-                    Hit &ldquo;Get My Plan&rdquo; to see your degree breakdown.
-                  </p>
-                </div>
-              )}
+            <div className="lg:flex-[2] lg:min-h-0">
+              <CanTakeSection />
             </div>
           </div>
         </div>
@@ -154,17 +320,21 @@ export function PlannerLayout() {
         <div className="planner-panel planner-right">
           <div className="h-full min-h-0 flex flex-col">
             <div className="mb-2">
-              <p className="text-xs font-semibold text-gold leading-tight">
+              <p className="section-kicker">
                 Ranked by actual degree logic. Expand each semester for details.
               </p>
-              <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white mt-2 leading-tight">
-                Here&apos;s what to take next.
-              </h3>
-            </div>
-
-            {/* Can I Take — compact inline */}
-            <div className="mb-2 pb-2 border-b border-border-subtle/50">
-              <CanTakeSection />
+              <div className="flex items-center justify-between gap-2 mt-2">
+                <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
+                  Here&apos;s what to take next.
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setExplainerOpen(true)}
+                  className="shrink-0 text-[11px] text-gold bg-gold/8 border border-gold/20 rounded-full px-3 py-1 hover:bg-gold/15 hover:border-gold/35 transition-all"
+                >
+                  How Marqbot recommends
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -174,8 +344,13 @@ export function PlannerLayout() {
             )}
 
             {!hasProgram && !data && (
-              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8 space-y-4">
-                <div className="w-16 h-16 bg-gold/10 rounded-2xl flex items-center justify-center">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="flex flex-col items-center justify-center h-full text-center px-4 py-8 space-y-4"
+              >
+                <div className="w-16 h-16 bg-gold/10 rounded-2xl flex items-center justify-center pulse-gold-soft">
                   <svg className="w-8 h-8 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
@@ -194,12 +369,17 @@ export function PlannerLayout() {
                     hit &ldquo;Get My Plan.&rdquo; We&apos;ll handle the rest.
                   </p>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {hasProgram && !data && !loading && (
-              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8 space-y-4">
-                <div className="w-16 h-16 bg-surface-card rounded-2xl flex items-center justify-center border border-border-subtle">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="flex flex-col items-center justify-center h-full text-center px-4 py-8 space-y-4"
+              >
+                <div className="w-16 h-16 bg-surface-card rounded-2xl flex items-center justify-center border border-border-subtle float-soft">
                   <svg className="w-8 h-8 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
@@ -217,13 +397,15 @@ export function PlannerLayout() {
                     Hit &ldquo;Get My Plan&rdquo; and let&apos;s build your plan.
                   </p>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {loading && !data && (
-              <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                <div className="w-10 h-10 border-3 border-gold border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-ink-faint mt-4">Running the rules. One sec.</p>
+              <div className="flex flex-col gap-3 p-4 h-full justify-center">
+                <Skeleton className="h-14 rounded-xl" />
+                <Skeleton className="h-14 rounded-xl" />
+                <Skeleton className="h-14 rounded-xl" />
+                <p className="text-xs text-ink-faint text-center mt-2">Running the rules. One sec.</p>
               </div>
             )}
 
@@ -251,16 +433,95 @@ export function PlannerLayout() {
       />
       <SemesterModal
         open={semesterModalIdx !== null && modalSemester !== null}
-        onClose={() => setSemesterModalIdx(null)}
+        onClose={() => { setSemesterModalIdx(null); setSemEditCandidates(null); }}
         semester={modalSemester}
         index={semesterModalIdx ?? 0}
         requestedCount={requestedCount}
         programLabelMap={programLabelMap}
         programOrder={programOrder}
+        candidatePool={semEditCandidates ?? undefined}
+        candidatePoolLoading={semEditLoading}
+        onRequestCandidates={() => { if (semesterModalIdx !== null) fetchCandidatesForSemester(semesterModalIdx); }}
+        onEditApply={(courses) => {
+          if (semesterModalIdx === null) return Promise.resolve();
+          return handleSemesterEditApply(semesterModalIdx, courses);
+        }}
       />
       <ProfileModal
         open={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
+      />
+      <Modal
+        open={explainerOpen}
+        onClose={closeExplainer}
+        title="How Marqbot Recommends Courses"
+        titleClassName="!text-[clamp(1.95rem,3.9vw,2.73rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
+        size="planner-detail"
+      >
+        <div className="space-y-6 text-base text-ink-secondary">
+          <p className="text-ink-faint text-[1.05rem]">
+            Here&apos;s the simple version: I only show classes that make sense right now, then I put the best ones at the top.
+          </p>
+          <ol className="space-y-5 list-none">
+            <li className="flex gap-4">
+              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">1</span>
+              <div>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Can you take it right now?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If not, I hide it. No prereq? Not offered this term? Not enough credits yet? Then it does not make the list.</p>
+              </div>
+            </li>
+            <li className="flex gap-4">
+              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">2</span>
+              <div>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Does it help with required stuff?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Classes that fill required boxes usually come before random extras. Core first. Major next. Flexible stuff later.</p>
+              </div>
+            </li>
+            <li className="flex gap-4">
+              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">3</span>
+              <div>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it blocking other classes?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Some classes unlock a bunch of other classes. If one class is blocking the road, I push it up.</p>
+              </div>
+            </li>
+            <li className="flex gap-4">
+              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">4</span>
+              <div>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Do you need to start it early?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Some classes are step 1 of a long path. If waiting would mess up later semesters, I move that class higher now.</p>
+              </div>
+            </li>
+            <li className="flex gap-4">
+              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">5</span>
+              <div>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Does one class count for two things?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class helps with more than one requirement, that&apos;s a great deal. Those usually move up.</p>
+              </div>
+            </li>
+          </ol>
+          <div className="divider-fade" />
+          <p className="text-ink-faint text-[1.05rem] pt-3">
+            I assume you pass the classes in your plan. If your courses change, update them here.
+          </p>
+          <p className="text-ink-muted text-[1.05rem]">
+            This is strong, not perfect. Some rules are still being added. Full picture{" "}
+            <a
+              href="/about"
+              className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"
+            >
+              here
+            </a>
+            .
+          </p>
+        </div>
+      </Modal>
+      <SavePlanModal
+        open={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        defaultName={defaultSaveName}
+        onSave={handleSavePlan}
+        error={saveError}
+        disabled={!savedPlansReady || !canSavePlan}
       />
     </div>
   );
