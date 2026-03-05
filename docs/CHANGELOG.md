@@ -8,6 +8,24 @@ Format per release:
 
 ---
 
+## [v2.2.2] - 2026-03-05
+
+### Changes
+
+**Backend test suite cleanup**
+- Extracted shared test helpers into `tests/backend/helpers.py` — catalog lookups, payload builders, and assertion helpers that were duplicated across 4 test files.
+- Folded `test_program_smoke.py` into `test_dead_end_fast.py`. Dead-end tests now also cover minor smoke, multi-semester, include_summer, and selection_context validation that were previously separate.
+- Split `test_schema_migration.py`: runtime tests (SafeBoolCol, allocator double-count, data_loader) stay in the default run; archived migration-script tests are marked `@pytest.mark.migration` and excluded by default.
+- `pytest.ini` now excludes nightly tests by default (`addopts = -m "not nightly"`). Bare `pytest` runs 609 tests in ~98s. Nightly sweep (10,272 tests) still runs via GitHub Actions or `pytest -m nightly`.
+
+### Design Decisions
+- Shared helpers reduce copy-paste across test files without changing what's tested. Each test file still owns its assertions and parametrization.
+- Program smoke was folded into dead_end_fast because single-program empty-history smoke was already covered by dead-end cases. Unique checks (minors, multi-semester, summer, selection_context) were preserved.
+- Migration-script tests kept but marked rather than deleted — the scripts are archived, but the tests guard against accidental re-runs producing bad output.
+- Advisor match tests kept separate from regression profiles: they validate different failure modes (overlap threshold vs exact expectations).
+
+---
+
 ## [v2.2.1] - 2026-03-04
 
 ### Changes

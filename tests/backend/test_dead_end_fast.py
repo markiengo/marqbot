@@ -5,73 +5,35 @@ Runs every active single program selection + curated high-risk combos,
 each with multiple starting histories (empty, foundation, mid, late),
 and asserts no 2-term dead-ends occur.
 
+Also includes live-data smoke coverage (minors, multi-semester,
+include_summer, selection_context) previously in test_program_smoke.
+
 Target runtime: under 3 minutes on a normal dev machine.
 """
 
 import pytest
 
-import server
+from server import app
 from dead_end_utils import (
     PlanCase,
     run_case_and_assert,
     seed_from_simulation,
 )
-
-
-# ── Program discovery helpers ───────────────────────────────────────────────
-
-
-def _active_programs():
-    """Return (majors, tracks, minors) lists of active program IDs from live data."""
-    data = server._data
-    catalog_df, _, _ = server._get_program_catalog(data)
-
-    if "applies_to_all" in catalog_df.columns:
-        selectable = catalog_df[catalog_df["applies_to_all"] != True].copy()
-    else:
-        selectable = catalog_df.copy()
-
-    if "active" in selectable.columns:
-        selectable = selectable[selectable["active"].astype(str).str.lower().isin(["true", "1", "yes"])]
-
-    majors = []
-    tracks = []
-    minors = []
-
-    for _, row in selectable.iterrows():
-        tid = str(row["track_id"])
-        ptype = str(row.get("kind", row.get("type", ""))).strip().lower()
-        if ptype == "minor":
-            minors.append(tid)
-        elif ptype == "track":
-            tracks.append(tid)
-        else:
-            majors.append(tid)
-
-    return sorted(majors), sorted(tracks), sorted(minors)
-
-
-def _requires_primary(major_id):
-    """Check if a major requires a primary major pairing."""
-    data = server._data
-    catalog_df, _, _ = server._get_program_catalog(data)
-    row = catalog_df[catalog_df["track_id"] == major_id]
-    if row.empty:
-        return False
-    return bool(row.iloc[0].get("requires_primary_major", False))
-
-
-def _get_parent_major(track_id):
-    """Get the parent major for a track."""
-    data = server._data
-    catalog_df, _, _ = server._get_program_catalog(data)
-    row = catalog_df[catalog_df["track_id"] == track_id]
-    if row.empty:
-        return None
-    return str(row.iloc[0].get("parent_major", "")) or None
-
-
-CANONICAL_PRIMARY = "FIN_MAJOR"
+from helpers import (
+    CANONICAL_PRIMARY,
+    active_programs,
+    active_program_ids,
+    active_representatives,
+    requires_primary,
+    get_parent_major,
+    declared_majors_for_major,
+    declared_majors_for_track,
+    primary_major_id,
+    recommend_payload,
+    post_recommend,
+    assert_recommendation_shape,
+    assert_selection_context,
+)
 
 
 # ── Case generation ─────────────────────────────────────────────────────────
@@ -79,11 +41,11 @@ CANONICAL_PRIMARY = "FIN_MAJOR"
 
 def _single_major_cases():
     """Generate PlanCase for every active major."""
-    majors, _, _ = _active_programs()
+    majors, _, _ = active_programs()
     cases = []
     for mid in majors:
         declared = [mid]
-        if _requires_primary(mid):
+        if requires_primary(mid):
             declared = [CANONICAL_PRIMARY, mid]
         cases.append((
             f"major-{mid}",
@@ -101,14 +63,13 @@ def _single_major_cases():
 
 def _single_track_cases():
     """Generate PlanCases for every active track (standalone + with parent major)."""
-    _, tracks, _ = _active_programs()
+    _, tracks, _ = active_programs()
     cases = []
     for tid in tracks:
-        parent = _get_parent_major(tid)
-        # Track-only selection
+        parent = get_parent_major(tid)
         if parent:
             majors = [parent]
-            if _requires_primary(parent):
+            if requires_primary(parent):
                 majors = [CANONICAL_PRIMARY, parent]
         else:
             majors = []
@@ -127,9 +88,9 @@ def _single_track_cases():
 
 
 # Curated high-risk overlap combos
-# NOTE: minors are excluded — they exist in parent_buckets.csv but have no
-# child buckets or course mappings yet (Coming Soon).  Re-enable once minor
-# data is injected.
+# NOTE: minors are excluded from dead-end tests — they exist in
+# parent_buckets.csv but have no child buckets or course mappings yet
+# (Coming Soon). Re-enable once minor data is injected.
 CURATED_COMBOS = [
     ("combo-FIN+INSY+BUAN", PlanCase(
         declared_majors=["FIN_MAJOR", "INSY_MAJOR"],
@@ -168,7 +129,6 @@ def _generate_state_variants(label: str, base_case: PlanCase):
     """Generate empty, foundation, mid, and late starting states for a base case."""
     variants = [(f"{label}/empty", base_case)]
 
-    # Foundation: take first 3 recommendations from empty simulation
     foundation = seed_from_simulation(base_case, 1)
     if foundation:
         variants.append((
@@ -185,7 +145,6 @@ def _generate_state_variants(label: str, base_case: PlanCase):
             ),
         ))
 
-    # Mid: first 2 semesters of recs
     mid = seed_from_simulation(base_case, 2)
     if mid:
         variants.append((
@@ -202,7 +161,6 @@ def _generate_state_variants(label: str, base_case: PlanCase):
             ),
         ))
 
-    # Late: first 4 semesters of recs
     late = seed_from_simulation(base_case, 4)
     if late:
         variants.append((
@@ -222,7 +180,7 @@ def _generate_state_variants(label: str, base_case: PlanCase):
     return variants
 
 
-# ── Build parametrized test cases ───────────────────────────────────────────
+# ── Build parametrized dead-end cases ──────────────────────────────────────
 
 
 def _collect_fast_cases():
@@ -235,19 +193,16 @@ def _collect_fast_cases():
     for label, base in _single_track_cases():
         all_cases.extend(_generate_state_variants(label, base))
 
-    # Minors excluded — no child buckets or course mappings yet.
-
     for label, base in CURATED_COMBOS:
         all_cases.extend(_generate_state_variants(label, base))
 
     return all_cases
 
 
-# Collect at module load (data loaded via server import)
 _FAST_CASES = _collect_fast_cases()
 
 
-# ── Tests ───────────────────────────────────────────────────────────────────
+# ── Dead-end tests ─────────────────────────────────────────────────────────
 
 
 @pytest.mark.parametrize(
@@ -258,3 +213,101 @@ _FAST_CASES = _collect_fast_cases()
 def test_no_dead_end(label, case):
     """Assert no 2-term dead-end for this program selection and starting state."""
     run_case_and_assert(case, num_terms=9)
+
+
+# ── Smoke tests (from test_program_smoke) ──────────────────────────────────
+# These cover minors, multi-semester, include_summer, selection_context,
+# and recommendation shape validation that dead-end tests don't check.
+
+REPRESENTATIVE_MAJOR_CANDIDATES = [
+    "FIN_MAJOR",
+    "ACCO_MAJOR",
+    "BUAN_MAJOR",
+    "REAL_MAJOR",
+    "MARK_MAJOR",
+]
+REPRESENTATIVE_TRACK_CANDIDATES = [
+    "CB_TRACK",
+    "REAL_REAP_TRACK",
+    "AIM_FINTECH_TRACK",
+]
+
+
+@pytest.fixture(scope="module")
+def client():
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        yield c
+
+
+@pytest.mark.parametrize("minor_id", active_program_ids("minor"), ids=active_program_ids("minor"))
+def test_smoke_minor(client, minor_id):
+    data = post_recommend(
+        client,
+        recommend_payload(
+            declared_majors=[primary_major_id()],
+            declared_minors=[minor_id],
+        ),
+    )
+    semesters = data.get("semesters", [])
+    assert semesters, f"No semesters returned for minor {minor_id}"
+    assert_recommendation_shape(semesters[0].get("recommendations", []))
+    assert_selection_context(data, [primary_major_id(), minor_id])
+
+
+@pytest.mark.parametrize(
+    "major_id",
+    active_representatives("major", REPRESENTATIVE_MAJOR_CANDIDATES, 4),
+    ids=active_representatives("major", REPRESENTATIVE_MAJOR_CANDIDATES, 4),
+)
+def test_three_semester_smoke_major(client, major_id):
+    data = post_recommend(
+        client,
+        recommend_payload(
+            declared_majors=declared_majors_for_major(major_id),
+            target_semester_count=3,
+        ),
+    )
+    semesters = data.get("semesters", [])
+    assert len(semesters) == 3, f"Expected 3 semesters for major {major_id}, got {len(semesters)}"
+    for semester in semesters:
+        assert_recommendation_shape(semester.get("recommendations", []))
+    assert_selection_context(data, declared_majors_for_major(major_id))
+
+
+@pytest.mark.parametrize(
+    "track_id",
+    active_representatives("track", REPRESENTATIVE_TRACK_CANDIDATES, 3),
+    ids=active_representatives("track", REPRESENTATIVE_TRACK_CANDIDATES, 3),
+)
+def test_three_semester_smoke_track(client, track_id):
+    dmajors = declared_majors_for_track(track_id)
+    data = post_recommend(
+        client,
+        recommend_payload(
+            declared_majors=dmajors,
+            track_id=track_id,
+            target_semester_count=3,
+        ),
+    )
+    semesters = data.get("semesters", [])
+    assert len(semesters) == 3, f"Expected 3 semesters for track {track_id}, got {len(semesters)}"
+    for semester in semesters:
+        assert_recommendation_shape(semester.get("recommendations", []))
+    assert_selection_context(data, dmajors + [track_id])
+
+
+def test_include_summer_smoke_preserves_summer_term_when_enabled(client):
+    data = post_recommend(
+        client,
+        recommend_payload(
+            declared_majors=[primary_major_id()],
+            target_semester_primary="Spring 2026",
+            target_semester_count=3,
+            include_summer=True,
+        ),
+    )
+    labels = [semester["target_semester"] for semester in data.get("semesters", [])]
+    assert labels == ["Spring 2026", "Summer 2026", "Fall 2026"]
+    assert_recommendation_shape(data["semesters"][0].get("recommendations", []))
+    assert_selection_context(data, [primary_major_id()])

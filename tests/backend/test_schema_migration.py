@@ -2,11 +2,11 @@
 Regression tests for schema normalization, legacy compatibility, and migration utilities.
 
 Covers:
-  1. _safe_bool_col() coercion behavior
-  2. allocate_courses() policy-based double-count behavior
-  3. data_loader legacy/new schema requirements
-  4. migrate_schema --clean mode
-  5. parent/child migration + elective purge
+  1. _safe_bool_col() coercion behavior  (runtime)
+  2. allocate_courses() policy-based double-count behavior  (runtime)
+  3. data_loader legacy/new schema requirements  (runtime)
+  4. migrate_schema --clean mode  (migration — marked @pytest.mark.migration)
+  5. parent/child migration + elective purge  (migration — marked @pytest.mark.migration)
 """
 
 import os
@@ -457,6 +457,7 @@ def _courses_headers(path):
     return [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
 
 
+@pytest.mark.migration
 class TestCleanMode:
     def test_clean_aborts_when_course_sub_buckets_missing(self, tmp_path):
         path = _make_clean_workbook(tmp_path, include_course_sub_buckets=False)
@@ -661,6 +662,7 @@ def _legacy_parent_child_source():
     return courses, programs, buckets, sub_buckets, courses_all_buckets
 
 
+@pytest.mark.migration
 class TestParentChildMigration:
     def test_migration_creates_parent_child_sheets_and_purges_elective_mappings(self, tmp_path):
         (

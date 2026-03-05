@@ -13,66 +13,23 @@ from itertools import combinations
 
 import pytest
 
-import server
 from dead_end_utils import (
     PlanCase,
     run_case_and_assert,
     seed_from_simulation,
     simulate_terms,
 )
+from helpers import (
+    CANONICAL_PRIMARY,
+    active_programs,
+    requires_primary,
+    get_parent_major,
+)
 
 pytestmark = pytest.mark.nightly
 
 FIXED_SEED = 20260302
-CANONICAL_PRIMARY = "FIN_MAJOR"
 START_TERMS = ["Fall 2026", "Spring 2026", "Summer 2026"]
-
-
-# ── Program discovery ───────────────────────────────────────────────────────
-
-
-def _active_programs():
-    data = server._data
-    catalog_df, _, _ = server._get_program_catalog(data)
-
-    if "applies_to_all" in catalog_df.columns:
-        selectable = catalog_df[catalog_df["applies_to_all"] != True].copy()
-    else:
-        selectable = catalog_df.copy()
-
-    if "active" in selectable.columns:
-        selectable = selectable[selectable["active"].astype(str).str.lower().isin(["true", "1", "yes"])]
-
-    majors, tracks, minors = [], [], []
-    for _, row in selectable.iterrows():
-        tid = str(row["track_id"])
-        ptype = str(row.get("kind", row.get("type", ""))).strip().lower()
-        if ptype == "minor":
-            minors.append(tid)
-        elif ptype == "track":
-            tracks.append(tid)
-        else:
-            majors.append(tid)
-
-    return sorted(majors), sorted(tracks), sorted(minors)
-
-
-def _requires_primary(major_id):
-    data = server._data
-    catalog_df, _, _ = server._get_program_catalog(data)
-    row = catalog_df[catalog_df["track_id"] == major_id]
-    if row.empty:
-        return False
-    return bool(row.iloc[0].get("requires_primary_major", False))
-
-
-def _get_parent_major(track_id):
-    data = server._data
-    catalog_df, _, _ = server._get_program_catalog(data)
-    row = catalog_df[catalog_df["track_id"] == track_id]
-    if row.empty:
-        return None
-    return str(row.iloc[0].get("parent_major", "")) or None
 
 
 # ── Pair generation ─────────────────────────────────────────────────────────
@@ -81,7 +38,7 @@ def _get_parent_major(track_id):
 def _build_pair_cases():
     """Generate valid pairwise program selections.
     Minors excluded — no child buckets or course mappings yet (Coming Soon)."""
-    majors, tracks, _minors = _active_programs()
+    majors, tracks, _minors = active_programs()
     all_programs = (
         [("major", m) for m in majors]
         + [("track", t) for t in tracks]
@@ -97,27 +54,24 @@ def _build_pair_cases():
         for ptype, pid in [(type_a, id_a), (type_b, id_b)]:
             if ptype == "major":
                 declared_majors.append(pid)
-                if _requires_primary(pid):
+                if requires_primary(pid):
                     needs_primary = True
             elif ptype == "track":
                 track_ids.append(pid)
-                parent = _get_parent_major(pid)
+                parent = get_parent_major(pid)
                 if parent and parent not in declared_majors:
                     declared_majors.append(parent)
-                    if _requires_primary(parent):
+                    if requires_primary(parent):
                         needs_primary = True
 
-        # Ensure primary major pairing if needed
         if needs_primary and not any(
-            not _requires_primary(m) for m in declared_majors
+            not requires_primary(m) for m in declared_majors
         ):
             declared_majors.insert(0, CANONICAL_PRIMARY)
 
-        # Minor-only needs a base major
         if not declared_majors and not track_ids:
             declared_majors = [CANONICAL_PRIMARY]
 
-        # Skip duplicate major entries
         declared_majors = list(dict.fromkeys(declared_majors))
 
         label = f"pair-{id_a}+{id_b}"
@@ -140,7 +94,6 @@ def _get_course_universe(case: PlanCase) -> list[str]:
         else:
             mapped = set()
 
-        # Add direct prereqs of mapped courses
         prereq_map = effective_data.get("prereq_map", {})
         extended = set(mapped)
         for cc in mapped:
@@ -165,9 +118,9 @@ def _generate_adversarial_states(
 
     states = []
     ranges = [
-        (0, min(8, len(universe))),     # early: 0-8 courses
-        (9, min(18, len(universe))),    # mid: 9-18 courses
-        (19, min(35, len(universe))),   # late: 19-35 courses
+        (0, min(8, len(universe))),
+        (9, min(18, len(universe))),
+        (19, min(35, len(universe))),
     ]
 
     for lo, hi in ranges:
@@ -264,12 +217,10 @@ def _collect_nightly_cases():
             term_label = start_term.replace(" ", "")
             case_label = f"{label}/{term_label}"
 
-            # BFS reachable states
             bfs_states = _bfs_reachable_states(base, max_depth=3, max_states=12)
             for idx, state in enumerate(bfs_states):
                 all_cases.append((f"{case_label}/bfs-{idx}", state))
 
-            # Adversarial states
             universe = _get_course_universe(base)
             adv_states = _generate_adversarial_states(base, rng, universe)
             for idx, state in enumerate(adv_states):
@@ -278,7 +229,6 @@ def _collect_nightly_cases():
     return all_cases
 
 
-# Collect at module load — only when nightly marker is active
 _NIGHTLY_CASES = None
 
 
