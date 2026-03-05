@@ -12,20 +12,18 @@ Format per release:
 
 ### Changes
 
-**Backend test suite cleanup**
-- Extracted shared test helpers into `tests/backend/helpers.py` — catalog lookups, payload builders, and assertion helpers that were duplicated across 4 test files.
-- Folded `test_program_smoke.py` into `test_dead_end_fast.py`. Dead-end tests now also cover minor smoke, multi-semester, include_summer, and selection_context validation that were previously separate.
-- Split `test_schema_migration.py`: runtime tests (SafeBoolCol, allocator double-count, data_loader) stay in the default run; archived migration-script tests are marked `@pytest.mark.migration` and excluded by default.
-- `pytest.ini` now excludes nightly tests by default (`addopts = -m "not nightly"`). Bare `pytest` runs 609 tests in ~98s. Nightly sweep (10,272 tests) still runs via GitHub Actions or `pytest -m nightly`.
+- test_data_integrity.py: validates required CSV presence/schema/non-empty, uniqueness, cross-file links, prereq sanity (no self/cycles), bucket rule fields, active program metadata, parseable offering flags, and runtime materialization for active non-minor programs.
+- test_dead_end_fast.py: verifies active majors/tracks keep producing recommendations across empty/early/mid/late states, plus high-risk combos, minor smoke, 3-semester smoke, include_summer behavior, and coherent selection context.
+- test_recommendation_quality.py: enforces foundation-first behavior, standing gates, no duplicate/repeated recs, non-degrading unmet requirements, semester cap compliance, unmet-bucket usefulness, and stable selected-program IDs (including summer runs).
+- test_recommend_api_contract.py: validates /recommend 400 behavior for malformed inputs and contract correctness for successful responses.
+- test_recommend_api_contract.py (scenario checks): confirms include_summer true/false changes semester labels correctly and target_semester_count bounds are honored (1 and 8).
+- test_validate_prereqs_endpoint.py: verifies both prereq-validation routes return identical shape/output, correctly report direct/transitive conflicts, and handle empty/valid/unknown/malformed inputs safely.
+- test_validate_track.py + test_regression_profiles.py + eval/advisor_gold.json: enforce full live validate_track --all pass and protect recommendation/ranking behavior against regression profiles and advisor-gold expectations.
 
 ### Design Decisions
-- Shared helpers reduce copy-paste across test files without changing what's tested. Each test file still owns its assertions and parametrization.
-- Program smoke was folded into dead_end_fast because single-program empty-history smoke was already covered by dead-end cases. Unique checks (minors, multi-semester, summer, selection_context) were preserved.
-- Migration-script tests kept but marked rather than deleted — the scripts are archived, but the tests guard against accidental re-runs producing bad output.
-- Advisor match tests kept separate from regression profiles: they validate different failure modes (overlap threshold vs exact expectations).
+- v2.2.2 focused on making release gates explicit around data integrity, dead-end prevention, recommendation quality, API contracts, prereq validation, and advisor-baseline regression safety.
 
 ---
-
 ## [v2.2.1] - 2026-03-04
 
 ### Changes
