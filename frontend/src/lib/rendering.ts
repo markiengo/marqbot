@@ -138,6 +138,7 @@ function inferRecommendationTier(
 
 type ProgressSectionKey =
   | "mcc"
+  | "discovery"
   | "bcc"
   | "major"
   | "track_minor"
@@ -151,12 +152,15 @@ function inferProgressSection(
   const parentId = parentBucketId(bucketId);
   const tier = inferRecommendationTier(bucketId, prog);
 
+  // MCC Discovery themes get their own section with sub-groups
+  if (parentId.startsWith("MCC_DISC")) {
+    return { key: "discovery", label: "MCC Discovery", rank: 0.5 };
+  }
   if (
     parentId === "MCC" ||
     parentId === "MCC_CORE" ||
     parentId === "MCC_FOUNDATION" ||
     parentId === "MCC_CULM" ||
-    parentId.startsWith("MCC_DISC") ||
     bucketId.startsWith("MCC::") ||
     localId.startsWith("MCC_")
   ) {
@@ -338,7 +342,7 @@ export function groupProgressByTierWithMajors(
   programOrder?: string[],
 ): ProgressSectionWithGroups[] {
   const base = groupProgressByTierSections(progressObj);
-  const needsSubGroups = new Set<ProgressSectionKey>(["major", "track_minor"]);
+  const needsSubGroups = new Set<ProgressSectionKey>(["major", "track_minor", "discovery"]);
 
   return base.map((section) => {
     if (!needsSubGroups.has(section.sectionKey) || section.entries.length === 0) {
@@ -377,8 +381,13 @@ export function groupProgressByTierWithMajors(
       ...section,
       subGroups: orderedIds.map((id) => {
         const group = groupMap.get(id)!;
+        // For discovery sub-groups, strip "MCC Discovery: " prefix since section header shows it
+        const cleanLabel = section.sectionKey === "discovery"
+          ? group.label.replace(/^MCC\s+Discovery:\s*/i, "")
+          : group.label;
         return {
           ...group,
+          label: cleanLabel,
           entries: sortProgramGroupEntries(group.entries, programLabelMap),
         };
       }),
@@ -389,6 +398,9 @@ export function groupProgressByTierWithMajors(
 export function compactKpiBucketLabel(label: string): string {
   const raw = String(label || "");
   if (!raw) return "";
+  // Strip verbose Discovery theme prefixes (shown in sub-group headers instead)
+  const discMatch = raw.match(/^(?:MCC\s+)?Discovery:\s*.+?:\s*(.+)$/i);
+  if (discMatch) return discMatch[1].trim();
   return raw
     .replace(/AIM No Concentration Core/gi, "AIM Core")
     .replace(/AIM No Concentration Elective\s*\(1\)/gi, "AIM Elective")
