@@ -8,6 +8,30 @@ Format per release:
 
 ---
 
+## [v2.2.4] - 2026-03-06
+
+### Changes
+
+- Added `scripts/scrape_catalog.py` for a one-time full Marquette bulletin scrape into `data/webscrape_1/`.
+- Added `scripts/merge_scraped_catalog.py` to merge scraped catalog data into production CSVs with automatic pre-merge backups.
+- Expanded production catalog data:
+  - `data/courses.csv`: `540` -> `5302` rows.
+  - `data/course_prereqs.csv`: `540` -> `5302` rows.
+- Added generated scrape artifacts for review:
+  - `data/webscrape_1/all_courses_raw.csv`
+  - `data/webscrape_1/course_prereqs_proposed.csv`
+  - `data/webscrape_1/scrape_summary.json`
+- Added backup snapshots:
+  - `data/courses.pre_merge_backup.csv`
+  - `data/course_prereqs.pre_merge_backup.csv`
+
+### Design Decisions
+- Kept schema compatibility with existing production CSV contracts and backend loaders.
+- Preserved existing hand-curated prerequisite rows during merge and only appended new course prereq rows.
+- Preserved non-empty existing curated fields during merge while injecting scraped descriptions and new catalog coverage.
+
+---
+
 ## [v2.2.3] - 2026-03-06
 
 ### Changes
