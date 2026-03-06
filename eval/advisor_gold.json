@@ -11,7 +11,7 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["ECON 1103", "ACCO 1030", "ENGL 1001", "PHIL 1001", "SOCI 1001", "MATH 1200"],
+    "expected_top6": ["ECON 1103", "HEAL 1025", "ACCO 1030", "BUAD 1001", "ENGL 1001", "LEAD 1050"],
     "notes": "Effective zero-credit FIN freshman (catalog-based). Standing gates block 3001-level BCC courses (INSY/OSCM/MARK/MANA require sophomore+). Recs are BCC/MCC tier 1 courses open to freshmen."
   },
   {
@@ -26,7 +26,7 @@
       "target_semester_count": 1,
       "max_recommendations": 6
     },
-    "expected_top6": ["ECON 1103", "ACCO 1030", "ENGL 1001", "PHIL 1001", "SOCI 1001", "MATH 1200"],
+    "expected_top6": ["ECON 1103", "HEAL 1025", "ACCO 1030", "BUAD 1001", "ENGL 1001", "LEAD 1050"],
     "notes": "Absolute zero-credit FIN freshman. Standing gates block 3001-level BCC courses."
   },
   {

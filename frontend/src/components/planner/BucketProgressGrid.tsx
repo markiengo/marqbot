@@ -10,6 +10,8 @@ interface BucketProgressGridProps {
   programLabelMap?: Map<string, string>;
   /** Pass true to animate entries in with stagger (default: true) */
   animate?: boolean;
+  /** Strip "Parent: " prefix from labels (used inside sub-groups where header shows parent) */
+  stripParentPrefix?: boolean;
 }
 
 /**
@@ -20,25 +22,31 @@ export function BucketProgressGrid({
   entries,
   programLabelMap,
   animate = true,
+  stripParentPrefix = false,
 }: BucketProgressGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       {entries.map(([bid, prog], idx) => {
         const { done, inProg, needed, unit } = getBucketDisplay(prog);
         const ipCodes = prog.in_progress_applied || [];
-        const label = compactKpiBucketLabel(
-          prog.label || bucketLabel(bid, programLabelMap),
-        );
-        const creditNeeded = Number(prog.needed || 0);
-        const creditDone = Number(prog.completed_done ?? prog.done_count ?? 0);
-        const creditInProg = Number(prog.in_progress_increment ?? 0);
-        const pct = creditNeeded > 0 ? (creditDone / creditNeeded) * 100 : 0;
-        const totalPct =
-          creditNeeded > 0
-            ? ((creditDone + creditInProg) / creditNeeded) * 100
+        let rawLabel = prog.label || bucketLabel(bid, programLabelMap);
+        if (stripParentPrefix) {
+          const colonIdx = rawLabel.indexOf(": ");
+          if (colonIdx > 0) rawLabel = rawLabel.slice(colonIdx + 2);
+        }
+        const label = compactKpiBucketLabel(rawLabel);
+        const doneValue = Number(done || 0);
+        const inProgValue = Number(inProg || 0);
+        const neededValue = Number(needed || 0);
+        const pctRaw = neededValue > 0 ? (doneValue / neededValue) * 100 : 0;
+        const totalPctRaw =
+          neededValue > 0
+            ? ((doneValue + inProgValue) / neededValue) * 100
             : 0;
+        const pct = Math.max(0, Math.min(100, pctRaw));
+        const totalPct = Math.max(pct, Math.max(0, Math.min(100, totalPctRaw)));
         const satisfied =
-          prog.satisfied || (creditNeeded > 0 && creditDone >= creditNeeded);
+          prog.satisfied || (neededValue > 0 && doneValue + inProgValue >= neededValue);
 
         const card = (
           <div
@@ -72,7 +80,7 @@ export function BucketProgressGrid({
                   <div
                     className={`h-full bg-gold rounded-full ${animate ? "bar-animate-in" : ""} ${totalPct - pct > 10 ? "bar-glow-gold" : ""}`}
                     style={{
-                      width: `${Math.min(100 - Math.min(100, pct), totalPct - pct)}%`,
+                      width: `${Math.max(0, Math.min(100 - pct, totalPct - pct))}%`,
                       animationDelay: animate ? `${idx * 0.04 + 0.15}s` : undefined,
                     }}
                   />

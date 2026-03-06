@@ -43,6 +43,7 @@ export function esc(str: string | null | undefined): string {
 export function bucketLabel(
   bucketId: string,
   programLabelMap: LabelStore = null,
+  detailedBucketLabelMap: LabelStore = null,
 ): string {
   const raw = String(bucketId || "").trim();
   if (!raw) return "";
@@ -52,6 +53,11 @@ export function bucketLabel(
   if (raw.includes("::")) {
     [programId, localId] = raw.split("::", 2);
   }
+
+  const detailedLabel =
+    mapLookup(detailedBucketLabelMap, raw) ||
+    mapLookup(detailedBucketLabelMap, localId);
+  if (detailedLabel) return detailedLabel;
 
   const labels: Record<string, string> = {
     CORE: "Finance Required",
@@ -104,21 +110,6 @@ export function colorizePrereq(
       (_, code: string) =>
         `<span class="text-red-500 font-medium">${esc(code)} ${cross}</span>`,
     );
-}
-
-export function formatCourseNotes(
-  note: string | null | undefined,
-): string {
-  const txt = String(note || "");
-  if (
-    txt.toLowerCase().includes("todo") &&
-    txt.toLowerCase().includes("complex prereq")
-  ) {
-    const codes = txt.match(/[A-Z]{2,6}\s\d{4}[A-Za-z]?/g) || [];
-    if (codes.length) return `Hard prereq codes: ${codes.join(", ")}`;
-    return "Hard prereq codes: see catalog.";
-  }
-  return esc(txt);
 }
 
 export function filterCourses(

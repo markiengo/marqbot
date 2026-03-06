@@ -139,7 +139,7 @@ export function ProgressModal({
                           <p className="text-sm font-semibold text-ink-secondary uppercase tracking-wider pl-1">
                             {group.label}
                           </p>
-                          <BucketProgressGrid entries={group.entries} programLabelMap={programLabelMap} />
+                          <BucketProgressGrid entries={group.entries} programLabelMap={programLabelMap} stripParentPrefix />
                         </div>
                       ))}
                     </div>

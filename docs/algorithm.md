@@ -11,7 +11,7 @@ Status: `current behavior (simplified ranking)`
 3. Build eligible candidates:
    - not already completed/in-progress
    - prereqs satisfied, or mark as `manual_review`
-   - suppress non-recommendable courses (internship/work period/independent study/topics/`4986`)
+   - suppress non-recommendable courses (explicit list below)
 4. Rank candidates deterministically with this tuple order:
    - `tier` (1=MCC/BCC_REQUIRED, 2=major, 3=track/minor, 5=demoted BCC children)
    - core-prereq blocker (0=yes, 1=no)
@@ -26,6 +26,18 @@ Status: `current behavior (simplified ranking)`
    - bridge-target guard
    - rescue pass when no picks are produced
 6. Return recommendations, progress/projection, warnings, and optional debug trace.
+
+## Currently excluded from recommendations
+The engine does not recommend courses when either of these is true:
+- course code contains `4986` (work-period grading courses)
+- course credits include any non-integer numeric values (for example, `1.5` or `1.5-3`)
+- course name contains one of:
+  - `internship`
+  - `work period`
+  - `independent study`
+  - `topics in` (for example, `Topics in Finance`)
+
+These courses still count toward progress if they are already completed or in progress.
 
 ## Summer special cases
 - Summer excludes low-confidence courses.

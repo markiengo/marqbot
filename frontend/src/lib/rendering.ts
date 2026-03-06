@@ -138,7 +138,6 @@ function inferRecommendationTier(
 
 type ProgressSectionKey =
   | "mcc"
-  | "discovery"
   | "bcc"
   | "major"
   | "track_minor"
@@ -152,15 +151,13 @@ function inferProgressSection(
   const parentId = parentBucketId(bucketId);
   const tier = inferRecommendationTier(bucketId, prog);
 
-  // MCC Discovery themes get their own section with sub-groups
-  if (parentId.startsWith("MCC_DISC")) {
-    return { key: "discovery", label: "MCC Discovery", rank: 0.5 };
-  }
   if (
     parentId === "MCC" ||
     parentId === "MCC_CORE" ||
     parentId === "MCC_FOUNDATION" ||
     parentId === "MCC_CULM" ||
+    parentId.startsWith("MCC_DISC") ||
+    localId.startsWith("MCC_DISC") ||
     bucketId.startsWith("MCC::") ||
     localId.startsWith("MCC_")
   ) {
@@ -213,6 +210,7 @@ const PARENT_LABEL_FALLBACKS: Record<string, string> = {
   MCC_CULM: "MCC Culminating",
   MCC_ESSV2: "MCC: Engaging Social Systems & Values 2",
   MCC_WRIT: "MCC: Writing Intensive",
+  MCC_GENERAL: "General",
   MCC_DISC: "MCC Discovery",
   MCC_DISC_CMI: "Discovery: Cognition, Memory & Intelligence",
   MCC_DISC_BNJ: "Discovery: Basic Needs and Justice",
@@ -342,7 +340,7 @@ export function groupProgressByTierWithMajors(
   programOrder?: string[],
 ): ProgressSectionWithGroups[] {
   const base = groupProgressByTierSections(progressObj);
-  const needsSubGroups = new Set<ProgressSectionKey>(["major", "track_minor", "discovery"]);
+  const needsSubGroups = new Set<ProgressSectionKey>(["major", "track_minor", "mcc"]);
 
   return base.map((section) => {
     if (!needsSubGroups.has(section.sectionKey) || section.entries.length === 0) {
@@ -354,7 +352,17 @@ export function groupProgressByTierWithMajors(
     const seenOrder: string[] = [];
 
     for (const [bid, prog] of section.entries) {
-      const pid = parentBucketId(bid);
+      let pid = parentBucketId(bid);
+      // Detect Discovery buckets by localId (e.g. MCC::MCC_DISC_CMI_HUM -> localId=MCC_DISC_CMI_HUM)
+      const lid = bid.includes("::") ? bid.split("::", 2)[1] : bid;
+      if (section.sectionKey === "mcc" && lid.startsWith("MCC_DISC")) {
+        // Derive theme parent: MCC_DISC_CMI_HUM -> MCC_DISC_CMI
+        const parts = lid.split("_");
+        pid = parts.length > 3 ? parts.slice(0, -1).join("_") : lid;
+      } else if (section.sectionKey === "mcc") {
+        // Group non-Discovery MCC buckets under "MCC General"
+        pid = "MCC_GENERAL";
+      }
       if (!groupMap.has(pid)) {
         const label =
           programLabelMap?.get(pid) ??
@@ -366,24 +374,32 @@ export function groupProgressByTierWithMajors(
       groupMap.get(pid)!.entries.push([bid, prog]);
     }
 
-    // If only one program, no sub-grouping needed
-    if (groupMap.size <= 1) return section;
+    // If only one program, no sub-grouping needed (except MCC with Discovery themes)
+    if (groupMap.size <= 1 && section.sectionKey !== "mcc") return section;
 
     // Sort sub-groups: use programOrder if provided, otherwise seen order
-    const orderedIds = programOrder
-      ? [
-          ...programOrder.filter((id) => groupMap.has(id)),
-          ...seenOrder.filter((id) => !programOrder.includes(id)),
-        ]
-      : seenOrder;
+    // For MCC, always put General first before Discovery themes
+    let orderedIds: string[];
+    if (section.sectionKey === "mcc") {
+      const general = seenOrder.filter((id) => id === "MCC_GENERAL");
+      const rest = seenOrder.filter((id) => id !== "MCC_GENERAL");
+      orderedIds = [...general, ...rest];
+    } else if (programOrder) {
+      orderedIds = [
+        ...programOrder.filter((id) => groupMap.has(id)),
+        ...seenOrder.filter((id) => !programOrder.includes(id)),
+      ];
+    } else {
+      orderedIds = seenOrder;
+    }
 
     return {
       ...section,
       subGroups: orderedIds.map((id) => {
         const group = groupMap.get(id)!;
-        // For discovery sub-groups, strip "MCC Discovery: " prefix since section header shows it
-        const cleanLabel = section.sectionKey === "discovery"
-          ? group.label.replace(/^MCC\s+Discovery:\s*/i, "")
+        // For Discovery sub-groups under MCC, strip "MCC Discovery: " prefix
+        const cleanLabel = group.parentId.startsWith("MCC_DISC")
+          ? group.label.replace(/^MCC\s+Discovery:\s*/i, "Discovery: ")
           : group.label;
         return {
           ...group,

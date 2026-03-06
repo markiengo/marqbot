@@ -22,6 +22,13 @@ describe("utils.bucketLabel", () => {
   test("normalizes business elective pattern", () => {
     expect(bucketLabel("AIM_MAJOR::AIM_BUS_ELEC_9")).toBe("Business Electives");
   });
+
+  test("prefers detailed child-bucket labels when provided", () => {
+    const detailed = new Map([["acco-req-core", "Accounting: Accounting Core Requirements"]]);
+    expect(bucketLabel("ACCO_MAJOR::acco-req-core", null, detailed)).toBe(
+      "Accounting: Accounting Core Requirements",
+    );
+  });
 });
 
 describe("utils.prettifyIdentifier", () => {

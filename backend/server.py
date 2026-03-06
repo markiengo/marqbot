@@ -1757,6 +1757,8 @@ def get_programs():
         return jsonify({"error": "Data not loaded"}), 500
 
     catalog_df, _, _ = _get_program_catalog(_data)
+    parent_buckets_df = _data.get("parent_buckets_df", pd.DataFrame())
+    child_buckets_df = _data.get("child_buckets_df", pd.DataFrame())
     default_program_id = _default_program_id_from_catalog(catalog_df)
     if len(catalog_df) == 0:
         return jsonify({
@@ -1764,6 +1766,7 @@ def get_programs():
             "tracks": [],
             "minors": [],
             "default_track_id": default_program_id,
+            "bucket_labels": {},
         })
 
     publishable = catalog_df[catalog_df.get("applies_to_all", False) != True].copy()
@@ -1799,11 +1802,35 @@ def get_programs():
         for _, row in minors.iterrows()
     ]
 
+    parent_label_by_id = {}
+    if len(parent_buckets_df) > 0:
+        for _, row in parent_buckets_df.iterrows():
+            parent_id = str(row.get("parent_bucket_id", "")).strip()
+            if not parent_id:
+                continue
+            parent_label = str(row.get("parent_bucket_label", parent_id)).strip() or parent_id
+            parent_label_by_id[parent_id] = parent_label
+
+    bucket_labels = {}
+    if len(child_buckets_df) > 0:
+        for _, row in child_buckets_df.iterrows():
+            child_id = str(row.get("child_bucket_id", "")).strip()
+            if not child_id:
+                continue
+            child_label = str(row.get("child_bucket_label", child_id)).strip() or child_id
+            parent_id = str(row.get("parent_bucket_id", "")).strip()
+            parent_label = parent_label_by_id.get(parent_id, parent_id).strip()
+            if parent_label:
+                bucket_labels[child_id] = f"{parent_label}: {child_label}"
+            else:
+                bucket_labels[child_id] = child_label
+
     return jsonify({
         "majors": majors_payload,
         "tracks": tracks_payload,
         "minors": minors_payload,
         "default_track_id": default_program_id,
+        "bucket_labels": bucket_labels,
     })
 
 

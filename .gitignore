@@ -31,3 +31,26 @@ frontend/out/
 frontend/tsconfig.tsbuildinfo
 frontend/nul
 
+# Local-only IDE/agent state
+.claude/
+.vscode/
+.pytest-tmp/
+docs_local/
+
+# Docs policy: keep selected docs trackable
+docs/*
+!docs/CHANGELOG.md
+!docs/algorithm.md
+!docs/early_prd.md
+!docs/data_model.md
+
+# Ignore all markdown except explicitly allowed filenames
+*.md
+!**/README.md
+!**/readme.md
+!**/CHANGELOG.md
+!**/changelog.md
+!**/data_model.md
+!**/early_prd.md
+!**/algorithm.md
+

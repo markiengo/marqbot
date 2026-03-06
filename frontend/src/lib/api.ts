@@ -14,6 +14,15 @@ export async function loadPrograms(): Promise<ProgramsData> {
   const res = await fetch(`${API_BASE}/api/programs`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load programs: ${res.status}`);
   const data = await res.json();
+  const rawBucketLabels =
+    data && typeof data.bucket_labels === "object" && data.bucket_labels
+      ? (data.bucket_labels as Record<string, unknown>)
+      : {};
+  const bucket_labels = Object.fromEntries(
+    Object.entries(rawBucketLabels)
+      .map(([key, value]) => [String(key || "").trim(), String(value || "").trim()])
+      .filter(([key, value]) => key.length > 0 && value.length > 0),
+  ) as Record<string, string>;
   return {
     majors: (data.majors ?? []).map((m: Record<string, unknown>) => ({
       id: String(m.major_id || m.id || ""),
@@ -32,6 +41,7 @@ export async function loadPrograms(): Promise<ProgramsData> {
       active: m.active !== false,
     })),
     default_track_id: data.default_track_id ?? "",
+    bucket_labels,
   };
 }
 

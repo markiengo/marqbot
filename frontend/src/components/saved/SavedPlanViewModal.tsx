@@ -109,6 +109,16 @@ export function SavedPlanViewModal({
     () => (plan ? resolveProgramLabels(plan.inputs.declaredTracks, programs.tracks) : []),
     [plan, programs.tracks],
   );
+  const bucketLabelMap = useMemo(() => {
+    const raw = programs.bucket_labels || {};
+    const map = new Map<string, string>();
+    Object.entries(raw).forEach(([bucketId, label]) => {
+      const id = String(bucketId || "").trim();
+      const txt = String(label || "").trim();
+      if (id && txt) map.set(id, txt);
+    });
+    return map;
+  }, [programs.bucket_labels]);
 
   const handleLoadIntoPlanner = () => {
     if (!plan) return;
@@ -255,6 +265,7 @@ export function SavedPlanViewModal({
             description={courseDetailCode ? descriptionMap.get(courseDetailCode) ?? null : null}
             buckets={hit?.fills_buckets}
             programLabelMap={programLabelMap}
+            bucketLabelMap={bucketLabelMap}
           />
         );
       })()}

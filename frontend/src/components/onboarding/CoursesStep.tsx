@@ -63,7 +63,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
       <div className="grid min-h-0 flex-1 items-stretch gap-4 xl:grid-cols-2">
         <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-ink-secondary">
+            <label className="text-base font-semibold text-ink-secondary md:text-lg">
               Classes you&apos;ve already passed
             </label>
             <p className="mt-0.5 text-xs text-ink-faint">
@@ -79,14 +79,15 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               onRemove={(code) => dispatch({ type: "REMOVE_COMPLETED", payload: code })}
               placeholder="Search completed courses..."
               resolveLabel={(code) => code}
-              chipViewportClassName="min-h-[4.5rem] max-h-[6.75rem]"
+              chipViewportClassName="min-h-[2.75rem]"
+              dynamicChipViewport
             />
           </div>
         </div>
 
         <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-ink-secondary">
+            <label className="text-base font-semibold text-ink-secondary md:text-lg">
               Classes you&apos;re taking right now
             </label>
             <p className="mt-0.5 text-xs text-ink-faint">
@@ -102,7 +103,8 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               onRemove={(code) => dispatch({ type: "REMOVE_IN_PROGRESS", payload: code })}
               placeholder="Search in-progress courses..."
               resolveLabel={(code) => code}
-              chipViewportClassName="min-h-[4.5rem] max-h-[6.75rem]"
+              chipViewportClassName="min-h-[2.75rem]"
+              dynamicChipViewport
             />
           </div>
         </div>

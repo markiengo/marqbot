@@ -76,6 +76,16 @@ export function PlannerLayout() {
   const programLabelMap = data?.selection_context
     ? getProgramLabelMap(data.selection_context)
     : undefined;
+  const bucketLabelMap = useMemo(() => {
+    const raw = state.programs.bucket_labels || {};
+    const map = new Map<string, string>();
+    Object.entries(raw).forEach(([bucketId, label]) => {
+      const id = String(bucketId || "").trim();
+      const txt = String(label || "").trim();
+      if (id && txt) map.set(id, txt);
+    });
+    return map;
+  }, [state.programs.bucket_labels]);
 
   const programOrder = data?.selection_context?.selected_program_ids ?? undefined;
 
@@ -508,15 +518,15 @@ export function PlannerLayout() {
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">4</span>
               <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Start with foundations</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Lower-level classes come first. They build the base you need for upper-level work.</p>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Do you need to start it early?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Some classes are step 1 of a long path. If waiting would mess up later semesters, I move that class higher now.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">5</span>
               <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Do you need to start it early?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Some classes are step 1 of a long path. If waiting would mess up later semesters, I move that class higher now.</p>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Start with foundations</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Lower-level classes come first. They build the base you need for upper-level work.</p>
               </div>
             </li>
             <li className="flex gap-4">
@@ -556,6 +566,7 @@ export function PlannerLayout() {
             description={descriptionMap.get(courseDetailCode ?? "")}
             buckets={detailCourse?.fills_buckets}
             programLabelMap={programLabelMap}
+            bucketLabelMap={bucketLabelMap}
           />
         );
       })()}

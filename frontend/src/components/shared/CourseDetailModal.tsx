@@ -13,6 +13,7 @@ interface CourseDetailModalProps {
   description?: string | null;
   buckets?: string[];
   programLabelMap?: Map<string, string>;
+  bucketLabelMap?: Map<string, string>;
 }
 
 export function CourseDetailModal({
@@ -24,6 +25,7 @@ export function CourseDetailModal({
   description,
   buckets,
   programLabelMap,
+  bucketLabelMap,
 }: CourseDetailModalProps) {
   return (
     <Modal open={open} onClose={onClose} size="default">
@@ -61,7 +63,7 @@ export function CourseDetailModal({
                     : "gold";
               return (
                 <Tag key={bid} variant={variant}>
-                  {bucketLabel(bid, programLabelMap)}
+                  {bucketLabel(bid, programLabelMap, bucketLabelMap)}
                 </Tag>
               );
             })}

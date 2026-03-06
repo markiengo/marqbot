@@ -2,6 +2,10 @@
 
 This script does NOT overwrite `data/courses.csv`. It writes review artifacts to
 `data/webscrape_trial/` by default.
+
+Note:
+- Full-catalog bulletin scraping is planned under `scripts/scrape_catalog.py`.
+- Prereq proposal export to `course_prereqs.csv` is intentionally not implemented here.
 """
 
 from __future__ import annotations
@@ -47,6 +51,8 @@ SUBJECTS = [
 
 DEFAULT_INPUT = Path("data/courses.csv")
 DEFAULT_OUT_DIR = Path("data/webscrape_trial")
+FUTURE_RAW_CATALOG_NAME = "all_courses_raw.csv"
+FUTURE_PREREQS_PROPOSED_NAME = "course_prereqs_proposed.csv"
 
 SRCDB_PATTERN = re.compile(r"srcDBs:\s*(\[[^\n;]+])", re.IGNORECASE)
 TAG_PATTERN = re.compile(r"<[^>]+>")
@@ -229,7 +235,32 @@ def main() -> None:
     parser.add_argument("--srcdb", type=str, default=None, help="Specific term code (e.g., 1820)")
     parser.add_argument("--max-chars", type=int, default=200, help="Max chars for suggested description")
     parser.add_argument("--delay", type=float, default=0.3, help="Delay between API calls in seconds")
+    parser.add_argument(
+        "--full-catalog",
+        action="store_true",
+        help=(
+            "Reserved for future full bulletin scrape mode. "
+            "Not implemented in this script."
+        ),
+    )
+    parser.add_argument(
+        "--emit-prereqs-proposed",
+        action="store_true",
+        help=(
+            "Reserved for future course_prereqs proposal export. "
+            "Not implemented in this script."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.full_catalog or args.emit_prereqs_proposed:
+        out_dir = args.out_dir
+        raise SystemExit(
+            "Requested mode is not implemented in scrape_descriptions_trial.py.\n"
+            "Use scripts/scrape_catalog.py once full-catalog + prereq export is implemented.\n"
+            f"Planned raw catalog output: {out_dir / FUTURE_RAW_CATALOG_NAME}\n"
+            f"Planned prereq proposal output: {out_dir / FUTURE_PREREQS_PROPOSED_NAME}"
+        )
 
     rows = read_courses(args.input)
     course_index = {row.get("course_code", "").strip().upper(): idx for idx, row in enumerate(rows)}

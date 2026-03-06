@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import type { RecommendedCourse } from "@/lib/types";
 import { Tag } from "@/components/shared/Tag";
-import { bucketLabel, colorizePrereq, formatCourseNotes, esc } from "@/lib/utils";
+import { bucketLabel, colorizePrereq, esc } from "@/lib/utils";
 import {
   formatCourseNameLabel,
   humanizeSoftWarningTag,
@@ -128,12 +128,6 @@ export function CourseCard({ course, programLabelMap, onClick }: CourseCardProps
         </div>
       )}
 
-      {/* Notes */}
-      {c.notes && (
-        <p className="text-[1.05rem] text-ink-faint mt-3 italic">
-          {formatCourseNotes(c.notes)}
-        </p>
-      )}
     </motion.div>
   );
 }

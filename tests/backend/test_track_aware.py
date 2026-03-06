@@ -654,9 +654,13 @@ class TestServerTrackValidation:
         data = resp.get_json()
         assert "majors" in data
         assert "tracks" in data
+        assert "bucket_labels" in data
         assert data["default_track_id"] == "FIN_MAJOR"
         assert isinstance(data["majors"], list)
         assert isinstance(data["tracks"], list)
+        assert isinstance(data["bucket_labels"], dict)
+        assert "ACCO-REQ-CORE" in data["bucket_labels"]
+        assert "Accounting: Accounting Core Requirements" == data["bucket_labels"]["ACCO-REQ-CORE"]
 
     def test_programs_endpoint_includes_finance_catalog(self, client):
         resp = client.get("/programs")

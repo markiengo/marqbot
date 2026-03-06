@@ -32,6 +32,7 @@ export interface ProgramsData {
   tracks: Track[];
   minors: Minor[];
   default_track_id: string;
+  bucket_labels?: Record<string, string>;
 }
 
 export interface RecommendedCourse {

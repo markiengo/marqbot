@@ -226,7 +226,7 @@ export function SemesterModal({
                               <p className="text-sm font-semibold text-ink-secondary uppercase tracking-wider pl-1">
                                 {group.label}
                               </p>
-                              <BucketProgressGrid entries={group.entries} programLabelMap={programLabelMap} animate={false} />
+                              <BucketProgressGrid entries={group.entries} programLabelMap={programLabelMap} animate={false} stripParentPrefix />
                             </div>
                           ))}
                         </div>
