@@ -1,5 +1,5 @@
 parent_bucket_id,child_bucket_id,child_bucket_label,requirement_mode,courses_required,credits_required,min_level,notes
-ACCO_MAJOR,acco-req-core,Accounting Core Requirements,required,7.0,,,
+ACCO_MAJOR,acco-req-core,Accounting Core Requirements,required,8.0,,,
 ACCO_MAJOR,acco-choose-2,Choose 2,choose_n,2.0,,3000.0,
 ACCO_MAJOR,acco-elec-2,2 Business Electives (6 credits),credits_pool,,6.0,3000.0,Elective pool intentionally unmapped for now.
 AIM_CFA_TRACK,aim-cfa-req-core,AIM CFA Core,required,9.0,,,

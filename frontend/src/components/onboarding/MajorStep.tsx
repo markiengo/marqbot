@@ -163,8 +163,6 @@ export function MajorStep() {
     "w-full rounded-xl border border-border-medium bg-surface-input px-4 py-3 text-[0.95rem] text-ink-primary placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-gold/40";
   const dropdownCls =
     "absolute left-0 top-full z-[60] mt-1 max-h-[min(18rem,34vh)] w-full overflow-y-auto rounded-xl border border-border-medium bg-surface-card shadow-lg";
-  const hasOptionalAreasComingSoon = minors.length > 0 || discoveryTracks.length > 0;
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <OnboardingStepHeader
@@ -336,14 +334,29 @@ export function MajorStep() {
         </div>
       </div>
 
-      {hasOptionalAreasComingSoon && (
+      {discoveryTracks.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.22 }}
-          className="rounded-[1.45rem] border border-mu-blue/18 bg-mu-blue/10 px-4 py-3.5 text-[0.9rem] leading-relaxed text-ink-secondary"
+          className="rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]"
         >
-          Minors and discovery themes are not part of setup yet. Start with your major first. That gets you to the useful part faster.
+          <SectionLabel title="Discovery Theme" sub="optional" />
+          <p className="mb-2.5 text-[0.92rem] leading-relaxed text-ink-muted">
+            Pick a theme if you know yours. You can always change it later.
+          </p>
+          <select
+            value={state.discoveryTheme || ""}
+            onChange={(e) => dispatch({ type: "SET_DISCOVERY_THEME", payload: e.target.value })}
+            className={inputCls}
+          >
+            <option value="">No theme selected</option>
+            {discoveryTracks.map((track) => (
+              <option key={track.id} value={track.id}>
+                {track.label}
+              </option>
+            ))}
+          </select>
         </motion.div>
       )}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/shared/Button";
 import { Modal } from "@/components/shared/Modal";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/rendering";
 import { formatSavedPlanDate, resolveProgramLabels } from "@/lib/savedPlanPresentation";
 import { FreshnessBadge } from "./FreshnessBadge";
+import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
 import type {
   Course,
   ProgramsData,
@@ -32,7 +33,7 @@ interface SavedPlanViewModalProps {
   onDelete(): void;
 }
 
-function SemesterCard({ sem, index }: { sem: SemesterData; index: number }) {
+function SemesterCard({ sem, index, onCourseClick }: { sem: SemesterData; index: number; onCourseClick?: (code: string) => void }) {
   return (
     <div className="relative overflow-hidden rounded-xl glass-card stat-card-decor card-glow-hover p-3 space-y-2 border-l-2 border-l-gold/30">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,204,0,0.06),transparent_50%),radial-gradient(ellipse_at_bottom_right,rgba(0,114,206,0.05),transparent_55%)] pointer-events-none" />
@@ -45,7 +46,11 @@ function SemesterCard({ sem, index }: { sem: SemesterData; index: number }) {
         <p className="text-xs text-ink-faint italic pl-1 relative z-[1]">All requirements satisfied.</p>
       ) : (
         (sem.recommendations ?? []).map((c) => (
-          <div key={c.course_code} className="space-y-0.5 relative z-[1]">
+          <div
+            key={c.course_code}
+            className={"space-y-0.5 relative z-[1]" + (onCourseClick ? " cursor-pointer hover:bg-white/[0.03] rounded-lg -mx-1 px-1 transition-colors" : "")}
+            onClick={onCourseClick ? () => onCourseClick(c.course_code) : undefined}
+          >
             <div className="flex items-baseline gap-2">
               <span className="font-mono text-xs w-[5.5rem] shrink-0 text-mu-blue">{c.course_code}</span>
               <span className="text-xs text-ink-secondary truncate flex-1">{c.course_name}</span>
@@ -77,6 +82,7 @@ export function SavedPlanViewModal({
 }: SavedPlanViewModalProps) {
   const router = useRouter();
   const { dispatch } = useAppContext();
+  const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
 
   // useMemo must be declared before any early returns
   const creditMap = useMemo(() => buildCourseCreditMap(courses), [courses]);
@@ -86,6 +92,14 @@ export function SavedPlanViewModal({
     const inProgressCredits = sumCreditsForCourseCodes(plan.inputs.inProgress, creditMap);
     return computeCreditKpiMetrics(completedCredits, inProgressCredits);
   }, [creditMap, plan]);
+
+  const descriptionMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of courses) {
+      if (c.description) map.set(c.course_code, c.description);
+    }
+    return map;
+  }, [courses]);
 
   const majorLabels = useMemo(
     () => (plan ? resolveProgramLabels(plan.inputs.declaredMajors, programs.majors) : []),
@@ -198,7 +212,7 @@ export function SavedPlanViewModal({
                   </p>
                   <div className={`grid gap-3 ${row.length === 1 ? "grid-cols-1" : cols === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`}>
                     {row.map((sem, i) => (
-                      <SemesterCard key={yearIdx * cols + i} sem={sem} index={yearIdx * cols + i} />
+                      <SemesterCard key={yearIdx * cols + i} sem={sem} index={yearIdx * cols + i} onCourseClick={setCourseDetailCode} />
                     ))}
                   </div>
                 </div>
@@ -223,6 +237,27 @@ export function SavedPlanViewModal({
           </div>
         </div>
       )}
+
+      {(() => {
+        const allRecs = plan?.recommendationData?.semesters?.flatMap((s) => s.recommendations ?? []) ?? [];
+        const hit = allRecs.find((c) => c.course_code === courseDetailCode);
+        const programLabelMap = new Map<string, string>();
+        programs.majors.forEach((item) => programLabelMap.set(item.id, item.label));
+        programs.tracks.forEach((item) => programLabelMap.set(item.id, item.label));
+        programs.minors.forEach((item) => programLabelMap.set(item.id, item.label));
+        return (
+          <CourseDetailModal
+            open={courseDetailCode !== null}
+            onClose={() => setCourseDetailCode(null)}
+            courseCode={courseDetailCode ?? ""}
+            courseName={hit?.course_name}
+            credits={hit?.credits}
+            description={courseDetailCode ? descriptionMap.get(courseDetailCode) ?? null : null}
+            buckets={hit?.fills_buckets}
+            programLabelMap={programLabelMap}
+          />
+        );
+      })()}
     </Modal>
   );
 }

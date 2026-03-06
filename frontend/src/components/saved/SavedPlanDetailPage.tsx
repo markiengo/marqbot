@@ -16,6 +16,7 @@ import {
 } from "@/lib/savedPlanPresentation";
 import { RecommendationsPanel } from "@/components/planner/RecommendationsPanel";
 import { SemesterModal } from "@/components/planner/SemesterModal";
+import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
 import { FreshnessBadge } from "./FreshnessBadge";
 import type { SemesterData } from "@/lib/types";
 
@@ -35,6 +36,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [isEditingMeta, setIsEditingMeta] = useState(false);
   const [semesterModalIdx, setSemesterModalIdx] = useState<number | null>(null);
+  const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
 
   const plan = loadPlan(planId);
   const freshness = plan ? getFreshness(plan) : "missing";
@@ -80,6 +82,13 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
     () => (plan ? [...plan.inputs.declaredMajors, ...plan.inputs.declaredTracks, ...plan.inputs.declaredMinors] : []),
     [plan],
   );
+  const descriptionMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of courses) {
+      if (c.description) map.set(c.course_code, c.description);
+    }
+    return map;
+  }, [courses]);
   const recommendationData = plan?.recommendationData ?? null;
   const modalSemester =
     semesterModalIdx !== null
@@ -348,6 +357,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
                   <RecommendationsPanel
                     data={recommendationData}
                     onExpandSemester={setSemesterModalIdx}
+                    onCourseClick={setCourseDetailCode}
                   />
                 </div>
               ) : (
@@ -387,7 +397,25 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
         requestedCount={Number(plan.inputs.maxRecs) || 3}
         programLabelMap={programLabelMap}
         programOrder={programOrder}
+        onCourseClick={setCourseDetailCode}
       />
+
+      {(() => {
+        const allRecs = recommendationData?.semesters?.flatMap((s) => s.recommendations ?? []) ?? [];
+        const hit = allRecs.find((c) => c.course_code === courseDetailCode);
+        return (
+          <CourseDetailModal
+            open={courseDetailCode !== null}
+            onClose={() => setCourseDetailCode(null)}
+            courseCode={courseDetailCode ?? ""}
+            courseName={hit?.course_name}
+            credits={hit?.credits}
+            description={courseDetailCode ? descriptionMap.get(courseDetailCode) ?? null : null}
+            buckets={hit?.fills_buckets}
+            programLabelMap={programLabelMap}
+          />
+        );
+      })()}
     </>
   );
 }

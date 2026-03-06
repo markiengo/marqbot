@@ -8,6 +8,44 @@ Format per release:
 
 ---
 
+## [v2.2.5] - 2026-03-06
+
+### Changes
+
+- Activated MCC requirement programs for live planning:
+  - `MCC_ESSV2`, `MCC_WRIT`, and discovery theme tracks `MCC_DISC_BNJ`, `MCC_DISC_CB`, `MCC_DISC_CMI`, `MCC_DISC_EOH`, `MCC_DISC_IC` are now `active=True`.
+  - `MCC_DISC` remains `active=False` as the container parent.
+- Expanded bucket mappings:
+  - Added 813 new Discovery course mappings to `data/master_bucket_courses.csv`.
+  - Added `ACCO_MAJOR,acco-req-core,BULA 3001` and updated `ACCO_MAJOR/acco-req-core` from `7` to `8` required courses.
+- Backend updates:
+  - `backend/server.py`: auto-includes `discovery_theme` in `selected_track_ids` so theme child buckets materialize.
+  - `backend/server.py`: `/api/courses` now includes `description`.
+  - `backend/data_loader.py`: elective purge now targets only `credits_pool` buckets; `choose_n` buckets like Discovery `_ELEC` keep mappings.
+  - `backend/semester_recommender.py`: removed ESSV2/WRIT "coming soon" note injection.
+  - `backend/eligibility.py`: non-integer credit courses are excluded from recommendation candidates.
+- Frontend updates:
+  - Enabled Discovery Theme selection in onboarding and planner sidebar.
+  - Recommendation payloads now consistently include discovery theme track IDs (initial run + semester edit reruns).
+  - Removed ESSV2/WRIT/Discovery caveat text from recommendation panels.
+  - ESSV2/WRIT are now visible in progress rendering with explicit label fallbacks.
+  - Added clickable course detail modal support using catalog descriptions.
+  - Improved course picker UX (scroll anchoring + Enter-select behavior), with matching frontend tests.
+- Test/data gate updates:
+  - `tests/backend/test_data_integrity.py`: active track parent validation now accepts active `major` and `universal` parents.
+  - `tests/backend/test_data_integrity.py`: prereq orphan threshold updated from `30` to `50`.
+  - `tests/backend/test_recommendation_quality.py`: senior standing seed recalibrated from `6` to `7` semesters.
+  - `tests/backend/test_eligibility.py`: added coverage for non-integer-credit recommendation filtering.
+
+### Design Decisions
+
+- Discovery themes now run as first-class selectable tracks while preserving `MCC_DISC` as a non-selectable container.
+- Discovery elective mappings must persist in `choose_n` buckets, so purge logic is scoped to `credits_pool` buckets only.
+- With full-catalog descriptions injected, course detail views can be shown directly from canonical course data.
+- Non-integer-credit offerings remain excluded from deterministic recommendation output to avoid schedule ambiguity.
+
+---
+
 ## [v2.2.4] - 2026-03-06
 
 ### Changes

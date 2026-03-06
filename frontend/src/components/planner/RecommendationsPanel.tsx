@@ -10,11 +10,13 @@ import { SemesterSelector } from "./SemesterSelector";
 interface RecommendationsPanelProps {
   data: RecommendationResponse | null;
   onExpandSemester: (index: number) => void;
+  onCourseClick?: (courseCode: string) => void;
 }
 
 export function RecommendationsPanel({
   data,
   onExpandSemester,
+  onCourseClick,
 }: RecommendationsPanelProps) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const semesters = data?.semesters || [];
@@ -64,9 +66,6 @@ export function RecommendationsPanel({
         </h2>
         <p className="text-ink-secondary text-sm max-w-xs">
           All tracked degree requirements are satisfied. Senior energy. Confirmed.
-        </p>
-        <p className="text-[11.5px] font-bold text-ink-faint/60 mt-1">
-          Note: ESSV2, WRIT, and Discovery courses are not yet considered.
         </p>
       </div>
     );
@@ -136,7 +135,7 @@ export function RecommendationsPanel({
               >
                 {activeRecs.length > 0 ? (
                   activeRecs.map((c, idx) => (
-                    <CourseRow key={c.course_code} course={c} courseCount={courseCount} index={idx} />
+                    <CourseRow key={c.course_code} course={c} courseCount={courseCount} index={idx} onClick={onCourseClick ? () => onCourseClick(c.course_code) : undefined} />
                   ))
                 ) : (() => {
                   const pp = activeSemester.projected_progress;
@@ -169,9 +168,6 @@ export function RecommendationsPanel({
                       <p className="text-sm text-ink-faint max-w-xs leading-relaxed">
                         All tracked requirements will be satisfied by this point.
                         Almost there. Don&apos;t fumble now.
-                      </p>
-                      <p className="text-[13.8px] font-bold text-ink-faint/60 mt-1">
-                        Note: ESSV2, WRIT, and Discovery courses are not yet considered.
                       </p>
                     </div>
                   ) : (

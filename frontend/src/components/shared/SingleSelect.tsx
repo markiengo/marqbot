@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { filterCourses } from "@/lib/utils";
 import type { Course } from "@/lib/types";
 
@@ -23,15 +23,40 @@ export function SingleSelect({
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const refocusInput = () => {
-    const input = inputRef.current;
-    if (!input) return;
-    try {
-      input.focus({ preventScroll: true });
-    } catch {
-      input.focus();
+  const getScrollableAncestor = useCallback((start: HTMLElement | null): HTMLElement | null => {
+    let node = start?.parentElement ?? null;
+    while (node) {
+      const style = window.getComputedStyle(node);
+      const canScrollY = /(auto|scroll)/.test(style.overflowY);
+      if (canScrollY && node.scrollHeight > node.clientHeight) return node;
+      node = node.parentElement;
     }
-  };
+    return null;
+  }, []);
+
+  const ensureInputVisible = useCallback((preferDropdownRoom: boolean) => {
+    const anchor = inputRef.current;
+    if (!anchor) return;
+    const scroller = getScrollableAncestor(anchor);
+    if (!scroller) return;
+
+    const margin = 12;
+    const inputRect = anchor.getBoundingClientRect();
+    const scrollerRect = scroller.getBoundingClientRect();
+
+    if (inputRect.top < scrollerRect.top + margin) {
+      scroller.scrollTop -= (scrollerRect.top + margin) - inputRect.top;
+      return;
+    }
+
+    let desiredBottom = inputRect.bottom + margin;
+    if (preferDropdownRoom) {
+      desiredBottom += Math.min(220, scroller.clientHeight * 0.35);
+    }
+    if (desiredBottom > scrollerRect.bottom) {
+      scroller.scrollTop += desiredBottom - scrollerRect.bottom;
+    }
+  }, [getScrollableAncestor]);
 
   const matches =
     value.trim().length >= 2
@@ -42,7 +67,6 @@ export function SingleSelect({
     onChange(course.course_code);
     setIsOpen(false);
     onSelect?.(course);
-    refocusInput();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -79,7 +103,7 @@ export function SingleSelect({
   };
 
   return (
-    <div className="relative">
+    <div className={isOpen ? "relative z-40" : "relative"}>
       <input
         ref={inputRef}
         type="text"
@@ -88,8 +112,10 @@ export function SingleSelect({
           onChange(e.target.value);
           setActiveIndex(0);
           setIsOpen(true);
+          requestAnimationFrame(() => ensureInputVisible(true));
         }}
         onFocus={() => {
+          requestAnimationFrame(() => ensureInputVisible(true));
           if (value.trim().length >= 2) setIsOpen(true);
         }}
         onBlur={() => setTimeout(() => setIsOpen(false), 150)}

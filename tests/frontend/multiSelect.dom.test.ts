@@ -43,4 +43,32 @@ describe("MultiSelect component", () => {
     expect(input).toHaveValue("");
     expect(screen.getByText("MARK 3001")).toBeInTheDocument();
   });
+
+  test("keeps the picker open after selecting with Enter", async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+
+    renderWithApp(
+      createElement(MultiSelect, {
+        courses: [
+          { course_code: "AFAS 1011", course_name: "Department of the Air Force Professionalism", credits: 3, level: 1000 },
+          { course_code: "AFAS 1012", course_name: "Department of the Air Force Competition and Security", credits: 3, level: 1000 },
+        ],
+        selected: new Set<string>(),
+        otherSet: new Set<string>(),
+        onAdd,
+        onRemove: vi.fn(),
+      }),
+      makeAppState(),
+    );
+
+    const input = screen.getByPlaceholderText(/search courses/i);
+    await user.click(input);
+    await user.type(input, "a");
+    await user.keyboard("{Enter}");
+
+    expect(onAdd).toHaveBeenCalledWith("AFAS 1011");
+    expect(input).toHaveValue("");
+    expect(screen.getByText(/department of the air force competition and security/i)).toBeInTheDocument();
+  });
 });

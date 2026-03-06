@@ -25,6 +25,7 @@ interface SemesterModalProps {
   candidatePoolLoading?: boolean;
   onRequestCandidates?(): void;
   onEditApply?(chosenCourses: RecommendedCourse[]): Promise<void>;
+  onCourseClick?: (courseCode: string) => void;
 }
 
 export function SemesterModal({
@@ -39,6 +40,7 @@ export function SemesterModal({
   candidatePoolLoading,
   onRequestCandidates,
   onEditApply,
+  onCourseClick,
 }: SemesterModalProps) {
   const [editMode, setEditMode] = useState(false);
   const [editCourses, setEditCourses] = useState<RecommendedCourse[]>([]);
@@ -162,6 +164,7 @@ export function SemesterModal({
             onApply={handleApply}
             onCancel={() => setEditMode(false)}
             applyLoading={applyLoading}
+            onCourseClick={onCourseClick}
           />
         ) : (
           <>
@@ -178,15 +181,12 @@ export function SemesterModal({
                     <CourseCard
                       course={c}
                       programLabelMap={programLabelMap}
+                      onClick={onCourseClick ? () => onCourseClick(c.course_code) : undefined}
                     />
                   </motion.div>
                 ))}
               </div>
-            ) : (
-              <p className="text-[1.2rem] text-ink-faint italic">
-                Nothing to recommend this semester. Respectfully... later.
-              </p>
-            )}
+            ) : null}
 
             {/* In-progress note */}
             {semester.in_progress_note && (
@@ -273,6 +273,7 @@ function EditModeContent({
   onApply,
   onCancel,
   applyLoading,
+  onCourseClick,
 }: {
   editCourses: RecommendedCourse[];
   candidatePool?: RecommendedCourse[];
@@ -283,6 +284,7 @@ function EditModeContent({
   onApply(): void;
   onCancel(): void;
   applyLoading: boolean;
+  onCourseClick?: (courseCode: string) => void;
 }) {
   const editCodes = useMemo(
     () => new Set(editCourses.map((c) => c.course_code)),

@@ -4,6 +4,7 @@ export interface Course {
   credits: number;
   level?: number | null;
   prereq_level?: number | null;
+  description?: string | null;
 }
 
 export interface Major {

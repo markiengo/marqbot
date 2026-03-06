@@ -9,9 +9,10 @@ interface CourseRowProps {
   course: RecommendedCourse;
   courseCount: number;
   index?: number;
+  onClick?: () => void;
 }
 
-export function CourseRow({ course, courseCount, index = 0 }: CourseRowProps) {
+export function CourseRow({ course, courseCount, index = 0, onClick }: CourseRowProps) {
   const c = course;
   const courseName = formatCourseNameLabel(c.course_name || "");
   const count = Math.max(1, Math.min(6, courseCount));
@@ -58,7 +59,8 @@ export function CourseRow({ course, courseCount, index = 0 }: CourseRowProps) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2, backgroundColor: "rgba(18, 33, 63, 0.80)" }}
       transition={{ duration: 0.18, delay: index * 0.04 }}
-      className={`flex-none lg:flex-1 ${density.row} rounded-lg glass-card card-glow-hover overflow-hidden flex items-center border-l-2 border-l-gold/50`}
+      onClick={onClick}
+      className={`flex-none lg:flex-1 ${density.row} rounded-lg glass-card card-glow-hover overflow-hidden flex items-center border-l-2 border-l-gold/50${onClick ? " cursor-pointer" : ""}`}
     >
       <div className="min-w-0 flex-1 flex items-center gap-1.5 sm:gap-2">
         <span className={`shrink-0 font-semibold text-ink-primary ${density.code}`}>

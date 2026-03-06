@@ -189,6 +189,57 @@ class TestGetEligibleCourses:
         codes = [c["course_code"] for c in eligible]
         assert "FINA 4931" not in codes
 
+    def test_excludes_decimal_credit_courses(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "FINA 3550",
+                "course_name": "Finance Practicum",
+                "credits": 1.5, "level": 3000,
+                "offered_fall": True, "offered_spring": True, "offered_summer": False,
+                "prereq_hard": "none", "prereq_soft": "", "offering_confidence": "high", "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["FINA 3550"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{"track_id": "FIN_MAJOR", "bucket_id": "FIN_CHOOSE_2", "course_code": "FINA 3550", "is_required": False, "can_double_count": True, "constraints": None}]),
+        ], ignore_index=True)
+        eligible = get_eligible_courses(
+            augmented_courses, [], [], "Fall", augmented_prereq_map,
+            allocator_remaining, augmented_map, buckets_df,
+        )
+        codes = [c["course_code"] for c in eligible]
+        assert "FINA 3550" not in codes
+
+    def test_excludes_non_integer_scalar_string_credits(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        adjusted = courses_df.copy()
+        adjusted["credits"] = adjusted["credits"].astype(object)
+        adjusted.loc[adjusted["course_code"] == "FINA 4020", "credits"] = "1.5"
+        eligible = get_eligible_courses(
+            adjusted, ["FINA 3001"], [], "Fall", prereq_map,
+            allocator_remaining, course_bucket_map, buckets_df
+        )
+        codes = [c["course_code"] for c in eligible]
+        assert "FINA 4020" not in codes
+
+    def test_keeps_whole_number_float_credits_recommendable(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        adjusted = courses_df.copy()
+        adjusted.loc[adjusted["course_code"] == "FINA 4020", "credits"] = 3.0
+        eligible = get_eligible_courses(
+            adjusted, ["FINA 3001"], [], "Fall", prereq_map,
+            allocator_remaining, course_bucket_map, buckets_df
+        )
+        codes = [c["course_code"] for c in eligible]
+        assert "FINA 4020" in codes
+
     def test_includes_wrong_term_with_warning(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
         # Recommendation mode no longer hard-excludes courses by selected term.
         # FINA 4011 is Spring only but should still appear for Fall with warning.

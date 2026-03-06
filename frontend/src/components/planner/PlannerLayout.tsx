@@ -13,6 +13,7 @@ import { Button } from "@/components/shared/Button";
 import { Modal } from "@/components/shared/Modal";
 import { Skeleton } from "@/components/shared/Skeleton";
 import { SavePlanModal } from "@/components/saved/SavePlanModal";
+import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
@@ -42,10 +43,20 @@ export function PlannerLayout() {
   const [saveSuccessName, setSaveSuccessName] = useState<string | null>(null);
   const [semEditCandidates, setSemEditCandidates] = useState<RecommendedCourse[] | null>(null);
   const [semEditLoading, setSemEditLoading] = useState(false);
+  const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
   const closeExplainer = useCallback(() => setExplainerOpen(false), []);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
+
+  // Description lookup map from loaded courses
+  const descriptionMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of state.courses) {
+      if (c.description) m.set(c.course_code, c.description);
+    }
+    return m;
+  }, [state.courses]);
 
   // Auto-fetch once when arriving fresh from onboarding with no existing recs
   useEffect(() => {
@@ -135,7 +146,11 @@ export function PlannerLayout() {
         max_recommendations: 15,
       };
       if (majors.length > 0) payload.declared_majors = majors;
-      if (state.selectedTracks.length > 0) payload.track_ids = state.selectedTracks;
+      const editTrackIds = [...state.selectedTracks];
+      if (state.discoveryTheme && !editTrackIds.includes(state.discoveryTheme)) {
+        editTrackIds.push(state.discoveryTheme);
+      }
+      if (editTrackIds.length > 0) payload.track_ids = editTrackIds;
       if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
       if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
       if (state.includeSummer) payload.include_summer = true;
@@ -198,7 +213,11 @@ export function PlannerLayout() {
       max_recommendations: Number(state.maxRecs) || 3,
     };
     if (majors.length > 0) payload.declared_majors = majors;
-    if (state.selectedTracks.length > 0) payload.track_ids = state.selectedTracks;
+    const rerunTrackIds = [...state.selectedTracks];
+    if (state.discoveryTheme && !rerunTrackIds.includes(state.discoveryTheme)) {
+      rerunTrackIds.push(state.discoveryTheme);
+    }
+    if (rerunTrackIds.length > 0) payload.track_ids = rerunTrackIds;
     if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
     if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
     if (state.includeSummer) payload.include_summer = true;
@@ -414,6 +433,7 @@ export function PlannerLayout() {
                 <RecommendationsPanel
                   data={data}
                   onExpandSemester={setSemesterModalIdx}
+                  onCourseClick={setCourseDetailCode}
                 />
               </div>
             )}
@@ -446,6 +466,7 @@ export function PlannerLayout() {
           if (semesterModalIdx === null) return Promise.resolve();
           return handleSemesterEditApply(semesterModalIdx, courses);
         }}
+        onCourseClick={setCourseDetailCode}
       />
       <ProfileModal
         open={profileModalOpen}
@@ -487,12 +508,19 @@ export function PlannerLayout() {
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">4</span>
               <div>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Start with foundations</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Lower-level classes come first. They build the base you need for upper-level work.</p>
+              </div>
+            </li>
+            <li className="flex gap-4">
+              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">5</span>
+              <div>
                 <p className="font-semibold text-white text-[1.1rem] leading-snug">Do you need to start it early?</p>
                 <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Some classes are step 1 of a long path. If waiting would mess up later semesters, I move that class higher now.</p>
               </div>
             </li>
             <li className="flex gap-4">
-              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">5</span>
+              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">6</span>
               <div>
                 <p className="font-semibold text-white text-[1.1rem] leading-snug">Does one class count for two things?</p>
                 <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class helps with more than one requirement, that&apos;s a great deal. Those usually move up.</p>
@@ -515,6 +543,22 @@ export function PlannerLayout() {
           </p>
         </div>
       </Modal>
+      {(() => {
+        const allRecs = data?.semesters?.flatMap(s => s.recommendations ?? []) ?? [];
+        const detailCourse = allRecs.find(c => c.course_code === courseDetailCode);
+        return (
+          <CourseDetailModal
+            open={courseDetailCode !== null}
+            onClose={() => setCourseDetailCode(null)}
+            courseCode={courseDetailCode ?? ""}
+            courseName={detailCourse?.course_name}
+            credits={detailCourse?.credits}
+            description={descriptionMap.get(courseDetailCode ?? "")}
+            buckets={detailCourse?.fills_buckets}
+            programLabelMap={programLabelMap}
+          />
+        );
+      })()}
       <SavePlanModal
         open={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}

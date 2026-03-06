@@ -386,7 +386,19 @@ def _purge_elective_mappings(
         .str.strip()
         .str.upper()
     )
-    purge_ids = set(child_ids[child_ids.str.contains(_ELECTIVE_PURGE_RE, na=False)].tolist())
+    req_modes = (
+        child_buckets_df.get("requirement_mode", pd.Series(dtype=str))
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    # Only purge elective-pattern child buckets that are credits_pool type.
+    # choose_n buckets like Discovery Elective (_ELEC) should keep their mappings.
+    is_credits_pool = req_modes == "credits_pool"
+    purge_ids = set(
+        child_ids[child_ids.str.contains(_ELECTIVE_PURGE_RE, na=False) & is_credits_pool].tolist()
+    )
     map_child_ids = (
         master_bucket_courses_df.get("child_bucket_id", pd.Series(dtype=str))
         .fillna("")
@@ -394,9 +406,9 @@ def _purge_elective_mappings(
         .str.strip()
         .str.upper()
     )
-    purge_mask = map_child_ids.str.contains(_ELECTIVE_PURGE_RE, na=False)
-    if purge_ids:
-        purge_mask = purge_mask | map_child_ids.isin(purge_ids)
+    # Use the refined purge_ids set (credits_pool only) instead of raw regex
+    # to avoid purging choose_n buckets like Discovery Elective (_ELEC).
+    purge_mask = map_child_ids.isin(purge_ids)
     removed = int(purge_mask.sum())
     return master_bucket_courses_df.loc[~purge_mask].copy(), removed
 

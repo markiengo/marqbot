@@ -27,11 +27,7 @@ _PROJECTION_NOTE = (
 _MCC_PARENT_FAMILY_IDS = {"MCC", "MCC_CORE", "MCC_FOUNDATION"}
 
 _STANDING_LABELS = {1: "Freshman", 2: "Sophomore", 3: "Junior", 4: "Senior"}
-_ESSV2_WRIT_BUCKETS = {"MCC_ESSV2", "MCC_WRIT"}
 _BCC_DEMOTED_CHILDREN = {"BCC_ETHICS", "BCC_ANALYTICS", "BCC_ENHANCE"}
-_ESSV2_WRIT_NOTE = (
-    "Prerequisite checking for this requirement is not yet complete — verify prerequisites independently."
-)
 
 
 def _credits_to_standing(credits: int) -> int:
@@ -681,10 +677,6 @@ def _build_deterministic_recommendations(candidates: list[dict], max_recommendat
             "low_confidence": cand.get("low_confidence", False),
             "notes": cand.get("notes"),
         }
-        # Inject coming-soon note for ESSV2/WRIT bucket courses (prereq checking not yet wired)
-        if set(cand.get("fills_buckets") or []) & _ESSV2_WRIT_BUCKETS:
-            existing = rec.get("notes") or ""
-            rec["notes"] = (existing + " " + _ESSV2_WRIT_NOTE).strip() if existing else _ESSV2_WRIT_NOTE
         recs.append(rec)
     return recs
 

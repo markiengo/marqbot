@@ -12,10 +12,11 @@ import {
 
 interface CourseCardProps {
   course: RecommendedCourse;
+  onClick?: () => void;
   programLabelMap?: Map<string, string>;
 }
 
-export function CourseCard({ course, programLabelMap }: CourseCardProps) {
+export function CourseCard({ course, programLabelMap, onClick }: CourseCardProps) {
   const c = course;
   const bucketIds = c.fills_buckets || [];
 
@@ -47,7 +48,8 @@ export function CourseCard({ course, programLabelMap }: CourseCardProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
-      className="glass-card card-glow-hover course-card-accent rounded-2xl p-6 accent-left-gold relative overflow-hidden"
+      onClick={onClick}
+      className={`glass-card card-glow-hover course-card-accent rounded-2xl p-6 accent-left-gold relative overflow-hidden${onClick ? " cursor-pointer" : ""}`}
       style={{ willChange: "transform" }}
     >
       {/* Subtle radial glow overlay */}

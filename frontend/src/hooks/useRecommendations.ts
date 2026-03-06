@@ -27,7 +27,11 @@ export function useRecommendations() {
         max_recommendations: Number(state.maxRecs) || 3,
       };
       if (majors.length > 0) payload.declared_majors = majors;
-      if (state.selectedTracks.length > 0) payload.track_ids = state.selectedTracks;
+      const trackIds = [...state.selectedTracks];
+      if (state.discoveryTheme && !trackIds.includes(state.discoveryTheme)) {
+        trackIds.push(state.discoveryTheme);
+      }
+      if (trackIds.length > 0) payload.track_ids = trackIds;
       if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
       if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
       if (state.includeSummer) payload.include_summer = true;

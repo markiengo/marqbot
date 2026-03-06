@@ -1420,6 +1420,12 @@ def _resolve_program_selection(body, data: dict):
             )
         selected_track_ids.append(t_id)
 
+    # Auto-include discovery theme as a track so its child buckets are loaded.
+    if discovery_theme and discovery_theme not in selected_track_ids:
+        dt_row = selectable_catalog_df[selectable_catalog_df["track_id"] == discovery_theme]
+        if len(dt_row) > 0 and dt_row.iloc[0]["kind"] == "track":
+            selected_track_ids.append(discovery_theme)
+
     selected_program_ids = list(dict.fromkeys(declared_majors + selected_track_ids + declared_minors))
     if using_v2_catalog:
         effective_data = _build_declared_plan_data_v2(
@@ -1718,7 +1724,7 @@ def get_courses():
     _refresh_data_if_needed()
     if not _data:
         return jsonify({"error": "Data not loaded"}), 500
-    cols = ["course_code", "course_name", "credits", "level", "prereq_level"]
+    cols = ["course_code", "course_name", "credits", "level", "prereq_level", "description"]
     df = _data["courses_df"].copy()
     for col in cols:
         if col not in df.columns:

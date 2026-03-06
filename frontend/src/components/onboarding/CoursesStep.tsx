@@ -79,6 +79,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               onRemove={(code) => dispatch({ type: "REMOVE_COMPLETED", payload: code })}
               placeholder="Search completed courses..."
               resolveLabel={(code) => code}
+              chipViewportClassName="min-h-[4.5rem] max-h-[6.75rem]"
             />
           </div>
         </div>
@@ -101,6 +102,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               onRemove={(code) => dispatch({ type: "REMOVE_IN_PROGRESS", payload: code })}
               placeholder="Search in-progress courses..."
               resolveLabel={(code) => code}
+              chipViewportClassName="min-h-[4.5rem] max-h-[6.75rem]"
             />
           </div>
         </div>

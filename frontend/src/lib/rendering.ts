@@ -201,12 +201,14 @@ export function sortProgressEntries(
 // ── Bucket grouping ───────────────────────────────────────────────────────────
 
 /** Parent bucket IDs that are data-model-only; never shown in any progress view. */
-const HIDDEN_PARENT_IDS = new Set(["MCC_ESSV2", "MCC_WRIT"]);
+const HIDDEN_PARENT_IDS = new Set<string>([]);
 
 const PARENT_LABEL_FALLBACKS: Record<string, string> = {
   BCC: "Business Core (BCC)",
   MCC_FOUNDATION: "MCC Foundation",
   MCC_CULM: "MCC Culminating",
+  MCC_ESSV2: "MCC: Engaging Social Systems & Values 2",
+  MCC_WRIT: "MCC: Writing Intensive",
   MCC_DISC: "MCC Discovery",
   MCC_DISC_CMI: "Discovery: Cognition, Memory & Intelligence",
   MCC_DISC_BNJ: "Discovery: Basic Needs and Justice",

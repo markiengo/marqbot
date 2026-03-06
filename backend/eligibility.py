@@ -29,17 +29,52 @@ _NON_RECOMMENDABLE_PATTERNS = (
 )
 
 
-def _is_non_recommendable_course(course_code: str, course_name: str | None = None) -> bool:
+def _has_non_integer_credits(raw_credits) -> bool:
+    """
+    Return True when credits include any non-integer numeric value.
+
+    Examples considered non-integer:
+      1.5
+      "1.5"
+      "1.5-3"
+    """
+    if raw_credits is None:
+        return False
+    s = str(raw_credits).strip()
+    if not s or s.lower() == "nan":
+        return False
+
+    # Support scalar values and ranges like "1-3" or "1.5-3".
+    parts = [p.strip() for p in s.split("-") if p.strip()]
+    if not parts:
+        return False
+
+    for part in parts:
+        val = pd.to_numeric(part, errors="coerce")
+        if pd.isna(val):
+            continue
+        if float(val) % 1 != 0:
+            return True
+    return False
+
+
+def _is_non_recommendable_course(
+    course_code: str,
+    course_name: str | None = None,
+    credits=None,
+) -> bool:
     """
     Suppress non-recommendable courses from recommendation candidates.
     Internships, work periods, independent studies, and topics courses
-    have variable content or require special enrollment and cannot be
+    plus non-integer-credit courses have variable structure or scheduling and cannot be
     deterministically recommended.  They still count toward bucket
     progress when completed/in-progress (allocator does NOT call this).
     """
     code = str(course_code or "").strip().upper()
     name = str(course_name or "").strip().lower()
     if re.search(r"\b4986\b", code):
+        return True
+    if _has_non_integer_credits(credits):
         return True
     return any(p in name for p in _NON_RECOMMENDABLE_PATTERNS)
 
@@ -388,7 +423,7 @@ def get_eligible_courses(
         # Skip already taken / in-progress
         if code in completed_set or code in in_progress_set:
             continue
-        if _is_non_recommendable_course(code, row.get("course_name")):
+        if _is_non_recommendable_course(code, row.get("course_name"), row.get("credits")):
             continue
 
         # Recommendation lane is warning-driven for term offering:

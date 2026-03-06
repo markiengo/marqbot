@@ -364,21 +364,16 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
           <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
             Discovery Theme
           </label>
-          <div className="relative">
-            <select
-              disabled
-              value=""
-              onChange={() => {}}
-              className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary pointer-events-none opacity-40"
-            >
-              <option value="">Select theme...</option>
-            </select>
-            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-card/60 backdrop-blur-[1px]">
-              <span className="text-[10px] font-semibold text-gold/70 uppercase tracking-widest">
-                Coming Soon
-              </span>
-            </div>
-          </div>
+          <select
+            value={state.discoveryTheme || ""}
+            onChange={(e) => dispatch({ type: "SET_DISCOVERY_THEME", payload: e.target.value })}
+            className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary"
+          >
+            <option value="">No theme selected</option>
+            {discoveryThemeTracks.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </select>
         </div>
       )}
 

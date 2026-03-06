@@ -15,6 +15,7 @@ interface MultiSelectProps {
   placeholder?: string;
   maxSelections?: number;
   resolveLabel?: (code: string) => string;
+  chipViewportClassName?: string;
 }
 
 export function MultiSelect({
@@ -26,6 +27,7 @@ export function MultiSelect({
   placeholder = "Search courses...",
   maxSelections,
   resolveLabel = (code) => code,
+  chipViewportClassName = "h-[3rem]",
 }: MultiSelectProps) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -33,15 +35,40 @@ export function MultiSelect({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const refocusInput = useCallback(() => {
-    const input = inputRef.current;
-    if (!input) return;
-    try {
-      input.focus({ preventScroll: true });
-    } catch {
-      input.focus();
+  const getScrollableAncestor = useCallback((start: HTMLElement | null): HTMLElement | null => {
+    let node = start?.parentElement ?? null;
+    while (node) {
+      const style = window.getComputedStyle(node);
+      const canScrollY = /(auto|scroll)/.test(style.overflowY);
+      if (canScrollY && node.scrollHeight > node.clientHeight) return node;
+      node = node.parentElement;
     }
+    return null;
   }, []);
+
+  const ensureInputVisible = useCallback((preferDropdownRoom: boolean) => {
+    const anchor = inputRef.current;
+    if (!anchor) return;
+    const scroller = getScrollableAncestor(anchor);
+    if (!scroller) return;
+
+    const margin = 12;
+    const inputRect = anchor.getBoundingClientRect();
+    const scrollerRect = scroller.getBoundingClientRect();
+
+    if (inputRect.top < scrollerRect.top + margin) {
+      scroller.scrollTop -= (scrollerRect.top + margin) - inputRect.top;
+      return;
+    }
+
+    let desiredBottom = inputRect.bottom + margin;
+    if (preferDropdownRoom) {
+      desiredBottom += Math.min(220, scroller.clientHeight * 0.35);
+    }
+    if (desiredBottom > scrollerRect.bottom) {
+      scroller.scrollTop += desiredBottom - scrollerRect.bottom;
+    }
+  }, [getScrollableAncestor]);
 
   const excludeSet = useMemo(
     () => new Set([...selected, ...otherSet]),
@@ -71,12 +98,25 @@ export function MultiSelect({
   const handleSelect = useCallback(
     (course: Course) => {
       if (maxSelections && selected.size >= maxSelections) return;
+      const anchor = inputRef.current;
+      const scroller = getScrollableAncestor(anchor);
+      const anchorTopBefore = anchor?.getBoundingClientRect().top ?? null;
       onAdd(course.course_code);
       setQuery("");
-      setIsOpen(false);
-      refocusInput();
+      const reachedLimit = maxSelections ? selected.size + 1 >= maxSelections : false;
+      setIsOpen(!reachedLimit);
+      if (scroller && anchorTopBefore !== null) {
+        requestAnimationFrame(() => {
+          const anchorTopAfter = inputRef.current?.getBoundingClientRect().top;
+          if (anchorTopAfter == null) return;
+          const delta = anchorTopAfter - anchorTopBefore;
+          if (Math.abs(delta) > 0.5) {
+            scroller.scrollTop += delta;
+          }
+        });
+      }
     },
-    [onAdd, maxSelections, refocusInput, selected.size],
+    [getScrollableAncestor, maxSelections, onAdd, selected.size],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -107,17 +147,29 @@ export function MultiSelect({
 
   // Scroll active option into view
   useEffect(() => {
-    if (!dropdownRef.current) return;
-    const active = dropdownRef.current.children[activeIndex] as HTMLElement;
-    if (active) active.scrollIntoView({ block: "nearest" });
-  }, [activeIndex]);
+    const dropdown = dropdownRef.current;
+    if (!dropdown) return;
+    const active = dropdown.children[activeIndex] as HTMLElement | undefined;
+    if (!active) return;
+
+    const optionTop = active.offsetTop;
+    const optionBottom = optionTop + active.offsetHeight;
+    const viewportTop = dropdown.scrollTop;
+    const viewportBottom = viewportTop + dropdown.clientHeight;
+
+    if (optionTop < viewportTop) {
+      dropdown.scrollTop = optionTop;
+    } else if (optionBottom > viewportBottom) {
+      dropdown.scrollTop = optionBottom - dropdown.clientHeight;
+    }
+  }, [activeIndex, isOpen, matches.length]);
 
   const atLimit = maxSelections ? selected.size >= maxSelections : false;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-visible">
+    <div className={`relative flex min-h-0 flex-1 flex-col gap-3 overflow-visible ${isOpen ? "z-40" : ""}`}>
       {/* Chips */}
-      <div className="min-h-[3rem] max-h-[clamp(4rem,18vh,8.5rem)] overflow-y-auto pr-1">
+      <div className={`${chipViewportClassName} overflow-y-auto pr-1`}>
         <div className="flex flex-wrap gap-1.5">
         <AnimatePresence mode="popLayout">
           {[...selected].map((code) => (
@@ -133,7 +185,7 @@ export function MultiSelect({
       </div>
 
       {/* Search input */}
-      <div className="relative z-20">
+      <div className="relative">
         <input
           ref={inputRef}
           type="text"
@@ -141,8 +193,12 @@ export function MultiSelect({
           onChange={(e) => {
             setQuery(e.target.value);
             setIsOpen(true);
+            requestAnimationFrame(() => ensureInputVisible(true));
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => {
+            setIsOpen(true);
+            requestAnimationFrame(() => ensureInputVisible(true));
+          }}
           onBlur={() => setTimeout(() => setIsOpen(false), 150)}
           onKeyDown={handleKeyDown}
           placeholder={atLimit ? `Maximum ${maxSelections} selected` : placeholder}

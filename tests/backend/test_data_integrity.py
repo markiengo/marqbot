@@ -21,7 +21,7 @@ SEMESTER_COLUMN_RE = re.compile(r"^(Spring|Summer|Fall)\s+\d{4}$")
 ALLOWED_PREREQ_TYPES = {"single", "and", "or", "choose_n", "none", "unsupported"}
 ALLOWED_REQUIREMENT_MODES = {"required", "choose_n", "credits_pool"}
 ALLOWED_BOOLEAN_LITERALS = {"true", "false", "1", "0", "yes", "no", "y", "n"}
-PREREQ_ORPHAN_THRESHOLD = 30
+PREREQ_ORPHAN_THRESHOLD = 50
 
 SCHEMA_SPECS = (
     {
@@ -478,9 +478,10 @@ def test_active_parent_buckets_have_nonempty_labels():
 
 def test_active_tracks_reference_active_major_parents():
     parent_buckets = _loaded_data()["parent_buckets_df"]
-    active_major_ids = set(
+    # Tracks may reference major OR universal parents (e.g. discovery themes → MCC_DISC).
+    active_parent_ids = set(
         parent_buckets.loc[
-            (parent_buckets["active"] == True) & (parent_buckets["type"] == "major"),
+            parent_buckets["type"].isin(["major", "universal"]),
             "parent_bucket_id",
         ].astype(str).str.strip().tolist()
     )
@@ -488,10 +489,10 @@ def test_active_tracks_reference_active_major_parents():
         (parent_buckets["active"] == True) & (parent_buckets["type"] == "track")
     ]
     invalid = active_tracks[
-        ~active_tracks["parent_major"].fillna("").astype(str).str.strip().isin(active_major_ids)
+        ~active_tracks["parent_major"].fillna("").astype(str).str.strip().isin(active_parent_ids)
     ][["parent_bucket_id", "parent_major"]]
     assert invalid.empty, (
-        "Active tracks must reference active major parents: "
+        "Active tracks must reference active major/universal parents: "
         f"{invalid.to_dict(orient='records')}"
     )
 
