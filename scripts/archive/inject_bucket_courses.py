@@ -15,7 +15,7 @@ from pathlib import Path
 
 # Archived under scripts/archive/, so repo root is three levels up.
 ROOT = Path(__file__).resolve().parents[2]
-INJECTIONS_MD = ROOT / "bucket_injections.md"
+INJECTIONS_MD = ROOT / "scripts" / "archive" / "bucket_injections.md"
 MASTER_CSV = ROOT / "data" / "master_bucket_courses.csv"
 COURSES_CSV = ROOT / "data" / "courses.csv"
 

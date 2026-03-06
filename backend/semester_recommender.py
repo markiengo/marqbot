@@ -445,7 +445,7 @@ def _is_mcc_tier_1_candidate(parent_id: str, primary_bucket: str, local_id: str)
         return True
     if primary_bucket.startswith("MCC::"):
         return True
-    if local_id.startswith("MCC_"):
+    if local_id.startswith("MCC_") and not local_id.startswith("MCC_DISC"):
         return True
     return False
 
@@ -929,8 +929,8 @@ def run_recommendation_semester(
             ),
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
             1 if c.get("is_bridge_course") else 0,
-            _course_level(c) if _course_level(c) is not None else 9999,
             -_chain.get(c["course_code"], 0),
+            _course_level(c) if _course_level(c) is not None else 9999,
             -c.get("multi_bucket_score", 0),
             c["course_code"],
         ),
