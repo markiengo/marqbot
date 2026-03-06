@@ -20,7 +20,6 @@ from prereq_parser import prereq_course_codes
 
 SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
 
-_CONCURRENT_ONLY_TAG = "may_be_concurrent"
 _MAX_PER_BUCKET_PER_SEM = 2
 _PROJECTION_NOTE = (
     "Projected progress below assumes you complete these recommendations."
@@ -29,7 +28,6 @@ _MCC_PARENT_FAMILY_IDS = {"MCC", "MCC_CORE", "MCC_FOUNDATION"}
 
 _STANDING_LABELS = {1: "Freshman", 2: "Sophomore", 3: "Junior", 4: "Senior"}
 _ESSV2_WRIT_BUCKETS = {"MCC_ESSV2", "MCC_WRIT"}
-_BCC_DECAY_THRESHOLD = 12
 _BCC_DEMOTED_CHILDREN = {"BCC_ETHICS", "BCC_ANALYTICS", "BCC_ENHANCE"}
 _ESSV2_WRIT_NOTE = (
     "Prerequisite checking for this requirement is not yet complete — verify prerequisites independently."
@@ -44,17 +42,6 @@ def _credits_to_standing(credits: int) -> int:
     if credits >= 24:
         return 2
     return 1
-
-
-def _count_bcc_required_done(progress: dict) -> int:
-    """Count completed + in-progress courses applied to any BCC_REQUIRED bucket."""
-    total: set[str] = set()
-    for bucket_id, info in (progress or {}).items():
-        if "BCC_REQUIRED" not in str(bucket_id).upper():
-            continue
-        total.update(info.get("completed_applied") or [])
-        total.update(info.get("in_progress_applied") or [])
-    return len(total)
 
 
 def normalize_semester_label(label: str) -> str:
@@ -108,20 +95,6 @@ def _prereq_courses(parsed: dict) -> set[str]:
     return set(prereq_course_codes(parsed))
 
 
-def _soft_tag_demote_penalty(candidate: dict) -> int:
-    """
-    Demote any course that has prereq_soft tags, except when the only
-    prereq_soft tag is may_be_concurrent.
-    """
-    tags = [str(t).strip() for t in candidate.get("all_soft_tags", []) if str(t).strip()]
-    if not tags:
-        return 0
-    uniq = set(tags)
-    if uniq == {_CONCURRENT_ONLY_TAG}:
-        return 0
-    return 1
-
-
 def _course_level(candidate: dict) -> int | None:
     level = candidate.get("course_level")
     if isinstance(level, int):
@@ -130,15 +103,6 @@ def _course_level(candidate: dict) -> int | None:
         return int(level)
     return None
 
-
-def _is_lower_level_candidate(candidate: dict) -> bool:
-    level = _course_level(candidate)
-    return level is not None and level < 3000
-
-
-def _is_upper_level_candidate(candidate: dict) -> bool:
-    level = _course_level(candidate)
-    return level is not None and level >= 3000
 
 
 def _build_in_progress_note(
@@ -251,9 +215,7 @@ def _build_standing_recovery_candidates(
     marked.sort(
         key=lambda c: (
             _standing_recovery_priority(c, bucket_role_map, bucket_parent_map, parent_type_map),
-            _soft_tag_demote_penalty(c),
             0 if not c.get("low_confidence", False) else 1,
-            c.get("prereq_level", 0),
             _course_level(c) if _course_level(c) is not None else 9999,
             c["course_code"],
         )
@@ -497,14 +459,12 @@ def _bucket_hierarchy_tier_v2(
     parent_type_map: dict[str, str],
     bucket_track_required_map: dict[str, str],
     bucket_parent_map: dict[str, str],
-    bcc_decay_active: bool = False,
 ) -> int:
     """
     Priority tiers:
-      1) MCC + BCC_REQUIRED (when bcc_decay_active=False)
+      1) MCC + BCC_REQUIRED
       2) major parent buckets
       3) track/minor parent buckets
-      4) BCC_REQUIRED (when bcc_decay_active=True)
       5) demoted BCC children (BCC_ETHICS, BCC_ANALYTICS, BCC_ENHANCE) — always
 
     Unlockers remain an in-tier tie-break in the ranking key.
@@ -531,9 +491,9 @@ def _bucket_hierarchy_tier_v2(
         if local_id in _BCC_DEMOTED_CHILDREN:
             return 5
 
-        # Tier 1 or 4: BCC_REQUIRED placement depends on decay state.
+        # Tier 1: BCC_REQUIRED.
         if local_id == "BCC_REQUIRED":
-            return 4 if bcc_decay_active else 1
+            return 1
 
         # Tier 1: MCC family.
         if _is_mcc_tier_1_candidate(parent_id, bucket_id, local_id):
@@ -556,44 +516,6 @@ def _bucket_hierarchy_tier_v2(
 
     return min(_tier_for_bucket(bid) for bid in bucket_ids)
 
-
-
-def _is_acco_major_context(data: dict, track_id: str) -> bool:
-    tid = str(track_id or "").strip().upper()
-    if tid == "ACCO_MAJOR":
-        return True
-    buckets_df = data.get("buckets_df")
-    if buckets_df is None or len(buckets_df) == 0:
-        return False
-    subset = buckets_df[
-        buckets_df.get("track_id", pd.Series(dtype=str))
-        .astype(str)
-        .str.strip()
-        .str.upper()
-        == tid
-    ].copy()
-    if len(subset) == 0:
-        return False
-    parent_match = (
-        subset.get("parent_bucket_id", pd.Series(dtype=str))
-        .astype(str)
-        .str.strip()
-        .str.upper()
-        == "ACCO_MAJOR"
-    ).any()
-    if parent_match:
-        return True
-    bucket_match = subset.get("bucket_id", pd.Series(dtype=str)).astype(str).str.upper().str.startswith("ACCO_MAJOR::").any()
-    return bool(bucket_match)
-
-
-def _accc_major_required_rank(candidate: dict, is_acco_context: bool) -> int:
-    if not is_acco_context:
-        return 1
-    warning_text = str(candidate.get("warning_text", "") or "").strip().lower()
-    if "required for acco major" in warning_text or "required for acco majors" in warning_text:
-        return 0
-    return 1
 
 
 def _compute_satisfied(applied: dict, assumed_done_credits: int) -> bool:
@@ -774,9 +696,9 @@ def _build_debug_trace(
     parent_type_map: dict,
     bucket_track_required_map: dict,
     bucket_parent_map: dict,
-    is_acco_context: bool,
     core_prereq_blockers: set[str],
     reverse_map: dict,
+    chain_depths: dict[str, int],
     virtual_remaining_snapshot: dict[str, int],
     debug_limit: int = 30,
 ) -> list[dict]:
@@ -799,12 +721,11 @@ def _build_debug_trace(
             "selected": code in selected_codes,
             "skip_reason": skipped_reasons.get(code),
             "tier": tier,
-            "acco_boost": _accc_major_required_rank(c, is_acco_context),
             "is_core_prereq_blocker": code in core_prereq_blockers,
             "is_bridge_course": bool(c.get("is_bridge_course")),
-            "soft_tag_penalty": _soft_tag_demote_penalty(c),
+            "course_level": _course_level(c),
+            "chain_depth": chain_depths.get(code, 0),
             "multi_bucket_score": c.get("multi_bucket_score", 0),
-            "prereq_level": c.get("prereq_level", 0),
             "fills_buckets": fills,
             "selection_buckets": selection_buckets,
             "bridge_target_buckets": c.get("bridge_target_buckets", []),
@@ -988,8 +909,6 @@ def run_recommendation_semester(
             "projection_note": _PROJECTION_NOTE,
         }
 
-    is_acco_context = _is_acco_major_context(data, track_id)
-
     core_bucket_ids = get_buckets_by_role(data["buckets_df"], track_id, "core")
     core_remaining_sem: list[str] = []
     for core_bid in core_bucket_ids:
@@ -1016,19 +935,15 @@ def run_recommendation_semester(
                 bucket_track_required_map,
                 bucket_parent_map,
             ),
-            _accc_major_required_rank(c, is_acco_context),
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
             1 if c.get("is_bridge_course") else 0,
+            _course_level(c) if _course_level(c) is not None else 9999,
             -_chain.get(c["course_code"], 0),
             -c.get("multi_bucket_score", 0),
-            _soft_tag_demote_penalty(c),
-            c.get("prereq_level", 0),
-            _course_level(c) if _course_level(c) is not None else 9999,
             c["course_code"],
         ),
     )
     # Greedy selection that respects bucket capacity and spreads courses
-    # across semesters (base cap _MAX_PER_BUCKET_PER_SEM picks per bucket).
     # The cap auto-relaxes when viable unmet buckets are too few to satisfy
     # requested recommendation count.
     selected_sem = []
@@ -1045,14 +960,10 @@ def run_recommendation_semester(
     virtual_remaining_snapshot = dict(virtual_remaining) if debug else {}
     picks_per_bucket: dict[str, int] = {}
     picks_per_program: dict[str, int] = {}
-    deferred_for_level_balance: list[dict] = []
     deferred_for_balance: list[dict] = []
     bridge_targets_covered: set[str] = set()
     cap_relaxed = False
     skipped_reasons: dict[str, str] = {}
-    freshman_level_balance_active = completed_only_standing == 1
-    lower_level_target = (max_recs + 1) // 2
-    selected_lower_level = 0
 
     def _assignable_buckets_for_candidate(candidate: dict, *, enforce_bucket_cap: bool) -> list[str]:
         return _select_assignable_buckets_allocator_style(
@@ -1070,27 +981,6 @@ def run_recommendation_semester(
             b not in bridge_targets_covered and virtual_remaining.get(b, 0) > 0
             for b in candidate.get("bridge_target_buckets", [])
         )
-
-    def _has_enough_viable_lower_level_candidates(start_idx: int, *, enforce_bucket_cap: bool) -> bool:
-        needed_lower = lower_level_target - selected_lower_level
-        if needed_lower <= 0:
-            return False
-        viable_lower = 0
-        for remaining_candidate in ranked_sem[start_idx:]:
-            if not _is_lower_level_candidate(remaining_candidate):
-                continue
-            assignable = _assignable_buckets_for_candidate(
-                remaining_candidate,
-                enforce_bucket_cap=enforce_bucket_cap,
-            )
-            if assignable or (
-                _is_bridge_candidate(remaining_candidate)
-                and _bridge_candidate_has_open_target(remaining_candidate)
-            ):
-                viable_lower += 1
-                if viable_lower >= needed_lower:
-                    return True
-        return False
 
     for idx, cand in enumerate(ranked_sem):
         if len(selected_sem) >= max_recs:
@@ -1132,19 +1022,6 @@ def run_recommendation_semester(
                 skipped_reasons[cand["course_code"]] = "bridge targets already covered"
             continue
 
-        if (
-            freshman_level_balance_active
-            and _is_upper_level_candidate(cand)
-            and selected_lower_level < lower_level_target
-            and _has_enough_viable_lower_level_candidates(
-                idx + 1,
-                enforce_bucket_cap=enforce_bucket_cap,
-            )
-        ):
-            deferred_for_level_balance.append(cand)
-            if debug:
-                skipped_reasons[cand["course_code"]] = "freshman level-balance deferral"
-            continue
 
         # Program balance gate: defer if this program is over-represented.
         cand_programs = _candidate_program_ids(cand, bucket_parent_map, parent_type_map)
@@ -1159,42 +1036,9 @@ def run_recommendation_semester(
                 continue
 
         selected_sem.append(cand)
-        if _is_lower_level_candidate(cand):
-            selected_lower_level += 1
         if is_bridge_pick:
             for b in cand.get("bridge_target_buckets", []):
                 bridge_targets_covered.add(b)
-        for prog in cand_programs:
-            picks_per_program[prog] = picks_per_program.get(prog, 0) + 1
-        for bid in assigned_buckets:
-            if virtual_remaining.get(bid, 0) > 0:
-                consume = _bucket_virtual_consumption_units(
-                    bid,
-                    cand,
-                    selection_bucket_meta,
-                )
-                virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
-                picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
-
-    for cand in deferred_for_level_balance:
-        if len(selected_sem) >= max_recs:
-            break
-        assigned_buckets = _assignable_buckets_for_candidate(
-            cand,
-            enforce_bucket_cap=not cap_relaxed,
-        )
-        is_bridge_pick = _is_bridge_candidate(cand)
-        if not assigned_buckets and not is_bridge_pick:
-            continue
-        if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
-            continue
-        selected_sem.append(cand)
-        if _is_lower_level_candidate(cand):
-            selected_lower_level += 1
-        if is_bridge_pick:
-            for b in cand.get("bridge_target_buckets", []):
-                bridge_targets_covered.add(b)
-        cand_programs = _candidate_program_ids(cand, bucket_parent_map, parent_type_map)
         for prog in cand_programs:
             picks_per_program[prog] = picks_per_program.get(prog, 0) + 1
         for bid in assigned_buckets:
@@ -1221,8 +1065,6 @@ def run_recommendation_semester(
         if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
             continue
         selected_sem.append(cand)
-        if _is_lower_level_candidate(cand):
-            selected_lower_level += 1
         if is_bridge_pick:
             for b in cand.get("bridge_target_buckets", []):
                 bridge_targets_covered.add(b)
@@ -1344,9 +1186,9 @@ def run_recommendation_semester(
             parent_type_map,
             bucket_track_required_map,
             bucket_parent_map,
-            is_acco_context,
             core_prereq_blockers_sem,
             reverse_map,
+            _chain,
             virtual_remaining_snapshot,
             debug_limit=debug_limit,
         )

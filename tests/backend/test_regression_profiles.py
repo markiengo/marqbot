@@ -382,8 +382,8 @@ class TestDebugMode:
         entry = data["semesters"][0]["debug"][0]
         required_fields = [
             "rank", "course_code", "selected", "tier",
-            "soft_tag_penalty", "multi_bucket_score",
-            "prereq_level", "fills_buckets",
+            "is_core_prereq_blocker", "is_bridge_course",
+            "course_level", "multi_bucket_score", "fills_buckets",
         ]
         for field in required_fields:
             assert field in entry, f"debug entry missing field: {field}"
@@ -394,22 +394,16 @@ class TestDebugMode:
         _, data = _get_recs(client, payload)
         sem1 = data.get("semesters", [{}])[0]
         assert "debug" not in sem1, "debug field should not be present when not requested"
-
-
 # ---------------------------------------------------------------------------
-# BCC decay regression profiles (v1.9)
-# These profiles verify that BCC decay behavior is consistent with
-# the BCC_DECAY_ENABLED env flag. With the flag off (default), BCC_REQUIRED
-# courses stay Tier 1 regardless of how many BCC courses are done.
+# Heavy BCC completion regression profiles
 # ---------------------------------------------------------------------------
 
 
 class TestFinMajorJuniorBccSaturated:
     """
-    Junior with 12+ BCC_REQUIRED courses done. With BCC_DECAY_ENABLED=false
-    (default), recommendations should still produce valid results and BCC/MCC
-    courses should appear in the eligible pool. Decay behavior tested via
-    unit tests in test_bcc_decay.py.
+    Junior with 12+ BCC_REQUIRED courses done. Recommendations should
+    still produce valid results and BCC/MCC courses should appear in
+    the eligible pool.
     """
 
     PAYLOAD = {
@@ -433,8 +427,8 @@ class TestFinMajorJuniorBccSaturated:
         recs, _ = _get_recs(client, self.PAYLOAD)
         assert len(recs) >= 1, "Should still have courses to recommend"
 
-    def test_no_regression_from_bcc_decay_flag_off(self, client):
-        """With BCC_DECAY_ENABLED=false (default), recommendations remain stable."""
+    def test_heavy_bcc_completion_still_produces_recs(self, client):
+        """Heavy BCC completion should still yield valid eligible pool."""
         recs, data = _get_recs(client, self.PAYLOAD)
         # Eligible count should be positive
         assert data.get("eligible_count", 0) > 0, "Should have eligible courses"

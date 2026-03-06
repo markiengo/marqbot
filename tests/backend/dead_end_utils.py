@@ -121,9 +121,9 @@ def resolve_effective_plan(case: PlanCase):
 
     # Build credits lookup matching server.py exactly
     cdf = effective_data["courses_df"]
-    credits_lookup: dict[str, int] = dict(zip(
+    credits_lookup: dict[str, float] = dict(zip(
         cdf["course_code"].astype(str),
-        cdf["credits"].fillna(3).apply(lambda x: max(0, int(x)) if pd.notna(x) else 3),
+        cdf["credits"].fillna(3.0).apply(lambda x: server._parse_credits(x) if pd.notna(x) else 3.0),
     ))
     running_credits = (
         sum(credits_lookup.get(c, 3) for c in completed)

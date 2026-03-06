@@ -8,6 +8,30 @@ Format per release:
 
 ---
 
+## [v2.2.3] - 2026-03-06
+
+### Changes
+
+- Simplified recommendation ranking key from 10 positions to 7:
+  - `tier`, `core_prereq_blocker`, `bridge`, `course_level`, `chain_depth`, `multi_bucket_score`, `course_code`.
+- Removed obsolete/dead ranking branches and helpers:
+  - BCC decay toggle path
+  - accounting-major tie-break boost
+  - soft-tag demotion tie-break
+  - prereq-level tie-break
+  - freshman level-balance deferral pass
+- Replaced old BCC decay unit coverage with stable tier-invariant tests.
+- Updated debug trace fields to match simplified ranking inputs.
+- Fixed debug trace `chain_depth` to report the same chain-depth map used by ranking.
+- Fixed standing-credit parsing to correctly handle decimal and range credit values (e.g., `1.5`, `1-3`).
+
+### Design Decisions
+- Prioritized explainability and deterministic behavior over stacked heuristic tie-breakers.
+- Kept bridge/program-balance/rescue safeguards while reducing sort complexity.
+- Preserved existing API response shape while simplifying internal ranking semantics.
+
+---
+
 ## [v2.2.2] - 2026-03-05
 
 ### Changes

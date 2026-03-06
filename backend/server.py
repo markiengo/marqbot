@@ -1591,7 +1591,35 @@ def _build_current_progress(completed, in_progress, data, track_id):
     return annotate_progress_with_recommendation_hierarchy(out, data, track_id)
 
 
-def _course_credit_lookup(data: dict) -> dict[str, int]:
+def _parse_credits(val, default=3.0) -> float:
+    """
+    Parse a credit value into a non-negative number.
+    Supports plain numeric values (e.g., 3, 1.5) and ranges (e.g., 1-3, 1.5-3).
+    For ranges, the lower bound is used.
+    """
+    def _as_float(raw) -> float | None:
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return None
+
+    parsed = _as_float(val)
+    if parsed is not None:
+        return max(0.0, parsed)
+
+    s = str(val or "").strip()
+    if not s:
+        return float(default)
+
+    for part in s.split("-"):
+        parsed_part = _as_float(part.strip())
+        if parsed_part is not None:
+            return max(0.0, parsed_part)
+
+    return float(default)
+
+
+def _course_credit_lookup(data: dict) -> dict[str, float]:
     runtime_indexes = data.get("runtime_indexes", {})
     course_indexes = runtime_indexes.get("courses", {})
     credits = course_indexes.get("credits")
@@ -1601,7 +1629,7 @@ def _course_credit_lookup(data: dict) -> dict[str, int]:
     courses_df = data["courses_df"]
     return dict(zip(
         courses_df["course_code"].astype(str),
-        courses_df["credits"].fillna(3).apply(lambda x: max(0, int(x)) if pd.notna(x) else 3),
+        courses_df["credits"].fillna(3.0).apply(lambda x: _parse_credits(x) if pd.notna(x) else 3.0),
     ))
 
 
