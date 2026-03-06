@@ -626,8 +626,25 @@ def _build_tracks_from_programs(programs_df: pd.DataFrame) -> pd.DataFrame:
     ]
 
 
-def _overlay_course_prereqs(courses_df: pd.DataFrame, prereqs_df: pd.DataFrame) -> pd.DataFrame:
-    """Overlay V2 course_prereqs onto runtime prereq fields."""
+_SOFT_PREREQ_DETAIL_COLUMNS = [
+    "catalog_prereq_raw",
+    "soft_prereq_major_restriction",
+    "soft_prereq_instructor_consent",
+    "soft_prereq_admitted_program",
+    "soft_prereq_college_restriction",
+    "soft_prereq_program_progress_requirement",
+    "soft_prereq_standing_requirement",
+    "soft_prereq_placement_required",
+    "soft_prereq_minimum_grade",
+    "soft_prereq_minimum_gpa",
+    "soft_prereq_may_be_concurrent",
+    "soft_prereq_other_requirements",
+    "soft_prereq_complex_hard_prereq",
+]
+
+
+def _overlay_course_hard_prereqs(courses_df: pd.DataFrame, prereqs_df: pd.DataFrame) -> pd.DataFrame:
+    """Overlay hard prerequisite CSV rows onto runtime prereq fields."""
     if len(prereqs_df) == 0:
         return courses_df
 
@@ -650,22 +667,78 @@ def _overlay_course_prereqs(courses_df: pd.DataFrame, prereqs_df: pd.DataFrame) 
         out["warning_text"] = ""
 
     src_idx = src.set_index("course_code")
-    if "prerequisites" in src_idx.columns:
+    if "hard_prereq" in src_idx.columns:
+        out["prereq_hard"] = out["course_code"].map(src_idx["hard_prereq"]).fillna(out["prereq_hard"])
+    elif "prerequisites" in src_idx.columns:
         out["prereq_hard"] = out["course_code"].map(src_idx["prerequisites"]).fillna(out["prereq_hard"])
-    if "prereq_warnings" in src_idx.columns:
+    if "soft_prereq" in src_idx.columns:
+        out["prereq_soft"] = out["course_code"].map(src_idx["soft_prereq"]).fillna(out["prereq_soft"])
+    elif "prereq_warnings" in src_idx.columns:
         out["prereq_soft"] = out["course_code"].map(src_idx["prereq_warnings"]).fillna(out["prereq_soft"])
     if "concurrent_with" in src_idx.columns:
         out["prereq_concurrent"] = out["course_code"].map(src_idx["concurrent_with"]).fillna(out["prereq_concurrent"])
     if "min_standing" in src_idx.columns:
         out["prereq_level"] = out["course_code"].map(src_idx["min_standing"]).fillna(out["prereq_level"])
-    if "warning_text" in src_idx.columns:
-        out["warning_text"] = out["course_code"].map(src_idx["warning_text"]).fillna(out["warning_text"])
 
     out["prereq_hard"] = out["prereq_hard"].fillna("none").astype(str)
-    out["prereq_soft"] = out["prereq_soft"].fillna("").astype(str)
+    out["prereq_soft"] = (
+        out["prereq_soft"]
+        .fillna("")
+        .astype(str)
+        .str.replace(",", ";", regex=False)
+    )
     out["prereq_concurrent"] = out["prereq_concurrent"].fillna("none").astype(str)
     out["warning_text"] = out["warning_text"].fillna("").astype(str)
     return out
+
+
+def _overlay_course_soft_prereqs(courses_df: pd.DataFrame, soft_df: pd.DataFrame) -> pd.DataFrame:
+    """Overlay soft prerequisite CSV rows onto runtime soft-tag/detail fields."""
+    if len(soft_df) == 0:
+        return courses_df
+
+    src = soft_df.copy()
+    if "course_code" not in src.columns:
+        return courses_df
+    src["course_code"] = src["course_code"].fillna("").astype(str).str.strip()
+    src = src[src["course_code"] != ""]
+
+    out = courses_df.copy()
+    if "prereq_soft" not in out.columns:
+        out["prereq_soft"] = ""
+    for col in _SOFT_PREREQ_DETAIL_COLUMNS:
+        if col not in out.columns:
+            out[col] = ""
+    if "prereq_notes" not in out.columns:
+        out["prereq_notes"] = ""
+    if "warning_text" not in out.columns:
+        out["warning_text"] = ""
+
+    src_idx = src.set_index("course_code")
+    if "soft_prereq" in src_idx.columns:
+        out["prereq_soft"] = out["course_code"].map(src_idx["soft_prereq"]).fillna(out["prereq_soft"])
+    elif "prereq_warnings" in src_idx.columns:
+        out["prereq_soft"] = out["course_code"].map(src_idx["prereq_warnings"]).fillna(out["prereq_soft"])
+    for col in _SOFT_PREREQ_DETAIL_COLUMNS:
+        if col in src_idx.columns:
+            out[col] = out["course_code"].map(src_idx[col]).fillna(out[col])
+    if "notes" in src_idx.columns:
+        out["prereq_notes"] = out["course_code"].map(src_idx["notes"]).fillna(out["prereq_notes"])
+
+    out["prereq_soft"] = (
+        out["prereq_soft"]
+        .fillna("")
+        .astype(str)
+        .str.replace(",", ";", regex=False)
+    )
+    for col in _SOFT_PREREQ_DETAIL_COLUMNS + ["prereq_notes", "warning_text"]:
+        out[col] = out[col].fillna("").astype(str)
+    return out
+
+
+def _overlay_course_prereqs(courses_df: pd.DataFrame, prereqs_df: pd.DataFrame) -> pd.DataFrame:
+    """Legacy combined prerequisite overlay kept for backward compatibility."""
+    return _overlay_course_soft_prereqs(_overlay_course_hard_prereqs(courses_df, prereqs_df), prereqs_df)
 
 
 def _semester_sort_key(term_label: str) -> tuple[int, int]:
@@ -1225,9 +1298,19 @@ def load_data(data_path: str) -> dict:
             }
         )
 
+    course_hard_prereqs_df = (
+        xl.parse("course_hard_prereqs") if "course_hard_prereqs" in sheet_set else pd.DataFrame()
+    )
+    course_soft_prereqs_df = (
+        xl.parse("course_soft_prereqs") if "course_soft_prereqs" in sheet_set else pd.DataFrame()
+    )
     course_prereqs_df = xl.parse("course_prereqs") if "course_prereqs" in sheet_set else pd.DataFrame()
     course_offerings_df = xl.parse("course_offerings") if "course_offerings" in sheet_set else pd.DataFrame()
-    courses_df = _overlay_course_prereqs(courses_df, course_prereqs_df)
+    if len(course_hard_prereqs_df) > 0 or len(course_soft_prereqs_df) > 0:
+        courses_df = _overlay_course_hard_prereqs(courses_df, course_hard_prereqs_df)
+        courses_df = _overlay_course_soft_prereqs(courses_df, course_soft_prereqs_df)
+    else:
+        courses_df = _overlay_course_prereqs(courses_df, course_prereqs_df)
     courses_df = _overlay_course_offerings(courses_df, course_offerings_df)
 
     equivalencies_df = _load_v2_equivalencies(xl, sheet_set)
@@ -1246,6 +1329,9 @@ def load_data(data_path: str) -> dict:
     courses_df["prereq_hard"] = courses_df.get("prereq_hard", pd.Series(dtype=str)).fillna("none")
     courses_df["prereq_soft"] = courses_df.get("prereq_soft", pd.Series(dtype=str)).fillna("")
     courses_df["warning_text"] = courses_df.get("warning_text", pd.Series(dtype=str)).fillna("")
+    courses_df["prereq_notes"] = courses_df.get("prereq_notes", pd.Series(dtype=str)).fillna("")
+    for col in _SOFT_PREREQ_DETAIL_COLUMNS:
+        courses_df[col] = courses_df.get(col, pd.Series(dtype=str)).fillna("")
     courses_df["elective_pool_tag"] = (
         courses_df.get("elective_pool_tag", pd.Series(dtype=str))
         .fillna("")

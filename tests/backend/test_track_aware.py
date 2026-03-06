@@ -398,10 +398,10 @@ class TestServerTrackValidation:
         data = resp.get_json()
 
         current_bucket = data["current_progress"]["AIM_FINTECH_TRACK::AIM-FINTECH-REQ-CORE"]
-        assert current_bucket["needed"] == 18
+        assert current_bucket["needed"] == 16
         assert current_bucket["completed_done"] == 6
-        assert current_bucket["in_progress_increment"] == 3
-        assert current_bucket["assumed_done"] == 9
+        assert current_bucket["in_progress_increment"] == 1
+        assert current_bucket["assumed_done"] == 7
 
     def test_optional_third_semester_is_generated(self, client):
         resp = self._post(
@@ -953,29 +953,52 @@ class TestServerTrackValidation:
             "FINA 4075",
         }
 
-    def test_aim_4410_prereqs_keep_major_restriction_without_senior_standing(self):
+    def test_aim_4410_prereqs_match_catalog_audit(self):
         import server
 
         courses = server._data["courses_df"].copy()
         courses["course_code"] = courses["course_code"].astype(str).str.strip().str.upper()
         row = courses[courses["course_code"] == "AIM 4410"]
         assert len(row) == 1
-        assert str(row.iloc[0]["prereq_hard"]).strip() == "FINA 4075"
+        assert str(row.iloc[0]["prereq_hard"]).strip() == "none"
+        assert str(row.iloc[0]["prereq_concurrent"]).strip() == "FINA 4075 or FINA 5075"
         soft_tags = {
             tag.strip()
             for tag in str(row.iloc[0]["prereq_soft"]).replace(";", ",").split(",")
             if tag.strip()
         }
+        assert "may_be_concurrent" in soft_tags
+        assert "instructor_consent" in soft_tags
         assert "major_restriction" in soft_tags
         assert float(row.iloc[0]["prereq_level"]) == 0.0
 
-    def test_all_aim_courses_require_aim_major_and_have_no_standing_prereqs(self):
+    def test_aim_catalog_soft_restrictions_and_standing_are_encoded(self):
         import server
 
         courses = server._data["courses_df"].copy()
         courses["course_code"] = courses["course_code"].astype(str).str.strip().str.upper()
         aim_rows = courses[courses["course_code"].str.startswith("AIM ")]
         assert len(aim_rows) > 0
+
+        expected_major_restriction = {
+            "AIM 3986",
+            "AIM 4310",
+            "AIM 4410",
+            "AIM 4420",
+            "AIM 4430",
+            "AIM 4440",
+            "AIM 4470",
+            "AIM 4931",
+            "AIM 4989",
+            "AIM 4996",
+        }
+        not_major_restricted = {
+            "AIM 4320",
+            "AIM 4330",
+            "AIM 4400",
+            "AIM 4986",
+            "AIM 4995",
+        }
 
         for _, row in aim_rows.iterrows():
             course_code = str(row["course_code"]).strip()
@@ -987,10 +1010,15 @@ class TestServerTrackValidation:
             }
             if course_code == "AIM 4400":
                 assert prereq_level == 2.0, course_code
+                assert "standing_requirement" in soft_tags, course_code
             else:
                 assert prereq_level == 0.0, course_code
-            assert "major_restriction" in soft_tags, course_code
-            assert "standing_requirement" not in soft_tags, course_code
+                assert "standing_requirement" not in soft_tags, course_code
+
+            if course_code in expected_major_restriction:
+                assert "major_restriction" in soft_tags, course_code
+            if course_code in not_major_restricted:
+                assert "major_restriction" not in soft_tags, course_code
 
     def test_multiple_tracks_with_same_parent_major_are_allowed(self, client):
         resp = client.post("/recommend", json={

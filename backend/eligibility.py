@@ -1,7 +1,7 @@
 import re
 import pandas as pd
 from prereq_parser import prereq_course_codes, prereqs_satisfied, build_prereq_check_string
-from requirements import SOFT_WARNING_TAGS, COMPLEX_PREREQ_TAG, CONCURRENT_TAGS, DEFAULT_TRACK_ID
+from requirements import SOFT_WARNING_TAGS, COMPLEX_PREREQ_TAGS, CONCURRENT_TAGS, DEFAULT_TRACK_ID
 from unlocks import build_reverse_prereq_map
 from allocator import get_runtime_course_index, get_runtime_track_index, _safe_bool
 
@@ -488,7 +488,7 @@ def get_eligible_courses(
         # Data exception: some starter courses have no hard prereqs but include a
         # concurrent-enrollment soft tag; do not force manual review in that case.
         complex_tag_blocks = (
-            COMPLEX_PREREQ_TAG in soft_tags
+            any(tag in COMPLEX_PREREQ_TAGS for tag in soft_tags)
             and not (parsed["type"] == "none" and any(t in CONCURRENT_TAGS for t in soft_tags))
         )
         if complex_tag_blocks:
@@ -780,7 +780,7 @@ def check_can_take(
     has_explicit_concurrent = not _is_none_prereq(raw_concurrent)
 
     complex_tag_blocks = (
-        COMPLEX_PREREQ_TAG in soft_tags
+        any(tag in COMPLEX_PREREQ_TAGS for tag in soft_tags)
         and not (parsed["type"] == "none" and any(t in CONCURRENT_TAGS for t in soft_tags))
     )
 

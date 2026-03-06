@@ -8,15 +8,20 @@ SOFT_WARNING_TAGS = {
     "instructor_consent",
     "admitted_program",
     "major_restriction",
+    "college_restriction",
+    "program_progress_requirement",
     "standing_requirement",
     "placement_required",
     "minimum_grade",
     "minimum_gpa",
+    "other_requirements",
     "not_frequently_offered",
 }
 
 # prereq_soft tag that signals the hard prereq is too complex to parse.
-COMPLEX_PREREQ_TAG = "hard_prereq_complex"
+COMPLEX_PREREQ_TAG = "complex_hard_prereq"
+LEGACY_COMPLEX_PREREQ_TAG = "hard_prereq_complex"
+COMPLEX_PREREQ_TAGS = {COMPLEX_PREREQ_TAG, LEGACY_COMPLEX_PREREQ_TAG}
 
 # prereq_soft tags indicating concurrent enrollment is allowed.
 CONCURRENT_TAGS = {"may_be_concurrent"}

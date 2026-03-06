@@ -2,7 +2,8 @@
 
 Scrapes bulletin subject pages and writes review artifacts to:
 - all_courses_raw.csv
-- course_prereqs_proposed.csv
+- course_hard_prereqs_proposed.csv
+- course_soft_prereqs_proposed.csv
 - scrape_summary.json
 """
 
@@ -22,12 +23,33 @@ from typing import Any
 
 import requests
 
+from audit_full_catalog import (
+    ADMITTED_PROGRAM_PATTERNS,
+    COLLEGE_RESTRICTION_PATTERNS,
+    HARD_PREREQ_FIELDS,
+    INSTRUCTOR_PATTERNS,
+    MAJOR_RESTRICTION_PATTERNS,
+    MIN_GPA_PATTERNS,
+    MIN_GRADE_PATTERNS,
+    OTHER_REQUIREMENT_PATTERNS,
+    PLACEMENT_PATTERNS,
+    PROGRAM_PROGRESS_PATTERNS,
+    SOFT_PREREQ_FIELDS,
+    SOFT_TAG_ORDER,
+    build_soft_detail_columns,
+    extract_concurrent,
+    has_pattern_match,
+    infer_min_standing,
+    strip_note_only_segments,
+)
+
 
 BASE_URL = "https://bulletin.marquette.edu"
 INDEX_URL = f"{BASE_URL}/course-descriptions/"
 DEFAULT_OUT_DIR = Path("data/webscrape_1")
 DEFAULT_RAW_OUT_NAME = "all_courses_raw.csv"
-DEFAULT_PREREQS_OUT_NAME = "course_prereqs_proposed.csv"
+DEFAULT_HARD_PREREQS_OUT_NAME = "course_hard_prereqs_proposed.csv"
+DEFAULT_SOFT_PREREQS_OUT_NAME = "course_soft_prereqs_proposed.csv"
 DEFAULT_SUMMARY_OUT_NAME = "scrape_summary.json"
 
 REQUEST_TIMEOUT = 30.0
@@ -41,42 +63,16 @@ SEMESTER_LABEL_RE = re.compile(r"^(Spring|Summer|Fall)\s+\d{4}$", re.IGNORECASE)
 
 NONE_TEXTS = {"", "none", "none.", "none listed", "n/a"}
 
-INSTRUCTOR_PATTERNS = [
-    re.compile(r"\bcons\.?\s*of\s*instr\.?\b", re.IGNORECASE),
-    re.compile(r"\bconsent\s+required\b", re.IGNORECASE),
-    re.compile(r"\bconsent\s+of\s+instructor\b", re.IGNORECASE),
-    re.compile(r"\binstructor\s+consent\b", re.IGNORECASE),
-    re.compile(r"\bcons\.?\s*of\s*prog\.?\s*dir\.?\b", re.IGNORECASE),
-    re.compile(r"\bconsent\s+of\s+program\s+director\b", re.IGNORECASE),
-]
-MAJOR_RESTRICTION_PATTERNS = [
-    re.compile(r"\bdeclared\b.*\bmajor", re.IGNORECASE),
-    re.compile(r"\bdeclared\b.*\bminor", re.IGNORECASE),
-    re.compile(r"\bmajor\s+restriction\b", re.IGNORECASE),
-    re.compile(r"\bprogram\s+restriction\b", re.IGNORECASE),
-    re.compile(r"\badmitted\b", re.IGNORECASE),
-    re.compile(r"\bopen\s+only\s+to\b", re.IGNORECASE),
-]
 CONCURRENT_PATTERNS = [
     re.compile(r"\bwhich\s+may\s+be\s+taken\s+concurrently\b", re.IGNORECASE),
     re.compile(r"\bmay\s+be\s+taken\s+concurrently\b", re.IGNORECASE),
     re.compile(r"\bmay\s+be\s+concurrent\b", re.IGNORECASE),
+    re.compile(r"\b(?:may|can|must)\s+be\s+taken\s+concurrent\b", re.IGNORECASE),
+    re.compile(r"\btaken\s+concurrently\s+with\b", re.IGNORECASE),
+    re.compile(r"\btaken\s+concurrent\s+with\b", re.IGNORECASE),
+    re.compile(r"\bconcurrent\s+enrollment\s+(?:with|in)\b", re.IGNORECASE),
 ]
-STANDING_PATTERNS = {
-    2.0: [
-        re.compile(r"\bsoph\.?\s*stndg\.?\b", re.IGNORECASE),
-        re.compile(r"\bsophomore\s+standing\b", re.IGNORECASE),
-    ],
-    3.0: [
-        re.compile(r"\bjr\.?\s*stndg\.?\b", re.IGNORECASE),
-        re.compile(r"\bjunior\s+standing\b", re.IGNORECASE),
-    ],
-    4.0: [
-        re.compile(r"\bsr\.?\s*stndg\.?\b", re.IGNORECASE),
-        re.compile(r"\bsenior\s+standing\b", re.IGNORECASE),
-    ],
-}
-HARD_COMPLEX_PATTERNS = [
+COMPLEX_HARD_PATTERNS = [
     re.compile(r"\bchoose\b", re.IGNORECASE),
     re.compile(r"\bone\s+of\s+the\s+following\b", re.IGNORECASE),
     re.compile(r"\btwo\s+of\s+the\s+following\b", re.IGNORECASE),
@@ -85,13 +81,6 @@ HARD_COMPLEX_PATTERNS = [
     re.compile(r"\bco-?req\b", re.IGNORECASE),
     re.compile(r"\bcoreq\b", re.IGNORECASE),
     re.compile(r"\bplacement\b", re.IGNORECASE),
-]
-WARNING_TAG_ORDER = [
-    "major_restriction",
-    "instructor_consent",
-    "standing_requirement",
-    "may_be_concurrent",
-    "hard_prereq_complex",
 ]
 NOTE_HINT_PATTERNS = [
     re.compile(r"\bdeclared\b", re.IGNORECASE),
@@ -103,6 +92,9 @@ NOTE_HINT_PATTERNS = [
     re.compile(r"\bstndg\b", re.IGNORECASE),
     re.compile(r"\bconcurrent\b", re.IGNORECASE),
     re.compile(r"\bpermission\b", re.IGNORECASE),
+]
+SOFT_DETAIL_FIELDS = [
+    field for field in SOFT_PREREQ_FIELDS if field not in {"course_code", "soft_prereq", "notes"}
 ]
 
 
@@ -126,12 +118,12 @@ class SubjectInfo:
 
 @dataclass
 class ParsedPrereq:
-    prerequisites: str
-    prereq_warnings: str
+    hard_prereq: str
+    soft_prereq: str
     concurrent_with: str
     min_standing: str
     notes: str
-    warning_text: str
+    soft_details: dict[str, str]
     has_parseable_codes: bool
     extracted_codes: list[str]
 
@@ -265,50 +257,46 @@ def parse_prereq_text(raw_text: str) -> ParsedPrereq:
     prereq_text = clean_text(raw_text)
     prereq_text = re.sub(r"^Prerequisite(s)?:\s*", "", prereq_text, flags=re.IGNORECASE).strip()
     prereq_text = prereq_text.rstrip(".").strip()
+    concurrent_source_text, explicit_concurrent = extract_concurrent(prereq_text)
+    hard_analysis_text = strip_note_only_segments(concurrent_source_text)
 
     if prereq_text.lower() in NONE_TEXTS:
         return ParsedPrereq(
-            prerequisites="none",
-            prereq_warnings="",
+            hard_prereq="none",
+            soft_prereq="",
             concurrent_with="",
             min_standing="0.0",
             notes="",
-            warning_text="",
+            soft_details={field: "" for field in SOFT_DETAIL_FIELDS},
             has_parseable_codes=False,
             extracted_codes=[],
         )
 
     tags: set[str] = set()
-    for pattern in INSTRUCTOR_PATTERNS:
-        if pattern.search(prereq_text):
-            tags.add("instructor_consent")
-            break
-    for pattern in MAJOR_RESTRICTION_PATTERNS:
-        if pattern.search(prereq_text):
-            tags.add("major_restriction")
-            break
+    if has_pattern_match(prereq_text, INSTRUCTOR_PATTERNS):
+        tags.add("instructor_consent")
+    if has_pattern_match(prereq_text, MAJOR_RESTRICTION_PATTERNS):
+        tags.add("major_restriction")
+    if has_pattern_match(prereq_text, ADMITTED_PROGRAM_PATTERNS):
+        tags.add("admitted_program")
+    if has_pattern_match(prereq_text, COLLEGE_RESTRICTION_PATTERNS):
+        tags.add("college_restriction")
+    if has_pattern_match(prereq_text, PROGRAM_PROGRESS_PATTERNS):
+        tags.add("program_progress_requirement")
     if any(pattern.search(prereq_text) for pattern in CONCURRENT_PATTERNS):
         tags.add("may_be_concurrent")
+    if has_pattern_match(prereq_text, PLACEMENT_PATTERNS):
+        tags.add("placement_required")
+    if has_pattern_match(prereq_text, MIN_GRADE_PATTERNS):
+        tags.add("minimum_grade")
+    if has_pattern_match(prereq_text, MIN_GPA_PATTERNS):
+        tags.add("minimum_gpa")
 
-    standing_matches: set[float] = set()
-    for standing_value, patterns in STANDING_PATTERNS.items():
-        if any(pattern.search(prereq_text) for pattern in patterns):
-            standing_matches.add(standing_value)
-    standing_lower = prereq_text.lower()
-    if re.search(r"\b(stndg|standing)\b", standing_lower):
-        if re.search(r"\bsoph(?:omore)?\.?\b", standing_lower):
-            standing_matches.add(2.0)
-        if re.search(r"\b(jr|junior)\.?\b", standing_lower):
-            standing_matches.add(3.0)
-        if re.search(r"\b(sr|senior)\.?\b", standing_lower):
-            standing_matches.add(4.0)
-    # Standing text communicates a minimum threshold. If multiple standing
-    # levels appear ("junior or senior standing"), keep the lower bound.
-    min_standing = min(standing_matches) if standing_matches else 0.0
+    min_standing = infer_min_standing(prereq_text)
     if min_standing > 0.0:
         tags.add("standing_requirement")
 
-    clauses = [clean_text(part).rstrip(".").strip() for part in prereq_text.split(";")]
+    clauses = [clean_text(part).rstrip(".").strip() for part in hard_analysis_text.split(";")]
     prereq_tokens: list[str] = []
     extracted_codes: list[str] = []
     for clause in clauses:
@@ -328,14 +316,16 @@ def parse_prereq_text(raw_text: str) -> ParsedPrereq:
         else:
             prereq_tokens.extend(codes_in_clause)
 
-    prerequisites = ";".join(prereq_tokens) if prereq_tokens else "none"
+    hard_prereq = ";".join(prereq_tokens) if prereq_tokens else "none"
     has_parseable_codes = bool(prereq_tokens)
 
     concurrent_codes: list[str] = []
+    if explicit_concurrent:
+        concurrent_codes.extend([code for code in explicit_concurrent.split(";") if code])
     if "may_be_concurrent" in tags:
         for match in re.finditer(
             r"([A-Z]{2,5}\s*[0-9]{4}[A-Z]?)\s*(?:which\s+)?may\s+be\s+taken\s+concurrently",
-            prereq_text,
+            hard_analysis_text,
             flags=re.IGNORECASE,
         ):
             code = normalize_course_code(match.group(1))
@@ -345,10 +335,8 @@ def parse_prereq_text(raw_text: str) -> ParsedPrereq:
             concurrent_codes.append(extracted_codes[0])
     concurrent_with = ";".join(concurrent_codes)
 
-    for pattern in HARD_COMPLEX_PATTERNS:
-        if pattern.search(prereq_text) and not has_parseable_codes:
-            tags.add("hard_prereq_complex")
-            break
+    if any(pattern.search(hard_analysis_text) for pattern in COMPLEX_HARD_PATTERNS):
+        tags.add("complex_hard_prereq")
 
     note_parts: list[str] = []
     for clause in clauses:
@@ -361,14 +349,21 @@ def parse_prereq_text(raw_text: str) -> ParsedPrereq:
                 note_parts.append(clause)
     notes = "; ".join(note_parts)
 
-    ordered_tags = [tag for tag in WARNING_TAG_ORDER if tag in tags]
+    soft_details = build_soft_detail_columns(prereq_text, [tag for tag in SOFT_TAG_ORDER if tag in tags])
+    if soft_details.get("soft_prereq_other_requirements") or has_pattern_match(
+        prereq_text, OTHER_REQUIREMENT_PATTERNS
+    ):
+        tags.add("other_requirements")
+
+    ordered_tags = [tag for tag in SOFT_TAG_ORDER if tag in tags]
+    soft_details = build_soft_detail_columns(prereq_text, ordered_tags)
     return ParsedPrereq(
-        prerequisites=prerequisites,
-        prereq_warnings=";".join(ordered_tags),
+        hard_prereq=hard_prereq,
+        soft_prereq=";".join(ordered_tags),
         concurrent_with=concurrent_with,
         min_standing=f"{min_standing:.1f}",
         notes=notes,
-        warning_text="",
+        soft_details=soft_details,
         has_parseable_codes=has_parseable_codes,
         extracted_codes=extracted_codes,
     )
@@ -559,7 +554,8 @@ def main(argv: list[str] | None = None) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     all_courses_out = out_dir / DEFAULT_RAW_OUT_NAME
-    prereqs_out = out_dir / DEFAULT_PREREQS_OUT_NAME
+    hard_prereqs_out = out_dir / DEFAULT_HARD_PREREQS_OUT_NAME
+    soft_prereqs_out = out_dir / DEFAULT_SOFT_PREREQS_OUT_NAME
     summary_out = out_dir / DEFAULT_SUMMARY_OUT_NAME
 
     print(f"[start] Scraping index: {INDEX_URL}")
@@ -629,19 +625,25 @@ def main(argv: list[str] | None = None) -> int:
         for row in sorted(deduped_courses, key=lambda item: item.course_code)
     ]
 
-    prereq_rows = []
+    hard_prereq_rows = []
+    soft_prereq_rows = []
     last_four_terms_reference = []
     for row in sorted(deduped_courses, key=lambda item: item.course_code):
         parsed = parse_prereq_text(row.prerequisites_raw)
-        prereq_rows.append(
+        hard_prereq_rows.append(
             {
                 "course_code": row.course_code,
-                "prerequisites": parsed.prerequisites,
-                "prereq_warnings": parsed.prereq_warnings,
+                "hard_prereq": parsed.hard_prereq,
                 "concurrent_with": parsed.concurrent_with,
                 "min_standing": parsed.min_standing,
+            }
+        )
+        soft_prereq_rows.append(
+            {
+                "course_code": row.course_code,
+                "soft_prereq": parsed.soft_prereq,
+                **parsed.soft_details,
                 "notes": parsed.notes,
-                "warning_text": parsed.warning_text,
             }
         )
         if row.last_four_terms:
@@ -678,17 +680,14 @@ def main(argv: list[str] | None = None) -> int:
         ],
     )
     write_csv(
-        prereqs_out,
-        prereq_rows,
-        [
-            "course_code",
-            "prerequisites",
-            "prereq_warnings",
-            "concurrent_with",
-            "min_standing",
-            "notes",
-            "warning_text",
-        ],
+        hard_prereqs_out,
+        hard_prereq_rows,
+        HARD_PREREQ_FIELDS,
+    )
+    write_csv(
+        soft_prereqs_out,
+        soft_prereq_rows,
+        SOFT_PREREQ_FIELDS,
     )
 
     scraped_codes = {row["course_code"] for row in courses_rows}
@@ -742,7 +741,8 @@ def main(argv: list[str] | None = None) -> int:
         },
         "outputs": {
             "all_courses_raw_csv": str(all_courses_out),
-            "course_prereqs_proposed_csv": str(prereqs_out),
+            "course_hard_prereqs_proposed_csv": str(hard_prereqs_out),
+            "course_soft_prereqs_proposed_csv": str(soft_prereqs_out),
             "scrape_summary_json": str(summary_out),
         },
     }
@@ -750,7 +750,8 @@ def main(argv: list[str] | None = None) -> int:
     summary_out.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     print(f"[write] {all_courses_out}")
-    print(f"[write] {prereqs_out}")
+    print(f"[write] {hard_prereqs_out}")
+    print(f"[write] {soft_prereqs_out}")
     print(f"[write] {summary_out}")
 
     if threshold_exceeded:

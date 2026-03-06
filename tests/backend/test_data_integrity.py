@@ -13,15 +13,27 @@ import pytest
 
 from data_loader import load_data
 from prereq_parser import parse_prereqs, prereq_course_codes
-from requirements import COMPLEX_PREREQ_TAG
+from requirements import COMPLEX_PREREQ_TAGS
 
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 SEMESTER_COLUMN_RE = re.compile(r"^(Spring|Summer|Fall)\s+\d{4}$")
+COURSE_CODE_RE = re.compile(r"\b[A-Z]{2,7}I?\s+\d{4}H?\b")
 ALLOWED_PREREQ_TYPES = {"single", "and", "or", "choose_n", "none", "unsupported"}
 ALLOWED_REQUIREMENT_MODES = {"required", "choose_n", "credits_pool"}
 ALLOWED_BOOLEAN_LITERALS = {"true", "false", "1", "0", "yes", "no", "y", "n"}
 PREREQ_ORPHAN_THRESHOLD = 50
+NON_HARD_NOTE_SEGMENT_PATTERNS = [
+    re.compile(r"\bcross-listed with\b.*?(?:\.|$)", re.IGNORECASE),
+    re.compile(r"\bcredit is not given for both\b.*?(?:\.|$)", re.IGNORECASE),
+    re.compile(r"\bcannot receive credit for both\b.*?(?:\.|$)", re.IGNORECASE),
+    re.compile(r"\bprevious or subsequent enrollment in\b.*?(?:[.;]|$)", re.IGNORECASE),
+    re.compile(r"\ba maximum of\b.*?(?:\.|$)", re.IGNORECASE),
+]
+COREQ_ONLY_SEGMENT_PATTERNS = [
+    re.compile(r"\btaken\s+concurrent(?:ly)?\s+with\b.*?(?:[.;]|$)", re.IGNORECASE),
+    re.compile(r"\bconcurrent\s+enrollment\s+(?:with|in)\b.*?(?:[.;]|$)", re.IGNORECASE),
+]
 
 SCHEMA_SPECS = (
     {
@@ -82,15 +94,35 @@ SCHEMA_SPECS = (
         "exact_columns": True,
     },
     {
-        "csv_name": "course_prereqs.csv",
+        "csv_name": "course_hard_prereqs.csv",
         "required_cols": [
             "course_code",
-            "prerequisites",
-            "prereq_warnings",
+            "hard_prereq",
             "concurrent_with",
             "min_standing",
+        ],
+        "pk_cols": ["course_code"],
+        "exact_columns": True,
+    },
+    {
+        "csv_name": "course_soft_prereqs.csv",
+        "required_cols": [
+            "course_code",
+            "soft_prereq",
+            "catalog_prereq_raw",
+            "soft_prereq_major_restriction",
+            "soft_prereq_instructor_consent",
+            "soft_prereq_admitted_program",
+            "soft_prereq_college_restriction",
+            "soft_prereq_program_progress_requirement",
+            "soft_prereq_standing_requirement",
+            "soft_prereq_placement_required",
+            "soft_prereq_minimum_grade",
+            "soft_prereq_minimum_gpa",
+            "soft_prereq_may_be_concurrent",
+            "soft_prereq_other_requirements",
+            "soft_prereq_complex_hard_prereq",
             "notes",
-            "warning_text",
         ],
         "pk_cols": ["course_code"],
         "exact_columns": True,
@@ -100,18 +132,6 @@ SCHEMA_SPECS = (
         "required_cols": ["course_code"],
         "pk_cols": ["course_code"],
         "exact_columns": False,
-    },
-    {
-        "csv_name": "double_count_policy.csv",
-        "required_cols": [
-            "program_id",
-            "sub_bucket_id_a",
-            "sub_bucket_id_b",
-            "allow_double_count",
-            "reason",
-        ],
-        "pk_cols": ["program_id", "sub_bucket_id_a", "sub_bucket_id_b"],
-        "exact_columns": True,
     },
 )
 
@@ -145,8 +165,15 @@ FK_SPECS = (
         "target_cols": ["course_code"],
     },
     {
-        "name": "course_prereqs.course_code -> courses.course_code",
-        "source_csv": "course_prereqs.csv",
+        "name": "course_hard_prereqs.course_code -> courses.course_code",
+        "source_csv": "course_hard_prereqs.csv",
+        "source_cols": ["course_code"],
+        "target_csv": "courses.csv",
+        "target_cols": ["course_code"],
+    },
+    {
+        "name": "course_soft_prereqs.course_code -> courses.course_code",
+        "source_csv": "course_soft_prereqs.csv",
         "source_cols": ["course_code"],
         "target_csv": "courses.csv",
         "target_cols": ["course_code"],
@@ -172,20 +199,6 @@ FK_SPECS = (
         "source_cols": ["required_major"],
         "target_csv": "parent_buckets.csv",
         "target_cols": ["parent_bucket_id"],
-    },
-    {
-        "name": "double_count_policy.sub_bucket_id_a -> child_buckets.child_bucket_id",
-        "source_csv": "double_count_policy.csv",
-        "source_cols": ["sub_bucket_id_a"],
-        "target_csv": "child_buckets.csv",
-        "target_cols": ["child_bucket_id"],
-    },
-    {
-        "name": "double_count_policy.sub_bucket_id_b -> child_buckets.child_bucket_id",
-        "source_csv": "double_count_policy.csv",
-        "source_cols": ["sub_bucket_id_b"],
-        "target_csv": "child_buckets.csv",
-        "target_cols": ["child_bucket_id"],
     },
 )
 
@@ -220,11 +233,25 @@ def _relation_values(df: pd.DataFrame, cols: list[str]) -> set[str] | set[tuple[
 
 
 def _prereq_rows() -> pd.DataFrame:
-    prereqs = _raw_csv("course_prereqs.csv").copy()
-    prereqs["course_code"] = prereqs["course_code"].fillna("").astype(str).str.strip()
-    prereqs["prerequisites"] = prereqs["prerequisites"].fillna("").astype(str)
-    prereqs["prereq_warnings"] = prereqs["prereq_warnings"].fillna("").astype(str)
-    return prereqs[prereqs["course_code"] != ""]
+    hard = _raw_csv("course_hard_prereqs.csv").copy()
+    hard["course_code"] = hard["course_code"].fillna("").astype(str).str.strip()
+    hard["hard_prereq"] = hard["hard_prereq"].fillna("").astype(str)
+    hard["concurrent_with"] = hard["concurrent_with"].fillna("").astype(str)
+    hard["min_standing"] = hard["min_standing"].fillna("").astype(str)
+    hard = hard[hard["course_code"] != ""]
+
+    soft = _raw_csv("course_soft_prereqs.csv").copy()
+    soft["course_code"] = soft["course_code"].fillna("").astype(str).str.strip()
+    soft["soft_prereq"] = soft["soft_prereq"].fillna("").astype(str)
+    soft["notes"] = soft["notes"].fillna("").astype(str)
+    soft = soft[soft["course_code"] != ""]
+
+    merged = hard.merge(soft, on="course_code", how="outer", suffixes=("", "_soft"))
+    merged["hard_prereq"] = merged["hard_prereq"].fillna("").astype(str)
+    merged["soft_prereq"] = merged["soft_prereq"].fillna("").astype(str)
+    merged["concurrent_with"] = merged["concurrent_with"].fillna("").astype(str)
+    merged["min_standing"] = merged["min_standing"].fillna("").astype(str)
+    return merged[merged["course_code"] != ""]
 
 
 def _prereq_graph() -> dict[str, list[str]]:
@@ -235,10 +262,26 @@ def _prereq_graph() -> dict[str, list[str]]:
         if code.strip()
     }
     for row in _prereq_rows().itertuples(index=False):
-        parsed = parse_prereqs(row.prerequisites)
+        parsed = parse_prereqs(row.hard_prereq)
         refs = [code for code in prereq_course_codes(parsed) if code in catalog_codes]
         graph[row.course_code] = refs
     return graph
+
+
+def _note_only_codes(raw_text: str) -> set[str]:
+    codes: set[str] = set()
+    for pattern in NON_HARD_NOTE_SEGMENT_PATTERNS:
+        for match in pattern.finditer(str(raw_text or "")):
+            codes.update(COURSE_CODE_RE.findall(match.group(0).upper()))
+    return codes
+
+
+def _coreq_only_codes(raw_text: str) -> set[str]:
+    codes: set[str] = set()
+    for pattern in COREQ_ONLY_SEGMENT_PATTERNS:
+        for match in pattern.finditer(str(raw_text or "")):
+            codes.update(COURSE_CODE_RE.findall(match.group(0).upper()))
+    return codes
 
 
 def _active_non_minor_program_ids() -> list[str]:
@@ -316,7 +359,7 @@ def test_cross_csv_referential_integrity(fk_spec):
 def test_prereq_graph_has_no_self_references():
     offenders = []
     for row in _prereq_rows().itertuples(index=False):
-        parsed = parse_prereqs(row.prerequisites)
+        parsed = parse_prereqs(row.hard_prereq)
         if row.course_code in prereq_course_codes(parsed):
             offenders.append(row.course_code)
     assert not offenders, f"Courses cannot list themselves as prerequisites: {offenders}"
@@ -350,6 +393,49 @@ def test_prereq_graph_has_no_cycles():
     assert not cycle, f"Prerequisite cycle detected: {' -> '.join(cycle)}"
 
 
+def test_coreq_only_course_codes_do_not_leak_into_hard_prereq():
+    offenders = []
+    for row in _prereq_rows().itertuples(index=False):
+        hard_codes = set(prereq_course_codes(parse_prereqs(row.hard_prereq)))
+        leaked = sorted(hard_codes & _coreq_only_codes(getattr(row, "catalog_prereq_raw", "")))
+        if leaked:
+            offenders.append((row.course_code, leaked))
+
+    assert not offenders, f"Co-req-only course codes leaked into hard_prereq: {offenders}"
+
+
+def test_note_only_course_codes_do_not_leak_into_hard_prereq():
+    offenders = []
+    for row in _prereq_rows().itertuples(index=False):
+        hard_codes = set(prereq_course_codes(parse_prereqs(row.hard_prereq)))
+        leaked = sorted(hard_codes & _note_only_codes(getattr(row, "catalog_prereq_raw", "")))
+        if leaked:
+            offenders.append((row.course_code, leaked))
+
+    assert not offenders, f"Note-only course codes leaked into hard_prereq: {offenders}"
+
+
+def test_major_credit_cap_notes_stay_out_of_soft_prereq_logic_fields():
+    soft = _raw_csv("course_soft_prereqs.csv")
+    logic_cols = [
+        col
+        for col in soft.columns
+        if col.startswith("soft_prereq_")
+    ]
+    offenders = []
+
+    for row in soft.itertuples(index=False):
+        raw_text = str(getattr(row, "catalog_prereq_raw", "") or "")
+        if "a maximum of" not in raw_text.lower():
+            continue
+        for col in logic_cols:
+            value = str(getattr(row, col, "") or "")
+            if "a maximum of" in value.lower():
+                offenders.append((row.course_code, col, value))
+
+    assert not offenders, f"Major credit-cap note text leaked into soft prereq fields: {offenders}"
+
+
 def test_prereq_references_stay_within_tolerated_orphan_threshold():
     catalog_codes = {
         code.strip()
@@ -358,7 +444,7 @@ def test_prereq_references_stay_within_tolerated_orphan_threshold():
     }
     referenced = set()
     for row in _prereq_rows().itertuples(index=False):
-        referenced.update(prereq_course_codes(parse_prereqs(row.prerequisites)))
+        referenced.update(prereq_course_codes(parse_prereqs(row.hard_prereq)))
 
     orphaned = sorted(referenced - catalog_codes)
     assert len(orphaned) < PREREQ_ORPHAN_THRESHOLD, (
@@ -382,12 +468,13 @@ def test_parsed_prereq_types_are_supported_or_flagged_for_manual_review():
     invalid_types = []
 
     for row in _prereq_rows().itertuples(index=False):
-        parsed = parse_prereqs(row.prerequisites)
+        parsed = parse_prereqs(row.hard_prereq)
         prereq_type = parsed.get("type")
         if prereq_type not in ALLOWED_PREREQ_TYPES:
             invalid_types.append((row.course_code, prereq_type))
             continue
-        if prereq_type == "unsupported" and COMPLEX_PREREQ_TAG not in row.prereq_warnings.split(";"):
+        soft_tags = {tag.strip() for tag in row.soft_prereq.split(";") if tag.strip()}
+        if prereq_type == "unsupported" and not (soft_tags & COMPLEX_PREREQ_TAGS):
             unsupported_without_tag.append(row.course_code)
 
     assert not invalid_types, f"Unexpected prereq parse types: {invalid_types}"
