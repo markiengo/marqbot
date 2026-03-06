@@ -7,8 +7,8 @@ export const MAX_SAVED_PLANS = 25;
 export const NAV_ITEMS: { id: NavTab; label: string; href: string }[] = [
   { id: "home", label: "Home", href: "/" },
   { id: "plan", label: "Planner", href: "/planner" },
-  { id: "courses", label: "Courses", href: "/courses" },
   { id: "saved", label: "Saved", href: "/saved" },
+  { id: "courses", label: "Courses", href: "/courses" },
   { id: "ai-advisor", label: "AI Advisor", href: "/ai-advisor" },
   { id: "about", label: "About", href: "/about" },
 ];

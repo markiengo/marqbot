@@ -14,6 +14,8 @@ import type { CreditKpiMetrics } from "@/lib/types";
 
 interface ProgressDashboardProps {
   onViewDetails?: () => void;
+  onCompletedClick?: () => void;
+  onInProgressClick?: () => void;
 }
 
 function toCodeSet(codes: Iterable<string> | null | undefined): Set<string> {
@@ -67,7 +69,7 @@ export function useProgressMetrics(): CreditKpiMetrics {
   }, [state.courses, state.completed, state.inProgress, state.lastRecommendationData]);
 }
 
-export function ProgressDashboard({ onViewDetails }: ProgressDashboardProps) {
+export function ProgressDashboard({ onViewDetails, onCompletedClick, onInProgressClick }: ProgressDashboardProps) {
   const { state } = useAppContext();
   const metrics = useProgressMetrics();
   const hasData = state.completed.size > 0 || state.inProgress.size > 0;
@@ -128,6 +130,7 @@ export function ProgressDashboard({ onViewDetails }: ProgressDashboardProps) {
             valueClass="text-ok"
             glowClass="kpi-glow-ok"
             delay={0.05}
+            onClick={onCompletedClick}
           />
           <KpiTile
             value={metrics.inProgressCredits}
@@ -136,6 +139,7 @@ export function ProgressDashboard({ onViewDetails }: ProgressDashboardProps) {
             valueClass="text-gold"
             glowClass="kpi-glow-gold"
             delay={0.1}
+            onClick={onInProgressClick}
           />
 
           {/* Bottom row: Standing + Remaining */}
@@ -172,6 +176,7 @@ function KpiTile({
   valueClass,
   glowClass = "",
   delay = 0,
+  onClick,
 }: {
   value: number;
   label: string;
@@ -179,13 +184,20 @@ function KpiTile({
   valueClass: string;
   glowClass?: string;
   delay?: number;
+  onClick?: () => void;
 }) {
+  const Tag = onClick ? motion.button : motion.div;
   return (
-    <motion.div
+    <Tag
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={onClick ? { scale: 1.04 } : undefined}
+      whileTap={onClick ? { scale: 0.97 } : undefined}
       transition={{ duration: 0.3, delay }}
-      className={`rounded-xl glass-card stat-card-decor ${glowClass} p-2 sm:p-3 text-center min-h-0 flex flex-col items-center justify-center border-l-2 ${accentColor}`}
+      className={`rounded-xl glass-card stat-card-decor ${glowClass} p-2 sm:p-3 text-center min-h-0 flex flex-col items-center justify-center border-l-2 ${accentColor} ${onClick ? "cursor-pointer" : ""}`}
+      aria-label={onClick ? `View ${label} courses` : undefined}
     >
       <div
         className={`text-xl sm:text-3xl font-bold font-[family-name:var(--font-sora)] leading-none tabular-nums ${valueClass}`}
@@ -194,6 +206,6 @@ function KpiTile({
         <AnimatedNumber value={value} />
       </div>
       <div className="text-[11px] text-ink-secondary mt-1 leading-tight">{label}</div>
-    </motion.div>
+    </Tag>
   );
 }

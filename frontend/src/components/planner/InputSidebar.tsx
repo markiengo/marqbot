@@ -153,7 +153,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
   }, [trackOpen]);
 
   return (
-    <div className="space-y-5 overflow-y-auto overflow-x-hidden pr-1">
+    <div className="space-y-6 overflow-y-auto overflow-x-hidden pr-1">
       {!hideHeader && (
         <div>
           <p className="text-xs font-semibold text-gold leading-tight">
@@ -167,7 +167,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
 
       {/* Majors */}
       <div className="space-y-2">
-        <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+        <label className="text-sm font-medium text-ink-muted uppercase tracking-wider">
           Majors
         </label>
         <div className="flex flex-wrap gap-1.5 min-h-[24px] min-w-0">
@@ -186,7 +186,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
           </AnimatePresence>
         </div>
         {allRequirePrimary && (
-          <div className="rounded-lg bg-warn-light px-2 py-1.5 text-xs text-warn">
+          <div className="rounded-lg bg-warn-light px-2 py-1.5 text-sm text-warn">
             All selected majors require a primary major. Add a standalone major (e.g., Finance, Marketing) to complete your program.
           </div>
         )}
@@ -199,7 +199,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
               }
             }}
             defaultValue=""
-            className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
+            className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
           >
             <option value="">Add major...</option>
             {majors
@@ -214,7 +214,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+        <label className="text-sm font-medium text-ink-muted uppercase tracking-wider">
           Track / Concentration
         </label>
         <div className="flex flex-wrap gap-1.5 min-h-[24px] min-w-0">
@@ -237,7 +237,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
             }
           }}
           defaultValue=""
-          className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
+          className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
         >
           <option value="">Add track or concentration...</option>
           {availableProgramTracks.map((track) => (
@@ -250,7 +250,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
 
       {/* Per-major track selectors - chip + combobox */}
       {effectiveTrackRuleWarning && (
-        <div className="bg-bad-light rounded-lg px-2 py-1.5 text-xs text-bad">
+        <div className="bg-bad-light rounded-lg px-2 py-1.5 text-sm text-bad">
           {effectiveTrackRuleWarning}
         </div>
       )}
@@ -269,7 +269,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
 
         return (
           <div key={majorId} className="space-y-1.5">
-            <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+            <label className="text-sm font-medium text-ink-muted uppercase tracking-wider">
               {majorLabel} Track
             </label>
 
@@ -300,7 +300,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
                   }}
                   onFocus={() => setTrackOpen((prev) => ({ ...prev, [majorId]: true }))}
                   placeholder="Add track..."
-                  className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary placeholder:text-ink-faint focus:outline-none focus:ring-1 focus:ring-gold/40"
+                  className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-sm text-ink-primary placeholder:text-ink-faint focus:outline-none focus:ring-1 focus:ring-gold/40"
                   role="combobox"
                   aria-expanded={!!trackOpen[majorId]}
                   aria-autocomplete="list"
@@ -321,7 +321,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
                         role="option"
                         aria-selected={false}
                         onClick={() => selectTrack(majorId, t.id)}
-                        className="w-full text-left px-2 py-1.5 text-xs cursor-pointer transition-colors text-ink-secondary hover:bg-surface-hover"
+                        className="w-full text-left px-2 py-1.5 text-sm cursor-pointer transition-colors text-ink-secondary hover:bg-surface-hover"
                       >
                         {t.label}
                       </button>
@@ -337,7 +337,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
       {/* Minors */}
       {minors.length > 0 && (
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+          <label className="text-sm font-medium text-ink-muted uppercase tracking-wider">
             Minors
           </label>
           <div className="relative">
@@ -345,12 +345,12 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
               disabled
               value=""
               onChange={() => {}}
-              className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary pointer-events-none opacity-40"
+              className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-sm text-ink-primary pointer-events-none opacity-40"
             >
               <option value="">Add minor...</option>
             </select>
             <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-card/60 backdrop-blur-[1px]">
-              <span className="text-[10px] font-semibold text-gold/70 uppercase tracking-widest">
+              <span className="text-xs font-semibold text-gold/70 uppercase tracking-widest">
                 Coming Soon
               </span>
             </div>
@@ -361,13 +361,13 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
       {/* Discovery Theme */}
       {discoveryThemeTracks.length > 0 && (
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+          <label className="text-sm font-medium text-ink-muted uppercase tracking-wider">
             Discovery Theme
           </label>
           <select
             value={state.discoveryTheme || ""}
             onChange={(e) => dispatch({ type: "SET_DISCOVERY_THEME", payload: e.target.value })}
-            className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-xs text-ink-primary"
+            className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-sm text-ink-primary"
           >
             <option value="">No theme selected</option>
             {discoveryThemeTracks.map((t) => (
@@ -379,7 +379,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
 
       {/* Completed */}
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+        <label className="text-sm font-medium text-ink-muted uppercase tracking-wider">
           Completed ({state.completed.size})
         </label>
         <MultiSelect
@@ -395,7 +395,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
 
       {/* In Progress */}
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+        <label className="text-sm font-medium text-ink-muted uppercase tracking-wider">
           In Progress ({state.inProgress.size})
         </label>
         <MultiSelect

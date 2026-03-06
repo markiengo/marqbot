@@ -5,18 +5,18 @@ import { motion } from "motion/react";
 import { Button } from "@/components/shared/Button";
 import { AnchorLine } from "@/components/shared/AnchorLine";
 
-const pills = ["540 active courses", "12 majors", "8 tracks"];
+const pills = ["5,300+ courses tracked", "32 programs", "1,500+ requirement links"];
 
 const checks = [
-  "Can you take it right now?",
-  "Does it unlock more classes?",
-  "Does it count toward real requirements?",
+  "Are you eligible to take it right now?",
+  "Does it unlock future classes?",
+  "Does it count toward your actual requirements?",
 ];
 
 const stats = [
-  { value: "540", label: "course records" },
-  { value: "688", label: "requirement links" },
-  { value: "29", label: "requirement groups" },
+  { value: "5,300+", label: "course records" },
+  { value: "1,500+", label: "requirement links" },
+  { value: "90", label: "requirement buckets" },
 ];
 
 export function LandingHeroSimple() {
@@ -74,7 +74,7 @@ export function LandingHeroSimple() {
               transition={{ duration: 0.55, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
               className="text-5xl sm:text-6xl md:text-[5.5rem] font-bold leading-[1.02] tracking-tight text-white"
             >
-              Know <span className="text-gold">what classes</span> to take next.
+              Know <span className="text-gold">exactly what</span> to take next.
               <br />
               <span className="text-emphasis-blue">Before registration gets weird.</span>
             </motion.h1>
@@ -85,9 +85,9 @@ export function LandingHeroSimple() {
               transition={{ duration: 0.5, delay: 0.18 }}
               className="mt-7 max-w-[44rem] text-[1.2rem] sm:text-[1.38rem] leading-relaxed text-slate-300 mx-auto lg:mx-0"
             >
-              Pick your major. Add your classes. MarqBot shows what to take next
-              using real degree rules. No spreadsheets. No guessing. No &ldquo;wait,
-              can I even take that?&rdquo;
+              Pick your major. Add your classes. MarqBot maps out your
+              next semesters using real degree rules. No spreadsheets. No guessing.
+              No &ldquo;wait, can I even take that?&rdquo;
             </motion.p>
 
             <motion.div
@@ -207,7 +207,7 @@ export function LandingHeroSimple() {
                     Coverage
                   </p>
                   <p className="mt-3 text-lg font-semibold text-white">
-                    Core, major, track, and MCC progress in one place.
+                    Core, major, track, MCC, and minors — all in one place.
                   </p>
                 </div>
                 <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4">

@@ -8,6 +8,7 @@ import {
   formatCourseNameLabel,
   humanizeSoftWarningTag,
   normalizeWarningTextMessages,
+  sortBucketsByTier,
 } from "@/lib/rendering";
 
 interface CourseCardProps {
@@ -82,7 +83,7 @@ export function CourseCard({ course, programLabelMap, onClick }: CourseCardProps
       {/* Bucket tags */}
       {bucketIds.length > 0 && (
         <div className="flex flex-wrap gap-2.5 mb-5">
-          {bucketIds.map((bid, idx) => {
+          {sortBucketsByTier(bucketIds).map((bid, idx) => {
             const isBcc = bid.includes("BCC_REQUIRED");
             const variant = isBcc
               ? "bcc"
@@ -93,7 +94,7 @@ export function CourseCard({ course, programLabelMap, onClick }: CourseCardProps
                   : "gold";
             return (
               <Tag key={bid} variant={variant}>
-                {bucketLabel(bid, programLabelMap)}
+                {bucketLabel(bid, programLabelMap, undefined, true)}
               </Tag>
             );
           })}

@@ -12,9 +12,7 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isLanding = pathname === "/";
-  const navItems = isLanding
-    ? NAV_ITEMS.filter((item) => item.id !== "home")
-    : NAV_ITEMS;
+  const navItems = NAV_ITEMS;
 
   return (
     <nav className="sticky top-0 z-40 bg-surface-overlay/80 backdrop-blur-md border-b-[3px] border-b-gold/20">

@@ -61,8 +61,8 @@ export function LandingFinalCTA() {
               transition={{ duration: 0.45, delay: 0.22 }}
               className="mx-auto mb-10 mt-5 max-w-[42rem] text-[1.15rem] leading-relaxed text-slate-300 sm:text-[1.35rem]"
             >
-              Build your next semester in a couple minutes. Then go do literally
-              anything else.
+              Map out your remaining semesters in a couple minutes. Then go
+              do literally anything else.
             </motion.p>
 
             <motion.div
@@ -88,7 +88,7 @@ export function LandingFinalCTA() {
                 No account required
               </span>
               <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft-delay">
-                540 active courses tracked
+                5,300+ courses tracked
               </span>
               <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft">
                 Double-check with your advisor

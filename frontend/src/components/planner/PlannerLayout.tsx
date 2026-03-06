@@ -14,6 +14,7 @@ import { Modal } from "@/components/shared/Modal";
 import { Skeleton } from "@/components/shared/Skeleton";
 import { SavePlanModal } from "@/components/saved/SavePlanModal";
 import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
+import { CourseListModal } from "./CourseListModal";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
@@ -44,6 +45,7 @@ export function PlannerLayout() {
   const [semEditCandidates, setSemEditCandidates] = useState<RecommendedCourse[] | null>(null);
   const [semEditLoading, setSemEditLoading] = useState(false);
   const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
+  const [courseListModal, setCourseListModal] = useState<"completed" | "in-progress" | null>(null);
   const closeExplainer = useCallback(() => setExplainerOpen(false), []);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
@@ -88,6 +90,26 @@ export function PlannerLayout() {
   }, [state.programs.bucket_labels]);
 
   const programOrder = data?.selection_context?.selected_program_ids ?? undefined;
+
+  // Reverse map: course_code -> bucket IDs from current_progress allocations
+  const courseBucketMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    const progress = data?.current_progress;
+    if (!progress) return map;
+    for (const [bucketId, bp] of Object.entries(progress)) {
+      for (const code of bp.completed_applied ?? []) {
+        const existing = map.get(code);
+        if (existing) existing.push(bucketId);
+        else map.set(code, [bucketId]);
+      }
+      for (const code of bp.in_progress_applied ?? []) {
+        const existing = map.get(code);
+        if (existing) existing.push(bucketId);
+        else map.set(code, [bucketId]);
+      }
+    }
+    return map;
+  }, [data?.current_progress]);
 
   const majorLabelById = useMemo(() => {
     const map = new Map<string, string>();
@@ -336,7 +358,11 @@ export function PlannerLayout() {
         <div className="planner-panel planner-left">
           <div className="lg:h-full lg:min-h-0 flex flex-col gap-3">
             <div className="lg:flex-[3] lg:min-h-0">
-              <ProgressDashboard onViewDetails={() => setProgressModalOpen(true)} />
+              <ProgressDashboard
+                onViewDetails={() => setProgressModalOpen(true)}
+                onCompletedClick={() => setCourseListModal("completed")}
+                onInProgressClick={() => setCourseListModal("in-progress")}
+              />
             </div>
 
             <div className="lg:flex-[2] lg:min-h-0">
@@ -466,7 +492,10 @@ export function PlannerLayout() {
         onClose={() => { setSemesterModalIdx(null); setSemEditCandidates(null); }}
         semester={modalSemester}
         index={semesterModalIdx ?? 0}
+        totalCount={data?.semesters?.length ?? 0}
         requestedCount={requestedCount}
+        onNext={() => setSemesterModalIdx(i => i !== null && i < (data?.semesters?.length ?? 0) - 1 ? i + 1 : i)}
+        onBack={() => setSemesterModalIdx(i => i !== null && i > 0 ? i - 1 : i)}
         programLabelMap={programLabelMap}
         programOrder={programOrder}
         candidatePool={semEditCandidates ?? undefined}
@@ -536,6 +565,13 @@ export function PlannerLayout() {
                 <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class helps with more than one requirement, that&apos;s a great deal. Those usually move up.</p>
               </div>
             </li>
+            <li className="flex gap-4">
+              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">7</span>
+              <div>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Am I overloading one area?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">I try not to stack too many classes from the same requirement family in one semester. I also try to keep about a third of each term on your declared major or track when possible.</p>
+              </div>
+            </li>
           </ol>
           <div className="divider-fade" />
           <p className="text-ink-faint text-[1.05rem] pt-3">
@@ -556,20 +592,30 @@ export function PlannerLayout() {
       {(() => {
         const allRecs = data?.semesters?.flatMap(s => s.recommendations ?? []) ?? [];
         const detailCourse = allRecs.find(c => c.course_code === courseDetailCode);
+        const fallbackCourse = state.courses.find(c => c.course_code === courseDetailCode);
+        const detailBuckets = detailCourse?.fills_buckets ?? courseBucketMap.get(courseDetailCode ?? "");
         return (
           <CourseDetailModal
             open={courseDetailCode !== null}
             onClose={() => setCourseDetailCode(null)}
             courseCode={courseDetailCode ?? ""}
-            courseName={detailCourse?.course_name}
-            credits={detailCourse?.credits}
+            courseName={detailCourse?.course_name ?? fallbackCourse?.course_name}
+            credits={detailCourse?.credits ?? fallbackCourse?.credits}
             description={descriptionMap.get(courseDetailCode ?? "")}
-            buckets={detailCourse?.fills_buckets}
+            buckets={detailBuckets}
             programLabelMap={programLabelMap}
             bucketLabelMap={bucketLabelMap}
           />
         );
       })()}
+      <CourseListModal
+        open={courseListModal !== null}
+        onClose={() => setCourseListModal(null)}
+        title={courseListModal === "completed" ? "Completed Courses" : "In Progress Courses"}
+        courseCodes={courseListModal === "completed" ? state.completed : state.inProgress}
+        courses={state.courses}
+        onCourseClick={(code) => { setCourseListModal(null); setCourseDetailCode(code); }}
+      />
       <SavePlanModal
         open={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}

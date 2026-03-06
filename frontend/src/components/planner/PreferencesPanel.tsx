@@ -23,15 +23,10 @@ export function PreferencesPanel({
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
 
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-xs font-semibold text-gold leading-tight">
-          Adjust your preferences to cater the recommendations.
-        </p>
-        <h3 className="text-base md:text-lg font-bold font-[family-name:var(--font-sora)] text-white mt-2 leading-tight">
-          Preferences
-        </h3>
-      </div>
+    <div className="space-y-5">
+      <p className="section-kicker">
+        Adjust your preferences to cater the recommendations.
+      </p>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-ink-muted uppercase tracking-wider">
@@ -95,7 +90,7 @@ export function PreferencesPanel({
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-ink-secondary leading-tight">Include Summer Semesters</p>
-          <p className="text-xs text-ink-faint leading-tight mt-0.5">Max 4 courses · Summer-only offerings</p>
+          <p className="text-sm text-ink-faint leading-tight mt-0.5">Max 4 courses · Summer-only offerings</p>
         </div>
         <button
           type="button"
@@ -135,7 +130,7 @@ export function PreferencesPanel({
             )}
           </Button>
           {!hasProgram && (
-            <p className="text-xs text-ink-faint text-center mt-2">
+            <p className="text-sm text-ink-faint text-center mt-2">
               Select a major or track above to get started
             </p>
           )}

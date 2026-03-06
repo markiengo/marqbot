@@ -9,18 +9,19 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   titleClassName?: string;
+  titleExtra?: React.ReactNode;
   size?: "default" | "large" | "planner-detail" | "xl";
   children: React.ReactNode;
 }
 
 const sizeClasses = {
-  default: "max-w-[56rem] w-full max-h-[90vh]",
+  default: "max-w-[56rem] w-full max-h-[90vh] scale-[1.15] origin-center",
   large: "w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] max-w-none",
   "planner-detail": "w-full max-w-[98vw] max-h-[94vh] md:max-w-[77vw] md:max-h-[77vh]",
   xl: "w-full max-w-[1056px] max-h-[94vh]",
 };
 
-export function Modal({ open, onClose, title, titleClassName, size = "default", children }: ModalProps) {
+export function Modal({ open, onClose, title, titleClassName, titleExtra, size = "default", children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -109,12 +110,15 @@ export function Modal({ open, onClose, title, titleClassName, size = "default", 
             {title && (
               <div className="relative flex items-center justify-between px-8 pt-7 pb-4 border-b border-border-subtle">
                 <div className="absolute top-0 left-[5%] right-[5%] h-[2px] bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-                <h3
-                  id={titleId}
-                  className={titleClassName || "text-2xl font-semibold font-[family-name:var(--font-sora)] text-ink-primary"}
-                >
-                  {title}
-                </h3>
+                <div className="flex items-center gap-4">
+                  <h3
+                    id={titleId}
+                    className={titleClassName || "text-2xl font-semibold font-[family-name:var(--font-sora)] text-ink-primary"}
+                  >
+                    {title}
+                  </h3>
+                  {titleExtra}
+                </div>
                 {/* 44×44px touch target wraps the × glyph */}
                 <button
                   type="button"

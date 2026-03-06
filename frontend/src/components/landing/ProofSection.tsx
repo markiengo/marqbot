@@ -7,11 +7,11 @@ import { AnchorLine } from "@/components/shared/AnchorLine";
 const cards = [
   {
     title: "Built on real Marquette data",
-    body: "540 active course records and 688 rule links are already wired into the planner.",
+    body: "5,300+ course records and 1,500+ requirement links are wired into the engine.",
   },
   {
     title: "Made for Business students",
-    body: "12 majors and 8 tracks are built in, so the tool fits the school it was made for.",
+    body: "12 majors, 13 tracks, and 7 minors — 32 programs built in and ready to plan.",
   },
   {
     title: "Same inputs, same plan",
@@ -20,10 +20,10 @@ const cards = [
 ];
 
 const proofStats = [
-  { value: "540", label: "active courses" },
-  { value: "12", label: "business majors" },
-  { value: "8", label: "tracks" },
-  { value: "449", label: "classes tied to requirements" },
+  { value: "5,300+", label: "courses tracked" },
+  { value: "32", label: "programs supported" },
+  { value: "90", label: "requirement buckets" },
+  { value: "1,500+", label: "requirement links" },
 ];
 
 export function ProofSection() {
@@ -56,8 +56,8 @@ export function ProofSection() {
           transition={{ duration: 0.4, delay: 0.16 }}
           className="mt-4 max-w-[42rem] text-[1.08rem] leading-relaxed text-slate-400"
         >
-          It checks real course data and real requirement links, then gives you a
-          cleaner next move.
+          It checks real course data, real prereqs, and real requirement mappings —
+          then gives you a cleaner path forward.
         </motion.p>
 
         <AnchorLine variant="gold" className="mt-12 mb-12 mx-0" />

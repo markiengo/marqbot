@@ -55,6 +55,7 @@ export interface BucketProgress {
   assumed_done?: number;
   in_progress_increment?: number;
   done_count?: number;
+  completed_applied?: string[];
   in_progress_applied?: string[];
   satisfied?: boolean;
   label?: string;
@@ -77,6 +78,14 @@ export interface SelectionContext {
   selected_track_label?: string;
 }
 
+export interface BalancePolicy {
+  family_cap?: number;
+  family_cap_relaxed?: boolean;
+  declared_min_target?: number;
+  declared_min_achieved?: number;
+  declared_min_relaxed?: boolean;
+}
+
 export interface SemesterData {
   target_semester?: string;
   standing?: number;
@@ -90,6 +99,7 @@ export interface SemesterData {
   projection_note?: string;
   input_completed_count?: number;
   applied_completed_count?: number;
+  balance_policy?: BalancePolicy;
 }
 
 export interface RecommendationResponse {

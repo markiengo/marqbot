@@ -44,6 +44,7 @@ export function bucketLabel(
   bucketId: string,
   programLabelMap: LabelStore = null,
   detailedBucketLabelMap: LabelStore = null,
+  short = false,
 ): string {
   const raw = String(bucketId || "").trim();
   if (!raw) return "";
@@ -54,10 +55,12 @@ export function bucketLabel(
     [programId, localId] = raw.split("::", 2);
   }
 
-  const detailedLabel =
-    mapLookup(detailedBucketLabelMap, raw) ||
-    mapLookup(detailedBucketLabelMap, localId);
-  if (detailedLabel) return detailedLabel;
+  if (!short) {
+    const detailedLabel =
+      mapLookup(detailedBucketLabelMap, raw) ||
+      mapLookup(detailedBucketLabelMap, localId);
+    if (detailedLabel) return detailedLabel;
+  }
 
   const labels: Record<string, string> = {
     CORE: "Finance Required",
@@ -82,7 +85,7 @@ export function bucketLabel(
       ? "Business Electives"
       : prettifyIdentifier(localId));
 
-  if (!programId) return localLabel;
+  if (short || !programId) return localLabel;
   const programLabel = mapLookup(programLabelMap, programId);
   if (!programLabel) return localLabel;
   return `${programLabel}: ${localLabel}`;

@@ -3,6 +3,7 @@
 import { Modal } from "./Modal";
 import { Tag } from "./Tag";
 import { bucketLabel, esc } from "@/lib/utils";
+import { sortBucketsByTier } from "@/lib/rendering";
 
 interface CourseDetailModalProps {
   open: boolean;
@@ -52,7 +53,7 @@ export function CourseDetailModal({
         {/* Bucket tags */}
         {buckets && buckets.length > 0 && (
           <div className="flex flex-wrap gap-2.5">
-            {buckets.map((bid, idx) => {
+            {sortBucketsByTier(buckets).map((bid, idx) => {
               const isBcc = bid.includes("BCC_REQUIRED");
               const variant = isBcc
                 ? "bcc"

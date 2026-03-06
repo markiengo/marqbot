@@ -8,19 +8,19 @@ const benefits = [
   {
     kicker: "Take now",
     title: "See what you can actually take.",
-    body: "No more building a perfect plan around a class you cannot even register for yet.",
+    body: "No more building a perfect plan around a class you can't even register for yet.",
     accent: "gold",
   },
   {
     kicker: "Catch early",
-    title: "Spot bottlenecks before they get ugly.",
-    body: "Some classes block a bunch of others. MarqBot pushes those up before they ruin the timeline.",
+    title: "Spot bottlenecks before they spiral.",
+    body: "Some classes block a bunch of others. MarqBot flags those early so they don't ruin your timeline.",
     accent: "blue",
   },
   {
-    kicker: "Stay clear",
-    title: "Know what still counts.",
-    body: "Core. Major. MCC. You can see what matters and what can wait.",
+    kicker: "Track it all",
+    title: "Core, major, track, MCC, minors.",
+    body: "See every requirement bucket, what's done, what's in progress, and what's left. One place.",
     accent: "gold",
   },
 ];
@@ -68,8 +68,7 @@ export function BenefitsSection() {
             transition={{ duration: 0.4, delay: 0.16 }}
             className="mt-4 text-[1.1rem] sm:text-[1.25rem] leading-relaxed text-slate-400"
           >
-            The point is simple: help you pick better classes faster, without
-            opening five tabs and hoping for the best.
+            Pick better classes faster. Skip the five-tab scavenger hunt.
           </motion.p>
         </div>
 

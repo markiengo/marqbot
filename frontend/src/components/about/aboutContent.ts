@@ -42,9 +42,9 @@ export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
   },
   {
     eyebrow: "Next up",
-    title: "ESSv2, Minors, Discovery",
+    title: "Full policy documentation",
     body:
-      "Adding the new ESS v2 requirements, full minor support, and MCC Discovery Themes. Basically all the programs MarqBot currently pretends don't exist.",
+      "Diving into the weird rules and edge-case policies the school actually enforces. The ones nobody reads until they get denied a course. MarqBot will know them so you don't have to.",
   },
   {
     eyebrow: "Planned",

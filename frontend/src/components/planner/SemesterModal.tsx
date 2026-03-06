@@ -7,7 +7,7 @@ import { Modal } from "@/components/shared/Modal";
 import { Button } from "@/components/shared/Button";
 import { CourseCard } from "./CourseCard";
 import { Tag } from "@/components/shared/Tag";
-import { groupProgressByTierWithMajors } from "@/lib/rendering";
+import { groupProgressByTierWithMajors, sortBucketsByTier } from "@/lib/rendering";
 import { getSemesterQuip } from "@/lib/quips";
 import { BucketProgressGrid } from "./BucketProgressGrid";
 import { bucketLabel, esc } from "@/lib/utils";
@@ -17,9 +17,13 @@ interface SemesterModalProps {
   onClose: () => void;
   semester: SemesterData | null;
   index: number;
+  totalCount: number;
   requestedCount: number;
   programLabelMap?: Map<string, string>;
   programOrder?: string[];
+  // Navigation
+  onNext?(): void;
+  onBack?(): void;
   // Edit mode props — omit to hide edit button
   candidatePool?: RecommendedCourse[];
   candidatePoolLoading?: boolean;
@@ -33,9 +37,12 @@ export function SemesterModal({
   onClose,
   semester,
   index,
+  totalCount,
   requestedCount,
   programLabelMap,
   programOrder,
+  onNext,
+  onBack,
   candidatePool,
   candidatePoolLoading,
   onRequestCandidates,
@@ -99,38 +106,48 @@ export function SemesterModal({
       size="planner-detail"
       title={`Semester ${index + 1}${semester.target_semester ? ` \u2014 ${semester.target_semester}` : ""}`}
       titleClassName="text-[1.7rem] font-semibold font-[family-name:var(--font-sora)] text-ink-primary"
+      titleExtra={semester.standing_label ? (
+        <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-gold/15 text-gold border border-gold/30 shadow-[0_0_10px_rgba(255,204,0,0.12)] pulse-gold-soft whitespace-nowrap">
+          {semester.standing_label} Standing
+        </span>
+      ) : undefined}
     >
       <div className="space-y-8">
-        {/* Standing badge + edit button */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            {semester.standing_label && (
-              <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-gold/15 text-gold border border-gold/30 shadow-[0_0_10px_rgba(255,204,0,0.12)] pulse-gold-soft">
-                {semester.standing_label} Standing
-              </span>
-            )}
-            {editApplied && !editMode && (
-              <span className="text-sm font-medium px-3 py-1.5 rounded-full bg-ok/15 text-ok border border-ok/30">
-                Updated
-              </span>
-            )}
-          </div>
-          {canEdit && !editMode && !editApplied && (
-            <Button variant="secondary" size="sm" onClick={handleEnterEdit}>
-              Edit
-            </Button>
-          )}
-        </div>
-
-        {/* Contextual quip — view mode only */}
-        {!editMode && (
+        {/* Quip + navigation + edit button row */}
+        {!editMode ? (
           <>
-            <p className="text-center text-[1.05rem] text-ink-muted italic py-2">
-              {getSemesterQuip({ semester, index, requestedCount })}
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                {editApplied && (
+                  <span className="text-sm font-medium px-3 py-1.5 rounded-full bg-ok/15 text-ok border border-ok/30 shrink-0">
+                    Updated
+                  </span>
+                )}
+                <p className="text-[1.05rem] text-ink-muted italic truncate">
+                  {getSemesterQuip({ semester, index, requestedCount })}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {index > 0 && onBack && (
+                  <Button variant="secondary" size="sm" onClick={onBack}>
+                    Back
+                  </Button>
+                )}
+                {index < totalCount - 1 && onNext && (
+                  <Button variant="secondary" size="sm" onClick={onNext}>
+                    Next
+                  </Button>
+                )}
+                {canEdit && !editApplied && (
+                  <Button variant="secondary" size="sm" onClick={handleEnterEdit}>
+                    Edit
+                  </Button>
+                )}
+              </div>
+            </div>
             <div className="divider-fade" />
           </>
-        )}
+        ) : null}
 
         {/* Warnings — view mode only */}
         {!editMode && (
@@ -147,6 +164,27 @@ export function SemesterModal({
               <div className="bg-bad-light rounded-xl p-4 text-[1.05rem] text-bad">
                 Warning: You requested {requestedCount}, but only {semester.eligible_count}{" "}
                 eligible course(s) match for this term.
+              </div>
+            )}
+
+            {/* Balance policy notes */}
+            {semester.balance_policy && recs.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {!semester.balance_policy.declared_min_relaxed && (semester.balance_policy.declared_min_achieved ?? 0) > 0 && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-ok/10 text-ok border border-ok/20">
+                    Major/track progress prioritized
+                  </span>
+                )}
+                {semester.balance_policy.declared_min_relaxed && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/20">
+                    Limited major/track courses eligible this term
+                  </span>
+                )}
+                {semester.balance_policy.family_cap_relaxed && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/20">
+                    Family balance relaxed (few eligible families)
+                  </span>
+                )}
               </div>
             )}
           </>
@@ -397,7 +435,7 @@ function EditCourseRow({
         </div>
         {bucketIds.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {bucketIds.map((bid, idx) => {
+            {sortBucketsByTier(bucketIds).map((bid, idx) => {
               const isBcc = bid.includes("BCC_REQUIRED");
               const variant = isBcc
                 ? "bcc"
@@ -408,7 +446,7 @@ function EditCourseRow({
                     : "gold";
               return (
                 <Tag key={bid} variant={variant}>
-                  {bucketLabel(bid, programLabelMap)}
+                  {bucketLabel(bid, programLabelMap, undefined, true)}
                 </Tag>
               );
             })}

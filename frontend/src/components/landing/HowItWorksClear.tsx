@@ -7,25 +7,25 @@ import { AnchorLine } from "@/components/shared/AnchorLine";
 const steps = [
   {
     number: "01",
-    title: "Pick your major.",
-    body: "Start with the degree you are actually in.",
+    title: "Pick your programs.",
+    body: "Majors, tracks, minors — add everything you've declared.",
   },
   {
     number: "02",
     title: "Add your classes.",
-    body: "Tell MarqBot what you have already taken.",
+    body: "Tell MarqBot what you've taken and what's in progress.",
   },
   {
     number: "03",
-    title: "Get your next moves.",
-    body: "See the best classes to take next, ranked for you.",
+    title: "Get your full plan.",
+    body: "See your next semesters mapped out, ranked by real degree logic.",
   },
 ];
 
 const checks = [
-  "Can you take it now?",
-  "Does it unlock more classes?",
-  "Does it count toward something real?",
+  "Are you eligible right now?",
+  "Does it unlock future classes?",
+  "Does it count toward an actual requirement?",
 ];
 
 export function HowItWorksClear() {
@@ -72,8 +72,7 @@ export function HowItWorksClear() {
             transition={{ duration: 0.4, delay: 0.16 }}
             className="mt-4 max-w-[44rem] text-[1.08rem] leading-relaxed text-slate-400 sm:text-[1.22rem]"
           >
-            This should feel easy on the surface. The logic is doing the hard part
-            for you.
+            It should feel easy. The engine handles the hard part underneath.
           </motion.p>
         </div>
 

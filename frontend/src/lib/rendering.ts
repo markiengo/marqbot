@@ -180,6 +180,15 @@ function inferProgressSection(
   return { key: "other", label: "Additional Requirements", rank: 4 };
 }
 
+export function sortBucketsByTier(bucketIds: string[]): string[] {
+  return [...bucketIds].sort((a, b) => {
+    const tierA = inferRecommendationTier(a, null);
+    const tierB = inferRecommendationTier(b, null);
+    if (tierA !== tierB) return tierA - tierB;
+    return a.localeCompare(b);
+  });
+}
+
 export function sortProgressEntries(
   progressObj: Record<string, BucketProgress> | null | undefined,
 ): [string, BucketProgress][] {

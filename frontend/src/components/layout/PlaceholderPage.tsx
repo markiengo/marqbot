@@ -67,10 +67,16 @@ export function PlaceholderPage({ title, description, coverImage }: PlaceholderP
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-3"
         >
           <Link href="/planner">
             <Button variant="gold" size="lg">
               Go to Planner
+            </Button>
+          </Link>
+          <Link href="/about">
+            <Button variant="secondary" size="lg" className="border-white/10 bg-white/5 text-ink-primary hover:bg-white/8">
+              Contact Me
             </Button>
           </Link>
         </motion.div>
