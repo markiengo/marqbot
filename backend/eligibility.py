@@ -117,6 +117,39 @@ def _prune_same_family_elective_overlap(buckets: list[dict]) -> list[dict]:
     return pruned
 
 
+def _prune_discovery_elective_display(
+    eligible_buckets: list[dict],
+    unmet_buckets: list[dict],
+) -> list[str]:
+    """Build display bucket IDs, hiding Discovery Elective when a required
+    sibling in the same family is still unmet (courses 1-3).  When all required
+    siblings are satisfied the elective is the real target, so keep it."""
+    unmet_ids = {b["bucket_id"] for b in unmet_buckets}
+    # Identify families where a required bucket is still unmet.
+    families_with_unmet_required: set[str] = set()
+    for b in unmet_buckets:
+        if str(b.get("requirement_mode", "")).strip().lower() == "required":
+            family = _bucket_family_key(b)
+            if family:
+                families_with_unmet_required.add(family)
+
+    result: list[str] = []
+    for b in eligible_buckets:
+        bid = b["bucket_id"]
+        mode = str(b.get("requirement_mode", "")).strip().lower()
+        family = _bucket_family_key(b)
+        # Suppress _ELEC choose_n when a required sibling is still unmet.
+        if (
+            mode == "choose_n"
+            and bid.endswith("_ELEC")
+            and family
+            and family in families_with_unmet_required
+        ):
+            continue
+        result.append(bid)
+    return result
+
+
 def _order_buckets_same_family(buckets: list[dict]) -> list[dict]:
     """
     Deterministic same-family ordering:
@@ -563,7 +596,7 @@ def get_eligible_courses(
         # fills_buckets shows only direct bucket mappings (never bridge targets).
         multi_bucket_score = len(unmet_buckets)
 
-        display_buckets = [b["bucket_id"] for b in eligible_buckets]
+        display_buckets = _prune_discovery_elective_display(eligible_buckets, unmet_buckets)
         primary = (
             unmet_buckets[0]
             if unmet_buckets
