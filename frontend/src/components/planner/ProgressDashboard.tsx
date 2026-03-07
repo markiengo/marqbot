@@ -125,7 +125,7 @@ export function ProgressDashboard({ onViewDetails, onCompletedClick, onInProgres
           {/* Right column: Completed + In Progress stacked */}
           <KpiTile
             value={metrics.completedCredits}
-            label="Completed"
+            label="Credits Completed"
             accentColor="border-l-ok"
             valueClass="text-ok"
             glowClass="kpi-glow-ok"
@@ -134,7 +134,7 @@ export function ProgressDashboard({ onViewDetails, onCompletedClick, onInProgres
           />
           <KpiTile
             value={metrics.inProgressCredits}
-            label="In Progress"
+            label="Credits In Progress"
             accentColor="border-l-gold"
             valueClass="text-gold"
             glowClass="kpi-glow-gold"
@@ -157,7 +157,7 @@ export function ProgressDashboard({ onViewDetails, onCompletedClick, onInProgres
 
           <KpiTile
             value={metrics.remainingCredits}
-            label="Remaining"
+            label="Credits Remaining"
             accentColor="border-l-bad"
             valueClass="text-bad"
             glowClass="kpi-glow-bad"

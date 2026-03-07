@@ -23,16 +23,29 @@ from prereq_parser import prereq_course_codes
 SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
 
 _MAX_PER_BUCKET_PER_SEM = 2
+_BCC_REQUIRED_MAX_PER_SEM = 3
 _FAMILY_CAP_DIVISOR = 3
 _DECLARED_MIN_DIVISOR = 3
 _DISC_FAMILY_PREFIX = "MCC_DISC"
 _PROJECTION_NOTE = (
     "Projected progress below assumes you complete these recommendations."
 )
-_MCC_PARENT_FAMILY_IDS = {"MCC", "MCC_CORE", "MCC_FOUNDATION"}
+_DISCOVERY_FOUNDATION_BUCKET_IDS = {"MCC_CORE", "MCC_ESSV1"}
+_MCC_FOUNDATION_BUCKET_IDS = {"MCC_CORE", "MCC_ESSV1"}
+_MCC_LATE_BUCKET_IDS = {"MCC_ESSV2", "MCC_WRIT"}
+_MCC_LOWEST_BUCKET_IDS = {"MCC_CULM"}
+_STANDING_SOFT_TAG = "standing_requirement"
+_BUSINESS_DEPTS = {
+    "ACCO", "AIM", "BUAD", "BUAN", "BULA", "ECON", "FINA",
+    "HURE", "INBU", "INSY", "LEAD", "MANA", "MARK", "OSCM", "REAL",
+}
+_NEUTRAL_DISCOVERY_DEPTS = {
+    "ANTH", "COMM", "CMST", "ENGL", "HIST", "MATH", "PHIL",
+    "POSC", "PSYC", "SOCI", "SOWJ", "THEO",
+}
 
 _STANDING_LABELS = {1: "Freshman", 2: "Sophomore", 3: "Junior", 4: "Senior"}
-_BCC_DEMOTED_CHILDREN = {"BCC_ETHICS", "BCC_ANALYTICS", "BCC_ENHANCE"}
+_BCC_PREFIX = "BCC_"
 
 
 def _credits_to_standing(credits: int) -> int:
@@ -103,6 +116,30 @@ def _course_level(candidate: dict) -> int | None:
     if isinstance(level, float) and pd.notna(level):
         return int(level)
     return None
+
+
+def _course_department_prefix(course_code: str) -> str:
+    raw = str(course_code or "").strip().upper()
+    if not raw:
+        return ""
+    if " " in raw:
+        return raw.split(" ", 1)[0].strip()
+    m = re.match(r"^[A-Z]+", raw)
+    return m.group(0) if m else raw
+
+
+def _soft_prereq_demote_penalty(candidate: dict) -> int:
+    raw_tags = candidate.get("all_soft_tags", [])
+    if isinstance(raw_tags, str):
+        items = raw_tags.split(";")
+    else:
+        items = raw_tags or []
+    tags = {
+        str(tag).strip().lower()
+        for tag in items
+        if str(tag).strip()
+    }
+    return 1 if any(tag != _STANDING_SOFT_TAG for tag in tags) else 0
 
 
 
@@ -182,6 +219,8 @@ def _build_standing_recovery_candidates(
     bucket_parent_map: dict[str, str],
     parent_type_map: dict[str, str],
     blocked_targets: list[str],
+    selected_program_ids: list[str] | None = None,
+    is_honors_student: bool = False,
 ) -> list[dict]:
     filler_candidates = get_eligible_courses(
         data["courses_df"],
@@ -196,7 +235,9 @@ def _build_standing_recovery_candidates(
         track_id=track_id,
         reverse_map=reverse_map,
         runtime_indexes=data.get("runtime_indexes"),
+        selected_program_ids=selected_program_ids,
         restrict_to_unmet_buckets=False,
+        is_honors_student=is_honors_student,
     )
     filler_candidates = [
         c for c in filler_candidates
@@ -229,6 +270,101 @@ def _local_bucket_id(bucket_id: str) -> str:
     if "::" in raw:
         return raw.split("::", 1)[1]
     return raw
+
+
+def _current_unmet_bucket_ids(candidate: dict, allocator_remaining: dict) -> list[str]:
+    unmet: list[str] = []
+    for bucket_id in _selection_bucket_ids(candidate):
+        slots_raw = pd.to_numeric(
+            (allocator_remaining or {}).get(bucket_id, {}).get("slots_remaining", 0),
+            errors="coerce",
+        )
+        slots_remaining = int(slots_raw) if pd.notna(slots_raw) else 0
+        if slots_remaining > 0 and bucket_id not in unmet:
+            unmet.append(bucket_id)
+    return unmet
+
+
+def _is_discovery_bucket(bucket_id: str, bucket_parent_map: dict[str, str]) -> bool:
+    bid = str(bucket_id or "").strip().upper()
+    if not bid:
+        return False
+    local_id = _local_bucket_id(bid).upper()
+    if local_id.startswith(_DISC_FAMILY_PREFIX):
+        return True
+    return str(bucket_parent_map.get(bid, "") or "").strip().upper().startswith(_DISC_FAMILY_PREFIX)
+
+
+def _is_discovery_driven(
+    candidate: dict,
+    allocator_remaining: dict,
+    bucket_parent_map: dict[str, str],
+) -> bool:
+    unmet_bucket_ids = _current_unmet_bucket_ids(candidate, allocator_remaining)
+    if not unmet_bucket_ids:
+        return False
+    return all(_is_discovery_bucket(bucket_id, bucket_parent_map) for bucket_id in unmet_bucket_ids)
+
+
+def _open_foundation_slots(allocator_remaining: dict) -> int:
+    total = 0
+    for bucket_id, remaining in (allocator_remaining or {}).items():
+        local_id = _local_bucket_id(bucket_id).upper()
+        if local_id not in _DISCOVERY_FOUNDATION_BUCKET_IDS:
+            continue
+        slots_raw = pd.to_numeric((remaining or {}).get("slots_remaining", 0), errors="coerce")
+        slots_remaining = int(slots_raw) if pd.notna(slots_raw) else 0
+        if slots_remaining > 0:
+            total += slots_remaining
+    return total
+
+
+def _build_declared_dept_set(
+    data: dict,
+    track_id: str,
+    bucket_parent_map: dict[str, str],
+    parent_type_map: dict[str, str],
+) -> set[str]:
+    course_bucket_map_df = data.get("course_bucket_map_df")
+    if course_bucket_map_df is None or len(course_bucket_map_df) == 0:
+        return set()
+    if not {"bucket_id", "course_code"}.issubset(course_bucket_map_df.columns):
+        return set()
+
+    subset = course_bucket_map_df
+    if "track_id" in course_bucket_map_df.columns:
+        tid = str(track_id or "").strip().upper()
+        subset = course_bucket_map_df[
+            course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == tid
+        ].copy()
+    if len(subset) == 0:
+        return set()
+
+    declared_depts: set[str] = set()
+    for _, row in subset.iterrows():
+        bucket_id = str(row.get("bucket_id", "") or "").strip().upper()
+        if not bucket_id:
+            continue
+        parent_id = str(bucket_parent_map.get(bucket_id, "") or "").strip().upper()
+        if not parent_id or parent_id.startswith(_DISC_FAMILY_PREFIX):
+            continue
+        if parent_type_map.get(parent_id, "") not in {"major", "track"}:
+            continue
+        dept = _course_department_prefix(row.get("course_code", ""))
+        if dept:
+            declared_depts.add(dept)
+    return declared_depts
+
+
+def _discovery_affinity_penalty(course_code: str, declared_dept_set: set[str]) -> int:
+    dept = _course_department_prefix(course_code)
+    if not dept:
+        return 2
+    if dept in declared_dept_set or dept in _BUSINESS_DEPTS:
+        return 0
+    if dept in _NEUTRAL_DISCOVERY_DEPTS:
+        return 1
+    return 2
 
 
 
@@ -341,7 +477,7 @@ def _select_assignable_buckets_allocator_style(
     for bid in ordered:
         if virtual_remaining.get(bid, 0) <= 0:
             continue
-        if enforce_bucket_cap and picks_per_bucket.get(bid, 0) >= max_per_bucket:
+        if enforce_bucket_cap and picks_per_bucket.get(bid, 0) >= _bucket_pick_cap(bid, max_per_bucket):
             continue
         if not assigned:
             assigned.append(bid)
@@ -518,14 +654,78 @@ def _candidate_counts_toward_declared_min(
     return False
 
 
-def _is_mcc_tier_1_candidate(parent_id: str, primary_bucket: str, local_id: str) -> bool:
-    if parent_id in _MCC_PARENT_FAMILY_IDS:
-        return True
-    if primary_bucket.startswith("MCC::"):
-        return True
-    if local_id.startswith("MCC_") and not local_id.startswith("MCC_DISC"):
-        return True
-    return False
+def _tier_for_bucket_v2(
+    bucket_id: str,
+    *,
+    primary_bucket: str,
+    primary_parent_id: str,
+    parent_type_map: dict[str, str],
+    bucket_track_required_map: dict[str, str],
+    bucket_parent_map: dict[str, str],
+) -> int:
+    local_id = _local_bucket_id(bucket_id).upper()
+    parent_id = bucket_parent_map.get(bucket_id, "")
+    if not parent_id and bucket_id == primary_bucket:
+        parent_id = primary_parent_id
+    parent_id = str(parent_id or "").strip().upper()
+
+    if local_id in _MCC_FOUNDATION_BUCKET_IDS or parent_id == "MCC_FOUNDATION":
+        return 1
+
+    if local_id.startswith(_BCC_PREFIX) or bucket_id.startswith("BCC::") or parent_id.startswith("BCC"):
+        return 2
+
+    if local_id.startswith(_DISC_FAMILY_PREFIX) or parent_id.startswith(_DISC_FAMILY_PREFIX):
+        return 6
+
+    if local_id in _MCC_LOWEST_BUCKET_IDS or parent_id in _MCC_LOWEST_BUCKET_IDS:
+        return 6
+
+    if local_id in _MCC_LATE_BUCKET_IDS or parent_id in _MCC_LATE_BUCKET_IDS:
+        return 5
+
+    parent_type = parent_type_map.get(parent_id, "")
+    if parent_type == "major":
+        return 3
+    if parent_type in {"track", "minor"}:
+        return 4
+
+    track_required = bucket_track_required_map.get(bucket_id, "")
+    if track_required:
+        return 4
+
+    return 3
+
+
+def _bcc_priority_rank(candidate: dict, bucket_parent_map: dict[str, str]) -> int:
+    bucket_ids = [
+        str(bid or "").strip().upper()
+        for bid in (candidate.get("fills_buckets") or [])
+        if str(bid or "").strip()
+    ]
+    primary_bucket = str(candidate.get("primary_bucket", "") or "").strip().upper()
+    if not bucket_ids and primary_bucket:
+        bucket_ids = [primary_bucket]
+
+    has_bcc = False
+    for bucket_id in bucket_ids:
+        local_id = _local_bucket_id(bucket_id).upper()
+        parent_id = str(bucket_parent_map.get(bucket_id, "") or "").strip().upper()
+        if local_id == "BCC_REQUIRED":
+            return 0
+        if local_id.startswith(_BCC_PREFIX) or bucket_id.startswith("BCC::") or parent_id.startswith("BCC"):
+            has_bcc = True
+    return 1 if has_bcc else 0
+
+
+def _is_family_cap_exempt_bucket(bucket_id: str) -> bool:
+    return _local_bucket_id(bucket_id).upper() == "BCC_REQUIRED"
+
+
+def _bucket_pick_cap(bucket_id: str, default_cap: int) -> int:
+    if _local_bucket_id(bucket_id).upper() == "BCC_REQUIRED":
+        return max(default_cap, _BCC_REQUIRED_MAX_PER_SEM)
+    return default_cap
 
 
 def _bucket_hierarchy_tier_v2(
@@ -536,10 +736,12 @@ def _bucket_hierarchy_tier_v2(
 ) -> int:
     """
     Priority tiers:
-      1) MCC + BCC_REQUIRED
-      2) major parent buckets
-      3) track/minor parent buckets
-      5) demoted BCC children (BCC_ETHICS, BCC_ANALYTICS, BCC_ENHANCE) — always
+      1) MCC Foundation (MCC_CORE, MCC_ESSV1)
+      2) BCC
+      3) major parent buckets
+      4) track/minor parent buckets
+      5) MCC_ESSV2 + MCC_WRIT
+      6) Discovery + MCC_CULM
 
     Unlockers remain an in-tier tie-break in the ranking key.
     """
@@ -552,43 +754,19 @@ def _bucket_hierarchy_tier_v2(
     ]
     bucket_ids = fills if fills else ([primary_bucket] if primary_bucket else [])
     if not bucket_ids:
-        return 2
+        return 3
 
-    def _tier_for_bucket(bucket_id: str) -> int:
-        local_id = _local_bucket_id(bucket_id).upper()
-        parent_id = bucket_parent_map.get(bucket_id, "")
-        if not parent_id and bucket_id == primary_bucket:
-            parent_id = primary_parent_id
-        parent_id = str(parent_id or "").strip().upper()
-
-        # Tier 5: demoted BCC children are always lowest priority.
-        if local_id in _BCC_DEMOTED_CHILDREN:
-            return 5
-
-        # Tier 1: BCC_REQUIRED.
-        if local_id == "BCC_REQUIRED":
-            return 1
-
-        # Tier 1: MCC family.
-        if _is_mcc_tier_1_candidate(parent_id, bucket_id, local_id):
-            return 1
-
-        # Tier 2/3 via authoritative parent type when available.
-        parent_type = parent_type_map.get(parent_id, "")
-        if parent_type in {"track", "minor"}:
-            return 3
-        if parent_type == "major":
-            return 2
-
-        # Fallback: runtime track_required indicates track-scoped bucket.
-        track_required = bucket_track_required_map.get(bucket_id, "")
-        if track_required:
-            return 3
-
-        # Unknown/legacy fallback.
-        return 2
-
-    return min(_tier_for_bucket(bid) for bid in bucket_ids)
+    return min(
+        _tier_for_bucket_v2(
+            bid,
+            primary_bucket=primary_bucket,
+            primary_parent_id=primary_parent_id,
+            parent_type_map=parent_type_map,
+            bucket_track_required_map=bucket_track_required_map,
+            bucket_parent_map=bucket_parent_map,
+        )
+        for bid in bucket_ids
+    )
 
 
 
@@ -791,6 +969,11 @@ def _build_debug_trace(
             "selected": code in selected_codes,
             "skip_reason": skipped_reasons.get(code),
             "tier": tier,
+            "is_discovery_driven": bool(c.get("is_discovery_driven")),
+            "discovery_foundation_penalty": c.get("discovery_foundation_penalty", 0),
+            "discovery_affinity_penalty": c.get("discovery_affinity_penalty", 0),
+            "soft_prereq_penalty": c.get("soft_prereq_penalty", 0),
+            "current_unmet_buckets": c.get("current_unmet_buckets", []),
             "is_core_prereq_blocker": code in core_prereq_blockers,
             "is_bridge_course": bool(c.get("is_bridge_course")),
             "course_level": _course_level(c),
@@ -837,10 +1020,18 @@ def run_recommendation_semester(
     completed_only_standing: int | None = None,
     assumes_in_progress_completion: bool = False,
     chain_depths: dict[str, int] | None = None,
+    is_honors_student: bool = False,
+    selected_program_ids: list[str] | None = None,
 ) -> dict:
     """Run the full recommendation pipeline for a single semester."""
     if completed_only_standing is None:
         completed_only_standing = current_standing
+
+    selection_program_ids = list(
+        selected_program_ids
+        or data.get("selected_program_ids", [])
+        or data.get("restriction_program_ids", [])
+    )
 
     term = parse_term(target_semester_label)
     alloc = allocate_courses(
@@ -868,6 +1059,8 @@ def run_recommendation_semester(
         track_id=track_id,
         reverse_map=reverse_map,
         runtime_indexes=data.get("runtime_indexes"),
+        selected_program_ids=selection_program_ids,
+        is_honors_student=is_honors_student,
     )
     standing_blocked_sem = [
         c for c in eligible_sem
@@ -921,6 +1114,8 @@ def run_recommendation_semester(
                 bucket_parent_map,
                 parent_type_map,
                 blocked_targets,
+                selected_program_ids=selection_program_ids,
+                is_honors_student=is_honors_student,
             )
         if standing_recovery_sem:
             recommendations_sem = _build_deterministic_recommendations(
@@ -998,17 +1193,52 @@ def run_recommendation_semester(
     for core_code in core_remaining_sem:
         core_prereq_blockers_sem |= _prereq_courses(data["prereq_map"].get(core_code, {"type": "none"}))
     _chain = chain_depths or {}
+    foundation_slots_open_sem = _open_foundation_slots(alloc["remaining"])
+    declared_dept_set = _build_declared_dept_set(
+        data,
+        track_id,
+        bucket_parent_map,
+        parent_type_map,
+    )
+    scored_non_manual_sem: list[dict] = []
+    for cand in non_manual_sem:
+        tagged = dict(cand)
+        tagged["ranking_tier"] = _bucket_hierarchy_tier_v2(
+            tagged,
+            parent_type_map,
+            bucket_track_required_map,
+            bucket_parent_map,
+        )
+        tagged["bcc_priority_rank"] = _bcc_priority_rank(tagged, bucket_parent_map)
+        current_unmet_buckets = _current_unmet_bucket_ids(tagged, alloc["remaining"])
+        is_discovery_driven = _is_discovery_driven(
+            tagged,
+            alloc["remaining"],
+            bucket_parent_map,
+        )
+        tagged["current_unmet_buckets"] = current_unmet_buckets
+        tagged["is_discovery_driven"] = is_discovery_driven
+        tagged["soft_prereq_penalty"] = _soft_prereq_demote_penalty(tagged)
+        if is_discovery_driven:
+            tagged["discovery_foundation_penalty"] = foundation_slots_open_sem
+            tagged["discovery_affinity_penalty"] = _discovery_affinity_penalty(
+                tagged.get("course_code", ""),
+                declared_dept_set,
+            )
+        else:
+            tagged["discovery_foundation_penalty"] = 0
+            tagged["discovery_affinity_penalty"] = 0
+        scored_non_manual_sem.append(tagged)
     ranked_sem = sorted(
-        non_manual_sem,
+        scored_non_manual_sem,
         key=lambda c: (
-            _bucket_hierarchy_tier_v2(
-                c,
-                parent_type_map,
-                bucket_track_required_map,
-                bucket_parent_map,
-            ),
+            c.get("ranking_tier", 99),
+            c.get("bcc_priority_rank", 0),
+            c.get("discovery_foundation_penalty", 0),
+            c.get("discovery_affinity_penalty", 0),
             0 if c["course_code"] in core_prereq_blockers_sem else 1,
             1 if c.get("is_bridge_course") else 0,
+            c.get("soft_prereq_penalty", 0),
             -_chain.get(c["course_code"], 0),
             _course_level(c) if _course_level(c) is not None else 9999,
             -c.get("multi_bucket_score", 0),
@@ -1068,11 +1298,43 @@ def run_recommendation_semester(
             for b in candidate.get("bridge_target_buckets", [])
         )
 
+    def _has_open_foundation_or_bcc_candidates() -> bool:
+        for candidate in ranked_sem:
+            if candidate.get("ranking_tier", 99) > 2:
+                continue
+            if _assignable_buckets_for_candidate(candidate, enforce_bucket_cap=True):
+                return True
+        return False
+
+    def _has_available_direct_fill_candidate(
+        *,
+        enforce_bucket_cap: bool,
+        excluded_codes: set[str],
+    ) -> bool:
+        for candidate in ranked_sem:
+            code = candidate.get("course_code")
+            if code in excluded_codes:
+                continue
+            if _is_bridge_candidate(candidate):
+                continue
+            assigned = _assignable_buckets_for_candidate(
+                candidate,
+                enforce_bucket_cap=enforce_bucket_cap,
+            )
+            if not assigned:
+                continue
+            if _family_cap_exceeded(assigned):
+                continue
+            return True
+        return False
+
     def _family_cap_exceeded(assigned_buckets: list[str]) -> bool:
         """Check if selecting this candidate would exceed the family cap."""
         if family_cap_relaxed:
             return False
         for bid in assigned_buckets:
+            if _is_family_cap_exempt_bucket(bid):
+                continue
             fam = family_id_map.get(bid.upper(), bid.upper())
             if picks_per_family.get(fam, 0) >= family_cap:
                 return True
@@ -1088,8 +1350,9 @@ def run_recommendation_semester(
         for prog in cand_programs:
             picks_per_program[prog] = picks_per_program.get(prog, 0) + 1
         for bid in assigned_buckets:
-            fam = family_id_map.get(bid.upper(), bid.upper())
-            picks_per_family[fam] = picks_per_family.get(fam, 0) + 1
+            if not _is_family_cap_exempt_bucket(bid):
+                fam = family_id_map.get(bid.upper(), bid.upper())
+                picks_per_family[fam] = picks_per_family.get(fam, 0) + 1
             if virtual_remaining.get(bid, 0) > 0:
                 consume = _bucket_virtual_consumption_units(
                     bid, cand, selection_bucket_meta,
@@ -1100,16 +1363,26 @@ def run_recommendation_semester(
     # ---------- Pass 1: Declared-program priority ----------
     # Select up to declared_min_target courses that count toward declared
     # major/track requirements, respecting family cap and bucket capacity.
+    suppress_declared_preemption = current_standing <= 1 and _has_open_foundation_or_bcc_candidates()
     for cand in ranked_sem:
         if declared_min_achieved >= declared_min_target:
             break
         if len(selected_sem) >= max_recs:
             break
+        if suppress_declared_preemption and cand.get("ranking_tier", 99) > 2:
+            continue
         if not cand.get("_counts_toward_declared_min"):
             continue
         assigned_buckets = _assignable_buckets_for_candidate(cand, enforce_bucket_cap=True)
         is_bridge_pick = _is_bridge_candidate(cand)
         if not assigned_buckets and not is_bridge_pick:
+            continue
+        if is_bridge_pick and _has_available_direct_fill_candidate(
+            enforce_bucket_cap=True,
+            excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
+        ):
+            if debug:
+                skipped_reasons[cand["course_code"]] = "bridge deferred while direct-fill options remain"
             continue
         if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
             continue
@@ -1163,6 +1436,13 @@ def run_recommendation_semester(
             if debug:
                 skipped_reasons[cand["course_code"]] = "no assignable buckets (capacity full or diversity cap)"
             continue
+        if is_bridge_pick and _has_available_direct_fill_candidate(
+            enforce_bucket_cap=enforce_bucket_cap,
+            excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
+        ):
+            if debug:
+                skipped_reasons[cand["course_code"]] = "bridge deferred while direct-fill options remain"
+            continue
         if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
             if debug:
                 skipped_reasons[cand["course_code"]] = "bridge targets already covered"
@@ -1198,6 +1478,11 @@ def run_recommendation_semester(
         assigned_buckets = _assignable_buckets_for_candidate(cand, enforce_bucket_cap=False)
         is_bridge_pick = _is_bridge_candidate(cand)
         if not assigned_buckets and not is_bridge_pick:
+            continue
+        if is_bridge_pick and _has_available_direct_fill_candidate(
+            enforce_bucket_cap=False,
+            excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
+        ):
             continue
         if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
             continue

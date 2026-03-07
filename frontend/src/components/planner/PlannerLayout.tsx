@@ -497,6 +497,7 @@ export function PlannerLayout() {
         onNext={() => setSemesterModalIdx(i => i !== null && i < (data?.semesters?.length ?? 0) - 1 ? i + 1 : i)}
         onBack={() => setSemesterModalIdx(i => i !== null && i > 0 ? i - 1 : i)}
         programLabelMap={programLabelMap}
+        bucketLabelMap={bucketLabelMap}
         programOrder={programOrder}
         candidatePool={semEditCandidates ?? undefined}
         candidatePoolLoading={semEditLoading}
@@ -510,6 +511,9 @@ export function PlannerLayout() {
       <ProfileModal
         open={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
+        loading={loading}
+        error={error}
+        onSubmitRecommendations={fetchRecommendations}
       />
       <Modal
         open={explainerOpen}
@@ -602,6 +606,7 @@ export function PlannerLayout() {
             courseName={detailCourse?.course_name ?? fallbackCourse?.course_name}
             credits={detailCourse?.credits ?? fallbackCourse?.credits}
             description={descriptionMap.get(courseDetailCode ?? "")}
+            prereqRaw={fallbackCourse?.catalog_prereq_raw}
             buckets={detailBuckets}
             programLabelMap={programLabelMap}
             bucketLabelMap={bucketLabelMap}
@@ -611,7 +616,7 @@ export function PlannerLayout() {
       <CourseListModal
         open={courseListModal !== null}
         onClose={() => setCourseListModal(null)}
-        title={courseListModal === "completed" ? "Completed Courses" : "In Progress Courses"}
+        title={courseListModal === "completed" ? "Credits Completed" : "Credits In Progress"}
         courseCodes={courseListModal === "completed" ? state.completed : state.inProgress}
         courses={state.courses}
         onCourseClick={(code) => { setCourseListModal(null); setCourseDetailCode(code); }}

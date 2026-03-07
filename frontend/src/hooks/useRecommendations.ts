@@ -35,6 +35,7 @@ export function useRecommendations() {
       if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
       if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
       if (state.includeSummer) payload.include_summer = true;
+      if (state.isHonorsStudent) payload.is_honors_student = true;
 
       const data: RecommendationResponse = await postRecommend(payload);
       if (id !== reqId.current) return null; // stale
@@ -53,7 +54,7 @@ export function useRecommendations() {
     } finally {
       if (id === reqId.current) setLoading(false);
     }
-  }, [state.completed, state.inProgress, state.targetSemester, state.semesterCount, state.maxRecs, state.includeSummer, state.selectedMajors, state.selectedTracks, state.selectedMinors, state.discoveryTheme, dispatch]);
+  }, [state.completed, state.inProgress, state.targetSemester, state.semesterCount, state.maxRecs, state.includeSummer, state.isHonorsStudent, state.selectedMajors, state.selectedTracks, state.selectedMinors, state.discoveryTheme, dispatch]);
 
   return {
     data: state.lastRecommendationData,

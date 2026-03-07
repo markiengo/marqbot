@@ -263,6 +263,7 @@ export function SavedPlanViewModal({
             courseName={hit?.course_name}
             credits={hit?.credits}
             description={courseDetailCode ? descriptionMap.get(courseDetailCode) ?? null : null}
+            prereqRaw={courseDetailCode ? courses.find(c => c.course_code === courseDetailCode)?.catalog_prereq_raw : null}
             buckets={hit?.fills_buckets}
             programLabelMap={programLabelMap}
             bucketLabelMap={bucketLabelMap}

@@ -12,6 +12,7 @@ interface CourseDetailModalProps {
   courseName?: string;
   credits?: number;
   description?: string | null;
+  prereqRaw?: string | null;
   buckets?: string[];
   programLabelMap?: Map<string, string>;
   bucketLabelMap?: Map<string, string>;
@@ -24,6 +25,7 @@ export function CourseDetailModal({
   courseName,
   credits,
   description,
+  prereqRaw,
   buckets,
   programLabelMap,
   bucketLabelMap,
@@ -68,6 +70,14 @@ export function CourseDetailModal({
                 </Tag>
               );
             })}
+          </div>
+        )}
+
+        {/* Prerequisites */}
+        {prereqRaw && (
+          <div>
+            <p className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-1">Prerequisites</p>
+            <p className="text-sm text-ink-secondary leading-relaxed">{prereqRaw}</p>
           </div>
         )}
 

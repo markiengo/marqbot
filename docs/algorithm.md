@@ -78,15 +78,18 @@ If the bulletin prerequisite logic cannot be encoded safely into the supported p
    - otherwise surfaced as `manual_review` when the row is intentionally not auto-decodable
 4. Suppress non-recommendable courses (see exclusions below).
 5. Rank candidates deterministically with this tuple order:
-   - `tier` (`1=MCC/BCC_REQUIRED`, `2=major`, `3=track/minor`, `5=demoted BCC children`)
+   - `tier` (`1=MCC foundation`, `2=BCC`, `3=major`, `4=track/minor`, `5=MCC_ESSV2/MCC_WRIT`, `6=Discovery/MCC_CULM`)
+   - Discovery foundation-gap penalty (`0` for non-Discovery-driven courses; Discovery-only courses are pushed down while `MCC_CORE` / `MCC_ESSV1` remain open)
+   - Discovery affinity penalty (`0=declared-path or business-adjacent`, `1=neutral`, `2=far/off-path`; only applies to Discovery-driven courses)
    - core-prereq blocker (`0=yes`, `1=no`)
    - bridge-course status (`0=direct filler`, `1=bridge-only`; bridge targets restricted to non-elective-pool buckets)
+   - soft-prereq demotion (`0=no non-standing soft prerequisite tags`, `1=has any soft prerequisite besides standing`; `standing_requirement` is already reflected via `min_standing`)
    - course level (lower first)
    - unlock chain depth (deeper first)
    - `multi_bucket_score` (higher first)
    - `course_code` (lexical tiebreak)
 6. Select greedily with:
-   - bucket cap (`2`) with auto-relaxation
+   - bucket cap (`2`) with auto-relaxation (`BCC_REQUIRED` allows up to `3`)
    - program-balance deferral (threshold `2`)
    - bridge-target guard
    - rescue pass when no picks are produced
@@ -96,9 +99,6 @@ If the bulletin prerequisite logic cannot be encoded safely into the supported p
 A bridge course is a candidate that does not directly fill any unmet bucket but unlocks a course that does. Bridge targets are restricted:
 - **No elective pools**: buckets with `requirement_mode = credits_pool` are skipped. Elective pools have many direct options and don't need prereq-chain unlocking.
 - **No Discovery themes**: buckets whose parent starts with `MCC_DISC` are skipped. Discovery themes have wide cross-department course pools that would otherwise cause irrelevant recommendations (e.g. BIOL 1001 to unlock a CMI NSM course).
-
-## Discovery Theme Gate
-Discovery theme courses (buckets under any `MCC_DISC*` parent) are only recommended after MCC Foundation is fully satisfied. Foundation = `MCC_CORE` (4 courses) + `MCC_ESSV1` (1 course). Until both are done, Discovery buckets are suppressed from the eligible candidate list.
 
 ## Currently Excluded From Recommendations
 The engine does not recommend courses when any of these is true:
@@ -135,9 +135,10 @@ When all remaining required courses are blocked by `min_standing`, the engine re
 When `debug=true`, each ranked candidate includes:
 - `rank`, `course_code`, `course_name`
 - `selected`, `skip_reason`
-- `tier`, `is_core_prereq_blocker`, `is_bridge_course`
+- `tier`, `is_discovery_driven`, `discovery_foundation_penalty`, `discovery_affinity_penalty`, `soft_prereq_penalty`
+- `is_core_prereq_blocker`, `is_bridge_course`
 - `course_level`, `chain_depth`, `multi_bucket_score`
-- `fills_buckets`, `selection_buckets`, `bridge_target_buckets`
+- `fills_buckets`, `selection_buckets`, `current_unmet_buckets`, `bridge_target_buckets`
 - `bucket_capacity`
 
 Note: `chain_depth` in debug is sourced from the same chain-depth map used by ranking.

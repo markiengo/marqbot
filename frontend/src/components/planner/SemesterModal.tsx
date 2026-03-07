@@ -20,6 +20,7 @@ interface SemesterModalProps {
   totalCount: number;
   requestedCount: number;
   programLabelMap?: Map<string, string>;
+  bucketLabelMap?: Map<string, string>;
   programOrder?: string[];
   // Navigation
   onNext?(): void;
@@ -40,6 +41,7 @@ export function SemesterModal({
   totalCount,
   requestedCount,
   programLabelMap,
+  bucketLabelMap,
   programOrder,
   onNext,
   onBack,
@@ -197,6 +199,7 @@ export function SemesterModal({
             candidatePool={candidatePool}
             candidatePoolLoading={candidatePoolLoading}
             programLabelMap={programLabelMap}
+            bucketLabelMap={bucketLabelMap}
             onRemove={handleRemoveCourse}
             onAdd={handleAddCourse}
             onApply={handleApply}
@@ -219,6 +222,7 @@ export function SemesterModal({
                     <CourseCard
                       course={c}
                       programLabelMap={programLabelMap}
+                      bucketLabelMap={bucketLabelMap}
                       onClick={onCourseClick ? () => onCourseClick(c.course_code) : undefined}
                     />
                   </motion.div>
@@ -306,6 +310,7 @@ function EditModeContent({
   candidatePool,
   candidatePoolLoading,
   programLabelMap,
+  bucketLabelMap,
   onRemove,
   onAdd,
   onApply,
@@ -317,6 +322,7 @@ function EditModeContent({
   candidatePool?: RecommendedCourse[];
   candidatePoolLoading?: boolean;
   programLabelMap?: Map<string, string>;
+  bucketLabelMap?: Map<string, string>;
   onRemove(code: string): void;
   onAdd(course: RecommendedCourse): void;
   onApply(): void;
@@ -346,6 +352,7 @@ function EditModeContent({
                 key={c.course_code}
                 course={c}
                 programLabelMap={programLabelMap}
+                bucketLabelMap={bucketLabelMap}
                 action="remove"
                 onAction={() => onRemove(c.course_code)}
               />
@@ -373,6 +380,7 @@ function EditModeContent({
                 key={c.course_code}
                 course={c}
                 programLabelMap={programLabelMap}
+                bucketLabelMap={bucketLabelMap}
                 action="add"
                 onAction={() => onAdd(c)}
               />
@@ -407,11 +415,13 @@ function EditModeContent({
 function EditCourseRow({
   course,
   programLabelMap,
+  bucketLabelMap,
   action,
   onAction,
 }: {
   course: RecommendedCourse;
   programLabelMap?: Map<string, string>;
+  bucketLabelMap?: Map<string, string>;
   action: "add" | "remove";
   onAction(): void;
 }) {
@@ -446,7 +456,7 @@ function EditCourseRow({
                     : "gold";
               return (
                 <Tag key={bid} variant={variant}>
-                  {bucketLabel(bid, programLabelMap, undefined, true)}
+                  {bucketLabel(bid, programLabelMap, bucketLabelMap, true)}
                 </Tag>
               );
             })}

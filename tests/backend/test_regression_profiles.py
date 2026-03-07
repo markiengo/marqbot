@@ -168,14 +168,15 @@ class TestAccoMajor:
         assert len(recs) >= 4, f"Expected at least 4 recommendations, got {len(recs)}"
 
     def test_bcc_courses_recommended(self, client):
-        """ACCO freshman should get BCC/MCC tier 1 courses."""
+        """ACCO freshman should get BCC/MCC courses plus allowed bridge math."""
         recs, _ = _get_recs(client, self.PAYLOAD)
         for r in recs:
             fills = r.get("fills_buckets", [])
             short_fills = [_bucket_short(b) for b in fills]
             is_tier_1 = any("BCC" in b or "MCC" in b for b in short_fills)
-            assert is_tier_1, (
-                f"{r['course_code']} fills {short_fills} which is not tier 1 (BCC/MCC)"
+            is_bridge = not fills and "unlocks" in (r.get("why") or "").lower()
+            assert is_tier_1 or is_bridge, (
+                f"{r['course_code']} fills {short_fills} which is not BCC/MCC and not a bridge course"
             )
 
 
@@ -243,7 +244,7 @@ class TestHureMajorZeroCreditMultiSemester:
 
 
 class TestTripleMajorInsy4158Regression:
-    """INSY 4158 should stop dead-ending in manual review once two 405x courses are done."""
+    """INSY 4158 should stop dead-ending in manual review and reappear in the projected plan."""
 
     PAYLOAD = {
         "declared_majors": ["FIN_MAJOR", "INSY_MAJOR", "BUAN_MAJOR"],

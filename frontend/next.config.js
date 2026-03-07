@@ -1,15 +1,18 @@
 const path = require("path");
 
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV !== "production";
+
 const nextConfig = {
-  output: "export",
+  // Static export is production-only; dev mode needs rewrites for the API proxy.
+  ...(!isDev && { output: "export" }),
   images: { unoptimized: true },
   turbopack: {
     root: path.resolve(__dirname),
   },
   // Rewrites only apply during `next dev` (not static export).
   // In production, Flask serves the static files and handles /api routes itself.
-  ...(process.env.NODE_ENV !== "production" && {
+  ...(isDev && {
     async rewrites() {
       return [
         { source: "/api/courses", destination: "http://localhost:5000/api/courses" },

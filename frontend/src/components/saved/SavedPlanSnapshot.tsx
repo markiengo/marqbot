@@ -24,9 +24,11 @@ interface SavedPlanSnapshotProps {
 function SemesterList({
   data,
   programLabelMap,
+  bucketLabelMap,
 }: {
   data: RecommendationResponse;
   programLabelMap?: Map<string, string>;
+  bucketLabelMap?: Map<string, string>;
 }) {
   const semesters = data.semesters ?? [];
   if (semesters.length === 0) return <p className="text-sm text-ink-faint">No recommendation data.</p>;
@@ -61,6 +63,7 @@ function SemesterList({
                   key={c.course_code}
                   course={c}
                   programLabelMap={programLabelMap}
+                  bucketLabelMap={bucketLabelMap}
                 />
               ))}
             </div>
@@ -97,6 +100,16 @@ export function SavedPlanSnapshot({ plan, courses, programs }: SavedPlanSnapshot
     programs.minors.forEach((item) => map.set(item.id, item.label));
     return map;
   }, [programs]);
+  const bucketLabelMap = useMemo(() => {
+    const raw = programs.bucket_labels || {};
+    const map = new Map<string, string>();
+    Object.entries(raw).forEach(([k, v]) => {
+      const id = String(k || "").trim();
+      const txt = String(v || "").trim();
+      if (id && txt) map.set(id, txt);
+    });
+    return map;
+  }, [programs.bucket_labels]);
 
   return (
     <div className="relative space-y-5">
@@ -158,7 +171,7 @@ export function SavedPlanSnapshot({ plan, courses, programs }: SavedPlanSnapshot
 
       {/* Semester list */}
       {plan.recommendationData ? (
-        <SemesterList data={plan.recommendationData} programLabelMap={programLabelMap} />
+        <SemesterList data={plan.recommendationData} programLabelMap={programLabelMap} bucketLabelMap={bucketLabelMap} />
       ) : (
         <p className="text-sm text-ink-faint italic">No saved recommendations.</p>
       )}

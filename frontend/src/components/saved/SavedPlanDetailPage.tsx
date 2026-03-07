@@ -404,6 +404,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
         onClose={() => setSemesterModalIdx(null)}
         semester={modalSemester as SemesterData | null}
         index={semesterModalIdx ?? 0}
+        totalCount={recommendationData?.semesters?.length ?? 0}
         requestedCount={Number(plan.inputs.maxRecs) || 3}
         programLabelMap={programLabelMap}
         programOrder={programOrder}
@@ -421,6 +422,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
             courseName={hit?.course_name}
             credits={hit?.credits}
             description={courseDetailCode ? descriptionMap.get(courseDetailCode) ?? null : null}
+            prereqRaw={courseDetailCode ? courses.find(c => c.course_code === courseDetailCode)?.catalog_prereq_raw : null}
             buckets={hit?.fills_buckets}
             programLabelMap={programLabelMap}
             bucketLabelMap={bucketLabelMap}

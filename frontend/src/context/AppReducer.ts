@@ -29,6 +29,7 @@ export type AppAction =
   | { type: "SET_SEMESTER_COUNT"; payload: string }
   | { type: "SET_MAX_RECS"; payload: string }
   | { type: "SET_INCLUDE_SUMMER"; payload: boolean }
+  | { type: "SET_HONORS_STUDENT"; payload: boolean }
   | { type: "SET_CAN_TAKE_QUERY"; payload: string }
   | { type: "SET_NAV_TAB"; payload: string }
   | { type: "SET_RECOMMENDATIONS"; payload: { data: RecommendationResponse; count: number } }
@@ -53,6 +54,7 @@ export const initialState: AppState = {
   semesterCount: DEFAULT_SEMESTER_COUNT,
   maxRecs: DEFAULT_MAX_RECS,
   includeSummer: false,
+  isHonorsStudent: false,
   canTakeQuery: "",
   activeNavTab: "plan",
   onboardingComplete: false,
@@ -92,6 +94,7 @@ interface NormalizedSessionPayload {
   semesterCount: string;
   maxRecs: string;
   includeSummer: boolean;
+  isHonorsStudent: boolean;
   canTakeQuery: string;
   activeNavTab: string;
   onboardingComplete: boolean;
@@ -153,6 +156,7 @@ function normalizeSessionSnapshot(
     semesterCount: snap.semesterCount || DEFAULT_SEMESTER_COUNT,
     maxRecs: snap.maxRecs || DEFAULT_MAX_RECS,
     includeSummer: snap.includeSummer ?? false,
+    isHonorsStudent: snap.isHonorsStudent ?? false,
     canTakeQuery: snap.canTake || "",
     activeNavTab: options?.activeNavTab || snap.activeNavTab || "plan",
     onboardingComplete: options?.forceOnboardingComplete ?? (snap.onboardingComplete || false),
@@ -310,6 +314,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case "SET_INCLUDE_SUMMER":
       return { ...state, includeSummer: action.payload };
+
+    case "SET_HONORS_STUDENT":
+      return { ...state, isHonorsStudent: action.payload };
 
     case "SET_CAN_TAKE_QUERY":
       return { ...state, canTakeQuery: action.payload };

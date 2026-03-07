@@ -1726,7 +1726,7 @@ def get_courses():
     _refresh_data_if_needed()
     if not _data:
         return jsonify({"error": "Data not loaded"}), 500
-    cols = ["course_code", "course_name", "credits", "level", "prereq_level", "description"]
+    cols = ["course_code", "course_name", "credits", "level", "prereq_level", "description", "catalog_prereq_raw"]
     df = _data["courses_df"].copy()
     for col in cols:
         if col not in df.columns:
@@ -1927,6 +1927,7 @@ def recommend():
     requested_course_raw = body.get("requested_course") or None
     max_recs = max(1, min(15, int(body.get("max_recommendations", 3) or 3)))
     include_summer = bool(body.get("include_summer", False))
+    is_honors_student = bool(body.get("is_honors_student", False))
     debug_mode = bool(body.get("debug", False))
     debug_limit = max(1, min(100, int(body.get("debug_limit", 30) or 30)))
 
@@ -2074,6 +2075,7 @@ def recommend():
                 completed_only_standing=completed_only_standing,
                 assumes_in_progress_completion=bool(in_progress_input),
                 chain_depths=_chain_depths,
+                is_honors_student=is_honors_student,
             )
         else:
             completed_only_standing = _credits_to_standing(
@@ -2092,6 +2094,7 @@ def recommend():
                 current_standing=current_standing,
                 completed_only_standing=completed_only_standing,
                 chain_depths=_chain_depths,
+                is_honors_student=is_honors_student,
             )
         semesters_payload.append(semester_payload)
         # Accumulate recommended course credits for the next semester's standing projection.

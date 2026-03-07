@@ -15,9 +15,10 @@ interface CourseCardProps {
   course: RecommendedCourse;
   onClick?: () => void;
   programLabelMap?: Map<string, string>;
+  bucketLabelMap?: Map<string, string>;
 }
 
-export function CourseCard({ course, programLabelMap, onClick }: CourseCardProps) {
+export function CourseCard({ course, programLabelMap, bucketLabelMap, onClick }: CourseCardProps) {
   const c = course;
   const bucketIds = c.fills_buckets || [];
 
@@ -94,7 +95,7 @@ export function CourseCard({ course, programLabelMap, onClick }: CourseCardProps
                   : "gold";
             return (
               <Tag key={bid} variant={variant}>
-                {bucketLabel(bid, programLabelMap, undefined, true)}
+                {bucketLabel(bid, programLabelMap, bucketLabelMap, true)}
               </Tag>
             );
           })}

@@ -11,12 +11,14 @@ import {
 interface PreferencesPanelProps {
   onSubmit?: () => void;
   loading?: boolean;
+  error?: string | null;
   submitLabel?: string;
 }
 
 export function PreferencesPanel({
   onSubmit,
   loading = false,
+  error = null,
   submitLabel = "Get My Plan",
 }: PreferencesPanelProps) {
   const { state, dispatch } = useAppContext();
@@ -111,8 +113,38 @@ export function PreferencesPanel({
         </button>
       </div>
 
+      {/* Honors student toggle */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-ink-secondary leading-tight">Honors Student</p>
+          <p className="text-sm text-ink-faint leading-tight mt-0.5">Include honors sections in plan</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={state.isHonorsStudent}
+          onClick={() => dispatch({ type: "SET_HONORS_STUDENT", payload: !state.isHonorsStudent })}
+          className={[
+            "relative flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gold/40",
+            state.isHonorsStudent ? "bg-gold" : "bg-white/20",
+          ].join(" ")}
+        >
+          <span
+            className={[
+              "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
+              state.isHonorsStudent ? "translate-x-4" : "translate-x-0",
+            ].join(" ")}
+          />
+        </button>
+      </div>
+
       {onSubmit !== undefined && (
         <div className="pt-2">
+          {error && (
+            <div className="mb-3 rounded-xl border border-bad/25 bg-bad-light px-3 py-2 text-sm text-bad">
+              {error}
+            </div>
+          )}
           <Button
             variant="gold"
             size="md"

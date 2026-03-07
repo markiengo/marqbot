@@ -103,6 +103,8 @@ def _build_course_runtime_indexes(courses_df: pd.DataFrame) -> dict:
             "parsed_concurrent": parse_prereqs(prereq_concurrent if prereq_concurrent.strip() else "none"),
             "prereq_soft": prereq_soft,
             "soft_tags": [t.strip() for t in prereq_soft.split(";") if t.strip()],
+            "soft_prereq_major_restriction": _normalize_text(row.get("soft_prereq_major_restriction", "")),
+            "soft_prereq_college_restriction": _normalize_text(row.get("soft_prereq_college_restriction", "")),
             "warning_text": _normalize_optional_text(row.get("warning_text")),
             "notes": _normalize_optional_text(row.get("notes")),
             "offered_fall": _safe_bool(row.get("offered_fall", False)),

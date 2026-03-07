@@ -3,15 +3,27 @@
 import { Modal } from "@/components/shared/Modal";
 import { InputSidebar } from "./InputSidebar";
 import { PreferencesPanel } from "./PreferencesPanel";
-import { useRecommendations } from "@/hooks/useRecommendations";
+import type { RecommendationResponse } from "@/lib/types";
 
 interface ProfileModalProps {
   open: boolean;
   onClose: () => void;
+  loading: boolean;
+  error: string | null;
+  onSubmitRecommendations: () => Promise<RecommendationResponse | null>;
 }
 
-export function ProfileModal({ open, onClose }: ProfileModalProps) {
-  const { loading, fetchRecommendations } = useRecommendations();
+export function ProfileModal({
+  open,
+  onClose,
+  loading,
+  error,
+  onSubmitRecommendations,
+}: ProfileModalProps) {
+  const handleSubmit = async () => {
+    const result = await onSubmitRecommendations();
+    if (result) onClose();
+  };
 
   return (
     <Modal open={open} onClose={onClose} size="planner-detail" title="Your Profile & Preferences">
@@ -30,7 +42,7 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
 
         {/* Right: Preferences + Get Recs */}
         <div className="md:w-[280px] shrink-0">
-          <PreferencesPanel onSubmit={async () => { await fetchRecommendations(); onClose(); }} loading={loading} />
+          <PreferencesPanel onSubmit={handleSubmit} loading={loading} error={error} />
         </div>
       </div>
     </Modal>

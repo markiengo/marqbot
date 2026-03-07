@@ -55,11 +55,16 @@ export function bucketLabel(
     [programId, localId] = raw.split("::", 2);
   }
 
-  if (!short) {
-    const detailedLabel =
-      mapLookup(detailedBucketLabelMap, raw) ||
-      mapLookup(detailedBucketLabelMap, localId);
-    if (detailedLabel) return detailedLabel;
+  const detailedLabel =
+    mapLookup(detailedBucketLabelMap, raw) ||
+    mapLookup(detailedBucketLabelMap, localId);
+  if (detailedLabel) {
+    if (short) {
+      // Strip "Program: " prefix for short mode
+      const colon = detailedLabel.indexOf(": ");
+      return colon > 0 ? detailedLabel.slice(colon + 2) : detailedLabel;
+    }
+    return detailedLabel;
   }
 
   const labels: Record<string, string> = {
@@ -113,6 +118,30 @@ export function colorizePrereq(
       (_, code: string) =>
         `<span class="text-red-500 font-medium">${esc(code)} ${cross}</span>`,
     );
+}
+
+export function formatCourseNotes(
+  notes: string | null | undefined,
+): string {
+  const raw = String(notes || "").trim();
+  if (!raw) return "";
+
+  if (!raw.toLowerCase().includes("complex prereq")) {
+    return raw;
+  }
+
+  const codes = [
+    ...new Set(
+      (raw.toUpperCase().match(/\b[A-Z]{2,6}\s+\d{4}[A-Z]?\b/g) || [])
+        .map((code) => code.replace(/\s+/g, " ").trim()),
+    ),
+  ];
+
+  if (codes.length > 0) {
+    return `Hard prereq codes: ${codes.join(", ")}.`;
+  }
+
+  return "Hard prereq codes: see catalog.";
 }
 
 export function filterCourses(

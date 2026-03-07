@@ -5,6 +5,7 @@ export interface Course {
   level?: number | null;
   prereq_level?: number | null;
   description?: string | null;
+  catalog_prereq_raw?: string | null;
 }
 
 export interface Major {
@@ -144,6 +145,7 @@ export interface SessionSnapshot {
   semesterCount: string;
   maxRecs: string;
   includeSummer?: boolean;
+  isHonorsStudent?: boolean;
   canTake: string;
   declaredMajors: string[];
   declaredTracks: string[];
@@ -208,6 +210,7 @@ export interface AppState {
   semesterCount: string;
   maxRecs: string;
   includeSummer: boolean;
+  isHonorsStudent: boolean;
   canTakeQuery: string;
   activeNavTab: string;
   onboardingComplete: boolean;
