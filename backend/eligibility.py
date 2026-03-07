@@ -366,7 +366,6 @@ def _same_semester_prereqs(
     parsed_concurrent: dict,
     allow_concurrent: bool,
     has_explicit_concurrent: bool,
-    completed_set: set[str],
     satisfied_codes: set[str],
     semester_codes: set[str],
 ) -> list[str]:
@@ -802,7 +801,7 @@ def get_eligible_courses(
         has_explicit_concurrent = not _is_none_prereq(raw_concurrent)
         complex_tag_blocks = (
             any(tag in COMPLEX_PREREQ_TAGS for tag in soft_tags)
-            and not (parsed["type"] == "none" and any(tag in CONCURRENT_TAGS for tag in soft_tags))
+            and not (parsed["type"] == "none" and (allow_concurrent or has_explicit_concurrent))
         )
         if complex_tag_blocks:
             manual_review = True
@@ -952,7 +951,6 @@ def get_eligible_courses(
             parsed_concurrent=parsed_concurrent,
             allow_concurrent=allow_concurrent,
             has_explicit_concurrent=has_explicit_concurrent,
-            completed_set=completed_set,
             satisfied_codes=satisfied_codes,
             semester_codes=semester_candidate_codes,
         )
@@ -1130,7 +1128,7 @@ def check_can_take(
         row,
         soft_tags,
         selected_program_ids,
-        requested_code,
+        "",
     )
     if restriction_blocked:
         return {
@@ -1147,7 +1145,7 @@ def check_can_take(
 
     complex_tag_blocks = (
         any(tag in COMPLEX_PREREQ_TAGS for tag in soft_tags)
-        and not (parsed["type"] == "none" and any(t in CONCURRENT_TAGS for t in soft_tags))
+        and not (parsed["type"] == "none" and (allow_concurrent or has_explicit_concurrent))
     )
 
     if parsed["type"] == "unsupported" or parsed_concurrent["type"] == "unsupported" or complex_tag_blocks:

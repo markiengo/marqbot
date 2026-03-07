@@ -27,6 +27,7 @@ Status: `current behavior (parent/child + split prereq model)`
 5. Overlay `course_offerings.csv` onto the catalog.
 6. Synthesize dynamic elective mappings from `courses.elective_pool_tag` only for elective-like `credits_pool` child buckets. Current dynamic tag: `biz_elective`.
 7. Convert the loaded data into runtime bucket and course maps used by allocation, eligibility, and ranking.
+8. Resolve request-scoped restriction context from the selected programs. Track selections are expanded with their parent and required major IDs before restriction checks run.
 
 ## Parent-Child Bucket Mapping
 - A `parent_bucket` is the program envelope: major, track, minor, or universal requirement group.
@@ -49,6 +50,12 @@ Status: `current behavior (parent/child + split prereq model)`
 - `catalog_prereq_raw`: full bulletin prerequisite line.
 - `notes`: overflow or human-readable audit context.
 
+### Restriction enforcement
+- `major_restriction` and `college_restriction` are no longer warning-only when the underlying text can be enforced safely.
+- Enforcement uses the selected program context plus any parent or required major implied by the selection.
+- Clear matches are blocked at eligibility time; satisfied matches are cleared so they do not remain as warning-only soft tags.
+- Current safe enforcement is intentionally narrow: business-college/business-major language, explicit supported program-base restrictions, and positive or negative college restrictions with clear college names.
+
 ### Excluded from `hard_prereq` on purpose
 These clauses may mention course codes, but they are not hard prerequisite graph edges:
 - `Cross-listed with ...`
@@ -64,6 +71,9 @@ These are kept only in soft detail fields or notes.
 ### Concurrent nuance
 - `which may be taken concurrently` means the course is still a prerequisite, but it may be in progress. That code can appear in both `hard_prereq` and `concurrent_with`.
 - `taken concurrently with ...`, `must be taken concurrent with ...`, `concurrent enrollment with ...`, and `both of which must be taken concurrently` are treated as co-req-only phrasing. Those codes go to `concurrent_with`, not `hard_prereq`.
+- Runtime eligibility accepts both `concurrent_with` and the soft `may_be_concurrent` signal as same-term concurrency.
+- When `concurrent_with` is present, it is used as the explicit same-semester companion expression for eligibility messaging and same-term dependency tracking.
+- During semester selection, a concurrent-dependent course is deferred until its companion course is already completed, in progress, or selected earlier in the same semester, then reconsidered in a same-semester follow-up pass.
 
 ### Manual review
 If the bulletin prerequisite logic cannot be encoded safely into the supported parser grammar, the course keeps `hard_prereq=none`, gets the `complex_hard_prereq` soft tag, and is surfaced as `manual_review` in eligibility output.
@@ -74,30 +84,30 @@ If the bulletin prerequisite logic cannot be encoded safely into the supported p
 3. Build eligible candidates:
    - not already completed or in progress
    - hard prereqs and standing satisfied
+   - major and college restrictions satisfied when the soft restriction text is machine-enforceable
    - co-req-compatible
    - otherwise surfaced as `manual_review` when the row is intentionally not auto-decodable
 4. Suppress non-recommendable courses (see exclusions below).
 5. Rank candidates deterministically with this tuple order:
    - `tier` (`1=MCC foundation`, `2=BCC`, `3=major`, `4=track/minor`, `5=MCC_ESSV2/MCC_WRIT`, `6=Discovery/MCC_CULM`)
-   - Discovery foundation-gap penalty (`0` for non-Discovery-driven courses; Discovery-only courses are pushed down while `MCC_CORE` / `MCC_ESSV1` remain open)
-   - Discovery affinity penalty (`0=declared-path or business-adjacent`, `1=neutral`, `2=far/off-path`; only applies to Discovery-driven courses)
-   - core-prereq blocker (`0=yes`, `1=no`)
-   - bridge-course status (`0=direct filler`, `1=bridge-only`; bridge targets restricted to non-elective-pool buckets)
-   - soft-prereq demotion (`0=no non-standing soft prerequisite tags`, `1=has any soft prerequisite besides standing`; `standing_requirement` is already reflected via `min_standing`)
-   - course level (lower first)
+   - bridge-course status (`0=direct filler`, `1=bridge-only`)
    - unlock chain depth (deeper first)
    - `multi_bucket_score` (higher first)
+   - course level (lower first)
    - `course_code` (lexical tiebreak)
 6. Select greedily with:
    - bucket cap (`2`) with auto-relaxation (`BCC_REQUIRED` allows up to `3`)
    - program-balance deferral (threshold `2`)
    - bridge-target guard
+   - freshman maturity guard (for `current_standing <= 1`, defer `tier >= 3` courses at `3000+` while lower-level direct-fill options remain)
+   - same-semester concurrent follow-up after earlier picks satisfy a deferred companion dependency
    - rescue pass when no picks are produced
 7. Return recommendations, progress/projection, warnings, and optional debug trace.
 
 ## Bridge Course Scope
 A bridge course is a candidate that does not directly fill any unmet bucket but unlocks a course that does. Bridge targets are restricted:
 - **No elective pools**: buckets with `requirement_mode = credits_pool` are skipped. Elective pools have many direct options and don't need prereq-chain unlocking.
+- **Only MCC, BCC, and major targets**: track and minor targets are skipped from bridge logic.
 - **No Discovery themes**: buckets whose parent starts with `MCC_DISC` are skipped. Discovery themes have wide cross-department course pools that would otherwise cause irrelevant recommendations (e.g. BIOL 1001 to unlock a CMI NSM course).
 
 ## Currently Excluded From Recommendations

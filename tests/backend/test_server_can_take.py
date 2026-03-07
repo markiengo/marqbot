@@ -164,6 +164,17 @@ class TestCanTakeWithProgramContext:
         assert status == 200
         assert data["mode"] == "can_take"
 
+    def test_major_restriction_blocks_unrelated_program(self, client):
+        status, data = post_can_take(client, {
+            "requested_course": "ACCO 4000",
+            "completed_courses": "ACCO 3001",
+            "declared_majors": ["FIN_MAJOR"],
+            "target_semester": "Fall 2026",
+        })
+        assert status == 200
+        assert data["can_take"] is False
+        assert "Restricted" in str(data.get("why_not", ""))
+
     def test_track_context_accepted(self, client):
         """Providing track_id should not cause an error."""
         status, data = post_can_take(client, {

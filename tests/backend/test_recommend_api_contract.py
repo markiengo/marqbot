@@ -175,6 +175,31 @@ def test_selection_context_is_coherent_for_declared_program_requests(client):
     assert all(label.strip() for label in context["selected_program_labels"])
 
 
+def test_restriction_program_ids_expand_parent_and_required_major_for_track():
+    catalog_df, _, _ = server._get_program_catalog(server._data)
+    if "parent_major_id" not in catalog_df.columns:
+        pytest.skip("Catalog does not expose parent major metadata")
+
+    track_rows = catalog_df[
+        (catalog_df["kind"].astype(str).str.strip().str.lower() == "track")
+        & (catalog_df["parent_major_id"].astype(str).str.strip() != "")
+    ]
+    if track_rows.empty:
+        pytest.skip("No track rows with parent major metadata available")
+
+    row = track_rows.iloc[0]
+    track_id = str(row["track_id"]).strip()
+    parent_major_id = str(row["parent_major_id"]).strip()
+    required_major_id = str(row.get("required_major_id") or "").strip()
+
+    restriction_ids = server._restriction_program_ids([track_id], catalog_df)
+
+    assert restriction_ids[0] == track_id
+    assert parent_major_id in restriction_ids
+    if required_major_id:
+        assert required_major_id in restriction_ids
+
+
 def test_include_summer_false_filters_explicit_summer_labels(client):
     response = _post(
         client,

@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Snapshot date | 2026-03-06 |
+| Snapshot date | 2026-03-07 |
 | Source | Local suite collection |
 | Backend default collector | `python -m pytest -q` |
 | Frontend default collector | `cd frontend && npm run test` |
@@ -14,11 +14,11 @@
 
 | Profile | Count | How it runs | Notes |
 |---|---:|---|---|
-| Backend standard suite | 607 | `python -m pytest -q` | Comes from `pytest.ini`; runs `tests/backend` and excludes `nightly` |
+| Backend standard suite | 629 | `python -m pytest -q` | Comes from `pytest.ini`; runs `tests/backend` and excludes `nightly` |
 | Backend nightly sweep | 14,382 | `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | Large pairwise dead-end simulation; not a normal end-of-session run |
 | Frontend checked-in tests | 64 | Files under `tests/frontend` | Includes DOM specs that are checked in but not in the default Vitest include set |
 | Frontend default Vitest run | 58 | `cd frontend && npm run test` | Current config excludes `../tests/frontend/**/*.dom.test.ts` |
-| All checked-in repo tests | 15,053 | Backend + frontend + nightly | Full footprint, not the normal validation target |
+| All checked-in repo tests | 15,075 | Backend + frontend + nightly | Full footprint, not the normal validation target |
 
 ## Group summary
 
@@ -26,9 +26,9 @@
 |---|---:|---|---|
 | Data and schema governance | 117 | Protects workbook shape, migration behavior, and publish-gate data quality. | `7` schema and PK audits; `10` FK audits; `17` prereq and bucket integrity audits; `20` bool coercion tests; `18` loader and migration tests; `25` legacy validator checks; `20` V2 governance checks |
 | Prereq parsing, normalization, and inference | 89 | Normalizes course codes, parses prereq text, expands transitive prereqs, and detects inconsistent histories. | `20` normalization tests; `18` prereq parsing tests; `11` prereq satisfaction tests; `4` prereq explanation-string tests; `9` recursive prereq discovery tests; `10` inconsistency detection tests; `17` completed and in-progress expansion plus provenance tests |
-| Allocation, eligibility, and unlocks | 69 | Verifies bucket allocation, eligible-course selection, can-take helper logic, and unlock warnings. | `1` runtime standing-index test; `25` allocation and double-count tests; `24` eligibility filter and routing tests; `6` helper-level can-take tests; `4` term parsing tests; `9` reverse-unlock and blocker-warning tests |
-| API contracts and server hardening | 52 | Locks down `/recommend`, `/can-take`, `/validate-prereqs`, security headers, rate limiting, and hot reload behavior. | `21` `/recommend` contract tests; `14` `/can-take` tests; `8` `/validate-prereqs` tests; `6` health, security, and rate-limit tests; `3` data-reload safety tests |
-| Recommendation ranking and quality invariants | 57 | Checks ranking tiers, bucket caps, bridge-course selection, monotonic progress, and no-repeat planner rules. | `14` semester recommender heuristic tests; `6` tier invariant tests; `37` live-data recommendation-quality invariants |
+| Allocation, eligibility, and unlocks | 77 | Verifies bucket allocation, eligible-course selection, restriction-aware can-take helper logic, and unlock warnings. | `1` runtime standing-index test; `25` allocation and double-count tests; `30` eligibility filter and routing tests; `8` helper-level can-take tests; `4` term parsing tests; `9` reverse-unlock and blocker-warning tests |
+| API contracts and server hardening | 54 | Locks down `/recommend`, `/can-take`, `/validate-prereqs`, security headers, rate limiting, and hot reload behavior. | `22` `/recommend` contract tests; `15` `/can-take` tests; `8` `/validate-prereqs` tests; `6` health, security, and rate-limit tests; `3` data-reload safety tests |
+| Recommendation ranking and quality invariants | 69 | Checks ranking tiers, bucket caps, bridge-course selection, same-semester concurrent picks, monotonic progress, and no-repeat planner rules. | `26` semester recommender heuristic tests; `6` tier invariant tests; `37` live-data recommendation-quality invariants |
 | Track-aware planning | 68 | Ensures multi-program planning respects track context, aliases, merged progress, projections, and catalog metadata. | `5` track allocation-isolation tests; `4` track eligibility-filter tests; `5` role-lookup tests; `50` live `/recommend` track, program, projection, and catalog audits; `4` synthetic-track smoke tests |
 | Live profile regressions and advisor alignment | 53 | Replays realistic student scenarios and gold advisor profiles to keep outputs aligned with expected recommendations. | `10` finance-major lifecycle regressions; `11` other-major smoke and regression tests; `7` track smoke regressions; `11` special regressions for BUAN, HURE, INSY, BECO, BADM, and debug payloads; `14` advisor-gold overlap tests |
 | Dead-end prevention, standard suite | 102 | Prevents 2-term planner dead ends with synthetic classifier cases and fast live-data sweeps. | `9` archetype classifier tests; `78` fast no-dead-end cases across majors, tracks, and curated combos; `7` minor smoke tests; `4` three-semester major smokes; `3` three-semester track smokes; `1` include-summer smoke |
@@ -50,16 +50,16 @@
 | `tests/backend/test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
 | `tests/backend/test_dead_end_fast.py` | 93 | Standard dead-end prevention sweep plus smoke coverage |
 | `tests/backend/test_dead_end_nightly.py` | 14,382 | Nightly pairwise dead-end sweep |
-| `tests/backend/test_eligibility.py` | 34 | Recommendation eligibility, bridge courses, helper can-take logic, and term parsing |
+| `tests/backend/test_eligibility.py` | 42 | Recommendation eligibility, major and college restriction filtering, hard and soft concurrent handling, bridge courses, helper can-take logic, and term parsing |
 | `tests/backend/test_input_validation.py` | 36 | Prereq contradiction detection and inferred prereq expansion |
 | `tests/backend/test_normalizer.py` | 20 | Course-code and input normalization |
 | `tests/backend/test_prereq_parser.py` | 33 | Prereq parsing, satisfaction rules, and human-readable check strings |
-| `tests/backend/test_recommend_api_contract.py` | 21 | `/recommend` request and response contract |
+| `tests/backend/test_recommend_api_contract.py` | 22 | `/recommend` request and response contract, including restriction-context expansion |
 | `tests/backend/test_recommendation_quality.py` | 37 | Cross-major recommendation invariants and multi-semester quality checks |
 | `tests/backend/test_regression_profiles.py` | 39 | Realistic program and student-profile regression coverage |
 | `tests/backend/test_schema_migration.py` | 38 | Schema migration, loader compatibility, and clean-mode behavior |
-| `tests/backend/test_semester_recommender.py` | 14 | Ranking heuristics, caps, bridge behavior, and standing recovery |
-| `tests/backend/test_server_can_take.py` | 14 | `/can-take` endpoint contract and behavior |
+| `tests/backend/test_semester_recommender.py` | 26 | Ranking heuristics, same-semester concurrent picks, caps, bridge behavior, and standing recovery |
+| `tests/backend/test_server_can_take.py` | 15 | `/can-take` endpoint contract, program-context behavior, and restriction enforcement |
 | `tests/backend/test_server_data_reload.py` | 3 | Runtime data hot-reload safety |
 | `tests/backend/test_server_security.py` | 6 | Health endpoint, security headers, and rate limiting |
 | `tests/backend/test_tier_invariants.py` | 6 | Stable recommendation tier ordering |

@@ -16,7 +16,7 @@ def courses_df():
         {"course_code": "FINA 4081", "course_name": "Inv Banking",    "credits": 3, "level": 4000, "offered_fall": False, "offered_spring": True,  "offered_summer": False, "prereq_hard": "FINA 3001; FINA 4001","prereq_soft": "",                     "offering_confidence": "high", "notes": None},
         {"course_code": "FINA 4210", "course_name": "Commercial Bank","credits": 3, "level": 4000, "offered_fall": True,  "offered_spring": False, "offered_summer": False, "prereq_hard": "none",                "prereq_soft": "instructor_consent",   "offering_confidence": "high", "notes": None},
         {"course_code": "FINA 4095", "course_name": "Complex Course", "credits": 3, "level": 4000, "offered_fall": True,  "offered_spring": True,  "offered_summer": False, "prereq_hard": "none",                "prereq_soft": "hard_prereq_complex",  "offering_confidence": "low",  "notes": None},
-        {"course_code": "FINA 4300", "course_name": "Concurrent Cap", "credits": 3, "level": 4000, "offered_fall": True,  "offered_spring": False, "offered_summer": False, "prereq_hard": "FINA 3001",           "prereq_soft": "may_be_concurrent",    "offering_confidence": "high", "notes": None},
+        {"course_code": "FINA 4300", "course_name": "Concurrent Cap", "credits": 3, "level": 4000, "offered_fall": True,  "offered_spring": False, "offered_summer": False, "prereq_hard": "none",                "prereq_concurrent": "FINA 3001", "prereq_soft": "may_be_concurrent",    "offering_confidence": "high", "notes": None},
     ])
 
 
@@ -292,7 +292,244 @@ class TestGetEligibleCourses:
             allocator_remaining, course_bucket_map, buckets_df
         )
         fina4300 = next(c for c in eligible if c["course_code"] == "FINA 4300")
-        assert "concurrent allowed" in fina4300["prereq_check"]
+        assert "Concurrent allowed" in fina4300["prereq_check"]
+
+    def test_soft_concurrent_tag_without_prereq_concurrent_still_unlocks_course(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "FINA 4301",
+                "course_name": "Soft-Only Concurrent",
+                "credits": 3,
+                "level": 4000,
+                "offered_fall": True,
+                "offered_spring": False,
+                "offered_summer": False,
+                "prereq_hard": "FINA 3001",
+                "prereq_soft": "may_be_concurrent",
+                "offering_confidence": "high",
+                "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["FINA 4301"] = parse_prereqs("FINA 3001")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_CHOOSE_2",
+                "course_code": "FINA 4301",
+                "is_required": False,
+                "can_double_count": True,
+                "constraints": None,
+            }]),
+        ], ignore_index=True)
+
+        eligible = get_eligible_courses(
+            augmented_courses,
+            [],
+            ["FINA 3001"],
+            "Fall",
+            augmented_prereq_map,
+            allocator_remaining,
+            augmented_map,
+            buckets_df,
+        )
+        assert "FINA 4301" in [c["course_code"] for c in eligible]
+
+    def test_blocks_major_restricted_course_outside_selected_program(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "AIM 4470",
+                "course_name": "AIM Ethics",
+                "credits": 3,
+                "level": 4000,
+                "offered_fall": True,
+                "offered_spring": False,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "major_restriction",
+                "soft_prereq_major_restriction": "AIM major",
+                "offering_confidence": "high",
+                "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["AIM 4470"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_CHOOSE_2",
+                "course_code": "AIM 4470",
+                "is_required": False,
+                "can_double_count": True,
+                "constraints": None,
+            }]),
+        ], ignore_index=True)
+
+        eligible = get_eligible_courses(
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            allocator_remaining,
+            augmented_map,
+            buckets_df,
+            selected_program_ids=["FIN_MAJOR"],
+        )
+        assert "AIM 4470" not in [c["course_code"] for c in eligible]
+
+    def test_satisfied_business_restrictions_do_not_remain_warning_only(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "BUAD 1001",
+                "course_name": "Business Foundations",
+                "credits": 3,
+                "level": 1000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "major_restriction;college_restriction",
+                "soft_prereq_major_restriction": "Enrolled in the College of Business Administration or declared business second major",
+                "soft_prereq_college_restriction": "Enrolled in the College of Business Administration or declared business second major",
+                "offering_confidence": "high",
+                "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["BUAD 1001"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "CORE",
+                "course_code": "BUAD 1001",
+                "is_required": True,
+                "can_double_count": False,
+                "constraints": None,
+            }]),
+        ], ignore_index=True)
+
+        eligible = get_eligible_courses(
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            allocator_remaining,
+            augmented_map,
+            buckets_df,
+            selected_program_ids=["FIN_MAJOR"],
+        )
+        buad1001 = next(c for c in eligible if c["course_code"] == "BUAD 1001")
+        assert buad1001["has_soft_requirement"] is False
+        assert "major_restriction" not in buad1001["soft_tags"]
+        assert "college_restriction" not in buad1001["soft_tags"]
+
+    def test_blocks_nonbusiness_college_restricted_course_for_business_selection(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "COMM 4971",
+                "course_name": "Communication Capstone",
+                "credits": 3,
+                "level": 4000,
+                "offered_fall": True,
+                "offered_spring": False,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "college_restriction",
+                "soft_prereq_college_restriction": "Declared major or minor in the College of Communication",
+                "offering_confidence": "high",
+                "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["COMM 4971"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_CHOOSE_2",
+                "course_code": "COMM 4971",
+                "is_required": False,
+                "can_double_count": True,
+                "constraints": None,
+            }]),
+        ], ignore_index=True)
+
+        eligible = get_eligible_courses(
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            allocator_remaining,
+            augmented_map,
+            buckets_df,
+            selected_program_ids=["FIN_MAJOR"],
+        )
+        assert "COMM 4971" not in [c["course_code"] for c in eligible]
+
+    def test_blocks_negative_business_college_restriction_for_business_selection(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "ECON 1001",
+                "course_name": "Intro Economics",
+                "credits": 3,
+                "level": 1000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "college_restriction",
+                "soft_prereq_college_restriction": "Not enrolled in the College of Business Administration",
+                "offering_confidence": "high",
+                "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["ECON 1001"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_CHOOSE_2",
+                "course_code": "ECON 1001",
+                "is_required": False,
+                "can_double_count": True,
+                "constraints": None,
+            }]),
+        ], ignore_index=True)
+
+        eligible = get_eligible_courses(
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            allocator_remaining,
+            augmented_map,
+            buckets_df,
+            selected_program_ids=["FIN_MAJOR"],
+        )
+        assert "ECON 1001" not in [c["course_code"] for c in eligible]
 
     def test_soft_requirement_flagged(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
         eligible = get_eligible_courses(
@@ -436,6 +673,112 @@ class TestGetEligibleCourses:
         assert row["selection_buckets"] == []
         assert row["bridge_target_buckets"] == ["CORE"]
         assert row["unlocks_unmet_courses"] == ["CORE 2000"]
+
+    def test_bridge_targets_skip_track_buckets_and_keep_major_targets(self):
+        courses = pd.DataFrame([
+            {
+                "course_code": "PREP 1000",
+                "course_name": "Prep",
+                "credits": 3,
+                "level": 1000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "",
+                "offering_confidence": "high",
+                "notes": None,
+            },
+            {
+                "course_code": "MAJOR 2000",
+                "course_name": "Major Target",
+                "credits": 3,
+                "level": 2000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "PREP 1000",
+                "prereq_soft": "",
+                "offering_confidence": "high",
+                "notes": None,
+            },
+            {
+                "course_code": "TRACK 2000",
+                "course_name": "Track Target",
+                "credits": 3,
+                "level": 2000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "PREP 1000",
+                "prereq_soft": "",
+                "offering_confidence": "high",
+                "notes": None,
+            },
+        ])
+        from prereq_parser import parse_prereqs
+        prereq_map = {
+            "PREP 1000": parse_prereqs("none"),
+            "MAJOR 2000": parse_prereqs("PREP 1000"),
+            "TRACK 2000": parse_prereqs("PREP 1000"),
+        }
+        buckets = pd.DataFrame([
+            {
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_MAJOR::REQ",
+                "bucket_label": "Major Required",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "FIN_MAJOR",
+                "requirement_mode": "required",
+            },
+            {
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "CB_TRACK::REQ",
+                "bucket_label": "Track Required",
+                "priority": 2,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "parent_bucket_id": "CB_TRACK",
+                "requirement_mode": "required",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::REQ", "course_code": "MAJOR 2000"},
+            {"track_id": "FIN_MAJOR", "bucket_id": "CB_TRACK::REQ", "course_code": "TRACK 2000"},
+        ])
+        remaining = {
+            "FIN_MAJOR::REQ": {
+                "slots_remaining": 1,
+                "needed": 1,
+                "remaining_courses": ["MAJOR 2000"],
+            },
+            "CB_TRACK::REQ": {
+                "slots_remaining": 1,
+                "needed": 1,
+                "remaining_courses": ["TRACK 2000"],
+            },
+        }
+
+        eligible = get_eligible_courses(
+            courses,
+            [],
+            [],
+            "Fall",
+            prereq_map,
+            remaining,
+            course_map,
+            buckets,
+            track_id="FIN_MAJOR",
+        )
+        row = next(c for c in eligible if c["course_code"] == "PREP 1000")
+        assert row["bridge_target_buckets"] == ["FIN_MAJOR::REQ"]
+        assert set(row["unlocks_unmet_courses"]) == {"MAJOR 2000", "TRACK 2000"}
 
     def test_same_family_non_elective_hides_same_family_elective_pool_but_keeps_cross_family(self):
         courses = pd.DataFrame([
@@ -670,6 +1013,52 @@ class TestCheckCanTake:
         result = check_can_take("FINA 4095", courses_df, [], [], "Fall", prereq_map)
         assert result["can_take"] is None
         assert result["unsupported_prereq_format"] is True
+
+    def test_program_restriction_blocks_can_take(self, courses_df, prereq_map):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "AIM 4470",
+                "course_name": "AIM Ethics",
+                "credits": 3,
+                "level": 4000,
+                "offered_fall": True,
+                "offered_spring": False,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "major_restriction",
+                "soft_prereq_major_restriction": "AIM major",
+                "offering_confidence": "high",
+                "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["AIM 4470"] = parse_prereqs("none")
+
+        result = check_can_take(
+            "AIM 4470",
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            selected_program_ids=["FIN_MAJOR"],
+        )
+        assert result["can_take"] is False
+        assert "Restricted" in result["why_not"]
+
+    def test_explicit_concurrent_prereq_allows_can_take_with_in_progress_companion(
+        self, courses_df, prereq_map,
+    ):
+        result = check_can_take(
+            "FINA 4300",
+            courses_df,
+            [],
+            ["FINA 3001"],
+            "Fall",
+            prereq_map,
+        )
+        assert result["can_take"] is True
 
 
 class TestParseTerm:

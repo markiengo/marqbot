@@ -1209,7 +1209,6 @@ def run_recommendation_semester(
             bucket_track_required_map,
             bucket_parent_map,
         )
-        tagged["bcc_priority_rank"] = _bcc_priority_rank(tagged, bucket_parent_map)
         current_unmet_buckets = _current_unmet_bucket_ids(tagged, alloc["remaining"])
         is_discovery_driven = _is_discovery_driven(
             tagged,
@@ -1233,15 +1232,10 @@ def run_recommendation_semester(
         scored_non_manual_sem,
         key=lambda c: (
             c.get("ranking_tier", 99),
-            c.get("bcc_priority_rank", 0),
-            c.get("discovery_foundation_penalty", 0),
-            c.get("discovery_affinity_penalty", 0),
-            0 if c["course_code"] in core_prereq_blockers_sem else 1,
             1 if c.get("is_bridge_course") else 0,
-            c.get("soft_prereq_penalty", 0),
             -_chain.get(c["course_code"], 0),
-            _course_level(c) if _course_level(c) is not None else 9999,
             -c.get("multi_bucket_score", 0),
+            _course_level(c) if _course_level(c) is not None else 9999,
             c["course_code"],
         ),
     )
@@ -1302,6 +1296,8 @@ def run_recommendation_semester(
         for candidate in ranked_sem:
             if candidate.get("ranking_tier", 99) > 2:
                 continue
+            if _missing_same_semester_prereqs(candidate):
+                continue
             if _assignable_buckets_for_candidate(candidate, enforce_bucket_cap=True):
                 return True
         return False
@@ -1317,8 +1313,48 @@ def run_recommendation_semester(
                 continue
             if _is_bridge_candidate(candidate):
                 continue
+            if _missing_same_semester_prereqs(candidate):
+                continue
             assigned = _assignable_buckets_for_candidate(
                 candidate,
+                enforce_bucket_cap=enforce_bucket_cap,
+            )
+            if not assigned:
+                continue
+            if _family_cap_exceeded(assigned):
+                continue
+            return True
+        return False
+
+    def _maturity_guard_blocks(
+        candidate: dict,
+        *,
+        enforce_bucket_cap: bool,
+        excluded_codes: set[str],
+    ) -> bool:
+        if current_standing > 1:
+            return False
+        if candidate.get("ranking_tier", 99) < 3:
+            return False
+        level = _course_level(candidate)
+        if level is None or level < 3000:
+            return False
+
+        for other in ranked_sem:
+            other_code = other.get("course_code")
+            if other_code in excluded_codes:
+                continue
+            if other_code == candidate.get("course_code"):
+                continue
+            other_level = _course_level(other)
+            if other_level is None or other_level >= 3000:
+                continue
+            if _is_bridge_candidate(other):
+                continue
+            if _missing_same_semester_prereqs(other):
+                continue
+            assigned = _assignable_buckets_for_candidate(
+                other,
                 enforce_bucket_cap=enforce_bucket_cap,
             )
             if not assigned:
@@ -1360,6 +1396,18 @@ def run_recommendation_semester(
                 virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
                 picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
 
+    def _missing_same_semester_prereqs(candidate: dict) -> list[str]:
+        available_codes = set(completed) | set(in_progress) | {
+            selected.get("course_code")
+            for selected in selected_sem
+            if selected.get("course_code")
+        }
+        return [
+            code
+            for code in candidate.get("same_semester_prereqs", []) or []
+            if code not in available_codes
+        ]
+
     # ---------- Pass 1: Declared-program priority ----------
     # Select up to declared_min_target courses that count toward declared
     # major/track requirements, respecting family cap and bucket capacity.
@@ -1372,6 +1420,22 @@ def run_recommendation_semester(
         if suppress_declared_preemption and cand.get("ranking_tier", 99) > 2:
             continue
         if not cand.get("_counts_toward_declared_min"):
+            continue
+        unresolved_same_sem = _missing_same_semester_prereqs(cand)
+        if unresolved_same_sem:
+            if debug:
+                skipped_reasons[cand["course_code"]] = (
+                    "waiting on same-semester concurrent course(s): "
+                    + ", ".join(unresolved_same_sem)
+                )
+            continue
+        if _maturity_guard_blocks(
+            cand,
+            enforce_bucket_cap=True,
+            excluded_codes={c["course_code"] for c in selected_sem},
+        ):
+            if debug:
+                skipped_reasons[cand["course_code"]] = "freshman maturity guard deferred advanced course"
             continue
         assigned_buckets = _assignable_buckets_for_candidate(cand, enforce_bucket_cap=True)
         is_bridge_pick = _is_bridge_candidate(cand)
@@ -1404,7 +1468,14 @@ def run_recommendation_semester(
             break
         if cand["course_code"] in selected_codes_set:
             continue
-
+        unresolved_same_sem = _missing_same_semester_prereqs(cand)
+        if unresolved_same_sem:
+            if debug:
+                skipped_reasons[cand["course_code"]] = (
+                    "waiting on same-semester concurrent course(s): "
+                    + ", ".join(unresolved_same_sem)
+                )
+            continue
         remaining_slots_to_fill = max_recs - len(selected_sem)
         if not cap_relaxed:
             remaining_candidates = ranked_sem[idx:]
@@ -1426,6 +1497,14 @@ def run_recommendation_semester(
         if (not cap_relaxed) and (len(viable_unmet_buckets) < remaining_slots_to_fill):
             cap_relaxed = True
         enforce_bucket_cap = not cap_relaxed
+        if _maturity_guard_blocks(
+            cand,
+            enforce_bucket_cap=enforce_bucket_cap,
+            excluded_codes={c["course_code"] for c in selected_sem},
+        ):
+            if debug:
+                skipped_reasons[cand["course_code"]] = "freshman maturity guard deferred advanced course"
+            continue
 
         assigned_buckets = _assignable_buckets_for_candidate(
             cand,
@@ -1475,6 +1554,14 @@ def run_recommendation_semester(
             break
         if cand["course_code"] in selected_codes_set:
             continue
+        if _missing_same_semester_prereqs(cand):
+            continue
+        if _maturity_guard_blocks(
+            cand,
+            enforce_bucket_cap=False,
+            excluded_codes={c["course_code"] for c in selected_sem},
+        ):
+            continue
         assigned_buckets = _assignable_buckets_for_candidate(cand, enforce_bucket_cap=False)
         is_bridge_pick = _is_bridge_candidate(cand)
         if not assigned_buckets and not is_bridge_pick:
@@ -1503,6 +1590,14 @@ def run_recommendation_semester(
                     break
                 if cand["course_code"] in selected_codes_set:
                     continue
+                if _missing_same_semester_prereqs(cand):
+                    continue
+                if _maturity_guard_blocks(
+                    cand,
+                    enforce_bucket_cap=not cap_relaxed,
+                    excluded_codes={c["course_code"] for c in selected_sem},
+                ):
+                    continue
                 assigned_buckets = _assignable_buckets_for_candidate(
                     cand, enforce_bucket_cap=not cap_relaxed,
                 )
@@ -1510,6 +1605,42 @@ def run_recommendation_semester(
                     continue
                 _accept_candidate(cand, assigned_buckets)
                 selected_codes_set.add(cand["course_code"])
+
+    # ---------- Same-semester concurrent follow-up ----------
+    if len(selected_sem) < max_recs:
+        selected_codes_set = {c["course_code"] for c in selected_sem}
+        for cand in ranked_sem:
+            if len(selected_sem) >= max_recs:
+                break
+            if cand["course_code"] in selected_codes_set:
+                continue
+            unresolved_same_sem = _missing_same_semester_prereqs(cand)
+            if unresolved_same_sem:
+                continue
+            if _maturity_guard_blocks(
+                cand,
+                enforce_bucket_cap=not cap_relaxed,
+                excluded_codes={c["course_code"] for c in selected_sem},
+            ):
+                continue
+            assigned_buckets = _assignable_buckets_for_candidate(
+                cand,
+                enforce_bucket_cap=not cap_relaxed,
+            )
+            is_bridge_pick = _is_bridge_candidate(cand)
+            if not assigned_buckets and not is_bridge_pick:
+                continue
+            if is_bridge_pick and _has_available_direct_fill_candidate(
+                enforce_bucket_cap=not cap_relaxed,
+                excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
+            ):
+                continue
+            if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
+                continue
+            if assigned_buckets and _family_cap_exceeded(assigned_buckets):
+                continue
+            _accept_candidate(cand, assigned_buckets)
+            selected_codes_set.add(cand["course_code"])
 
     # ---------- Rescue pass ----------
     # When all passes produced nothing, force-assign to any mapped bucket.

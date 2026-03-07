@@ -1153,6 +1153,40 @@ def _normalize_declared_minors(raw_value):
     return list(dict.fromkeys(minors)), None
 
 
+def _restriction_program_ids(
+    selected_program_ids: list[str],
+    catalog_df: pd.DataFrame,
+) -> list[str]:
+    if not selected_program_ids:
+        return []
+    by_id = {
+        str(row["track_id"]).strip().upper(): row
+        for _, row in catalog_df.iterrows()
+        if str(row.get("track_id", "") or "").strip()
+    }
+    ordered: list[str] = []
+    seen: set[str] = set()
+
+    def _append(program_id: str) -> None:
+        pid = str(program_id or "").strip().upper()
+        if not pid or pid in seen:
+            return
+        seen.add(pid)
+        ordered.append(pid)
+
+    for program_id in selected_program_ids:
+        _append(program_id)
+        row = by_id.get(str(program_id or "").strip().upper())
+        if row is None:
+            continue
+        parent_major_id = str(row.get("parent_major_id", "") or "").strip().upper()
+        required_major_id = _program_required_major_id(row)
+        _append(parent_major_id)
+        _append(required_major_id)
+
+    return ordered
+
+
 def _resolve_program_selection(body, data: dict):
     """
     Resolve request-scoped plan selection.
@@ -1220,6 +1254,7 @@ def _resolve_program_selection(body, data: dict):
                             "selected_track_id": raw_track_id,
                             "selected_track_label": str(legacy_row.iloc[0].get("track_label", raw_track_id)),
                             "selected_program_ids": [raw_track_id],
+                            "restriction_program_ids": _restriction_program_ids([raw_track_id], catalog_df),
                             "selected_program_labels": [str(legacy_row.iloc[0].get("track_label", raw_track_id))],
                             "program_warnings": [],
                             "track_warning": None,
@@ -1257,6 +1292,7 @@ def _resolve_program_selection(body, data: dict):
                     "selected_track_id": selected_track_id,
                     "selected_track_label": _program_label(selected_track_id),
                     "selected_program_ids": [selected_track_id],
+                    "restriction_program_ids": _restriction_program_ids([selected_track_id], catalog_df),
                     "selected_program_labels": [_program_label(selected_track_id)],
                     "program_warnings": [],
                     "track_warning": track_warning,
@@ -1280,6 +1316,7 @@ def _resolve_program_selection(body, data: dict):
                 "selected_track_id": None,
                 "selected_track_label": None,
                 "selected_program_ids": [major_id],
+                "restriction_program_ids": _restriction_program_ids([major_id], catalog_df),
                 "selected_program_labels": [_program_label(major_id)],
                 "program_warnings": [],
                 "track_warning": track_warning,
@@ -1308,6 +1345,7 @@ def _resolve_program_selection(body, data: dict):
             "selected_track_id": track_id,
             "selected_track_label": _program_label(track_id),
             "selected_program_ids": [track_id],
+            "restriction_program_ids": _restriction_program_ids([track_id], catalog_df),
             "selected_program_labels": [_program_label(track_id)],
             "program_warnings": [],
             "track_warning": track_warning,
@@ -1457,6 +1495,7 @@ def _resolve_program_selection(body, data: dict):
         "selected_track_ids": selected_track_ids,
         "selected_track_label": selected_track_label,
         "selected_program_ids": selected_program_ids,
+        "restriction_program_ids": _restriction_program_ids(selected_program_ids, catalog_df),
         "selected_program_labels": selected_program_labels,
         "program_warnings": warnings,
         "track_warning": None,
@@ -2076,6 +2115,7 @@ def recommend():
                 assumes_in_progress_completion=bool(in_progress_input),
                 chain_depths=_chain_depths,
                 is_honors_student=is_honors_student,
+                selected_program_ids=selection.get("restriction_program_ids"),
             )
         else:
             completed_only_standing = _credits_to_standing(
@@ -2095,6 +2135,7 @@ def recommend():
                 completed_only_standing=completed_only_standing,
                 chain_depths=_chain_depths,
                 is_honors_student=is_honors_student,
+                selected_program_ids=selection.get("restriction_program_ids"),
             )
         semesters_payload.append(semester_payload)
         # Accumulate recommended course credits for the next semester's standing projection.
@@ -2249,6 +2290,7 @@ def can_take_endpoint():
         [],
         target_term,
         effective_data["prereq_map"],
+        selected_program_ids=(selection or {}).get("restriction_program_ids"),
         runtime_indexes=effective_data.get("runtime_indexes"),
     )
 
