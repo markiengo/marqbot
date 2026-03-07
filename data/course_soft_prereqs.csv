@@ -2919,7 +2919,7 @@ INSY 4054,major_restriction;instructor_consent,"INSY 3001, or ACCO 4050 for ACCO
 INSY 4055,instructor_consent,INSY 4051 or COSC 1010 or cons. of instr.,,INSY 4051 or COSC 1010 or cons. of instr,,,,,,,,,,,INSY 4051 or COSC 1010 or cons. of instr.
 INSY 4056,standing_requirement,INSY 3001 or ACCO 4050; Jr. stndg.,,,,,,Jr. stndg,,,,,,,INSY 3001 or ACCO 4050; Jr. stndg.
 INSY 4156,,INSY 3001 or ACCO 4050.,,,,,,,,,,,,,
-INSY 4158,,"Two courses from: INSY 4051, INSY 4052, INSY 4053, INSY 4054 or INSY 4055.",,,,,,,,,,,,,
+INSY 4158,other_requirements,"Two courses from: INSY 4051, INSY 4052, INSY 4053, INSY 4054 or INSY 4055.",,,,,,,,,,,Two courses from: INSY 4051; INSY 4052; INSY 4053; INSY 4054; INSY 4055,,
 INSY 4931,,INSY 3001.,,,,,,,,,,,,,
 INSY 4986,instructor_consent,INSY 3986; cons. of prog. dir. and cons. of Business Career Center. Consent required.,,cons. of prog. dir. and cons. of Business Career Center; Consent required,,,,,,,,,,,INSY 3986; cons. of prog. dir. and cons. of Business Career Center. Consent required.
 INSY 4989,major_restriction;instructor_consent,"INSY 3001, or ACCO 4050 for ACCO majors, cons. of prog. dir. and cons. of Business Career Center. Consent required.","INSY 3001, or ACCO 4050 for ACCO majors, cons. of prog. dir. and cons. of Business Career Center","INSY 3001, or ACCO 4050 for ACCO majors, cons. of prog. dir. and cons. of Business Career Center; Consent required",,,,,,,,,,,"INSY 3001, or ACCO 4050 for ACCO majors, cons. of prog. dir. and cons. of Business Career Center. Consent required."

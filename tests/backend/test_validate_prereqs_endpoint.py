@@ -41,19 +41,20 @@ def test_valid_completed_and_in_progress_pair_returns_no_inconsistencies(client)
 
 
 def test_direct_inconsistency_returns_offending_completed_course(client):
+    # FINA 4001 hard-requires FINA 3001 — completing 4001 while 3001 is in-progress is inconsistent
     response = _post(
         client,
         "/validate-prereqs",
-        completed_courses="FINA 3001",
-        in_progress_courses="ACCO 1031",
+        completed_courses="FINA 4001",
+        in_progress_courses="FINA 3001",
     )
 
     assert response.status_code == 200
     data = response.get_json()
     assert data["inconsistencies"] == [
         {
-            "course_code": "FINA 3001",
-            "prereqs_in_progress": ["ACCO 1031"],
+            "course_code": "FINA 4001",
+            "prereqs_in_progress": ["FINA 3001"],
         }
     ]
 
