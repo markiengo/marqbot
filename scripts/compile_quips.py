@@ -46,6 +46,19 @@ COMPOUND_IDS = {
     "heavy_warned",
     "deep_planning",
     "multibucket_stacking",
+    "finance_major",
+    "accounting_major",
+    "marketing_major",
+    "insy_major",
+    "buan_major",
+    "aim_major",
+    "hure_major",
+    "oscm_major",
+    "real_major",
+    "beco_major",
+    "badm_major",
+    "inbu_major",
+    "multi_major",
 }
 
 VALID_TARGETS = {"progress", "semester", "both"}

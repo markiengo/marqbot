@@ -17,6 +17,7 @@ interface ProgressModalProps {
   assumptionNotes?: string[] | null;
   programLabelMap?: Map<string, string>;
   programOrder?: string[];
+  declaredMajors?: string[];
 }
 
 export function ProgressModal({
@@ -27,6 +28,7 @@ export function ProgressModal({
   assumptionNotes,
   programLabelMap,
   programOrder,
+  declaredMajors,
 }: ProgressModalProps) {
   const sections = groupProgressByTierWithMajors(currentProgress, programLabelMap, programOrder);
   const notes = (assumptionNotes || []).filter(Boolean);
@@ -85,7 +87,7 @@ export function ProgressModal({
           transition={{ duration: 0.4, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
           className="text-center text-[1.05rem] text-ink-muted italic py-3"
         >
-          {getProgressQuip({ metrics, currentProgress: currentProgress ?? null })}
+          {getProgressQuip({ metrics, currentProgress: currentProgress ?? null, declaredMajors })}
         </motion.p>
 
         <div className="divider-fade" />

@@ -486,6 +486,7 @@ export function PlannerLayout() {
         assumptionNotes={data?.current_assumption_notes}
         programLabelMap={programLabelMap}
         programOrder={programOrder}
+        declaredMajors={[...state.selectedMajors]}
       />
       <SemesterModal
         open={semesterModalIdx !== null && modalSemester !== null}
@@ -494,6 +495,7 @@ export function PlannerLayout() {
         index={semesterModalIdx ?? 0}
         totalCount={data?.semesters?.length ?? 0}
         requestedCount={requestedCount}
+        declaredMajors={[...state.selectedMajors]}
         onNext={() => setSemesterModalIdx(i => i !== null && i < (data?.semesters?.length ?? 0) - 1 ? i + 1 : i)}
         onBack={() => setSemesterModalIdx(i => i !== null && i > 0 ? i - 1 : i)}
         programLabelMap={programLabelMap}
@@ -524,65 +526,65 @@ export function PlannerLayout() {
       >
         <div className="space-y-6 text-base text-ink-secondary">
           <p className="text-ink-faint text-[1.05rem]">
-            Here&apos;s the simple version: I only show classes that make sense right now, then I put the best ones at the top.
+            Short version: I filter out the nonsense first, then rank what is actually worth taking next.
           </p>
           <ol className="space-y-5 list-none">
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">1</span>
               <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Can you take it right now?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If not, I hide it. No prereq? Not offered this term? Not enough credits yet? Then it does not make the list.</p>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Can you actually take it?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If a class is blocked by prereqs, standing, a clear major or college restriction, or term availability, it stays off the list. Oopsie. Locked means locked.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">2</span>
               <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Does it help with required stuff?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Classes that fill required boxes usually come before random extras. Core first. Major next. Flexible stuff later.</p>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">What does it count toward?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">I rank requirement types in order: MCC foundation and BCC first, then major, then track or minor, then later MCC and Discovery. Core stuff beats side quests.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">3</span>
               <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it blocking other classes?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Some classes unlock a bunch of other classes. If one class is blocking the road, I push it up.</p>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it helping now, or just setting up later?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Classes that fill something now beat bridge classes. Bridge picks only stick around when they unlock important MCC, BCC, or major work. No random detours for the plot.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">4</span>
               <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Do you need to start it early?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Some classes are step 1 of a long path. If waiting would mess up later semesters, I move that class higher now.</p>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it a gatekeeper?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class unlocks a longer chain, it gets a bump. Gatekeeper energy. Better to handle that now than let it bully future-you later.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">5</span>
               <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Start with foundations</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Lower-level classes come first. They build the base you need for upper-level work.</p>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Does it knock out more than one open requirement?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class helps more than one open bucket, that is a two-for-one. Those usually move up. We love efficiency.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">6</span>
               <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Does one class count for two things?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class helps with more than one requirement, that&apos;s a great deal. Those usually move up.</p>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it too advanced for right now?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">For early students, I hold back 3000 and 4000-level backfill while lower-level options still exist. Respectfully: senior energy can wait.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">7</span>
               <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Am I overloading one area?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">I try not to stack too many classes from the same requirement family in one semester. I also try to keep about a third of each term on your declared major or track when possible.</p>
+                <p className="font-semibold text-white text-[1.1rem] leading-snug">Can it ride with a same-semester companion?</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If a class can be taken concurrently, I can recommend it once its partner course is already in the semester plan. No orphan labs. No mystery tagalongs.</p>
               </div>
             </li>
           </ol>
           <div className="divider-fade" />
           <p className="text-ink-faint text-[1.05rem] pt-3">
-            I assume you pass the classes in your plan. If your courses change, update them here.
+            I assume you pass the classes in your plan. If your courses change, rerun the plan. Same inputs, same output. I am rules-based, not psychic.
           </p>
           <p className="text-ink-muted text-[1.05rem]">
-            This is strong, not perfect. Some rules are still being added. Full picture{" "}
+            This is deterministic course logic, not guesswork. Some catalog rows are still messy, so when the data is weird, I stay cautious. Full picture{" "}
             <a
               href="/about"
               className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"

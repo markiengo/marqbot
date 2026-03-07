@@ -406,6 +406,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
         index={semesterModalIdx ?? 0}
         totalCount={recommendationData?.semesters?.length ?? 0}
         requestedCount={Number(plan.inputs.maxRecs) || 3}
+        declaredMajors={plan?.inputs.declaredMajors}
         programLabelMap={programLabelMap}
         programOrder={programOrder}
         onCourseClick={setCourseDetailCode}

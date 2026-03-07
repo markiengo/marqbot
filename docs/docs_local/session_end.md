@@ -10,16 +10,26 @@
 ### Always consider
 - `docs/CHANGELOG.md`
   - Add a new top entry for user-visible changes.
+  - One bullet per change, written so a student or advisor would understand.
 - `README.md`
-  - Update if setup, commands, pages, or user workflow changed.
+  - Update if setup steps, CLI commands, pages, or user workflow changed.
+  - Update if new environment variables, new scripts, or new data files were added.
 - `docs/PRD.md`
   - Update if product behavior, scope, or user-facing requirements changed.
+  - Update if new exclusion rules, new recommendation tiers, or new UI screens were added.
+- `docs/algorithm.md`
+  - Update if recommendation ranking, eligibility filtering, bridge logic, bucket allocation, or pipeline steps changed.
+  - Update if new exclusion categories, new tier definitions, or new debug trace fields were added.
+  - Update if standing recovery, summer special cases, or credit parsing behavior changed.
 - `docs/data_model.md`
-  - Update if data shape, buckets, or program modeling changed.
+  - Update if data shape, CSV columns, bucket types, or program modeling changed.
+  - Update if new CSVs were added or existing CSV schemas were altered.
 - `tests/test_structure.md`
-  - Update if test files, test counts, default test commands, or the standard-vs-extra suite split changed.
+  - Update if test files were added, removed, renamed, or regrouped.
+  - Update if default-vs-extra test run guidance or test counts changed.
 - `.claude/CLAUDE.md`
-  - Add important repo rules, user preferences, or decisions from the session (local-only, do not push).
+  - Add important repo rules, user preferences, or architectural decisions from the session.
+  - This is local-only — do not push.
 
 ### Important push rule
 - Inside `docs/`, only push:

@@ -25,6 +25,7 @@ interface SemesterModalProps {
   // Navigation
   onNext?(): void;
   onBack?(): void;
+  declaredMajors?: string[];
   // Edit mode props — omit to hide edit button
   candidatePool?: RecommendedCourse[];
   candidatePoolLoading?: boolean;
@@ -40,6 +41,7 @@ export function SemesterModal({
   index,
   totalCount,
   requestedCount,
+  declaredMajors,
   programLabelMap,
   bucketLabelMap,
   programOrder,
@@ -126,7 +128,7 @@ export function SemesterModal({
                   </span>
                 )}
                 <p className="text-[1.05rem] text-ink-muted italic truncate">
-                  {getSemesterQuip({ semester, index, requestedCount })}
+                  {getSemesterQuip({ semester, index, requestedCount, declaredMajors })}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">

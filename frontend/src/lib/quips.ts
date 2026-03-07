@@ -17,12 +17,14 @@ import type { QuipEntry } from "./quipBank.generated";
 export interface ProgressQuipInput {
   metrics: CreditKpiMetrics;
   currentProgress: Record<string, BucketProgress> | null;
+  declaredMajors?: string[];
 }
 
 export interface SemesterQuipInput {
   semester: SemesterData;
   index: number;
   requestedCount: number;
+  declaredMajors?: string[];
 }
 
 export function getProgressQuip(input: ProgressQuipInput): string {
@@ -40,18 +42,19 @@ export function getSemesterQuip(input: SemesterQuipInput): string {
 type DimensionMap = Record<string, string>;
 
 function resolveProgressDimensions(input: ProgressQuipInput): DimensionMap {
-  const { metrics, currentProgress } = input;
+  const { metrics, currentProgress, declaredMajors } = input;
   return {
     standing: resolveStanding(metrics.standingLabel),
     progress: resolveProgress(metrics.donePercent),
     remaining: resolveRemaining(metrics.remainingCredits),
     inProgress: resolveInProgress(metrics.inProgressCredits),
     bucketHealth: resolveBucketHealth(currentProgress),
+    major: resolveMajor(declaredMajors),
   };
 }
 
 function resolveSemesterDimensions(input: SemesterQuipInput): DimensionMap {
-  const { semester, index } = input;
+  const { semester, index, declaredMajors } = input;
   const recs = semester.recommendations || [];
   return {
     season: resolveSeason(semester.target_semester),
@@ -64,6 +67,7 @@ function resolveSemesterDimensions(input: SemesterQuipInput): DimensionMap {
     progress: "building", // not available in semester context; neutral default
     remaining: "chunk",   // not available in semester context; neutral default
     inProgress: "none",   // not available in semester context; neutral default
+    major: resolveMajor(declaredMajors),
   };
 }
 
@@ -75,6 +79,25 @@ function resolveStanding(label: string): string {
   if (l.includes("junior")) return "junior";
   if (l.includes("sophomore")) return "sophomore";
   return "freshman";
+}
+
+function resolveMajor(declaredMajors?: string[]): string {
+  if (!declaredMajors || declaredMajors.length === 0) return "none";
+  if (declaredMajors.length > 1) return "multi";
+  const m = declaredMajors[0].toUpperCase();
+  if (m.startsWith("FIN")) return "finance";
+  if (m.startsWith("ACCO")) return "accounting";
+  if (m.startsWith("MARK")) return "marketing";
+  if (m.startsWith("INSY")) return "insy";
+  if (m.startsWith("BUAN")) return "buan";
+  if (m.startsWith("AIM")) return "aim";
+  if (m.startsWith("HURE")) return "hure";
+  if (m.startsWith("OSCM")) return "oscm";
+  if (m.startsWith("REAL")) return "real";
+  if (m.startsWith("BECO")) return "beco";
+  if (m.startsWith("BADM")) return "badm";
+  if (m.startsWith("INBU")) return "inbu";
+  return "none";
 }
 
 function resolveProgress(pct: number): string {
@@ -200,6 +223,19 @@ const COMPOUND_RULES: CompoundRule[] = [
   rule("heavy_warned",          7,  { recCount: "heavy", hasWarnings: "warned" }),
   rule("deep_planning",         7,  { semesterIndex: "deep" }),
   rule("multibucket_stacking",  6,  { multiBucket: "many" }),
+  rule("multi_major",           5,  { major: "multi" }),
+  rule("finance_major",         4,  { major: "finance" }),
+  rule("accounting_major",      4,  { major: "accounting" }),
+  rule("marketing_major",       4,  { major: "marketing" }),
+  rule("insy_major",            4,  { major: "insy" }),
+  rule("buan_major",            4,  { major: "buan" }),
+  rule("aim_major",             4,  { major: "aim" }),
+  rule("hure_major",            4,  { major: "hure" }),
+  rule("oscm_major",            4,  { major: "oscm" }),
+  rule("real_major",            4,  { major: "real" }),
+  rule("beco_major",            4,  { major: "beco" }),
+  rule("badm_major",            4,  { major: "badm" }),
+  rule("inbu_major",            4,  { major: "inbu" }),
 ].sort((a, b) => b.priority - a.priority);
 
 // ── Dimension fallback priority ─────────────────────────────────────────────
