@@ -145,10 +145,10 @@ When all remaining required courses are blocked by `min_standing`, the engine re
 When `debug=true`, each ranked candidate includes:
 - `rank`, `course_code`, `course_name`
 - `selected`, `skip_reason`
-- `tier`, `is_discovery_driven`, `discovery_foundation_penalty`, `discovery_affinity_penalty`, `soft_prereq_penalty`
-- `is_core_prereq_blocker`, `is_bridge_course`
+- `tier`, `is_bridge_course`
 - `course_level`, `chain_depth`, `multi_bucket_score`
 - `fills_buckets`, `selection_buckets`, `current_unmet_buckets`, `bridge_target_buckets`
 - `bucket_capacity`
 
+Additional diagnostic fields may still appear in debug output for troubleshooting, but they are not necessarily active sort keys.
 Note: `chain_depth` in debug is sourced from the same chain-depth map used by ranking.

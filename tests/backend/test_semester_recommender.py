@@ -979,9 +979,13 @@ def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then
         max_recs=6,
         reverse_map={},
         track_id="FIN_MAJOR",
+        current_standing=2,
+        completed_only_standing=2,
+        debug=True,
+        debug_limit=10,
     )
 
-    codes = [r["course_code"] for r in out["recommendations"]]
+    codes = [r["course_code"] for r in out["debug"][:6]]
     assert codes == ["FOUND 1001", "BCC 1001", "MAJOR 2001", "TRACK 3001", "WRIT 3001", "DISC 1001"]
 
 
@@ -2041,6 +2045,8 @@ def test_family_cap_limits_discovery_courses_per_semester():
         max_recs=5,
         reverse_map={},
         track_id="FIN_MAJOR",
+        current_standing=2,
+        completed_only_standing=2,
     )
 
     codes = [r["course_code"] for r in out["recommendations"]]

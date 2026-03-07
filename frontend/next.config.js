@@ -7,6 +7,10 @@ const nextConfig = {
   // Static export is production-only; dev mode needs rewrites for the API proxy.
   ...(!isDev && { output: "export" }),
   images: { unoptimized: true },
+  experimental: {
+    // Turbopack's filesystem cache fails in this OneDrive-backed Windows workspace.
+    turbopackFileSystemCacheForDev: false,
+  },
   turbopack: {
     root: path.resolve(__dirname),
   },

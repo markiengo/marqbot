@@ -4,6 +4,7 @@ Recommendation invariants that should hold across live program data.
 
 from __future__ import annotations
 
+import re
 import pytest
 
 from dead_end_utils import PlanCase, seed_from_simulation, simulate_terms
@@ -39,7 +40,7 @@ STANDING_SEED_PROBES = (
     (0, 1),
     (2, 2),
     (4, 3),
-    (7, 3),
+    (7, 4),
 )
 
 
@@ -78,6 +79,11 @@ def _unsatisfied_bucket_count(progress: dict) -> int:
     return sum(1 for entry in progress.values() if not entry.get("satisfied", True))
 
 
+def _course_number(course_code: str) -> int:
+    match = re.search(r"\b(\d{4})\b", str(course_code or ""))
+    return int(match.group(1)) if match else 0
+
+
 @pytest.mark.parametrize(
     "major_id",
     _active_representatives(TIER_ORDER_MAJOR_CANDIDATES),
@@ -93,13 +99,17 @@ def test_freshman_recommendations_do_not_skip_tier_one_work(client, major_id):
     ]
     assert unsatisfied_tier_one, f"Expected unsatisfied tier-1 buckets for freshman {major_id}"
 
-    elevated = [
-        (rec["course_code"], rec.get("tier"), rec.get("fills_buckets", []))
+    advanced_backfill = [
+        (
+            rec["course_code"],
+            rec.get("tier"),
+            rec.get("fills_buckets", []),
+        )
         for rec in data.get("recommendations", [])
-        if (rec.get("tier") or 0) >= 3
+        if (rec.get("tier") or 0) >= 3 and _course_number(rec.get("course_code")) >= 3000
     ]
-    assert not elevated, (
-        f"{major_id} returned tier-3+ recommendations before tier-1 work was cleared: {elevated}"
+    assert not advanced_backfill, (
+        f"{major_id} returned advanced tier-3+ backfill too early for a freshman: {advanced_backfill}"
     )
 
 

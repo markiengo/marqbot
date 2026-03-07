@@ -7,6 +7,10 @@
 - Never push the `local` branch.
 
 ## 2) Update the right docs
+### General rule
+- Update all technical `.md` files touched by the session when their content is now stale.
+- Do not stop at the default shortlist below if another technical doc now describes old behavior.
+
 ### Always consider
 - `docs/CHANGELOG.md`
   - Add a new top entry for user-visible changes.

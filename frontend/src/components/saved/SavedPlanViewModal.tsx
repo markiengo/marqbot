@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/shared/Button";
 import { Modal } from "@/components/shared/Modal";
@@ -83,6 +83,18 @@ export function SavedPlanViewModal({
   const router = useRouter();
   const { dispatch } = useAppContext();
   const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setConfirmDeleteOpen(false);
+      setCourseDetailCode(null);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    setConfirmDeleteOpen(false);
+  }, [plan?.id]);
 
   // useMemo must be declared before any early returns
   const creditMap = useMemo(() => buildCourseCreditMap(courses), [courses]);
@@ -148,103 +160,142 @@ export function SavedPlanViewModal({
       {!plan ? null : (
         <div className="relative space-y-5">
           <div className="absolute -inset-4 bg-[radial-gradient(ellipse_at_top_right,rgba(255,204,0,0.04),transparent_50%),radial-gradient(ellipse_at_bottom_left,rgba(0,114,206,0.05),transparent_50%)] pointer-events-none" />
-          {/* Freshness + timestamp */}
-          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faint">
-            <FreshnessBadge freshness={freshness} />
-            <span>Updated {formatSavedPlanDate(plan.updatedAt)}</span>
-            {plan.notes && (
-              <span className="text-ink-secondary italic">&mdash; {plan.notes}</span>
-            )}
-          </div>
-
-          {/* Metadata strip */}
-          <div className="flex flex-wrap gap-1.5">
-            {majorLabels.length > 0 && (
-              <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
-                <span className="text-ink-faint">Major </span>
-                {majorLabels.join(", ")}
-              </span>
-            )}
-            {trackLabels.length > 0 && (
-              <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
-                <span className="text-ink-faint">Track </span>
-                {trackLabels.join(", ")}
-              </span>
-            )}
-            <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
-              <span className="text-ink-faint">Target </span>
-              {plan.inputs.targetSemester}
-            </span>
-            <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
-              <span className="text-ink-faint">Semesters </span>
-              {plan.inputs.semesterCount}
-            </span>
-            <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
-              <span className="text-ink-faint">Max/sem </span>
-              {plan.inputs.maxRecs}
-            </span>
-          </div>
-
-          <div className="divider-fade" />
-
-          {/* Credit progress bar */}
-          {metrics && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs text-ink-faint">
-                <span>{metrics.completedCredits} cr done</span>
-                <span className="text-gold/70">{metrics.inProgressCredits} cr in progress</span>
-                <span className="font-medium text-gold drop-shadow-[0_0_6px_rgba(255,204,0,0.25)]">{metrics.standingLabel}</span>
+          {confirmDeleteOpen ? (
+            <div className="relative space-y-5">
+              <div className="rounded-[24px] border border-bad/30 bg-[linear-gradient(165deg,rgba(72,11,15,0.68),rgba(16,19,35,0.92))] px-5 py-6 shadow-[0_24px_60px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <p className="section-kicker !text-bad">Delete Saved Plan</p>
+                <h4 className="mt-2 text-2xl font-semibold text-ink-primary">
+                  Are you sure?
+                </h4>
+                <p className="mt-3 text-sm leading-relaxed text-ink-secondary">
+                  This will permanently remove <span className="font-semibold text-ink-primary">{plan.name}</span> from this browser.
+                  The saved notes, snapshot, and plan inputs will all be deleted.
+                </p>
+                <div className="mt-4 rounded-2xl border border-white/8 bg-black/15 px-4 py-3 text-xs text-ink-faint">
+                  If you still need it, back out now and keep the plan in your library.
+                </div>
               </div>
-              <div className="h-2.5 rounded-full bg-surface-hover overflow-hidden flex">
-                <div
-                  className="h-full rounded-l-full bg-gradient-to-r from-ok/80 to-ok bar-animate-in bar-glow-ok shrink-0"
-                  style={{ width: `${Math.min(metrics.donePercent, 100)}%` }}
-                />
-                {metrics.inProgressCredits > 0 && (
-                  <div
-                    className="h-full bg-gradient-to-r from-gold/50 to-gold/30 bar-animate-in shrink-0"
-                    style={{ width: `${Math.min((metrics.inProgressCredits / 120) * 100, 100 - metrics.donePercent)}%` }}
-                  />
+
+              <div className="divider-fade" />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setConfirmDeleteOpen(false)}
+                >
+                  Keep Plan
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={onDelete}
+                  className="border-bad/40 text-bad hover:border-bad/60 hover:bg-bad-light/25"
+                >
+                  Yes, Delete Plan
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Freshness + timestamp */}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faint">
+                <FreshnessBadge freshness={freshness} />
+                <span>Updated {formatSavedPlanDate(plan.updatedAt)}</span>
+                {plan.notes && (
+                  <span className="text-ink-secondary italic">&mdash; {plan.notes}</span>
                 )}
               </div>
-            </div>
-          )}
 
-          {/* Year grid */}
-          {!plan.recommendationData ? (
-            <p className="text-sm text-ink-faint italic">No saved recommendations.</p>
-          ) : (
-            <div>
-              {rows.map((row, yearIdx) => (
-                <div key={yearIdx}>
-                  <p className={`section-kicker !text-[10px] mb-2 ${yearIdx > 0 ? "mt-5" : "mt-3"}`}>
-                    Year {yearIdx + 1}
-                  </p>
-                  <div className={`grid gap-3 ${row.length === 1 ? "grid-cols-1" : cols === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`}>
-                    {row.map((sem, i) => (
-                      <SemesterCard key={yearIdx * cols + i} sem={sem} index={yearIdx * cols + i} onCourseClick={setCourseDetailCode} />
-                    ))}
+              {/* Metadata strip */}
+              <div className="flex flex-wrap gap-1.5">
+                {majorLabels.length > 0 && (
+                  <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
+                    <span className="text-ink-faint">Major </span>
+                    {majorLabels.join(", ")}
+                  </span>
+                )}
+                {trackLabels.length > 0 && (
+                  <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
+                    <span className="text-ink-faint">Track </span>
+                    {trackLabels.join(", ")}
+                  </span>
+                )}
+                <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
+                  <span className="text-ink-faint">Target </span>
+                  {plan.inputs.targetSemester}
+                </span>
+                <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
+                  <span className="text-ink-faint">Semesters </span>
+                  {plan.inputs.semesterCount}
+                </span>
+                <span className="rounded-full glass-card px-2.5 py-1 text-xs text-ink-secondary">
+                  <span className="text-ink-faint">Max/sem </span>
+                  {plan.inputs.maxRecs}
+                </span>
+              </div>
+
+              <div className="divider-fade" />
+
+              {/* Credit progress bar */}
+              {metrics && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs text-ink-faint">
+                    <span>{metrics.completedCredits} cr done</span>
+                    <span className="text-gold/70">{metrics.inProgressCredits} cr in progress</span>
+                    <span className="font-medium text-gold drop-shadow-[0_0_6px_rgba(255,204,0,0.25)]">{metrics.standingLabel}</span>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-surface-hover overflow-hidden flex">
+                    <div
+                      className="h-full rounded-l-full bg-gradient-to-r from-ok/80 to-ok bar-animate-in bar-glow-ok shrink-0"
+                      style={{ width: `${Math.min(metrics.donePercent, 100)}%` }}
+                    />
+                    {metrics.inProgressCredits > 0 && (
+                      <div
+                        className="h-full bg-gradient-to-r from-gold/50 to-gold/30 bar-animate-in shrink-0"
+                        style={{ width: `${Math.min((metrics.inProgressCredits / 120) * 100, 100 - metrics.donePercent)}%` }}
+                      />
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              )}
 
-          {/* Actions */}
-          <div className="divider-fade" />
-          <div className="flex items-center justify-between pt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="text-bad hover:bg-bad-light/25"
-            >
-              Delete
-            </Button>
-            <Button variant="gold" size="sm" onClick={handleLoadIntoPlanner} className="shadow-[0_0_24px_rgba(255,204,0,0.22)] pulse-gold-soft">
-              Edit in Planner
-            </Button>
-          </div>
+              {/* Year grid */}
+              {!plan.recommendationData ? (
+                <p className="text-sm text-ink-faint italic">No saved recommendations.</p>
+              ) : (
+                <div>
+                  {rows.map((row, yearIdx) => (
+                    <div key={yearIdx}>
+                      <p className={`section-kicker !text-[10px] mb-2 ${yearIdx > 0 ? "mt-5" : "mt-3"}`}>
+                        Year {yearIdx + 1}
+                      </p>
+                      <div className={`grid gap-3 ${row.length === 1 ? "grid-cols-1" : cols === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`}>
+                        {row.map((sem, i) => (
+                          <SemesterCard key={yearIdx * cols + i} sem={sem} index={yearIdx * cols + i} onCourseClick={setCourseDetailCode} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="divider-fade" />
+              <div className="flex items-center justify-between pt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmDeleteOpen(true)}
+                  className="text-bad hover:bg-bad-light/25"
+                >
+                  Delete
+                </Button>
+                <Button variant="gold" size="sm" onClick={handleLoadIntoPlanner} className="shadow-[0_0_24px_rgba(255,204,0,0.22)] pulse-gold-soft">
+                  Edit in Planner
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
