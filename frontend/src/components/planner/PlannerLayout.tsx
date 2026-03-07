@@ -398,12 +398,12 @@ export function PlannerLayout() {
               </div>
             )}
 
-            {!hasProgram && !data && (
+            {!hasProgram && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col items-center justify-center h-full text-center px-4 py-8 space-y-4"
+                className="flex-1 flex flex-col items-center justify-center text-center px-4 py-8 space-y-4"
               >
                 <div className="w-16 h-16 bg-gold/10 rounded-2xl flex items-center justify-center pulse-gold-soft">
                   <svg className="w-8 h-8 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -416,10 +416,10 @@ export function PlannerLayout() {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                    Drop your major to get started.
+                  <h2 className="text-[0.88rem] font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
+                    Fill in your details to get started.
                   </h2>
-                  <p className="text-sm text-ink-faint mt-1 max-w-sm">
+                  <p className="text-sm text-ink-faint mt-1 max-w-sm mx-auto">
                     Hit the edit icon above, pick your major, add your completed courses, then
                     hit &ldquo;Get My Plan.&rdquo; We&apos;ll handle the rest.
                   </p>
@@ -432,7 +432,7 @@ export function PlannerLayout() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col items-center justify-center h-full text-center px-4 py-8 space-y-4"
+                className="flex-1 flex flex-col items-center justify-center text-center px-4 py-8 space-y-4"
               >
                 <div className="w-16 h-16 bg-surface-card rounded-2xl flex items-center justify-center border border-border-subtle float-soft">
                   <svg className="w-8 h-8 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -464,7 +464,7 @@ export function PlannerLayout() {
               </div>
             )}
 
-            {data && (
+            {hasProgram && data && (
               <div className="flex-1 min-h-0">
                 <RecommendationsPanel
                   data={data}

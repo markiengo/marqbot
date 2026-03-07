@@ -42,7 +42,7 @@ export function CanTakeSection() {
 
       {/* Header */}
       <div className="shrink-0 relative z-[1]">
-        <span className="section-kicker">
+        <span className="section-kicker" style={{ fontSize: "0.816rem" }}>
           {state.canTakeQuery
             ? `Can I take ${state.canTakeQuery} next semester?`
             : "Can I take... next semester?"}

@@ -210,7 +210,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "ADD_MAJOR": {
       const next = new Set(state.selectedMajors);
       next.add(action.payload);
-      return { ...state, selectedMajors: next };
+      return { ...state, selectedMajors: next, lastRecommendationData: null };
     }
 
     case "REMOVE_MAJOR": {
@@ -221,7 +221,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         const requiredMajorId = trackRequiredMajorId(state.programs, tid);
         return parentMajorId !== action.payload && requiredMajorId !== action.payload;
       });
-      return { ...state, selectedMajors: next, selectedTracks: nextTracks };
+      return { ...state, selectedMajors: next, selectedTracks: nextTracks, lastRecommendationData: null };
     }
 
     case "ADD_TRACK": {
@@ -233,7 +233,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         return state;
       }
       const nextTracks = [...state.selectedTracks, trackId];
-      return { ...state, selectedTracks: nextTracks };
+      return { ...state, selectedTracks: nextTracks, lastRecommendationData: null };
     }
 
     case "SET_TRACK": {
@@ -246,42 +246,43 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         return trackParentMajorId(state.programs, tid) !== majorId;
       });
       const nextTracks = trackId ? [...filtered, trackId] : filtered;
-      return { ...state, selectedTracks: nextTracks };
+      return { ...state, selectedTracks: nextTracks, lastRecommendationData: null };
     }
 
     case "REMOVE_TRACK":
       return {
         ...state,
         selectedTracks: state.selectedTracks.filter((tid) => tid !== action.payload),
+        lastRecommendationData: null,
       };
 
     case "ADD_MINOR": {
       const next = new Set(state.selectedMinors);
       next.add(action.payload);
-      return { ...state, selectedMinors: next };
+      return { ...state, selectedMinors: next, lastRecommendationData: null };
     }
 
     case "REMOVE_MINOR": {
       const next = new Set(state.selectedMinors);
       next.delete(action.payload);
-      return { ...state, selectedMinors: next };
+      return { ...state, selectedMinors: next, lastRecommendationData: null };
     }
 
     case "SET_DISCOVERY_THEME":
-      return { ...state, discoveryTheme: action.payload };
+      return { ...state, discoveryTheme: action.payload, lastRecommendationData: null };
 
     case "ADD_COMPLETED": {
       const nextCompleted = new Set(state.completed);
       const nextIp = new Set(state.inProgress);
       nextIp.delete(action.payload);
       nextCompleted.add(action.payload);
-      return { ...state, completed: nextCompleted, inProgress: nextIp };
+      return { ...state, completed: nextCompleted, inProgress: nextIp, lastRecommendationData: null };
     }
 
     case "REMOVE_COMPLETED": {
       const next = new Set(state.completed);
       next.delete(action.payload);
-      return { ...state, completed: next };
+      return { ...state, completed: next, lastRecommendationData: null };
     }
 
     case "ADD_IN_PROGRESS": {
@@ -289,13 +290,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const nextCompleted = new Set(state.completed);
       nextCompleted.delete(action.payload);
       nextIp.add(action.payload);
-      return { ...state, inProgress: nextIp, completed: nextCompleted };
+      return { ...state, inProgress: nextIp, completed: nextCompleted, lastRecommendationData: null };
     }
 
     case "REMOVE_IN_PROGRESS": {
       const next = new Set(state.inProgress);
       next.delete(action.payload);
-      return { ...state, inProgress: next };
+      return { ...state, inProgress: next, lastRecommendationData: null };
     }
 
     case "SET_TARGET_SEMESTER":
