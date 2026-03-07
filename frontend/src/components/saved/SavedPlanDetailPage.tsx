@@ -35,6 +35,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [isEditingMeta, setIsEditingMeta] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [semesterModalIdx, setSemesterModalIdx] = useState<number | null>(null);
   const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
 
@@ -48,6 +49,10 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
     setName(plan.name);
     setNotes(plan.notes);
   }, [plan]);
+
+  useEffect(() => {
+    setConfirmDeleteOpen(false);
+  }, [plan?.id]);
 
   const isLoading =
     coursesLoading ||
@@ -322,21 +327,52 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
                       placeholder="Context like recruiter-heavy semester, transfer-credit version, or summer-heavy draft."
                     />
                   </label>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <Button variant="ghost" className="text-bad hover:bg-bad-light/25" onClick={handleDelete}>
-                        Delete Plan
-                      </Button>
-                      <p className="text-sm text-ink-faint">
-                        Snapshot data stays attached unless you regenerate this plan in Planner.
-                      </p>
+                  {confirmDeleteOpen ? (
+                    <div className="space-y-4 rounded-[24px] border border-bad/30 bg-[linear-gradient(165deg,rgba(72,11,15,0.56),rgba(16,19,35,0.94))] px-5 py-5 shadow-[0_24px_60px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.05)]">
+                      <div className="space-y-2">
+                        <p className="section-kicker !text-bad">Delete Saved Plan</p>
+                        <h4 className="text-xl font-semibold text-ink-primary">Are you sure?</h4>
+                        <p className="text-sm leading-relaxed text-ink-secondary">
+                          This will permanently remove <span className="font-semibold text-ink-primary">{plan.name}</span> from this browser, including the saved notes and recommendation snapshot.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <Button
+                          variant="secondary"
+                          onClick={() => setConfirmDeleteOpen(false)}
+                        >
+                          Keep Plan
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={handleDelete}
+                          className="border-bad/40 text-bad hover:border-bad/60 hover:bg-bad-light/25"
+                        >
+                          Yes, Delete Plan
+                        </Button>
+                      </div>
                     </div>
-                    {isEditingMeta && (
-                      <Button variant="gold" onClick={handleSaveMeta} disabled={!name.trim()}>
-                        Save Changes
-                      </Button>
-                    )}
-                  </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant="ghost"
+                          className="text-bad hover:bg-bad-light/25"
+                          onClick={() => setConfirmDeleteOpen(true)}
+                        >
+                          Delete Plan
+                        </Button>
+                        <p className="text-sm text-ink-faint">
+                          Snapshot data stays attached unless you regenerate this plan in Planner.
+                        </p>
+                      </div>
+                      {isEditingMeta && (
+                        <Button variant="gold" onClick={handleSaveMeta} disabled={!name.trim()}>
+                          Save Changes
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
