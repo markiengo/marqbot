@@ -8,6 +8,7 @@ import re
 import pytest
 
 from dead_end_utils import PlanCase, seed_from_simulation, simulate_terms
+import server
 from server import app
 from helpers import (
     declared_majors_for_major,
@@ -243,6 +244,73 @@ def test_recommendations_do_not_only_fill_already_satisfied_buckets(major_id):
                 offenders.append((semester.get("target_semester"), rec["course_code"], fills))
 
     assert not offenders, f"Recommendations filled only satisfied buckets: {offenders}"
+
+
+def test_discovery_theme_recommendations_do_not_advertise_only_satisfied_buckets(client):
+    data = post_recommend(client, {
+        "declared_majors": ["BECO_MAJOR", "HURE_MAJOR"],
+        "discovery_theme": "MCC_DISC_CMI",
+        "completed_courses": (
+            "ENGL 1001, SOCI 1001, ECON 1001, BUAD 1000, ECON 1103, "
+            "BUAD 1001, ACCO 1030, ACCO 1031, MATH 1400, LEAD 1050"
+        ),
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 6,
+        "max_recommendations": 6,
+    })
+
+    offenders = []
+    for semester in data.get("semesters", []):
+        satisfied_keys = {
+            bucket_id
+            for bucket_id, entry in semester.get("progress", {}).items()
+            if entry.get("satisfied", False)
+        }
+        for rec in semester.get("recommendations", []):
+            fills = [bucket_id for bucket_id in rec.get("fills_buckets", []) if bucket_id]
+            if fills and set(fills).issubset(satisfied_keys):
+                offenders.append((semester.get("target_semester"), rec["course_code"], fills))
+
+    assert not offenders, (
+        "Discovery-theme recommendations should report the unmet bucket(s) they actually "
+        f"advance, not only already-satisfied buckets: {offenders}"
+    )
+
+
+def test_discovery_theme_recommendations_only_use_one_writ_tagged_mcc_course(client):
+    data = post_recommend(client, {
+        "declared_majors": ["BECO_MAJOR", "HURE_MAJOR"],
+        "discovery_theme": "MCC_DISC_CMI",
+        "completed_courses": "ENGL 1001, SOCI 1001",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 3,
+        "max_recommendations": 6,
+    })
+
+    writ_codes = {
+        str(row["course_code"]).strip()
+        for _, row in server._data["course_bucket_map_df"].iterrows()
+        if str(row.get("bucket_id", "")).strip() == "MCC::MCC_WRIT"
+    }
+    offenders = []
+    for semester in data.get("semesters", []):
+        for rec in semester.get("recommendations", []):
+            code = str(rec.get("course_code", "") or "").strip()
+            fills = [str(bucket_id or "").strip() for bucket_id in rec.get("fills_buckets", [])]
+            if not code or code not in writ_codes:
+                continue
+            if fills and all(
+                bucket_id == "MCC::MCC_WRIT" or bucket_id.startswith("MCC::MCC_DISC_")
+                for bucket_id in fills
+            ):
+                offenders.append((semester.get("target_semester"), code, fills))
+
+    assert len(offenders) <= 1, (
+        "Discovery-theme plans should not recommend multiple MCC-only WRIT-tagged courses "
+        f"across the projected history: {offenders}"
+    )
 
 
 @pytest.mark.parametrize(

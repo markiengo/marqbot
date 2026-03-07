@@ -29,24 +29,10 @@ _NON_RECOMMENDABLE_PATTERNS = (
 )
 
 _PHASE5_PLAN_TRACK_ID = "__DECLARED_PLAN__"
-_SUPPORTED_PROGRAM_BASES = {
-    "ACCO",
-    "AIM",
-    "BADM",
-    "BECO",
-    "BUAN",
-    "ENTP",
-    "FIN",
-    "HR",
-    "HURE",
-    "INBU",
-    "INSY",
-    "MARK",
-    "OSCM",
-    "PRSL",
-    "REAL",
-}
-_COURSE_CODE_IN_TEXT_RE = re.compile(r"\b([A-Z]{2,7}I?)\s+\d{4}H?\b")
+_PROGRAM_CONTEXT_RE = re.compile(
+    r"\b([A-Z]{2,7}(?:-[A-Z]{2,7})?)\s+(?:majors?|minors?|program)\b",
+    re.IGNORECASE,
+)
 _BUSINESS_GENERIC_RE = re.compile(
     r"\b("
     r"college of business administration|"
@@ -172,15 +158,12 @@ def _program_base_ids(program_ids: list[str]) -> set[str]:
         upper = str(program_id or "").strip().upper()
         if not upper or upper == _PHASE5_PLAN_TRACK_ID or upper.startswith("MCC_"):
             continue
-        if upper.endswith("_MAJOR") or upper.endswith("_MINOR"):
+        if "_" in upper:
             base = upper.split("_", 1)[0]
-            if base in _SUPPORTED_PROGRAM_BASES:
+            if base:
                 bases.add(base)
             continue
-        if upper.endswith("_TRACK"):
-            prefix = upper.split("_", 1)[0]
-            if prefix in _SUPPORTED_PROGRAM_BASES:
-                bases.add(prefix)
+        bases.add(upper)
     return bases
 
 
@@ -198,27 +181,11 @@ def _selected_college_aliases(program_ids: list[str]) -> set[str]:
 
 def _extract_enforceable_major_bases(text: str) -> set[str]:
     raw_text = str(text or "")
-    upper_text = raw_text.upper()
-    mentioned_bases = {
-        base
-        for base in _SUPPORTED_PROGRAM_BASES
-        if re.search(rf"\b{re.escape(base)}\b", upper_text)
+    return {
+        match.group(1).upper().split("-", 1)[0]
+        for match in _PROGRAM_CONTEXT_RE.finditer(raw_text)
+        if match.group(1)
     }
-    if not mentioned_bases:
-        return set()
-    if not re.search(r"\bmajors?\b|\bminors?\b|\bmajor\b|\bminor\b", raw_text, re.IGNORECASE):
-        return set()
-
-    course_bases = {
-        match.group(1).rstrip("I")
-        for match in _COURSE_CODE_IN_TEXT_RE.finditer(upper_text)
-    }
-    if course_bases:
-        if len(mentioned_bases) != 1:
-            return set()
-        if any(base not in mentioned_bases for base in course_bases):
-            return set()
-    return mentioned_bases
 
 
 def _evaluate_major_restriction(

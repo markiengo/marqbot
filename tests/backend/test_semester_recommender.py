@@ -2470,6 +2470,281 @@ def test_discovery_foundation_penalty_clears_when_foundation_is_complete():
     assert chns["discovery_affinity_penalty"] == 2
 
 
+def test_recommendation_response_uses_assigned_buckets_for_writ_and_discovery_history():
+    courses = [
+        {
+            "course_code": "WRIT 2000",
+            "course_name": "Writing Intensive Complete",
+            "credits": 3,
+            "level": 2000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "ENGL 2011",
+            "course_name": "Books That Matter",
+            "credits": 3,
+            "level": 2000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "ENGL 2012",
+            "course_name": "WellVersed",
+            "credits": 3,
+            "level": 2000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "THEO 2000",
+            "course_name": "Theology Discovery",
+            "credits": 3,
+            "level": 2000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "MATH 1700",
+            "course_name": "Discovery Elective",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_WRIT",
+            "bucket_label": "MCC Writing Intensive",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_WRIT",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_DISC_CMI_HUM",
+            "bucket_label": "Discovery Humanities",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_DISC_CMI",
+            "double_count_family_id": "MCC_DISC",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_DISC_CMI_ELEC",
+            "bucket_label": "Discovery Elective",
+            "priority": 3,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "choose_n",
+            "parent_bucket_id": "MCC_DISC_CMI",
+            "double_count_family_id": "MCC_DISC",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_WRIT", "course_code": "WRIT 2000"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_WRIT", "course_code": "ENGL 2011"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_HUM", "course_code": "ENGL 2011"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_ELEC", "course_code": "ENGL 2011"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_WRIT", "course_code": "ENGL 2012"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_HUM", "course_code": "ENGL 2012"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_ELEC", "course_code": "ENGL 2012"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_HUM", "course_code": "THEO 2000"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_ELEC", "course_code": "MATH 1700"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "MCC_WRIT", "type": "universal"},
+        {"parent_bucket_id": "MCC_DISC_CMI", "type": "track"},
+    ])
+
+    first_semester = run_recommendation_semester(
+        completed=["WRIT 2000"],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        current_standing=2,
+        completed_only_standing=2,
+    )
+    recs_by_code = {
+        rec["course_code"]: rec
+        for rec in first_semester["recommendations"]
+    }
+    assert set(recs_by_code) == {"THEO 2000", "MATH 1700"}
+    assert recs_by_code["THEO 2000"]["fills_buckets"] == ["MCC::MCC_DISC_CMI_HUM"]
+    assert recs_by_code["MATH 1700"]["fills_buckets"] == ["MCC::MCC_DISC_CMI_ELEC"]
+    assert "MCC::MCC_WRIT" not in recs_by_code["THEO 2000"]["fills_buckets"]
+    assert "MCC::MCC_WRIT" not in recs_by_code["MATH 1700"]["fills_buckets"]
+
+
+def test_same_semester_recommendations_only_include_one_writ_tagged_mcc_course():
+    courses = [
+        {
+            "course_code": "ENGL 2011",
+            "course_name": "Books That Matter",
+            "credits": 3,
+            "level": 2000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "ENGL 2012",
+            "course_name": "Well Versed",
+            "credits": 3,
+            "level": 2000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "MATH 1700",
+            "course_name": "Discovery Elective",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_WRIT",
+            "bucket_label": "MCC Writing Intensive",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_WRIT",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_DISC_CMI_HUM",
+            "bucket_label": "Discovery Humanities",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_DISC_CMI",
+            "double_count_family_id": "MCC_DISC",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_DISC_CMI_ELEC",
+            "bucket_label": "Discovery Elective",
+            "priority": 3,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "choose_n",
+            "parent_bucket_id": "MCC_DISC_CMI",
+            "double_count_family_id": "MCC_DISC",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_WRIT", "course_code": "ENGL 2011"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_HUM", "course_code": "ENGL 2011"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_ELEC", "course_code": "ENGL 2011"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_WRIT", "course_code": "ENGL 2012"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_HUM", "course_code": "ENGL 2012"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_ELEC", "course_code": "ENGL 2012"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CMI_ELEC", "course_code": "MATH 1700"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "MCC_WRIT", "type": "universal"},
+        {"parent_bucket_id": "MCC_DISC_CMI", "type": "track"},
+    ])
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        current_standing=2,
+        completed_only_standing=2,
+    )
+
+    codes = [rec["course_code"] for rec in out["recommendations"]]
+    assert "MATH 1700" in codes
+    assert len({"ENGL 2011", "ENGL 2012"} & set(codes)) == 1
+
+
 def test_declared_min_relaxes_when_no_major_courses_eligible():
     """When no declared-major courses are eligible, declared_min relaxes gracefully."""
     courses = [

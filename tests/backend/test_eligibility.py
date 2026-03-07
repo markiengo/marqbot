@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from eligibility import get_eligible_courses, check_can_take, parse_term
+from eligibility import _evaluate_major_restriction, get_eligible_courses, check_can_take, parse_term
 from prereq_parser import parse_prereqs
 
 
@@ -985,6 +985,75 @@ class TestGetEligibleCourses:
 
 
 class TestCheckCanTake:
+    def test_major_restriction_parses_external_subject_codes(self):
+        blocked, reason, satisfied = _evaluate_major_restriction(
+            "INCG major and Sr. stndg. or cons. of instr.",
+            ["BECO_MAJOR", "HURE_MAJOR"],
+        )
+
+        assert blocked is True
+        assert satisfied is False
+        assert reason == "Restricted to INCG program context."
+
+    def test_major_restriction_ignores_course_codes_and_keeps_external_program_blocks(self):
+        blocked, reason, satisfied = _evaluate_major_restriction(
+            "PSYC 1001; and PSYC 3601 or INCG major or NRSC minor.",
+            ["BECO_MAJOR"],
+        )
+
+        assert blocked is True
+        assert satisfied is False
+        assert reason == "Restricted to INCG, NRSC program context."
+
+    def test_get_eligible_courses_excludes_external_major_restricted_course(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "INCG 4997",
+                "course_name": "Capstone in Cognitive Science",
+                "credits": 3,
+                "level": 4000,
+                "offered_fall": True,
+                "offered_spring": False,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "major_restriction;standing_requirement",
+                "soft_prereq_major_restriction": "INCG major and Sr. stndg. or cons. of instr.",
+                "offering_confidence": "high",
+                "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["INCG 4997"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_CHOOSE_2",
+                "course_code": "INCG 4997",
+                "is_required": False,
+                "can_double_count": True,
+                "constraints": None,
+            }]),
+        ], ignore_index=True)
+
+        eligible = get_eligible_courses(
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            allocator_remaining,
+            augmented_map,
+            buckets_df,
+            selected_program_ids=["BECO_MAJOR", "HURE_MAJOR"],
+        )
+
+        codes = [c["course_code"] for c in eligible]
+        assert "INCG 4997" not in codes
+
     def test_can_take_eligible(self, courses_df, prereq_map):
         result = check_can_take("FINA 4001", courses_df, ["FINA 3001"], [], "Fall", prereq_map)
         assert result["can_take"] is True

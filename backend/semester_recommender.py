@@ -723,8 +723,11 @@ def _is_family_cap_exempt_bucket(bucket_id: str) -> bool:
 
 
 def _bucket_pick_cap(bucket_id: str, default_cap: int) -> int:
-    if _local_bucket_id(bucket_id).upper() == "BCC_REQUIRED":
+    local_id = _local_bucket_id(bucket_id).upper()
+    if local_id == "BCC_REQUIRED":
         return max(default_cap, _BCC_REQUIRED_MAX_PER_SEM)
+    if local_id == "MCC_WRIT" or local_id.startswith(_DISC_FAMILY_PREFIX):
+        return 1
     return default_cap
 
 
@@ -884,12 +887,21 @@ def _build_projected_outputs(
     )
 
 
+def _response_bucket_ids(candidate: dict) -> list[str]:
+    preferred = (
+        candidate.get("assigned_buckets")
+        or candidate.get("current_unmet_buckets")
+        or candidate.get("fills_buckets", [])
+    )
+    return [str(bucket_id).strip() for bucket_id in dict.fromkeys(preferred or []) if str(bucket_id).strip()]
+
+
 def _build_deterministic_recommendations(candidates: list[dict], max_recommendations: int) -> list[dict]:
     """Build recommendation output from pre-ranked candidates. No LLM call."""
     target_count = min(max_recommendations, len(candidates))
     recs = []
     for cand in candidates[:target_count]:
-        buckets = cand.get("fills_buckets", [])
+        buckets = _response_bucket_ids(cand)
         blocked_targets = cand.get("standing_blocked_targets", [])
         if cand.get("is_standing_recovery_filler"):
             if blocked_targets:
@@ -926,7 +938,7 @@ def _build_deterministic_recommendations(candidates: list[dict], max_recommendat
             "prereq_check": cand.get("prereq_check", ""),
             "min_standing": cand.get("min_standing"),
             "requirement_bucket": cand.get("primary_bucket_label", ""),
-            "fills_buckets": cand.get("fills_buckets", []),
+            "fills_buckets": buckets,
             "has_soft_requirement": cand.get("has_soft_requirement", False),
             "soft_tags": cand.get("soft_tags", []),
             "warning_text": cand.get("warning_text"),
@@ -1001,6 +1013,61 @@ def _candidate_program_ids(
         if parent_type_map.get(parent, "") in ("major", "track"):
             programs.add(parent)
     return programs
+
+
+def _course_codes_for_local_bucket(
+    course_bucket_map_df: pd.DataFrame,
+    track_id: str,
+    local_bucket_id: str,
+) -> set[str]:
+    if course_bucket_map_df is None or len(course_bucket_map_df) == 0:
+        return set()
+    if not {"bucket_id", "course_code"}.issubset(course_bucket_map_df.columns):
+        return set()
+
+    subset = course_bucket_map_df
+    if "track_id" in course_bucket_map_df.columns:
+        tid = str(track_id or "").strip().upper()
+        subset = course_bucket_map_df[
+            course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == tid
+        ].copy()
+    if len(subset) == 0:
+        return set()
+
+    target_local_id = str(local_bucket_id or "").strip().upper()
+    codes: set[str] = set()
+    for _, row in subset.iterrows():
+        bid = str(row.get("bucket_id", "") or "").strip()
+        if _local_bucket_id(bid).upper() != target_local_id:
+            continue
+        code = str(row.get("course_code", "") or "").strip().upper()
+        if code:
+            codes.add(code)
+    return codes
+
+
+def _candidate_advances_declared_or_bcc_requirement(
+    candidate: dict,
+    bucket_parent_map: dict[str, str],
+    parent_type_map: dict[str, str],
+) -> bool:
+    bucket_ids = list(candidate.get("fills_buckets", []) or []) + list(
+        candidate.get("bridge_target_buckets", []) or []
+    )
+    for raw_bucket_id in bucket_ids:
+        bid = str(raw_bucket_id or "").strip().upper()
+        if not bid:
+            continue
+        local_id = _local_bucket_id(bid).upper()
+        if local_id.startswith(_BCC_PREFIX):
+            return True
+        parent = bucket_parent_map.get(bid, "")
+        if (
+            parent_type_map.get(parent, "") in {"major", "track", "minor"}
+            and not str(parent or "").strip().upper().startswith(_DISC_FAMILY_PREFIX)
+        ):
+            return True
+    return False
 
 
 _PROGRAM_BALANCE_THRESHOLD = 2
@@ -1096,6 +1163,43 @@ def run_recommendation_semester(
     bucket_role_map = _build_bucket_role_map(data, track_id)
     family_id_map = _build_family_id_map(data, track_id)
     requirement_mode_map = _build_bucket_requirement_mode_map(data, track_id)
+    writ_course_codes = _course_codes_for_local_bucket(
+        data.get("course_bucket_map_df"),
+        track_id,
+        "MCC_WRIT",
+    )
+    historical_writ_courses = {
+        str(code or "").strip().upper()
+        for code in (completed + in_progress)
+        if str(code or "").strip().upper() in writ_course_codes
+    }
+
+    def _candidate_is_writ_tagged(candidate: dict) -> bool:
+        code = str(candidate.get("course_code", "") or "").strip().upper()
+        if code and code in writ_course_codes:
+            return True
+        return any(
+            _local_bucket_id(bucket_id).upper() == "MCC_WRIT"
+            for bucket_id in _selection_bucket_ids(candidate)
+        )
+
+    def _blocked_by_writ_lifetime_limit(
+        candidate: dict,
+        *,
+        selected_writ_courses: set[str] | None = None,
+    ) -> bool:
+        if not _candidate_is_writ_tagged(candidate):
+            return False
+        if _candidate_advances_declared_or_bcc_requirement(
+            candidate,
+            bucket_parent_map,
+            parent_type_map,
+        ):
+            return False
+        if historical_writ_courses:
+            return True
+        return bool(selected_writ_courses)
+
     if not non_manual_sem:
         standing_recovery_sem: list[dict] = []
         if unsatisfied_bucket_ids and standing_blocked_sem:
@@ -1117,6 +1221,10 @@ def run_recommendation_semester(
                 selected_program_ids=selection_program_ids,
                 is_honors_student=is_honors_student,
             )
+        standing_recovery_sem = [
+            c for c in standing_recovery_sem
+            if not _blocked_by_writ_lifetime_limit(c)
+        ]
         if standing_recovery_sem:
             recommendations_sem = _build_deterministic_recommendations(
                 standing_recovery_sem,
@@ -1202,6 +1310,8 @@ def run_recommendation_semester(
     )
     scored_non_manual_sem: list[dict] = []
     for cand in non_manual_sem:
+        if _blocked_by_writ_lifetime_limit(cand):
+            continue
         tagged = dict(cand)
         tagged["ranking_tier"] = _bucket_hierarchy_tier_v2(
             tagged,
@@ -1239,6 +1349,7 @@ def run_recommendation_semester(
             c["course_code"],
         ),
     )
+    eligible_count_sem = len(ranked_sem)
     # ---------- Selection setup ----------
     selected_sem = []
     selection_bucket_meta = _build_selection_bucket_meta(data, track_id)
@@ -1257,6 +1368,7 @@ def run_recommendation_semester(
     picks_per_family: dict[str, int] = {}
     deferred_for_balance: list[dict] = []
     bridge_targets_covered: set[str] = set()
+    selected_writ_courses: set[str] = set()
     cap_relaxed = False
     family_cap_relaxed = False
     family_blocked_codes: set[str] = set()
@@ -1296,6 +1408,11 @@ def run_recommendation_semester(
         for candidate in ranked_sem:
             if candidate.get("ranking_tier", 99) > 2:
                 continue
+            if _blocked_by_writ_lifetime_limit(
+                candidate,
+                selected_writ_courses=selected_writ_courses,
+            ):
+                continue
             if _missing_same_semester_prereqs(candidate):
                 continue
             if _assignable_buckets_for_candidate(candidate, enforce_bucket_cap=True):
@@ -1310,6 +1427,11 @@ def run_recommendation_semester(
         for candidate in ranked_sem:
             code = candidate.get("course_code")
             if code in excluded_codes:
+                continue
+            if _blocked_by_writ_lifetime_limit(
+                candidate,
+                selected_writ_courses=selected_writ_courses,
+            ):
                 continue
             if _is_bridge_candidate(candidate):
                 continue
@@ -1346,6 +1468,11 @@ def run_recommendation_semester(
                 continue
             if other_code == candidate.get("course_code"):
                 continue
+            if _blocked_by_writ_lifetime_limit(
+                other,
+                selected_writ_courses=selected_writ_courses,
+            ):
+                continue
             other_level = _course_level(other)
             if other_level is None or other_level >= 3000:
                 continue
@@ -1378,7 +1505,12 @@ def run_recommendation_semester(
 
     def _accept_candidate(cand: dict, assigned_buckets: list[str]) -> None:
         """Bookkeeping when a candidate is accepted into selected_sem."""
+        cand["assigned_buckets"] = list(dict.fromkeys(assigned_buckets))
         selected_sem.append(cand)
+        if _candidate_is_writ_tagged(cand):
+            code = str(cand.get("course_code", "") or "").strip().upper()
+            if code:
+                selected_writ_courses.add(code)
         if _is_bridge_candidate(cand):
             for b in cand.get("bridge_target_buckets", []):
                 bridge_targets_covered.add(b)
@@ -1420,6 +1552,13 @@ def run_recommendation_semester(
         if suppress_declared_preemption and cand.get("ranking_tier", 99) > 2:
             continue
         if not cand.get("_counts_toward_declared_min"):
+            continue
+        if _blocked_by_writ_lifetime_limit(
+            cand,
+            selected_writ_courses=selected_writ_courses,
+        ):
+            if debug:
+                skipped_reasons[cand["course_code"]] = "WRIT lifetime limit"
             continue
         unresolved_same_sem = _missing_same_semester_prereqs(cand)
         if unresolved_same_sem:
@@ -1468,6 +1607,13 @@ def run_recommendation_semester(
             break
         if cand["course_code"] in selected_codes_set:
             continue
+        if _blocked_by_writ_lifetime_limit(
+            cand,
+            selected_writ_courses=selected_writ_courses,
+        ):
+            if debug:
+                skipped_reasons[cand["course_code"]] = "WRIT lifetime limit"
+            continue
         unresolved_same_sem = _missing_same_semester_prereqs(cand)
         if unresolved_same_sem:
             if debug:
@@ -1482,6 +1628,11 @@ def run_recommendation_semester(
             viable_unmet_buckets: set[str] = set()
             for rc in remaining_candidates:
                 if rc["course_code"] in selected_codes_set:
+                    continue
+                if _blocked_by_writ_lifetime_limit(
+                    rc,
+                    selected_writ_courses=selected_writ_courses,
+                ):
                     continue
                 viable_unmet_buckets.update(
                     _select_assignable_buckets_allocator_style(
@@ -1554,6 +1705,11 @@ def run_recommendation_semester(
             break
         if cand["course_code"] in selected_codes_set:
             continue
+        if _blocked_by_writ_lifetime_limit(
+            cand,
+            selected_writ_courses=selected_writ_courses,
+        ):
+            continue
         if _missing_same_semester_prereqs(cand):
             continue
         if _maturity_guard_blocks(
@@ -1590,6 +1746,11 @@ def run_recommendation_semester(
                     break
                 if cand["course_code"] in selected_codes_set:
                     continue
+                if _blocked_by_writ_lifetime_limit(
+                    cand,
+                    selected_writ_courses=selected_writ_courses,
+                ):
+                    continue
                 if _missing_same_semester_prereqs(cand):
                     continue
                 if _maturity_guard_blocks(
@@ -1613,6 +1774,11 @@ def run_recommendation_semester(
             if len(selected_sem) >= max_recs:
                 break
             if cand["course_code"] in selected_codes_set:
+                continue
+            if _blocked_by_writ_lifetime_limit(
+                cand,
+                selected_writ_courses=selected_writ_courses,
+            ):
                 continue
             unresolved_same_sem = _missing_same_semester_prereqs(cand)
             if unresolved_same_sem:
@@ -1651,6 +1817,11 @@ def run_recommendation_semester(
                 if len(selected_sem) >= max_recs:
                     break
                 cand_buckets = _selection_bucket_ids(cand)
+                if _blocked_by_writ_lifetime_limit(
+                    cand,
+                    selected_writ_courses=selected_writ_courses,
+                ):
+                    continue
                 if _is_bridge_candidate(cand):
                     continue
                 assigned_buckets = _select_assignable_buckets_allocator_style(

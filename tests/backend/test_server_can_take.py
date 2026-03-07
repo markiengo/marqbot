@@ -30,6 +30,37 @@ def post_can_take(client, payload):
     return resp.status_code, resp.get_json()
 
 
+def _completed_courses_for_senior_standing(exclude_code: str = "") -> list[str]:
+    import server
+
+    completed: list[str] = []
+    credits = 0.0
+    seen: set[str] = set()
+    excluded = str(exclude_code or "").strip().upper()
+
+    for _, row in server._data["courses_df"].iterrows():
+        code = str(row.get("course_code") or "").strip().upper()
+        if not code or code == excluded or code in seen:
+            continue
+
+        try:
+            credit_value = float(row.get("credits"))
+        except (TypeError, ValueError):
+            continue
+
+        if credit_value <= 0 or credit_value % 1 != 0:
+            continue
+
+        completed.append(code)
+        seen.add(code)
+        credits += credit_value
+        if credits >= 90:
+            break
+
+    assert credits >= 90, f"Expected enough catalog credits to reach senior standing, got {credits}"
+    return completed
+
+
 # ── Basic contract ──────────────────────────────────────────────────────────
 
 class TestCanTakeBasicContract:
@@ -174,6 +205,18 @@ class TestCanTakeWithProgramContext:
         assert status == 200
         assert data["can_take"] is False
         assert "Restricted" in str(data.get("why_not", ""))
+
+    def test_major_restriction_blocks_external_subject_capstone_for_business_profile(self, client):
+        senior_completed = _completed_courses_for_senior_standing("INCG 4997")
+        status, data = post_can_take(client, {
+            "requested_course": "INCG 4997",
+            "completed_courses": ", ".join(senior_completed),
+            "declared_majors": ["BECO_MAJOR", "HURE_MAJOR"],
+            "target_semester": "Spring 2027",
+        })
+        assert status == 200
+        assert data["can_take"] is False
+        assert data["why_not"] == "Restricted to INCG program context."
 
     def test_track_context_accepted(self, client):
         """Providing track_id should not cause an error."""
