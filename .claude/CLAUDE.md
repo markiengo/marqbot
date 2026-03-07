@@ -121,5 +121,5 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - `course_prereqs.csv` uses `;` for AND (all required) and `or` for OR (any one). Mixed AND/OR is supported: `A;B;C or D or E` means "A AND B AND (C or D or E)". `none` = no prereqs.
 - OR alternatives in prereqs should be avoided — they cause phantom recommendations. Use AND where all prereqs are truly required, keep only the primary course otherwise. Exception: mixed AND/OR is acceptable when a course genuinely requires "all of X plus one of Y" (e.g., OSCM 4997).
 - Future `course_equivalencies.csv` will handle OR equivalences for completed/in-progress credit checks only.
-- `hard_prereq_complex` tag is reserved for genuinely unparseable patterns (e.g., "choose 2 from 5"). Currently: INSY 4158.
+- `hard_prereq_complex` tag is reserved for genuinely unparseable patterns (e.g., "choose 2 from 5"). Currently: no business-school courses use this tag. INSY 4158's "2 from 5" prereq was moved to `other_requirements` soft tag.
 - CORE 1929 (`THEO 1001 or PHIL 1001`) is the only intentional OR prereq — kept because both options are commonly known MCC Foundation courses.

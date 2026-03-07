@@ -89,12 +89,26 @@ If the bulletin prerequisite logic cannot be encoded safely into the supported p
    - otherwise surfaced as `manual_review` when the row is intentionally not auto-decodable
 4. Suppress non-recommendable courses (see exclusions below).
 5. Rank candidates deterministically with this tuple order:
-   - `tier` (`1=MCC foundation`, `2=BCC`, `3=major`, `4=track/minor`, `5=MCC_ESSV2/MCC_WRIT`, `6=Discovery/MCC_CULM`)
+   - `tier` (lower wins — see hierarchy below)
    - bridge-course status (`0=direct filler`, `1=bridge-only`)
    - unlock chain depth (deeper first)
    - `multi_bucket_score` (higher first)
    - course level (lower first)
    - `course_code` (lexical tiebreak)
+
+### Tier Hierarchy
+The tier determines which requirement group a course serves. Lower tier = higher priority.
+
+| Tier | Group | Buckets | Rationale |
+|------|-------|---------|-----------|
+| 1 | MCC Foundation | `MCC_CORE`, `MCC_ESSV1` | Core curriculum that gates everything else. Must be completed early. |
+| 2 | BCC (Business Core) | `BCC_REQUIRED`, `BCC_*` | Shared business prerequisites that unlock all major-specific courses. |
+| 3 | Major | Any bucket under a `type=major` parent | Direct degree requirements. Default tier when parent type is unknown. |
+| 4 | Track / Minor | Any bucket under a `type=track` or `type=minor` parent | Supplementary program requirements, recommended after major core is underway. |
+| 5 | MCC Late | `MCC_ESSV2`, `MCC_WRIT` | Upper-division MCC requirements with standing gates. Deferred so students build credits first. |
+| 6 | MCC Lowest | `MCC_CULM`, `MCC_DISC_*` (Discovery themes) | Capstone and exploratory requirements. Scheduled last because they often require senior standing or have wide course pools. |
+
+Within a tier, the remaining keys break ties: direct-fill courses beat bridge courses, deeper prereq chains are prioritized to unblock future semesters, courses filling multiple buckets score higher, and lower course levels are preferred to build foundations first.
 6. Select greedily with:
    - bucket cap (`2`) with auto-relaxation (`BCC_REQUIRED` allows up to `3`)
    - program-balance deferral (threshold `2`)

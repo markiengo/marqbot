@@ -7,44 +7,43 @@ All checked-in runtime inputs live in `data/` as UTF-8-BOM CSVs. The loader buil
 ## Runtime Assembly
 
 ```mermaid
-flowchart LR
-    classDef catalog fill:#eef6ff,stroke:#3b82f6,color:#0f172a,stroke-width:1px;
-    classDef prereq fill:#f0fdf4,stroke:#16a34a,color:#14532d,stroke-width:1px;
-    classDef graph fill:#fff7ed,stroke:#ea580c,color:#7c2d12,stroke-width:1px;
-    classDef runtime fill:#fdf4ff,stroke:#a21caf,color:#581c87,stroke-width:1px;
+flowchart TD
+    classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a5f
+    classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+    classDef purple fill:#f3e8ff,stroke:#9333ea,color:#581c87
 
-    subgraph Catalog[Course Catalog Overlay]
-        C[courses.csv]
-        HP[course_hard_prereqs.csv]
-        SP[course_soft_prereqs.csv]
-        O[course_offerings.csv]
+    subgraph CSV["📂 CSV Files (data/)"]
+        direction LR
+        C["courses.csv\n~5000 courses"]
+        HP["course_hard_prereqs.csv\nprereq expressions"]
+        SP["course_soft_prereqs.csv\nwarnings & tags"]
+        O["course_offerings.csv\nfall / spring / summer"]
+        PB["parent_buckets.csv\nmajors, tracks, minors"]
+        CB["child_buckets.csv\nrequirement slots"]
+        MBC["master_bucket_courses.csv\ncourse ↔ bucket mapping"]
     end
 
-    subgraph Requirements[Parent/Child Requirement Graph]
-        PB[parent_buckets.csv]
-        CB[child_buckets.csv]
-        MBC[master_bucket_courses.csv]
+    subgraph BUILD["⚙️ Load & Build"]
+        direction LR
+        RC["Course Catalog\ncourses + prereqs + offerings"]
+        BG["Requirement Graph\nparent → child → courses"]
+        DYN["Elective Synthesis\nbiz_elective → credits_pool"]
     end
 
-    C --> RC[runtime courses_df]
-    HP --> RC
-    SP --> RC
-    O --> RC
+    subgraph ENGINE["🎯 Engine"]
+        ENG["Allocator → Eligibility → Recommender"]
+    end
 
-    PB --> BG[runtime bucket graph]
-    CB --> BG
-    MBC --> BG
-    C --> DYN[dynamic elective synthesis\nbiz_elective -> credits_pool only]
-    CB --> DYN
-    DYN --> BG
+    C & HP & SP & O --> RC
+    PB & CB & MBC --> BG
+    C & CB --> DYN --> BG
+    RC & BG --> ENG
 
-    RC --> ENG[allocator + eligibility + recommendations]
-    BG --> ENG
-
-    class C,O catalog;
-    class HP,SP prereq;
-    class PB,CB,MBC,DYN graph;
-    class RC,BG,ENG runtime;
+    class C,HP,SP,O blue
+    class PB,CB,MBC orange
+    class RC,BG,DYN green
+    class ENG purple
 ```
 
 ## Entity Relationships
@@ -52,75 +51,62 @@ flowchart LR
 ```mermaid
 erDiagram
     COURSES {
-        string course_code PK
+        string course_code PK "e.g. FINA 3001"
         string course_name
-        string credits "3 | 1-3 | 0-1"
-        int level
-        bool active
-        string elective_pool_tag
-        string notes
-        string description
+        string credits "3 or 1-3"
+        int level "1000-6000"
+        string elective_pool_tag "biz_elective or blank"
     }
 
     PARENT_BUCKETS {
-        string parent_bucket_id PK
-        string parent_bucket_label
-        string type "major | track | minor | universal"
-        string parent_major FK
-        bool active
-        bool requires_primary_major
-        string double_count_family_id
-        string required_major
-        bool is_default
+        string parent_bucket_id PK "e.g. FIN_MAJOR"
+        string parent_bucket_label "e.g. Finance"
+        string type "major / track / minor / universal"
+        string parent_major FK "track's parent major"
+        string required_major "must declare to use"
     }
 
     CHILD_BUCKETS {
+        string child_bucket_id PK "e.g. fin-req-core"
         string parent_bucket_id FK
-        string child_bucket_id PK
-        string child_bucket_label
-        string requirement_mode "required | choose_n | credits_pool"
-        float courses_required
-        float credits_required
-        float min_level
-        string notes
+        string child_bucket_label "e.g. Finance Core"
+        string requirement_mode "required / choose_n / credits_pool"
+        float courses_required "how many courses"
+        float credits_required "how many credits"
     }
 
     MASTER_BUCKET_COURSES {
-        string parent_bucket_id FK
         string child_bucket_id FK
         string course_code FK
-        string notes
     }
 
-    COURSE_HARD_PREREQS {
+    HARD_PREREQS {
         string course_code FK
-        string hard_prereq "parser DSL"
-        string concurrent_with "same-term codes"
-        float min_standing
+        string hard_prereq "e.g. ACCO 1031 and FINA 3001"
+        string concurrent_with "same-term companions"
+        float min_standing "1=Fr 2=So 3=Jr 4=Sr"
     }
 
-    COURSE_SOFT_PREREQS {
+    SOFT_PREREQS {
         string course_code FK
-        string soft_prereq "tag list"
-        string catalog_prereq_raw
-        string soft_detail_columns "major/consent/program/etc. raw text"
-        string notes
+        string soft_prereq "tags: major_restriction etc."
+        string catalog_prereq_raw "full bulletin text"
     }
 
-    COURSE_OFFERINGS {
+    OFFERINGS {
         string course_code FK
-        bool Spring_YYYY
-        bool Summer_YYYY
-        bool Fall_YYYY
+        bool fall
+        bool spring
+        bool summer
     }
 
-    PARENT_BUCKETS ||--o{ CHILD_BUCKETS : owns
-    PARENT_BUCKETS ||--o| PARENT_BUCKETS : "track -> parent major"
-    CHILD_BUCKETS ||--o{ MASTER_BUCKET_COURSES : maps
-    COURSES ||--o{ MASTER_BUCKET_COURSES : "explicit membership"
-    COURSES ||--o| COURSE_HARD_PREREQS : "hard eligibility"
-    COURSES ||--o| COURSE_SOFT_PREREQS : "soft warnings/details"
-    COURSES ||--o| COURSE_OFFERINGS : schedule
+    COURSES ||--o| HARD_PREREQS : "eligibility gates"
+    COURSES ||--o| SOFT_PREREQS : "warnings"
+    COURSES ||--o| OFFERINGS : "when offered"
+    COURSES ||--o{ MASTER_BUCKET_COURSES : "mapped to"
+    CHILD_BUCKETS ||--o{ MASTER_BUCKET_COURSES : "contains"
+    PARENT_BUCKETS ||--o{ CHILD_BUCKETS : "has requirements"
+    PARENT_BUCKETS ||--o| PARENT_BUCKETS : "track belongs to major"
 ```
 
 ## Core CSVs
