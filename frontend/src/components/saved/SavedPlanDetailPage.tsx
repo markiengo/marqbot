@@ -51,6 +51,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
   }, [plan]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset confirmation when plan changes
     setConfirmDeleteOpen(false);
   }, [plan?.id]);
 

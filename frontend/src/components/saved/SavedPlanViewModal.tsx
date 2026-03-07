@@ -87,12 +87,14 @@ export function SavedPlanViewModal({
 
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset transient UI state when modal closes
       setConfirmDeleteOpen(false);
       setCourseDetailCode(null);
     }
   }, [open]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset confirmation when plan changes
     setConfirmDeleteOpen(false);
   }, [plan?.id]);
 

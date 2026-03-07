@@ -8,6 +8,23 @@ Format per release:
 
 ---
 
+## [v2.3.0] - 2026-03-07
+
+### Changes
+
+- Fixed dead-end planner failures for AIM, Marketing, and Entrepreneurship majors caused by incorrect `complex_hard_prereq` tags on courses with parseable prerequisites (ACCO 4080, MARK 4060, FINA 4210, ENTP 3001).
+- Corrected FINA 4210 hard prerequisite from `none` to `FINA 3002;MANA 3001`.
+- Corrected ENTP 3001 hard prerequisite from `none` to `BUAD 1001`.
+- Updated health endpoint version to 2.3.0.
+- Frontend lint fixes for saved plan components.
+
+### Design Decisions
+
+- `complex_hard_prereq` should only exist on courses with genuinely unparseable prerequisites. Courses with parseable AND/OR prereqs must not carry this tag, as it prevents recommendation.
+- Soft prereq tags were corrected to match actual restriction types (e.g., `major_restriction` instead of `complex_hard_prereq`).
+
+---
+
 ## [v2.2.5] - 2026-03-06
 
 ### Changes

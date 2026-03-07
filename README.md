@@ -56,6 +56,14 @@ cd ..
 - `tests/`: backend and frontend tests
 - `docs/`: changelog, PRD, and data model docs
 
+## How It Works
+
+MarqBot uses a deterministic recommendation engine that ranks courses by requirement priority, prerequisite chain depth, and bucket coverage. No randomness, no AI — same inputs always produce the same plan.
+
+For full details, see [docs/algorithm.md](docs/algorithm.md).
+
 ## Data Model
 
-See [docs/data_model.md](docs/data_model.md).
+MarqBot's course catalog, prerequisites, offerings, and requirement structure are defined in CSV files under `data/`. The loader assembles these into a runtime course overlay and a parent/child requirement graph.
+
+See [data/data_model.md](data/data_model.md) for the full schema and ER diagram.

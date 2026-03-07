@@ -13,7 +13,7 @@ ACCO 4040,may_be_concurrent,"ACCO 4020, which may be taken concurrently.",,,,,,,
 ACCO 4045,,ACCO 4010.,,,,,,,,,,,,,
 ACCO 4050,,ACCO 1031.,,,,,,,,,,,,,
 ACCO 4060,,ACCO 4050.,,,,,,,,,,,,,
-ACCO 4080,complex_hard_prereq,ACCO 3001; or admittance into the AIM major or Commercial Banking Program.,,,,,,,,,,,,,ACCO 3001; or admittance into the AIM major or Commercial Banking Program.
+ACCO 4080,major_restriction,ACCO 3001; or admittance into the AIM major or Commercial Banking Program.,or admittance into the AIM major or Commercial Banking Program,,,,,,,,,,,,ACCO 3001; or admittance into the AIM major or Commercial Banking Program.
 ACCO 4119,standing_requirement,Sr. stndg. and ACCO 4010.,,,,,,Sr. stndg. and ACCO 4010,,,,,,,Sr. stndg. and ACCO 4010.
 ACCO 4170,,ACCO 4050.,,,,,,,,,,,,,
 ACCO 4931,,ACCO 3001.,,,,,,,,,,,,,
@@ -2177,7 +2177,7 @@ ENGL 9989,instructor_consent,Consent required.,,Consent required,,,,,,,,,,,Conse
 ENGL 9997,instructor_consent,Consent required.,,Consent required,,,,,,,,,,,Consent required.
 ENGL 9998,instructor_consent,Consent required.,,Consent required,,,,,,,,,,,Consent required.
 ENGL 9999,instructor_consent,Consent required.,,Consent required,,,,,,,,,,,Consent required.
-ENTP 3001,major_restriction;complex_hard_prereq,"BUAD 1001; or ENTP minor, CCOM major or minor, ADVE major, or Public History minor.","or ENTP minor, CCOM major or minor, ADVE major, or Public History minor",,,,,,,,,,,"BUAD 1001; or ENTP minor, CCOM major or minor, ADVE major, or Public History minor.","BUAD 1001; or ENTP minor, CCOM major or minor, ADVE major, or Public History minor."
+ENTP 3001,major_restriction,"BUAD 1001; or ENTP minor, CCOM major or minor, ADVE major, or Public History minor.","or ENTP minor, CCOM major or minor, ADVE major, or Public History minor",,,,,,,,,,,"BUAD 1001; or ENTP minor, CCOM major or minor, ADVE major, or Public History minor.","BUAD 1001; or ENTP minor, CCOM major or minor, ADVE major, or Public History minor."
 ENTP 3080,,ENTP 3001.,,,,,,,,,,,,,
 ENTP 3986,instructor_consent,ENTP 3001; cons. of prog. dir. and cons. of Business Career Center. Consent required.,,cons. of prog. dir. and cons. of Business Career Center; Consent required,,,,,,,,,,,ENTP 3001; cons. of prog. dir. and cons. of Business Career Center. Consent required.
 ENTP 3990,major_restriction;instructor_consent,"ENTP 3001 or concurrent enrollment, declared Entrepreneurship minor, cons. of prog. dir., cons. of Business Career Center. Consent required.","ENTP 3001 or concurrent enrollment, declared Entrepreneurship minor, cons. of prog. dir., cons. of Business Career Center","ENTP 3001 or concurrent enrollment, declared Entrepreneurship minor, cons. of prog. dir., cons. of Business Career Center; Consent required",,,,,,,,"ENTP 3001 or concurrent enrollment, declared Entrepreneurship minor, cons. of prog. dir., cons. of Business Career Center",,,"ENTP 3001 or concurrent enrollment, declared Entrepreneurship minor, cons. of prog. dir., cons. of Business Career Center. Consent required."
@@ -2398,7 +2398,7 @@ FINA 4121,,FINA 3001.,,,,,,,,,,,,,
 FINA 4122,,FINA 3001.,,,,,,,,,,,,,
 FINA 4123,,"FINA 4001, FINA 4011, FINA 4020, FINA 4121, FINA 4122.",,,,,,,,,,,,,
 FINA 4191,,FINA 3001.,,,,,,,,,,,,,
-FINA 4210,instructor_consent;other_requirements;complex_hard_prereq,FINA 3002 and MANA 3001; or AIM Major: Private Equity Concentration; or cons. of instr.,,or cons. of instr,,,,,,,,,or AIM Major: Private Equity Concentration,FINA 3002 and MANA 3001; or AIM Major: Private Equity Concentration; or cons. of instr.,FINA 3002 and MANA 3001; or AIM Major: Private Equity Concentration; or cons. of instr.
+FINA 4210,instructor_consent;other_requirements,FINA 3002 and MANA 3001; or AIM Major: Private Equity Concentration; or cons. of instr.,,or cons. of instr,,,,,,,,,or AIM Major: Private Equity Concentration,,FINA 3002 and MANA 3001; or AIM Major: Private Equity Concentration; or cons. of instr.
 FINA 4211,admitted_program,FINA 3002 ; Admitted to the Commercial Banking program.,,,Admitted to the Commercial Banking program,,,,,,,,,,FINA 3002 ; Admitted to the Commercial Banking program.
 FINA 4212,,FINA 3002 and FINA 4210.,,,,,,,,,,,,,
 FINA 4931,,,,,,,,,,,,,,,
@@ -3260,7 +3260,7 @@ MARK 4020,,MARK 3001.,,,,,,,,,,,,,
 MARK 4030,,MARK 3001.,,,,,,,,,,,,,
 MARK 4040,,MARK 3001.,,,,,,,,,,,,,
 MARK 4050,,MARK 3001.,,,,,,,,,,,,,
-MARK 4060,complex_hard_prereq,"MARK 3001 and BUAD 1560. Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560.",,,,,,,,,,,,,"MARK 3001 and BUAD 1560. Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560."
+MARK 4060,other_requirements,"MARK 3001 and BUAD 1560. Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560.",,,,,,,,,,,"Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560.",,"MARK 3001 and BUAD 1560. Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560."
 MARK 4065,,"MARK 3001 and BUAD 1560 (or COMM 1700, MATH 1700, MATH 4720 or SOCI 2060 for non-business students).",,,,,,,,,,,,,
 MARK 4070,,MARK 3001.,,,,,,,,,,,,,
 MARK 4075,,MARK 3001.,,,,,,,,,,,,,
