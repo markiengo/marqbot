@@ -1,5 +1,5 @@
 # Recommendation Algorithm
-Last updated: March 6, 2026
+Last updated: March 7, 2026
 Status: `current behavior (parent/child + split prereq model)`
 
 ## Student Explanation
@@ -80,7 +80,7 @@ If the bulletin prerequisite logic cannot be encoded safely into the supported p
 5. Rank candidates deterministically with this tuple order:
    - `tier` (`1=MCC/BCC_REQUIRED`, `2=major`, `3=track/minor`, `5=demoted BCC children`)
    - core-prereq blocker (`0=yes`, `1=no`)
-   - bridge-course status (`0=direct filler`, `1=bridge-only`)
+   - bridge-course status (`0=direct filler`, `1=bridge-only`; bridge targets restricted to non-elective-pool buckets)
    - course level (lower first)
    - unlock chain depth (deeper first)
    - `multi_bucket_score` (higher first)
@@ -92,9 +92,18 @@ If the bulletin prerequisite logic cannot be encoded safely into the supported p
    - rescue pass when no picks are produced
 7. Return recommendations, progress/projection, warnings, and optional debug trace.
 
+## Bridge Course Scope
+A bridge course is a candidate that does not directly fill any unmet bucket but unlocks a course that does. Bridge targets are restricted:
+- **No elective pools**: buckets with `requirement_mode = credits_pool` are skipped. Elective pools have many direct options and don't need prereq-chain unlocking.
+- **No Discovery themes**: buckets whose parent starts with `MCC_DISC` are skipped. Discovery themes have wide cross-department course pools that would otherwise cause irrelevant recommendations (e.g. BIOL 1001 to unlock a CMI NSM course).
+
+## Discovery Theme Gate
+Discovery theme courses (buckets under any `MCC_DISC*` parent) are only recommended after MCC Foundation is fully satisfied. Foundation = `MCC_CORE` (4 courses) + `MCC_ESSV1` (1 course). Until both are done, Discovery buckets are suppressed from the eligible candidate list.
+
 ## Currently Excluded From Recommendations
-The engine does not recommend courses when either of these is true:
+The engine does not recommend courses when any of these is true:
 - course code contains `4986` (work-period grading courses)
+- course code ends with `H` after a number (honors sections, e.g. `THEO 1001H`) — excluded until an honors student toggle is implemented
 - course credits include any non-integer numeric values (for example, `1.5` or `1.5-3`)
 - course name contains one of:
   - `internship`

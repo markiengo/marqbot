@@ -74,6 +74,10 @@ def _is_non_recommendable_course(
     name = str(course_name or "").strip().lower()
     if re.search(r"\b4986\b", code):
         return True
+    # Honors-section courses (H suffix) are excluded until an honors student
+    # flag is available; non-honors students should never see them.
+    if re.search(r"\d+H$", code):
+        return True
     if _has_non_integer_credits(credits):
         return True
     return any(p in name for p in _NON_RECOMMENDABLE_PATTERNS)
@@ -443,6 +447,14 @@ def get_eligible_courses(
                 target_buckets.append(bucket_id)
     unmet_remaining_courses = set(unmet_course_buckets.keys())
 
+    # Discovery theme gate: suppress Discovery buckets until MCC Foundation
+    # (MCC_CORE + MCC_ESSV1) is fully satisfied.
+    _FOUNDATION_BUCKET_IDS = {"MCC_CORE", "MCC_ESSV1"}
+    _foundation_unsatisfied = any(
+        int(pd.to_numeric((allocator_remaining or {}).get(fid, {}).get("slots_remaining", 0), errors="coerce") or 0) > 0
+        for fid in _FOUNDATION_BUCKET_IDS
+    )
+
     course_rows = runtime_courses["rows"] if runtime_courses is not None else None
     if course_rows is None:
         course_rows = [row for _, row in courses_df.iterrows()]
@@ -554,12 +566,16 @@ def get_eligible_courses(
         unmet_buckets = [
             b for b in eligible_buckets
             if allocator_remaining.get(b["bucket_id"], {}).get("slots_remaining", 0) > 0
+            and not (_foundation_unsatisfied and str(b.get("parent_bucket_id", "") or "").strip().upper().startswith("MCC_DISC"))
         ]
         direct_unmet_unlocks = [
             unlocked_code
             for unlocked_code in reverse_map.get(code, [])
             if unlocked_code in unmet_remaining_courses
         ]
+        # Bridge logic: skip elective-pool buckets and Discovery theme
+        # buckets — both have wide course pools with plenty of direct
+        # options and don't need prereq-chain unlocking.
         bridge_target_buckets: list[dict] = []
         seen_bridge_bucket_ids: set[str] = set()
         for unlocked_code in direct_unmet_unlocks:
@@ -568,6 +584,12 @@ def get_eligible_courses(
                     continue
                 target_meta = bucket_meta.get(target_bucket_id)
                 if target_meta is None:
+                    continue
+                req_mode = str(target_meta.get("requirement_mode", "") or "").strip().lower()
+                if req_mode == "credits_pool":
+                    continue
+                parent_id = str(target_meta.get("parent_bucket_id", "") or "").strip().upper()
+                if parent_id.startswith("MCC_DISC"):
                     continue
                 priority_raw = pd.to_numeric(target_meta.get("priority", 99), errors="coerce")
                 parent_priority_raw = pd.to_numeric(

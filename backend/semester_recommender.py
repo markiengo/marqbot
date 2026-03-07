@@ -1,4 +1,6 @@
 import re
+from math import ceil
+
 import pandas as pd
 
 from requirements import (
@@ -21,6 +23,9 @@ from prereq_parser import prereq_course_codes
 SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
 
 _MAX_PER_BUCKET_PER_SEM = 2
+_FAMILY_CAP_DIVISOR = 3
+_DECLARED_MIN_DIVISOR = 3
+_DISC_FAMILY_PREFIX = "MCC_DISC"
 _PROJECTION_NOTE = (
     "Projected progress below assumes you complete these recommendations."
 )
@@ -440,6 +445,79 @@ def _build_bucket_parent_map(data: dict, track_id: str) -> dict[str, str]:
     return out
 
 
+def _build_family_id_map(data: dict, track_id: str) -> dict[str, str]:
+    """Build runtime bucket_id -> double_count_family_id map."""
+    buckets_df = data.get("buckets_df")
+    if buckets_df is None or len(buckets_df) == 0:
+        return {}
+    tid = str(track_id or "").strip().upper()
+    subset = buckets_df[
+        buckets_df["track_id"].astype(str).str.strip().str.upper() == tid
+    ]
+    out: dict[str, str] = {}
+    for _, row in subset.iterrows():
+        bid = str(row.get("bucket_id", "") or "").strip().upper()
+        fam = str(row.get("double_count_family_id", "") or "").strip().upper()
+        if bid:
+            out[bid] = fam if fam else bid
+    return out
+
+
+def _build_bucket_requirement_mode_map(data: dict, track_id: str) -> dict[str, str]:
+    """Build runtime bucket_id -> requirement_mode map."""
+    buckets_df = data.get("buckets_df")
+    if buckets_df is None or len(buckets_df) == 0:
+        return {}
+    tid = str(track_id or "").strip().upper()
+    subset = buckets_df[
+        buckets_df["track_id"].astype(str).str.strip().str.upper() == tid
+    ]
+    out: dict[str, str] = {}
+    for _, row in subset.iterrows():
+        bid = str(row.get("bucket_id", "") or "").strip().upper()
+        mode = str(_infer_requirement_mode(row) or "").strip().lower()
+        if bid:
+            out[bid] = mode
+    return out
+
+
+def _candidate_counts_toward_declared_min(
+    candidate: dict,
+    bucket_parent_map: dict[str, str],
+    parent_type_map: dict[str, str],
+    family_id_map: dict[str, str],
+    requirement_mode_map: dict[str, str],
+) -> bool:
+    """True if the candidate advances a declared major/track non-pool requirement."""
+
+    def _bucket_counts(bucket_id: str) -> bool:
+        bid_upper = str(bucket_id).strip().upper()
+        if not bid_upper:
+            return False
+        parent = bucket_parent_map.get(bid_upper, "")
+        ptype = parent_type_map.get(parent, "")
+        if ptype not in ("major", "track"):
+            return False
+        # Exclude Discovery-theme buckets from satisfying the declared-path quota.
+        fam = family_id_map.get(bid_upper, "")
+        if fam.startswith(_DISC_FAMILY_PREFIX):
+            return False
+        mode = requirement_mode_map.get(bid_upper, "")
+        return mode in ("required", "choose_n")
+
+    for bid in candidate.get("fills_buckets", []):
+        if _bucket_counts(bid):
+            return True
+
+    # Bridge courses can satisfy the quota if they unlock declared non-pool
+    # buckets, even when they do not directly fill one themselves.
+    for bid in candidate.get("bridge_target_buckets", []):
+        if _bucket_counts(bid):
+            return True
+
+    return False
+
+
 def _is_mcc_tier_1_candidate(parent_id: str, primary_bucket: str, local_id: str) -> bool:
     if parent_id in _MCC_PARENT_FAMILY_IDS:
         return True
@@ -823,6 +901,8 @@ def run_recommendation_semester(
     bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
     bucket_parent_map = _build_bucket_parent_map(data, track_id)
     bucket_role_map = _build_bucket_role_map(data, track_id)
+    family_id_map = _build_family_id_map(data, track_id)
+    requirement_mode_map = _build_bucket_requirement_mode_map(data, track_id)
     if not non_manual_sem:
         standing_recovery_sem: list[dict] = []
         if unsatisfied_bucket_ids and standing_blocked_sem:
@@ -935,9 +1015,7 @@ def run_recommendation_semester(
             c["course_code"],
         ),
     )
-    # Greedy selection that respects bucket capacity and spreads courses
-    # The cap auto-relaxes when viable unmet buckets are too few to satisfy
-    # requested recommendation count.
+    # ---------- Selection setup ----------
     selected_sem = []
     selection_bucket_meta = _build_selection_bucket_meta(data, track_id)
     allowed_pairs = get_allowed_double_count_pairs(
@@ -952,10 +1030,26 @@ def run_recommendation_semester(
     virtual_remaining_snapshot = dict(virtual_remaining) if debug else {}
     picks_per_bucket: dict[str, int] = {}
     picks_per_program: dict[str, int] = {}
+    picks_per_family: dict[str, int] = {}
     deferred_for_balance: list[dict] = []
     bridge_targets_covered: set[str] = set()
     cap_relaxed = False
+    family_cap_relaxed = False
+    family_blocked_codes: set[str] = set()
     skipped_reasons: dict[str, str] = {}
+
+    # Family cap and declared-program minimum, derived from max_recs.
+    family_cap = max(1, ceil(max_recs / _FAMILY_CAP_DIVISOR))
+    declared_min_target = max(1, ceil(max_recs / _DECLARED_MIN_DIVISOR))
+    declared_min_achieved = 0
+    declared_min_relaxed = False
+
+    # Pre-tag candidates with declared-min eligibility.
+    for cand in ranked_sem:
+        cand["_counts_toward_declared_min"] = _candidate_counts_toward_declared_min(
+            cand, bucket_parent_map, parent_type_map,
+            family_id_map, requirement_mode_map,
+        )
 
     def _assignable_buckets_for_candidate(candidate: dict, *, enforce_bucket_cap: bool) -> list[str]:
         return _select_assignable_buckets_allocator_style(
@@ -974,17 +1068,77 @@ def run_recommendation_semester(
             for b in candidate.get("bridge_target_buckets", [])
         )
 
+    def _family_cap_exceeded(assigned_buckets: list[str]) -> bool:
+        """Check if selecting this candidate would exceed the family cap."""
+        if family_cap_relaxed:
+            return False
+        for bid in assigned_buckets:
+            fam = family_id_map.get(bid.upper(), bid.upper())
+            if picks_per_family.get(fam, 0) >= family_cap:
+                return True
+        return False
+
+    def _accept_candidate(cand: dict, assigned_buckets: list[str]) -> None:
+        """Bookkeeping when a candidate is accepted into selected_sem."""
+        selected_sem.append(cand)
+        if _is_bridge_candidate(cand):
+            for b in cand.get("bridge_target_buckets", []):
+                bridge_targets_covered.add(b)
+        cand_programs = _candidate_program_ids(cand, bucket_parent_map, parent_type_map)
+        for prog in cand_programs:
+            picks_per_program[prog] = picks_per_program.get(prog, 0) + 1
+        for bid in assigned_buckets:
+            fam = family_id_map.get(bid.upper(), bid.upper())
+            picks_per_family[fam] = picks_per_family.get(fam, 0) + 1
+            if virtual_remaining.get(bid, 0) > 0:
+                consume = _bucket_virtual_consumption_units(
+                    bid, cand, selection_bucket_meta,
+                )
+                virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
+                picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
+
+    # ---------- Pass 1: Declared-program priority ----------
+    # Select up to declared_min_target courses that count toward declared
+    # major/track requirements, respecting family cap and bucket capacity.
+    for cand in ranked_sem:
+        if declared_min_achieved >= declared_min_target:
+            break
+        if len(selected_sem) >= max_recs:
+            break
+        if not cand.get("_counts_toward_declared_min"):
+            continue
+        assigned_buckets = _assignable_buckets_for_candidate(cand, enforce_bucket_cap=True)
+        is_bridge_pick = _is_bridge_candidate(cand)
+        if not assigned_buckets and not is_bridge_pick:
+            continue
+        if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
+            continue
+        if _family_cap_exceeded(assigned_buckets):
+            continue
+        _accept_candidate(cand, assigned_buckets)
+        declared_min_achieved += 1
+
+    # Track which courses were already selected in pass 1.
+    selected_codes_set = {c["course_code"] for c in selected_sem}
+
+    # ---------- Pass 2: Normal greedy fill ----------
+    # Fill remaining slots with the standard ranked greedy loop, now with
+    # family cap enforcement alongside the existing per-bucket cap.
     for idx, cand in enumerate(ranked_sem):
         if len(selected_sem) >= max_recs:
             if debug:
                 skipped_reasons[cand["course_code"]] = "max_recs reached"
             break
+        if cand["course_code"] in selected_codes_set:
+            continue
 
         remaining_slots_to_fill = max_recs - len(selected_sem)
         if not cap_relaxed:
             remaining_candidates = ranked_sem[idx:]
             viable_unmet_buckets: set[str] = set()
             for rc in remaining_candidates:
+                if rc["course_code"] in selected_codes_set:
+                    continue
                 viable_unmet_buckets.update(
                     _select_assignable_buckets_allocator_style(
                         _selection_bucket_ids(rc),
@@ -1014,6 +1168,12 @@ def run_recommendation_semester(
                 skipped_reasons[cand["course_code"]] = "bridge targets already covered"
             continue
 
+        # Family cap gate.
+        if assigned_buckets and _family_cap_exceeded(assigned_buckets):
+            family_blocked_codes.add(cand["course_code"])
+            if debug:
+                skipped_reasons[cand["course_code"]] = "family cap exceeded"
+            continue
 
         # Program balance gate: defer if this program is over-represented.
         cand_programs = _candidate_program_ids(cand, bucket_parent_map, parent_type_map)
@@ -1027,55 +1187,47 @@ def run_recommendation_semester(
                     skipped_reasons[cand["course_code"]] = "program balance deferral"
                 continue
 
-        selected_sem.append(cand)
-        if is_bridge_pick:
-            for b in cand.get("bridge_target_buckets", []):
-                bridge_targets_covered.add(b)
-        for prog in cand_programs:
-            picks_per_program[prog] = picks_per_program.get(prog, 0) + 1
-        for bid in assigned_buckets:
-            if virtual_remaining.get(bid, 0) > 0:
-                consume = _bucket_virtual_consumption_units(
-                    bid,
-                    cand,
-                    selection_bucket_meta,
-                )
-                virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
-                picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
+        _accept_candidate(cand, assigned_buckets)
 
-    # Second pass: fill remaining slots from deferred candidates.
+    # ---------- Deferred balance pass ----------
     for cand in deferred_for_balance:
         if len(selected_sem) >= max_recs:
             break
-        assigned_buckets = _assignable_buckets_for_candidate(
-            cand,
-            enforce_bucket_cap=False,
-        )
+        if cand["course_code"] in selected_codes_set:
+            continue
+        assigned_buckets = _assignable_buckets_for_candidate(cand, enforce_bucket_cap=False)
         is_bridge_pick = _is_bridge_candidate(cand)
         if not assigned_buckets and not is_bridge_pick:
             continue
         if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
             continue
-        selected_sem.append(cand)
-        if is_bridge_pick:
-            for b in cand.get("bridge_target_buckets", []):
-                bridge_targets_covered.add(b)
-        cand_programs = _candidate_program_ids(cand, bucket_parent_map, parent_type_map)
-        for prog in cand_programs:
-            picks_per_program[prog] = picks_per_program.get(prog, 0) + 1
-        for bid in assigned_buckets:
-            if virtual_remaining.get(bid, 0) > 0:
-                consume = _bucket_virtual_consumption_units(
-                    bid,
-                    cand,
-                    selection_bucket_meta,
-                )
-                virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
-                picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
+        if assigned_buckets and _family_cap_exceeded(assigned_buckets):
+            family_blocked_codes.add(cand["course_code"])
+            continue
+        _accept_candidate(cand, assigned_buckets)
 
-    # Rescue pass: when both main loop and deferred pass produced nothing,
-    # force-assign candidates to any mapped bucket (even at capacity).
-    # Overfilling a bucket is strictly better than dead-ending the student.
+    # ---------- Family cap relaxation pass ----------
+    # If we still have unfilled slots and the family cap blocked candidates,
+    # relax the family cap and try again.
+    if len(selected_sem) < max_recs:
+        selected_codes_set = {c["course_code"] for c in selected_sem}
+        if family_blocked_codes - selected_codes_set:
+            family_cap_relaxed = True
+            for cand in ranked_sem:
+                if len(selected_sem) >= max_recs:
+                    break
+                if cand["course_code"] in selected_codes_set:
+                    continue
+                assigned_buckets = _assignable_buckets_for_candidate(
+                    cand, enforce_bucket_cap=not cap_relaxed,
+                )
+                if not assigned_buckets:
+                    continue
+                _accept_candidate(cand, assigned_buckets)
+                selected_codes_set.add(cand["course_code"])
+
+    # ---------- Rescue pass ----------
+    # When all passes produced nothing, force-assign to any mapped bucket.
     if not selected_sem:
         has_unsatisfied = any(v > 0 for v in virtual_remaining.values())
         if has_unsatisfied:
@@ -1085,7 +1237,6 @@ def run_recommendation_semester(
                 cand_buckets = _selection_bucket_ids(cand)
                 if _is_bridge_candidate(cand):
                     continue
-                # Try without cap first
                 assigned_buckets = _select_assignable_buckets_allocator_style(
                     cand_buckets,
                     virtual_remaining,
@@ -1096,21 +1247,24 @@ def run_recommendation_semester(
                     bucket_meta=selection_bucket_meta,
                 )
                 if not assigned_buckets:
-                    # Force-assign to any mapped bucket still in remaining
                     for bid in cand_buckets:
                         if bid in virtual_remaining:
                             assigned_buckets = [bid]
                             break
                 if not assigned_buckets:
                     continue
-                selected_sem.append(cand)
-                for bid in assigned_buckets:
-                    if virtual_remaining.get(bid, 0) > 0:
-                        consume = _bucket_virtual_consumption_units(
-                            bid, cand, selection_bucket_meta,
-                        )
-                        virtual_remaining[bid] = max(0, virtual_remaining[bid] - consume)
-                        picks_per_bucket[bid] = picks_per_bucket.get(bid, 0) + 1
+                _accept_candidate(cand, assigned_buckets)
+
+    # Derive response metadata from the final selected semester, not just
+    # the initial quota pass, so UI chips reflect what actually shipped.
+    declared_min_achieved = sum(
+        1 for cand in selected_sem
+        if cand.get("_counts_toward_declared_min")
+    )
+    declared_min_relaxed = declared_min_achieved < declared_min_target
+    family_cap_relaxed = family_cap_relaxed or any(
+        count > family_cap for count in picks_per_family.values()
+    )
 
     for cand in selected_sem:
         cand["tier"] = _bucket_hierarchy_tier_v2(
@@ -1119,6 +1273,11 @@ def run_recommendation_semester(
             bucket_track_required_map,
             bucket_parent_map,
         )
+        cand.pop("_counts_toward_declared_min", None)
+
+    # Clean internal keys from non-selected candidates too.
+    for cand in ranked_sem:
+        cand.pop("_counts_toward_declared_min", None)
 
     recommendations_sem = _build_deterministic_recommendations(selected_sem, len(selected_sem))
 
@@ -1168,6 +1327,13 @@ def run_recommendation_semester(
         "manual_review_courses": manual_review_sem,
         "projected_progress": projected_progress_sem,
         "projection_note": _PROJECTION_NOTE,
+        "balance_policy": {
+            "family_cap": family_cap,
+            "family_cap_relaxed": family_cap_relaxed,
+            "declared_min_target": declared_min_target,
+            "declared_min_achieved": declared_min_achieved,
+            "declared_min_relaxed": declared_min_relaxed,
+        },
     }
     if debug:
         selected_code_set = {r["course_code"] for r in recommendations_sem}

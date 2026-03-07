@@ -13,7 +13,7 @@ ACCO 4040,may_be_concurrent,"ACCO 4020, which may be taken concurrently.",,,,,,,
 ACCO 4045,,ACCO 4010.,,,,,,,,,,,,,
 ACCO 4050,,ACCO 1031.,,,,,,,,,,,,,
 ACCO 4060,,ACCO 4050.,,,,,,,,,,,,,
-ACCO 4080,admitted_program;complex_hard_prereq,ACCO 3001; or admittance into the AIM major or Commercial Banking Program.,,,or admittance into the AIM major or Commercial Banking Program,,,,,,,,,ACCO 3001; or admittance into the AIM major or Commercial Banking Program.,ACCO 3001; or admittance into the AIM major or Commercial Banking Program.
+ACCO 4080,complex_hard_prereq,ACCO 3001; or admittance into the AIM major or Commercial Banking Program.,,,,,,,,,,,,,ACCO 3001; or admittance into the AIM major or Commercial Banking Program.
 ACCO 4119,standing_requirement,Sr. stndg. and ACCO 4010.,,,,,,Sr. stndg. and ACCO 4010,,,,,,,Sr. stndg. and ACCO 4010.
 ACCO 4170,,ACCO 4050.,,,,,,,,,,,,,
 ACCO 4931,,ACCO 3001.,,,,,,,,,,,,,
@@ -2835,7 +2835,7 @@ HOPR 3954H,major_restriction;admitted_program;instructor_consent;standing_requir
 HOPR 3957H,admitted_program,Admission to Marquette University Honors Program.,,,Admission to Marquette University Honors Program,,,,,,,,,,Admission to Marquette University Honors Program.
 HOPR 4954H,major_restriction;admitted_program;instructor_consent,Declared Humanities major and admission to Humanities Disciplinary Honors Program; concurrent enrollment in major thesis or Honors capstone course. Consent required.,Declared Humanities major and admission to Humanities Disciplinary Honors Program,Consent required,Declared Humanities major and admission to Humanities Disciplinary Honors Program,,,,,,,concurrent enrollment in major thesis or Honors capstone course,,,Declared Humanities major and admission to Humanities Disciplinary Honors Program; concurrent enrollment in major thesis or Honors capstone course. Consent required.
 HOPR 4999H,instructor_consent;standing_requirement;minimum_gpa,"Jr. stndg., 3.200 cum GPA. Consent required.",,Consent required,,,,"Jr. stndg., 3.200 cum GPA",,,"Jr. stndg., 3.200 cum GPA",,,,"Jr. stndg., 3.200 cum GPA. Consent required."
-HURE 3001,major_restriction;complex_hard_prereq,"BUAD 1001; OR HURE Minor, CCOM Major or Minor, Public History Minor.","OR HURE Minor, CCOM Major or Minor, Public History Minor",,,,,,,,,,,"BUAD 1001; OR HURE Minor, CCOM Major or Minor, Public History Minor.","BUAD 1001; OR HURE Minor, CCOM Major or Minor, Public History Minor."
+HURE 3001,complex_hard_prereq,"BUAD 1001; OR HURE Minor, CCOM Major or Minor, Public History Minor.",,,,,,,,,,,,,"BUAD 1001; OR HURE Minor, CCOM Major or Minor, Public History Minor."
 HURE 3986,instructor_consent,HURE 3001; cons. of prog. dir. and cons. of Business Career Center. Consent required.,,cons. of prog. dir. and cons. of Business Career Center; Consent required,,,,,,,,,,,HURE 3001; cons. of prog. dir. and cons. of Business Career Center. Consent required.
 HURE 3990,major_restriction;instructor_consent,"HURE 3001 or concurrent enrollment, declared Human Resources minor, cons. of prog. dir., cons. of Business Career Center. Consent required.","HURE 3001 or concurrent enrollment, declared Human Resources minor, cons. of prog. dir., cons. of Business Career Center","HURE 3001 or concurrent enrollment, declared Human Resources minor, cons. of prog. dir., cons. of Business Career Center; Consent required",,,,,,,,"HURE 3001 or concurrent enrollment, declared Human Resources minor, cons. of prog. dir., cons. of Business Career Center",,,"HURE 3001 or concurrent enrollment, declared Human Resources minor, cons. of prog. dir., cons. of Business Career Center. Consent required."
 HURE 4003,,HURE 3001.,,,,,,,,,,,,,
@@ -3260,7 +3260,7 @@ MARK 4020,,MARK 3001.,,,,,,,,,,,,,
 MARK 4030,,MARK 3001.,,,,,,,,,,,,,
 MARK 4040,,MARK 3001.,,,,,,,,,,,,,
 MARK 4050,,MARK 3001.,,,,,,,,,,,,,
-MARK 4060,major_restriction;complex_hard_prereq,"MARK 3001 and BUAD 1560. Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560.","Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560.",,,,,,,,,,,"MARK 3001 and BUAD 1560. Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560.","MARK 3001 and BUAD 1560. Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560."
+MARK 4060,complex_hard_prereq,"MARK 3001 and BUAD 1560. Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560.",,,,,,,,,,,,,"MARK 3001 and BUAD 1560. Marketing and Professional Selling minors may substitute COMM 1700, MATH 1700, SOCI 2060 or SOCI 2060H for BUAD 1560."
 MARK 4065,,"MARK 3001 and BUAD 1560 (or COMM 1700, MATH 1700, MATH 4720 or SOCI 2060 for non-business students).",,,,,,,,,,,,,
 MARK 4070,,MARK 3001.,,,,,,,,,,,,,
 MARK 4075,,MARK 3001.,,,,,,,,,,,,,

@@ -1,0 +1,27 @@
+What was implemented
+Backend (semester_recommender.py)
+New constants: _FAMILY_CAP_DIVISOR = 3, _DECLARED_MIN_DIVISOR = 3, _DISC_FAMILY_PREFIX = "MCC_DISC"
+
+New helper functions:
+
+_build_family_id_map() — maps child bucket → double_count_family_id (already present on parent_buckets.csv)
+_build_bucket_requirement_mode_map() — maps child bucket → requirement_mode
+_candidate_counts_toward_declared_min() — True if course fills a declared major/track required/choose_n bucket (excluding Discovery and credits_pool)
+Selection engine rewrite — two-pass with family cap:
+
+Pass 1 (declared-program priority): Selects up to ceil(n/3) courses that fill declared major/track required/choose_n buckets
+Pass 2 (normal greedy fill): Fills remaining slots, now with family cap enforcement — max ceil(n/3) courses per double_count_family_id per semester
+Deferred balance pass: Unchanged
+Family cap relaxation pass: When slots remain unfilled due to family cap, relaxes the cap and fills
+Rescue pass: Unchanged
+Response metadata: New balance_policy field on each semester with family_cap, family_cap_relaxed, declared_min_target, declared_min_achieved, declared_min_relaxed.
+
+Frontend
+types.ts: Added BalancePolicy interface and optional balance_policy on SemesterData
+SemesterModal.tsx: Balance policy chips (major/track progress prioritized, relaxation notes)
+PlannerLayout.tsx: New explainer point #7 about family balancing
+Tests
+2 new tests in test_semester_recommender.py: family cap limits Discovery courses + declared-min relaxes gracefully
+All 16 semester recommender tests pass, 267/268 fast suite pass (1 pre-existing NURS cycle data issue)
+Effect on the original scenario
+For BUAN + FIN (CB) + CMI Discovery with 5 recs: family_cap = 2 limits MCC_DISC to max 2 courses, and declared_min_target = 2 pulls at least 2 major-facing courses into the semester.

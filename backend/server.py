@@ -1593,6 +1593,8 @@ def _build_current_progress(completed, in_progress, data, track_id):
             "needed_count": (baseline.get("needed_count") if baseline.get("needed_count") is not None else assumed.get("needed_count")),
             "completed_courses": len(baseline.get("completed_applied", [])),
             "in_progress_courses": len(baseline.get("in_progress_applied", [])),
+            "completed_applied": baseline.get("completed_applied", []),
+            "in_progress_applied": baseline.get("in_progress_applied", []),
         }
     return annotate_progress_with_recommendation_hierarchy(out, data, track_id)
 

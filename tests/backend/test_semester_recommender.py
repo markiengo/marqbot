@@ -1318,3 +1318,403 @@ def test_standing_recovery_recommends_declared_path_filler_when_only_required_co
     assert codes == ["ELEC_FILL"]
     assert out["eligible_count"] >= 1
     assert "standing needed" in out["recommendations"][0]["why"].lower()
+
+
+def test_family_cap_limits_discovery_courses_per_semester():
+    """
+    Regression: BUAN+FIN+CB+CMI student should NOT get 3+ Discovery courses
+    in one semester. The family cap (ceil(n/3)) limits MCC_DISC family courses.
+    """
+    # 3 Discovery courses + 2 major courses + 1 MCC Foundation = 6 eligible
+    courses = [
+        {
+            "course_code": f"DISC {1000 + i}",
+            "course_name": f"Discovery {i}",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        }
+        for i in range(1, 4)
+    ] + [
+        {
+            "course_code": "ENGL 1001",
+            "course_name": "English Comp",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "FINA 3001",
+            "course_name": "Finance Core 1",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "BUAN 3001",
+            "course_name": "Analytics Core 1",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC_DISC_CMI::DISC_HUM",
+            "bucket_label": "Discovery Humanities",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_DISC_CMI",
+            "double_count_family_id": "MCC_DISC",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC_DISC_CMI::DISC_SSC",
+            "bucket_label": "Discovery Social Science",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_DISC_CMI",
+            "double_count_family_id": "MCC_DISC",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC_DISC_CMI::DISC_NSM",
+            "bucket_label": "Discovery Natural Science",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_DISC_CMI",
+            "double_count_family_id": "MCC_DISC",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_FOUNDATION",
+            "bucket_label": "MCC Foundation",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_FOUNDATION",
+            "double_count_family_id": "MCC_FOUNDATION",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::FIN_CORE",
+            "bucket_label": "Finance Core",
+            "priority": 5,
+            "needed_count": 2,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "BUAN_MAJOR::BUAN_CORE",
+            "bucket_label": "Analytics Core",
+            "priority": 5,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "BUAN_MAJOR",
+            "double_count_family_id": "BUAN_MAJOR",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC_DISC_CMI::DISC_HUM", "course_code": "DISC 1001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC_DISC_CMI::DISC_SSC", "course_code": "DISC 1002"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC_DISC_CMI::DISC_NSM", "course_code": "DISC 1003"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_FOUNDATION", "course_code": "ENGL 1001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::FIN_CORE", "course_code": "FINA 3001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BUAN_MAJOR::BUAN_CORE", "course_code": "BUAN 3001"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    # Add parent_buckets_df so parent_type_map resolves correctly
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "MCC_DISC_CMI", "type": "track"},
+        {"parent_bucket_id": "MCC_FOUNDATION", "type": "universal"},
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+        {"parent_bucket_id": "BUAN_MAJOR", "type": "major"},
+    ])
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=5,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    disc_codes = [c for c in codes if c.startswith("DISC")]
+    # Family cap = ceil(5/3) = 2 → at most 2 Discovery courses
+    assert len(disc_codes) <= 2, (
+        f"Expected at most 2 Discovery courses (family cap), got {len(disc_codes)}: {disc_codes}"
+    )
+    # Declared-min target is 2, so both declared-path courses should appear.
+    major_codes = [c for c in codes if c.startswith("FINA") or c.startswith("BUAN")]
+    assert len(major_codes) == 2, (
+        f"Expected 2 declared-major courses, got {len(major_codes)}: {codes}"
+    )
+    # Balance policy metadata should be present
+    policy = out.get("balance_policy", {})
+    assert policy.get("family_cap") == 2
+    assert policy.get("declared_min_target") == 2
+    assert policy.get("declared_min_achieved") == 2
+    assert policy.get("declared_min_relaxed") is False
+    assert len(codes) == 5
+
+
+def test_declared_min_relaxes_when_no_major_courses_eligible():
+    """When no declared-major courses are eligible, declared_min relaxes gracefully."""
+    courses = [
+        {
+            "course_code": f"MCC {1000 + i}",
+            "course_name": f"MCC Course {i}",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        }
+        for i in range(1, 5)
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": f"MCC::MCC_SLOT_{i}",
+            "bucket_label": f"MCC Slot {i}",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_FOUNDATION",
+            "double_count_family_id": "MCC_FOUNDATION",
+        }
+        for i in range(1, 5)
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": f"MCC::MCC_SLOT_{i}", "course_code": f"MCC {1000 + i}"}
+        for i in range(1, 5)
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "MCC_FOUNDATION", "type": "universal"},
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+    ])
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=4,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    # Should still produce recommendations even without major courses
+    assert len(codes) >= 2
+    # declared_min_relaxed should be True
+    policy = out.get("balance_policy", {})
+    assert policy.get("declared_min_relaxed") is True
+    assert policy.get("declared_min_achieved") == 0
+
+
+def test_declared_min_counts_bridge_unlocker_for_declared_required_bucket():
+    """A bridge course that unlocks a declared required bucket should satisfy the quota."""
+    courses = [
+        {
+            "course_code": "BRIDGE 1001",
+            "course_name": "Bridge Course",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "TARGET 2001",
+            "course_name": "Declared Required Target",
+            "credits": 3,
+            "level": 2000,
+            "prereq_hard": "BRIDGE 1001",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "MCC 1001",
+            "course_name": "MCC One",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "MCC 1002",
+            "course_name": "MCC Two",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::REQ_CORE",
+            "bucket_label": "Declared Required",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_CORE_A",
+            "bucket_label": "MCC Core A",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_FOUNDATION",
+            "double_count_family_id": "MCC_FOUNDATION_A",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_CORE_B",
+            "bucket_label": "MCC Core B",
+            "priority": 3,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_FOUNDATION",
+            "double_count_family_id": "MCC_FOUNDATION_B",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::REQ_CORE", "course_code": "TARGET 2001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_CORE_A", "course_code": "MCC 1001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_CORE_B", "course_code": "MCC 1002"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+        {"parent_bucket_id": "MCC_FOUNDATION", "type": "universal"},
+    ])
+    reverse_map = {
+        "BRIDGE 1001": ["TARGET 2001"],
+    }
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=3,
+        reverse_map=reverse_map,
+        track_id="FIN_MAJOR",
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    assert "BRIDGE 1001" in codes
+    policy = out.get("balance_policy", {})
+    assert policy.get("declared_min_target") == 1
+    assert policy.get("declared_min_achieved") == 1
+    assert policy.get("declared_min_relaxed") is False
