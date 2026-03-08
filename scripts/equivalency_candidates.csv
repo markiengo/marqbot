@@ -1,0 +1,554 @@
+equiv_group_id,course_code,relation_type,scope_program_id,notes
+HONORS_BIOL_4987,BIOL 4987,equivalent,,honors variant
+HONORS_BIOL_4987,BIOL 4987H,equivalent,,honors variant
+HONORS_CHEM_1002,CHEM 1002,equivalent,,honors variant
+HONORS_CHEM_1002,CHEM 1002H,equivalent,,honors variant
+HONORS_CHEM_1014,CHEM 1014,equivalent,,honors variant
+HONORS_CHEM_1014,CHEM 1014H,equivalent,,honors variant
+HONORS_COMM_4550,COMM 4550,equivalent,,honors variant
+HONORS_COMM_4550,COMM 4550H,equivalent,,honors variant
+HONORS_COMM_4750,COMM 4750,equivalent,,honors variant
+HONORS_COMM_4750,COMM 4750H,equivalent,,honors variant
+HONORS_CORE_1929,CORE 1929,equivalent,,honors variant
+HONORS_CORE_1929,CORE 1929H,equivalent,,honors variant
+HONORS_CORE_4929,CORE 4929,equivalent,,honors variant
+HONORS_CORE_4929,CORE 4929H,equivalent,,honors variant
+HONORS_ECON_1103,ECON 1103,equivalent,,honors variant
+HONORS_ECON_1103,ECON 1103H,equivalent,,honors variant
+HONORS_ECON_1104,ECON 1104,equivalent,,honors variant
+HONORS_ECON_1104,ECON 1104H,equivalent,,honors variant
+HONORS_GRMN_3500,GRMN 3500,equivalent,,honors variant
+HONORS_GRMN_3500,GRMN 3500H,equivalent,,honors variant
+HONORS_HEAL_1025,HEAL 1025,equivalent,,honors variant
+HONORS_HEAL_1025,HEAL 1025H,equivalent,,honors variant
+HONORS_HEAL_4901,HEAL 4901,equivalent,,honors variant
+HONORS_HEAL_4901,HEAL 4901H,equivalent,,honors variant
+HONORS_HIST_4255,HIST 4255,equivalent,,honors variant
+HONORS_HIST_4255,HIST 4255H,equivalent,,honors variant
+HONORS_HIST_4271,HIST 4271,equivalent,,honors variant
+HONORS_HIST_4271,HIST 4271H,equivalent,,honors variant
+HONORS_HIST_4955,HIST 4955,equivalent,,honors variant
+HONORS_HIST_4955,HIST 4955H,equivalent,,honors variant
+HONORS_MATH_1700,MATH 1700,equivalent,,honors variant
+HONORS_MATH_1700,MATH 1700H,equivalent,,honors variant
+HONORS_PHIL_1001,PHIL 1001,equivalent,,honors variant
+HONORS_PHIL_1001,PHIL 1001H,equivalent,,honors variant
+HONORS_POSC_2201,POSC 2201,equivalent,,honors variant
+HONORS_POSC_2201,POSC 2201H,equivalent,,honors variant
+HONORS_POSC_2401,POSC 2401,equivalent,,honors variant
+HONORS_POSC_2401,POSC 2401H,equivalent,,honors variant
+HONORS_POSC_2601,POSC 2601,equivalent,,honors variant
+HONORS_POSC_2601,POSC 2601H,equivalent,,honors variant
+HONORS_THEO_1001,THEO 1001,equivalent,,honors variant
+HONORS_THEO_1001,THEO 1001H,equivalent,,honors variant
+HONORS_THEO_2200,THEO 2200,equivalent,,honors variant
+HONORS_THEO_2200,THEO 2200H,equivalent,,honors variant
+HONORS_THEO_2240,THEO 2240,equivalent,,honors variant
+HONORS_THEO_2240,THEO 2240H,equivalent,,honors variant
+HONORS_THEO_2400,THEO 2400,equivalent,,honors variant
+HONORS_THEO_2400,THEO 2400H,equivalent,,honors variant
+HONORS_THEO_3100,THEO 3100,equivalent,,honors variant
+HONORS_THEO_3100,THEO 3100H,equivalent,,honors variant
+HONORS_THEO_3130,THEO 3130,equivalent,,honors variant
+HONORS_THEO_3130,THEO 3130H,equivalent,,honors variant
+HONORS_THEO_3230,THEO 3230,equivalent,,honors variant
+HONORS_THEO_3230,THEO 3230H,equivalent,,honors variant
+HONORS_THEO_3340,THEO 3340,equivalent,,honors variant
+HONORS_THEO_3340,THEO 3340H,equivalent,,honors variant
+HONORS_THEO_3430,THEO 3430,equivalent,,honors variant
+HONORS_THEO_3430,THEO 3430H,equivalent,,honors variant
+HONORS_THEO_3470,THEO 3470,equivalent,,honors variant
+HONORS_THEO_3470,THEO 3470H,equivalent,,honors variant
+HONORS_THEO_3530,THEO 3530,equivalent,,honors variant
+HONORS_THEO_3530,THEO 3530H,equivalent,,honors variant
+HONORS_THEO_4000,THEO 4000,equivalent,,honors variant
+HONORS_THEO_4000,THEO 4000H,equivalent,,honors variant
+HONORS_THEO_4300,THEO 4300,equivalent,,honors variant
+HONORS_THEO_4300,THEO 4300H,equivalent,,honors variant
+HONORS_THEO_4400,THEO 4400,equivalent,,honors variant
+HONORS_THEO_4400,THEO 4400H,equivalent,,honors variant
+HONORS_THEO_4405,THEO 4405,equivalent,,honors variant
+HONORS_THEO_4405,THEO 4405H,equivalent,,honors variant
+LEVEL_ACCO4010_ACCO5010,ACCO 4010,equivalent,,"same title, different level"
+LEVEL_ACCO4010_ACCO5010,ACCO 5010,equivalent,,"same title, different level"
+LEVEL_ACCO4040_ACCO5040,ACCO 4040,equivalent,,"same title, different level"
+LEVEL_ACCO4040_ACCO5040,ACCO 5040,equivalent,,"same title, different level"
+LEVEL_ACCO4040_ACCO5040,ACCO 6040,equivalent,,"same title, different level"
+LEVEL_ACCO4045_ACCO5045,ACCO 4045,equivalent,,"same title, different level"
+LEVEL_ACCO4045_ACCO5045,ACCO 5045,equivalent,,"same title, different level"
+LEVEL_ACCO4045_ACCO5045,ACCO 6045,equivalent,,"same title, different level"
+LEVEL_ACCO4050_ACCO5050,ACCO 4050,equivalent,,"same title, different level"
+LEVEL_ACCO4050_ACCO5050,ACCO 5050,equivalent,,"same title, different level"
+LEVEL_ACCO4050_ACCO5050,ACCO 6050,equivalent,,"same title, different level"
+LEVEL_ACCO4060_ACCO5060,ACCO 4060,equivalent,,"same title, different level"
+LEVEL_ACCO4060_ACCO5060,ACCO 5060,equivalent,,"same title, different level"
+LEVEL_ACCO4080_ACCO5080,ACCO 4080,equivalent,,"same title, different level"
+LEVEL_ACCO4080_ACCO5080,ACCO 5080,equivalent,,"same title, different level"
+LEVEL_ACCO4119_ACCO5119,ACCO 4119,equivalent,,"same title, different level"
+LEVEL_ACCO4119_ACCO5119,ACCO 5119,equivalent,,"same title, different level"
+LEVEL_ACCO4119_ACCO5119,ACCO 6119,equivalent,,"same title, different level"
+LEVEL_ACCO4931_ACCO5931,ACCO 4931,equivalent,,"same title, different level"
+LEVEL_ACCO4931_ACCO5931,ACCO 5931,equivalent,,"same title, different level"
+LEVEL_ACCO4931_ACCO5931,ACCO 6931,equivalent,,"same title, different level"
+LEVEL_ADPR4600_ADPR5600,ADPR 4600,equivalent,,"same title, different level"
+LEVEL_ADPR4600_ADPR5600,ADPR 5600,equivalent,,"same title, different level"
+LEVEL_ANTH4316_ANTH5316,ANTH 4316,equivalent,,"same title, different level"
+LEVEL_ANTH4316_ANTH5316,ANTH 5316,equivalent,,"same title, different level"
+LEVEL_BIEN4600_BIEN5600,BIEN 4600,equivalent,,"same title, different level"
+LEVEL_BIEN4600_BIEN5600,BIEN 5600,equivalent,,"same title, different level"
+LEVEL_BIOL4102_BIOL5102,BIOL 4102,equivalent,,"same title, different level"
+LEVEL_BIOL4102_BIOL5102,BIOL 5102,equivalent,,"same title, different level"
+LEVEL_BIOL4201_BIOL5201,BIOL 4201,equivalent,,"same title, different level"
+LEVEL_BIOL4201_BIOL5201,BIOL 5201,equivalent,,"same title, different level"
+LEVEL_BIOL4403_BIOL5403,BIOL 4403,equivalent,,"same title, different level"
+LEVEL_BIOL4403_BIOL5403,BIOL 5403,equivalent,,"same title, different level"
+LEVEL_BIOL4410_BIOL5410,BIOL 4410,equivalent,,"same title, different level"
+LEVEL_BIOL4410_BIOL5410,BIOL 5410,equivalent,,"same title, different level"
+LEVEL_BIOL4501_BIOL5501,BIOL 4501,equivalent,,"same title, different level"
+LEVEL_BIOL4501_BIOL5501,BIOL 5501,equivalent,,"same title, different level"
+LEVEL_BIOL4802_BIOL5802,BIOL 4802,equivalent,,"same title, different level"
+LEVEL_BIOL4802_BIOL5802,BIOL 5802,equivalent,,"same title, different level"
+LEVEL_BISC4010_BISC5010,BISC 4010,equivalent,,"same title, different level"
+LEVEL_BISC4010_BISC5010,BISC 5010,equivalent,,"same title, different level"
+LEVEL_BISC4140_BISC5140,BISC 4140,equivalent,,"same title, different level"
+LEVEL_BISC4140_BISC5140,BISC 5140,equivalent,,"same title, different level"
+LEVEL_BISC4150_BISC7150,BISC 4150,equivalent,,"same title, different level"
+LEVEL_BISC4150_BISC7150,BISC 7150,equivalent,,"same title, different level"
+LEVEL_BISC4153_BISC7153,BISC 4153,equivalent,,"same title, different level"
+LEVEL_BISC4153_BISC7153,BISC 7153,equivalent,,"same title, different level"
+LEVEL_BISC4155_BISC5155,BISC 4155,equivalent,,"same title, different level"
+LEVEL_BISC4155_BISC5155,BISC 5155,equivalent,,"same title, different level"
+LEVEL_BISC4157_BISC7157,BISC 4157,equivalent,,"same title, different level"
+LEVEL_BISC4157_BISC7157,BISC 7157,equivalent,,"same title, different level"
+LEVEL_BISC4160_BISC5160,BISC 4160,equivalent,,"same title, different level"
+LEVEL_BISC4160_BISC5160,BISC 5160,equivalent,,"same title, different level"
+LEVEL_BISC4170_BISC5170,BISC 4170,equivalent,,"same title, different level"
+LEVEL_BISC4170_BISC5170,BISC 5170,equivalent,,"same title, different level"
+LEVEL_BISC4325_BISC5325,BISC 4325,equivalent,,"same title, different level"
+LEVEL_BISC4325_BISC5325,BISC 5325,equivalent,,"same title, different level"
+LEVEL_BISC4340_BISC5340,BISC 4340,equivalent,,"same title, different level"
+LEVEL_BISC4340_BISC5340,BISC 5340,equivalent,,"same title, different level"
+LEVEL_BISC4850_BISC5850,BISC 4850,equivalent,,"same title, different level"
+LEVEL_BISC4850_BISC5850,BISC 5850,equivalent,,"same title, different level"
+LEVEL_CEEN4515_CEEN5515,CEEN 4515,equivalent,,"same title, different level"
+LEVEL_CEEN4515_CEEN5515,CEEN 5515,equivalent,,"same title, different level"
+LEVEL_CHEM4530_CHEM5530,CHEM 4530,equivalent,,"same title, different level"
+LEVEL_CHEM4530_CHEM5530,CHEM 5530,equivalent,,"same title, different level"
+LEVEL_CMST4120_CMST5120,CMST 4120,equivalent,,"same title, different level"
+LEVEL_CMST4120_CMST5120,CMST 5120,equivalent,,"same title, different level"
+LEVEL_CMST4140_CMST5140,CMST 4140,equivalent,,"same title, different level"
+LEVEL_CMST4140_CMST5140,CMST 5140,equivalent,,"same title, different level"
+LEVEL_CMST3200_CMST6200,CMST 3200,equivalent,,"same title, different level"
+LEVEL_CMST3200_CMST6200,CMST 6200,equivalent,,"same title, different level"
+LEVEL_CMST4250_CMST5250,CMST 4250,equivalent,,"same title, different level"
+LEVEL_CMST4250_CMST5250,CMST 5250,equivalent,,"same title, different level"
+LEVEL_CMST4400_CMST5400,CMST 4400,equivalent,,"same title, different level"
+LEVEL_CMST4400_CMST5400,CMST 5400,equivalent,,"same title, different level"
+LEVEL_CMST4410_CMST5410,CMST 4410,equivalent,,"same title, different level"
+LEVEL_CMST4410_CMST5410,CMST 5410,equivalent,,"same title, different level"
+LEVEL_CMST4500_CMST5500,CMST 4500,equivalent,,"same title, different level"
+LEVEL_CMST4500_CMST5500,CMST 5500,equivalent,,"same title, different level"
+LEVEL_COMM4500_COMM5500,COMM 4500,equivalent,,"same title, different level"
+LEVEL_COMM4500_COMM5500,COMM 5500,equivalent,,"same title, different level"
+LEVEL_COMM4550_COMM4550H,COMM 4550,equivalent,,"same title, different level"
+LEVEL_COMM4550_COMM4550H,COMM 4550H,equivalent,,"same title, different level"
+LEVEL_COMM4550_COMM4550H,COMM 5550,equivalent,,"same title, different level"
+LEVEL_COMM4750_COMM5750,COMM 4750,equivalent,,"same title, different level"
+LEVEL_COMM4750_COMM5750,COMM 5750,equivalent,,"same title, different level"
+LEVEL_ECON4005_ECON5005,ECON 4005,equivalent,,"same title, different level"
+LEVEL_ECON4005_ECON5005,ECON 5005,equivalent,,"same title, different level"
+LEVEL_ECON4008_ECON5008,ECON 4008,equivalent,,"same title, different level"
+LEVEL_ECON4008_ECON5008,ECON 5008,equivalent,,"same title, different level"
+LEVEL_ECON4016_ECON5016,ECON 4016,equivalent,,"same title, different level"
+LEVEL_ECON4016_ECON5016,ECON 5016,equivalent,,"same title, different level"
+LEVEL_ECON4040_ECON5040,ECON 4040,equivalent,,"same title, different level"
+LEVEL_ECON4040_ECON5040,ECON 5040,equivalent,,"same title, different level"
+LEVEL_ECON4045_ECON5045,ECON 4045,equivalent,,"same title, different level"
+LEVEL_ECON4045_ECON5045,ECON 5045,equivalent,,"same title, different level"
+LEVEL_ECON4072_ECON5072,ECON 4072,equivalent,,"same title, different level"
+LEVEL_ECON4072_ECON5072,ECON 5072,equivalent,,"same title, different level"
+LEVEL_ECON4931_ECON5931,ECON 4931,equivalent,,"same title, different level"
+LEVEL_ECON4931_ECON5931,ECON 5931,equivalent,,"same title, different level"
+LEVEL_ECON4931_ECON5931,ECON 6931,equivalent,,"same title, different level"
+LEVEL_ECON4995_ECON6995,ECON 4995,equivalent,,"same title, different level"
+LEVEL_ECON4995_ECON6995,ECON 6995,equivalent,,"same title, different level"
+LEVEL_EDUC4000_EDUC5000,EDUC 4000,equivalent,,"same title, different level"
+LEVEL_EDUC4000_EDUC5000,EDUC 5000,equivalent,,"same title, different level"
+LEVEL_EDUC4100_EDUC5100,EDUC 4100,equivalent,,"same title, different level"
+LEVEL_EDUC4100_EDUC5100,EDUC 5100,equivalent,,"same title, different level"
+LEVEL_EDUC4200_EDUC5200,EDUC 4200,equivalent,,"same title, different level"
+LEVEL_EDUC4200_EDUC5200,EDUC 5200,equivalent,,"same title, different level"
+LEVEL_EDUC4540_EDUC5540,EDUC 4540,equivalent,,"same title, different level"
+LEVEL_EDUC4540_EDUC5540,EDUC 5540,equivalent,,"same title, different level"
+LEVEL_EDUC4600_EDUC5600,EDUC 4600,equivalent,,"same title, different level"
+LEVEL_EDUC4600_EDUC5600,EDUC 5600,equivalent,,"same title, different level"
+LEVEL_ENGL3110_ENGL5110,ENGL 3110,equivalent,,"same title, different level"
+LEVEL_ENGL3110_ENGL5110,ENGL 5110,equivalent,,"same title, different level"
+LEVEL_ENGL4220_ENGL5220,ENGL 4220,equivalent,,"same title, different level"
+LEVEL_ENGL4220_ENGL5220,ENGL 5220,equivalent,,"same title, different level"
+LEVEL_ENGL4230_ENGL5230,ENGL 4230,equivalent,,"same title, different level"
+LEVEL_ENGL4230_ENGL5230,ENGL 5230,equivalent,,"same title, different level"
+LEVEL_ENGL4250_ENGL5250,ENGL 4250,equivalent,,"same title, different level"
+LEVEL_ENGL4250_ENGL5250,ENGL 5250,equivalent,,"same title, different level"
+LEVEL_ENGL4260_ENGL5260,ENGL 4260,equivalent,,"same title, different level"
+LEVEL_ENGL4260_ENGL5260,ENGL 5260,equivalent,,"same title, different level"
+LEVEL_ENGL4303_ENGL5303,ENGL 4303,equivalent,,"same title, different level"
+LEVEL_ENGL4303_ENGL5303,ENGL 5303,equivalent,,"same title, different level"
+LEVEL_ENGL4311_ENGL5311,ENGL 4311,equivalent,,"same title, different level"
+LEVEL_ENGL4311_ENGL5311,ENGL 5311,equivalent,,"same title, different level"
+LEVEL_ENGL4402_ENGL5402,ENGL 4402,equivalent,,"same title, different level"
+LEVEL_ENGL4402_ENGL5402,ENGL 5402,equivalent,,"same title, different level"
+LEVEL_ENGL4412_ENGL5412,ENGL 4412,equivalent,,"same title, different level"
+LEVEL_ENGL4412_ENGL5412,ENGL 5412,equivalent,,"same title, different level"
+LEVEL_ENGL4422_ENGL5422,ENGL 4422,equivalent,,"same title, different level"
+LEVEL_ENGL4422_ENGL5422,ENGL 5422,equivalent,,"same title, different level"
+LEVEL_ENGL4423_ENGL5423,ENGL 4423,equivalent,,"same title, different level"
+LEVEL_ENGL4423_ENGL5423,ENGL 5423,equivalent,,"same title, different level"
+LEVEL_ENGL4472_ENGL5472,ENGL 4472,equivalent,,"same title, different level"
+LEVEL_ENGL4472_ENGL5472,ENGL 5472,equivalent,,"same title, different level"
+LEVEL_ENGL4612_ENGL5612,ENGL 4612,equivalent,,"same title, different level"
+LEVEL_ENGL4612_ENGL5612,ENGL 5612,equivalent,,"same title, different level"
+LEVEL_ENGL4616_ENGL5616,ENGL 4616,equivalent,,"same title, different level"
+LEVEL_ENGL4616_ENGL5616,ENGL 5616,equivalent,,"same title, different level"
+LEVEL_ENGL4715_ENGL5715,ENGL 4715,equivalent,,"same title, different level"
+LEVEL_ENGL4715_ENGL5715,ENGL 5715,equivalent,,"same title, different level"
+LEVEL_ENGL4716_ENGL5716,ENGL 4716,equivalent,,"same title, different level"
+LEVEL_ENGL4716_ENGL5716,ENGL 5716,equivalent,,"same title, different level"
+LEVEL_ENGL4717_ENGL5717,ENGL 4717,equivalent,,"same title, different level"
+LEVEL_ENGL4717_ENGL5717,ENGL 5717,equivalent,,"same title, different level"
+LEVEL_ENGL4746_ENGL5746,ENGL 4746,equivalent,,"same title, different level"
+LEVEL_ENGL4746_ENGL5746,ENGL 5746,equivalent,,"same title, different level"
+LEVEL_ENGL4755_ENGL5755,ENGL 4755,equivalent,,"same title, different level"
+LEVEL_ENGL4755_ENGL5755,ENGL 5755,equivalent,,"same title, different level"
+LEVEL_ENGL4820_ENGL5820,ENGL 4820,equivalent,,"same title, different level"
+LEVEL_ENGL4820_ENGL5820,ENGL 5820,equivalent,,"same title, different level"
+LEVEL_ENGL4825_ENGL5825,ENGL 4825,equivalent,,"same title, different level"
+LEVEL_ENGL4825_ENGL5825,ENGL 5825,equivalent,,"same title, different level"
+LEVEL_ENGL4830_ENGL5830,ENGL 4830,equivalent,,"same title, different level"
+LEVEL_ENGL4830_ENGL5830,ENGL 5830,equivalent,,"same title, different level"
+LEVEL_ENGL4840_ENGL5840,ENGL 4840,equivalent,,"same title, different level"
+LEVEL_ENGL4840_ENGL5840,ENGL 5840,equivalent,,"same title, different level"
+LEVEL_ENGL4932_ENGL5932,ENGL 4932,equivalent,,"same title, different level"
+LEVEL_ENGL4932_ENGL5932,ENGL 5932,equivalent,,"same title, different level"
+LEVEL_ENGL4954_ENGL5954,ENGL 4954,equivalent,,"same title, different level"
+LEVEL_ENGL4954_ENGL5954,ENGL 5954,equivalent,,"same title, different level"
+LEVEL_ENGL4988_ENGL5988,ENGL 4988,equivalent,,"same title, different level"
+LEVEL_ENGL4988_ENGL5988,ENGL 5988,equivalent,,"same title, different level"
+LEVEL_ENGL4997_ENGL5997,ENGL 4997,equivalent,,"same title, different level"
+LEVEL_ENGL4997_ENGL5997,ENGL 5997,equivalent,,"same title, different level"
+LEVEL_EXPH4187_EXPH5187,EXPH 4187,equivalent,,"same title, different level"
+LEVEL_EXPH4187_EXPH5187,EXPH 5187,equivalent,,"same title, different level"
+LEVEL_EXPH4189_EXPH7189,EXPH 4189,equivalent,,"same title, different level"
+LEVEL_EXPH4189_EXPH7189,EXPH 7189,equivalent,,"same title, different level"
+LEVEL_FINA4001_FINA5001,FINA 4001,equivalent,,"same title, different level"
+LEVEL_FINA4001_FINA5001,FINA 5001,equivalent,,"same title, different level"
+LEVEL_FINA4002_FINA5002,FINA 4002,equivalent,,"same title, different level"
+LEVEL_FINA4002_FINA5002,FINA 5002,equivalent,,"same title, different level"
+LEVEL_FINA4011_FINA5011,FINA 4011,equivalent,,"same title, different level"
+LEVEL_FINA4011_FINA5011,FINA 5011,equivalent,,"same title, different level"
+LEVEL_FINA4023_FINA5023,FINA 4023,equivalent,,"same title, different level"
+LEVEL_FINA4023_FINA5023,FINA 5023,equivalent,,"same title, different level"
+LEVEL_FINA4040_FINA5040,FINA 4040,equivalent,,"same title, different level"
+LEVEL_FINA4040_FINA5040,FINA 5040,equivalent,,"same title, different level"
+LEVEL_FINA4075_FINA5075,FINA 4075,equivalent,,"same title, different level"
+LEVEL_FINA4075_FINA5075,FINA 5075,equivalent,,"same title, different level"
+LEVEL_FINA4081_FINA5081,FINA 4081,equivalent,,"same title, different level"
+LEVEL_FINA4081_FINA5081,FINA 5081,equivalent,,"same title, different level"
+LEVEL_FINA4081_FINA5081,FINA 6081,equivalent,,"same title, different level"
+LEVEL_FINA4084_FINA5084,FINA 4084,equivalent,,"same title, different level"
+LEVEL_FINA4084_FINA5084,FINA 5084,equivalent,,"same title, different level"
+LEVEL_FINA4085_FINA5085,FINA 4085,equivalent,,"same title, different level"
+LEVEL_FINA4085_FINA5085,FINA 5085,equivalent,,"same title, different level"
+LEVEL_FINA4931_FINA5931,FINA 4931,equivalent,,"same title, different level"
+LEVEL_FINA4931_FINA5931,FINA 5931,equivalent,,"same title, different level"
+LEVEL_FINA4931_FINA5931,FINA 6931,equivalent,,"same title, different level"
+LEVEL_FINA4953_FINA6953,FINA 4953,equivalent,,"same title, different level"
+LEVEL_FINA4953_FINA6953,FINA 6953,equivalent,,"same title, different level"
+LEVEL_FINAI4931_FINAI5931,FINAI 4931,equivalent,,"same title, different level"
+LEVEL_FINAI4931_FINAI5931,FINAI 5931,equivalent,,"same title, different level"
+LEVEL_FREN4110_FREN5110,FREN 4110,equivalent,,"same title, different level"
+LEVEL_FREN4110_FREN5110,FREN 5110,equivalent,,"same title, different level"
+LEVEL_HEAL4901_HEAL5901,HEAL 4901,equivalent,,"same title, different level"
+LEVEL_HEAL4901_HEAL5901,HEAL 5901,equivalent,,"same title, different level"
+LEVEL_HIST4120_HIST5120,HIST 4120,equivalent,,"same title, different level"
+LEVEL_HIST4120_HIST5120,HIST 5120,equivalent,,"same title, different level"
+LEVEL_HIST4125_HIST5125,HIST 4125,equivalent,,"same title, different level"
+LEVEL_HIST4125_HIST5125,HIST 5125,equivalent,,"same title, different level"
+LEVEL_HIST4127_HIST5127,HIST 4127,equivalent,,"same title, different level"
+LEVEL_HIST4127_HIST5127,HIST 5127,equivalent,,"same title, different level"
+LEVEL_HIST4135_HIST5135,HIST 4135,equivalent,,"same title, different level"
+LEVEL_HIST4135_HIST5135,HIST 5135,equivalent,,"same title, different level"
+LEVEL_HIST4140_HIST5140,HIST 4140,equivalent,,"same title, different level"
+LEVEL_HIST4140_HIST5140,HIST 5140,equivalent,,"same title, different level"
+LEVEL_HIST4145_HIST5145,HIST 4145,equivalent,,"same title, different level"
+LEVEL_HIST4145_HIST5145,HIST 5145,equivalent,,"same title, different level"
+LEVEL_HIST4150_HIST5150,HIST 4150,equivalent,,"same title, different level"
+LEVEL_HIST4150_HIST5150,HIST 5150,equivalent,,"same title, different level"
+LEVEL_HIST4155_HIST5155,HIST 4155,equivalent,,"same title, different level"
+LEVEL_HIST4155_HIST5155,HIST 5155,equivalent,,"same title, different level"
+LEVEL_HIST4156_HIST5156,HIST 4156,equivalent,,"same title, different level"
+LEVEL_HIST4156_HIST5156,HIST 5156,equivalent,,"same title, different level"
+LEVEL_HIST4210_HIST5210,HIST 4210,equivalent,,"same title, different level"
+LEVEL_HIST4210_HIST5210,HIST 5210,equivalent,,"same title, different level"
+LEVEL_HIST4212_HIST5212,HIST 4212,equivalent,,"same title, different level"
+LEVEL_HIST4212_HIST5212,HIST 5212,equivalent,,"same title, different level"
+LEVEL_HIST4245_HIST5245,HIST 4245,equivalent,,"same title, different level"
+LEVEL_HIST4245_HIST5245,HIST 5245,equivalent,,"same title, different level"
+LEVEL_HIST4251_HIST5251,HIST 4251,equivalent,,"same title, different level"
+LEVEL_HIST4251_HIST5251,HIST 5251,equivalent,,"same title, different level"
+LEVEL_HIST4252_HIST5252,HIST 4252,equivalent,,"same title, different level"
+LEVEL_HIST4252_HIST5252,HIST 5252,equivalent,,"same title, different level"
+LEVEL_HIST4255_HIST5255,HIST 4255,equivalent,,"same title, different level"
+LEVEL_HIST4255_HIST5255,HIST 5255,equivalent,,"same title, different level"
+LEVEL_HIST4260_HIST5260,HIST 4260,equivalent,,"same title, different level"
+LEVEL_HIST4260_HIST5260,HIST 5260,equivalent,,"same title, different level"
+LEVEL_HIST4262_HIST5262,HIST 4262,equivalent,,"same title, different level"
+LEVEL_HIST4262_HIST5262,HIST 5262,equivalent,,"same title, different level"
+LEVEL_HIST4264_HIST5264,HIST 4264,equivalent,,"same title, different level"
+LEVEL_HIST4264_HIST5264,HIST 5264,equivalent,,"same title, different level"
+LEVEL_HIST4266_HIST5266,HIST 4266,equivalent,,"same title, different level"
+LEVEL_HIST4266_HIST5266,HIST 5266,equivalent,,"same title, different level"
+LEVEL_HIST4271_HIST5271,HIST 4271,equivalent,,"same title, different level"
+LEVEL_HIST4271_HIST5271,HIST 5271,equivalent,,"same title, different level"
+LEVEL_HIST4298_HIST5298,HIST 4298,equivalent,,"same title, different level"
+LEVEL_HIST4298_HIST5298,HIST 5298,equivalent,,"same title, different level"
+LEVEL_HIST4310_HIST5310,HIST 4310,equivalent,,"same title, different level"
+LEVEL_HIST4310_HIST5310,HIST 5310,equivalent,,"same title, different level"
+LEVEL_HIST4350_HIST5350,HIST 4350,equivalent,,"same title, different level"
+LEVEL_HIST4350_HIST5350,HIST 5350,equivalent,,"same title, different level"
+LEVEL_HIST4450_HIST5450,HIST 4450,equivalent,,"same title, different level"
+LEVEL_HIST4450_HIST5450,HIST 5450,equivalent,,"same title, different level"
+LEVEL_HIST4460_HIST5460,HIST 4460,equivalent,,"same title, different level"
+LEVEL_HIST4460_HIST5460,HIST 5460,equivalent,,"same title, different level"
+LEVEL_HIST4500_HIST5500,HIST 4500,equivalent,,"same title, different level"
+LEVEL_HIST4500_HIST5500,HIST 5500,equivalent,,"same title, different level"
+LEVEL_HIST4555_HIST5555,HIST 4555,equivalent,,"same title, different level"
+LEVEL_HIST4555_HIST5555,HIST 5555,equivalent,,"same title, different level"
+LEVEL_HIST4705_HIST5705,HIST 4705,equivalent,,"same title, different level"
+LEVEL_HIST4705_HIST5705,HIST 5705,equivalent,,"same title, different level"
+LEVEL_HIST4747_HIST5747,HIST 4747,equivalent,,"same title, different level"
+LEVEL_HIST4747_HIST5747,HIST 5747,equivalent,,"same title, different level"
+LEVEL_HURE4003_HURE5003,HURE 4003,equivalent,,"same title, different level"
+LEVEL_HURE4003_HURE5003,HURE 5003,equivalent,,"same title, different level"
+LEVEL_HURE4010_HURE5010,HURE 4010,equivalent,,"same title, different level"
+LEVEL_HURE4010_HURE5010,HURE 5010,equivalent,,"same title, different level"
+LEVEL_HURE4080_HURE5080,HURE 4080,equivalent,,"same title, different level"
+LEVEL_HURE4080_HURE5080,HURE 5080,equivalent,,"same title, different level"
+LEVEL_HURE4140_HURE5140,HURE 4140,equivalent,,"same title, different level"
+LEVEL_HURE4140_HURE5140,HURE 5140,equivalent,,"same title, different level"
+LEVEL_HURE4931_HURE5931,HURE 4931,equivalent,,"same title, different level"
+LEVEL_HURE4931_HURE5931,HURE 5931,equivalent,,"same title, different level"
+LEVEL_INBU4931_INBU5931,INBU 4931,equivalent,,"same title, different level"
+LEVEL_INBU4931_INBU5931,INBU 5931,equivalent,,"same title, different level"
+LEVEL_INBU4931_INBU5931,INBU 6931,equivalent,,"same title, different level"
+LEVEL_INBU4953_INBU6953,INBU 4953,equivalent,,"same title, different level"
+LEVEL_INBU4953_INBU6953,INBU 6953,equivalent,,"same title, different level"
+LEVEL_INBUI4931_INBUI6931,INBUI 4931,equivalent,,"same title, different level"
+LEVEL_INBUI4931_INBUI6931,INBUI 6931,equivalent,,"same title, different level"
+LEVEL_INSY4054_INSY5054,INSY 4054,equivalent,,"same title, different level"
+LEVEL_INSY4054_INSY5054,INSY 5054,equivalent,,"same title, different level"
+LEVEL_INSY4056_INSY5056,INSY 4056,equivalent,,"same title, different level"
+LEVEL_INSY4056_INSY5056,INSY 5056,equivalent,,"same title, different level"
+LEVEL_INSY4156_INSY5156,INSY 4156,equivalent,,"same title, different level"
+LEVEL_INSY4156_INSY5156,INSY 5156,equivalent,,"same title, different level"
+LEVEL_INSY4156_INSY5156,INSY 6156,equivalent,,"same title, different level"
+LEVEL_INSY4158_INSY6158,INSY 4158,equivalent,,"same title, different level"
+LEVEL_INSY4158_INSY6158,INSY 6158,equivalent,,"same title, different level"
+LEVEL_INSY4931_INSY5931,INSY 4931,equivalent,,"same title, different level"
+LEVEL_INSY4931_INSY5931,INSY 5931,equivalent,,"same title, different level"
+LEVEL_INSY4931_INSY5931,INSY 6931,equivalent,,"same title, different level"
+LEVEL_JOUR3986_JOUR4986,JOUR 3986,equivalent,,"same title, different level"
+LEVEL_JOUR3986_JOUR4986,JOUR 4986,equivalent,,"same title, different level"
+LEVEL_MARK4065_MARK5065,MARK 4065,equivalent,,"same title, different level"
+LEVEL_MARK4065_MARK5065,MARK 5065,equivalent,,"same title, different level"
+LEVEL_MARK4085_MARK6085,MARK 4085,equivalent,,"same title, different level"
+LEVEL_MARK4085_MARK6085,MARK 6085,equivalent,,"same title, different level"
+LEVEL_MARK4931_MARK5931,MARK 4931,equivalent,,"same title, different level"
+LEVEL_MARK4931_MARK5931,MARK 5931,equivalent,,"same title, different level"
+LEVEL_MARK4931_MARK5931,MARK 6931,equivalent,,"same title, different level"
+LEVEL_MLSC4127_MLSC7127,MLSC 4127,equivalent,,"same title, different level"
+LEVEL_MLSC4127_MLSC7127,MLSC 7127,equivalent,,"same title, different level"
+LEVEL_MLSC4180_MLSC7180,MLSC 4180,equivalent,,"same title, different level"
+LEVEL_MLSC4180_MLSC7180,MLSC 7180,equivalent,,"same title, different level"
+LEVEL_OSCM4931_OSCM5931,OSCM 4931,equivalent,,"same title, different level"
+LEVEL_OSCM4931_OSCM5931,OSCM 5931,equivalent,,"same title, different level"
+LEVEL_OSCM4931_OSCM5931,OSCM 6931,equivalent,,"same title, different level"
+LEVEL_PHIL4450_PHIL6450,PHIL 4450,equivalent,,"same title, different level"
+LEVEL_PHIL4450_PHIL6450,PHIL 6450,equivalent,,"same title, different level"
+LEVEL_PHIL3710_PHIL6710,PHIL 3710,equivalent,,"same title, different level"
+LEVEL_PHIL3710_PHIL6710,PHIL 6710,equivalent,,"same title, different level"
+LEVEL_PHIL4954_PHIL5954,PHIL 4954,equivalent,,"same title, different level"
+LEVEL_PHIL4954_PHIL5954,PHIL 5954,equivalent,,"same title, different level"
+LEVEL_PHYS4046_PHYS5046,PHYS 4046,equivalent,,"same title, different level"
+LEVEL_PHYS4046_PHYS5046,PHYS 5046,equivalent,,"same title, different level"
+LEVEL_PHYS4050_PHYS5050,PHYS 4050,equivalent,,"same title, different level"
+LEVEL_PHYS4050_PHYS5050,PHYS 5050,equivalent,,"same title, different level"
+LEVEL_POSC2201_POSC6201,POSC 2201,equivalent,,"same title, different level"
+LEVEL_POSC2201_POSC6201,POSC 6201,equivalent,,"same title, different level"
+LEVEL_POSC4201_POSC5201,POSC 4201,equivalent,,"same title, different level"
+LEVEL_POSC4201_POSC5201,POSC 5201,equivalent,,"same title, different level"
+LEVEL_POSC4221_POSC5221,POSC 4221,equivalent,,"same title, different level"
+LEVEL_POSC4221_POSC5221,POSC 5221,equivalent,,"same title, different level"
+LEVEL_POSC4371_POSC5371,POSC 4371,equivalent,,"same title, different level"
+LEVEL_POSC4371_POSC5371,POSC 5371,equivalent,,"same title, different level"
+LEVEL_POSC2401_POSC6401,POSC 2401,equivalent,,"same title, different level"
+LEVEL_POSC2401_POSC6401,POSC 6401,equivalent,,"same title, different level"
+LEVEL_POSC4406_POSC5406,POSC 4406,equivalent,,"same title, different level"
+LEVEL_POSC4406_POSC5406,POSC 5406,equivalent,,"same title, different level"
+LEVEL_POSC4501_POSC5501,POSC 4501,equivalent,,"same title, different level"
+LEVEL_POSC4501_POSC5501,POSC 5501,equivalent,,"same title, different level"
+LEVEL_POSC4501_POSC5501,POSC 6501,equivalent,,"same title, different level"
+LEVEL_POSC4511_POSC5511,POSC 4511,equivalent,,"same title, different level"
+LEVEL_POSC4511_POSC5511,POSC 5511,equivalent,,"same title, different level"
+LEVEL_POSC4521_POSC5521,POSC 4521,equivalent,,"same title, different level"
+LEVEL_POSC4521_POSC5521,POSC 5521,equivalent,,"same title, different level"
+LEVEL_POSC4521_POSC5521,POSC 6521,equivalent,,"same title, different level"
+LEVEL_POSC4541_POSC5541,POSC 4541,equivalent,,"same title, different level"
+LEVEL_POSC4541_POSC5541,POSC 5541,equivalent,,"same title, different level"
+LEVEL_POSC4601_POSC5601,POSC 4601,equivalent,,"same title, different level"
+LEVEL_POSC4601_POSC5601,POSC 5601,equivalent,,"same title, different level"
+LEVEL_POSC2601_POSC2601H,POSC 2601,equivalent,,"same title, different level"
+LEVEL_POSC2601_POSC2601H,POSC 2601H,equivalent,,"same title, different level"
+LEVEL_POSC2601_POSC2601H,POSC 6601,equivalent,,"same title, different level"
+LEVEL_POSC4611_POSC5611,POSC 4611,equivalent,,"same title, different level"
+LEVEL_POSC4611_POSC5611,POSC 5611,equivalent,,"same title, different level"
+LEVEL_POSC4621_POSC5621,POSC 4621,equivalent,,"same title, different level"
+LEVEL_POSC4621_POSC5621,POSC 5621,equivalent,,"same title, different level"
+LEVEL_POSC4646_POSC5646,POSC 4646,equivalent,,"same title, different level"
+LEVEL_POSC4646_POSC5646,POSC 5646,equivalent,,"same title, different level"
+LEVEL_POSC4661_POSC5661,POSC 4661,equivalent,,"same title, different level"
+LEVEL_POSC4661_POSC5661,POSC 5661,equivalent,,"same title, different level"
+LEVEL_POSC4731_POSC5731,POSC 4731,equivalent,,"same title, different level"
+LEVEL_POSC4731_POSC5731,POSC 5731,equivalent,,"same title, different level"
+LEVEL_POSC4731_POSC5731,POSC 6731,equivalent,,"same title, different level"
+LEVEL_PSYC4210_PSYC5210,PSYC 4210,equivalent,,"same title, different level"
+LEVEL_PSYC4210_PSYC5210,PSYC 5210,equivalent,,"same title, different level"
+LEVEL_PSYC4330_PSYC5330,PSYC 4330,equivalent,,"same title, different level"
+LEVEL_PSYC4330_PSYC5330,PSYC 5330,equivalent,,"same title, different level"
+LEVEL_PSYC4350_PSYC5350,PSYC 4350,equivalent,,"same title, different level"
+LEVEL_PSYC4350_PSYC5350,PSYC 5350,equivalent,,"same title, different level"
+LEVEL_PSYC4420_PSYC5420,PSYC 4420,equivalent,,"same title, different level"
+LEVEL_PSYC4420_PSYC5420,PSYC 5420,equivalent,,"same title, different level"
+LEVEL_REAL4061_REAL5061,REAL 4061,equivalent,,"same title, different level"
+LEVEL_REAL4061_REAL5061,REAL 5061,equivalent,,"same title, different level"
+LEVEL_REAL4931_REAL5931,REAL 4931,equivalent,,"same title, different level"
+LEVEL_REAL4931_REAL5931,REAL 5931,equivalent,,"same title, different level"
+LEVEL_REAL4931_REAL5931,REAL 6931,equivalent,,"same title, different level"
+LEVEL_SOWJ4700_SOWJ5700,SOWJ 4700,equivalent,,"same title, different level"
+LEVEL_SOWJ4700_SOWJ5700,SOWJ 5700,equivalent,,"same title, different level"
+LEVEL_SPAN4110_SPAN5110,SPAN 4110,equivalent,,"same title, different level"
+LEVEL_SPAN4110_SPAN5110,SPAN 5110,equivalent,,"same title, different level"
+LEVEL_SPAN4120_SPAN5120,SPAN 4120,equivalent,,"same title, different level"
+LEVEL_SPAN4120_SPAN5120,SPAN 5120,equivalent,,"same title, different level"
+LEVEL_SPAN4130_SPAN5130,SPAN 4130,equivalent,,"same title, different level"
+LEVEL_SPAN4130_SPAN5130,SPAN 5130,equivalent,,"same title, different level"
+LEVEL_SPAN4140_SPAN5140,SPAN 4140,equivalent,,"same title, different level"
+LEVEL_SPAN4140_SPAN5140,SPAN 5140,equivalent,,"same title, different level"
+LEVEL_SPAN4150_SPAN5150,SPAN 4150,equivalent,,"same title, different level"
+LEVEL_SPAN4150_SPAN5150,SPAN 5150,equivalent,,"same title, different level"
+LEVEL_SPAN4320_SPAN5320,SPAN 4320,equivalent,,"same title, different level"
+LEVEL_SPAN4320_SPAN5320,SPAN 5320,equivalent,,"same title, different level"
+LEVEL_SPAN4450_SPAN5450,SPAN 4450,equivalent,,"same title, different level"
+LEVEL_SPAN4450_SPAN5450,SPAN 5450,equivalent,,"same title, different level"
+LEVEL_THAR4210_THAR5210,THAR 4210,equivalent,,"same title, different level"
+LEVEL_THAR4210_THAR5210,THAR 5210,equivalent,,"same title, different level"
+LEVEL_THAR4220_THAR5220,THAR 4220,equivalent,,"same title, different level"
+LEVEL_THAR4220_THAR5220,THAR 5220,equivalent,,"same title, different level"
+LEVEL_THAR4230_THAR5230,THAR 4230,equivalent,,"same title, different level"
+LEVEL_THAR4230_THAR5230,THAR 5230,equivalent,,"same title, different level"
+LEVEL_THAR4600_THAR5600,THAR 4600,equivalent,,"same title, different level"
+LEVEL_THAR4600_THAR5600,THAR 5600,equivalent,,"same title, different level"
+LEVEL_THEO4000_THEO5000,THEO 4000,equivalent,,"same title, different level"
+LEVEL_THEO4000_THEO5000,THEO 5000,equivalent,,"same title, different level"
+LEVEL_THEO4020_THEO5020,THEO 4020,equivalent,,"same title, different level"
+LEVEL_THEO4020_THEO5020,THEO 5020,equivalent,,"same title, different level"
+LEVEL_THEO4210_THEO5210,THEO 4210,equivalent,,"same title, different level"
+LEVEL_THEO4210_THEO5210,THEO 5210,equivalent,,"same title, different level"
+LEVEL_THEO4250_THEO5250,THEO 4250,equivalent,,"same title, different level"
+LEVEL_THEO4250_THEO5250,THEO 5250,equivalent,,"same title, different level"
+LEVEL_THEO4270_THEO5270,THEO 4270,equivalent,,"same title, different level"
+LEVEL_THEO4270_THEO5270,THEO 5270,equivalent,,"same title, different level"
+LEVEL_THEO4300_THEO5300,THEO 4300,equivalent,,"same title, different level"
+LEVEL_THEO4300_THEO5300,THEO 5300,equivalent,,"same title, different level"
+LEVEL_THEO4310_THEO5310,THEO 4310,equivalent,,"same title, different level"
+LEVEL_THEO4310_THEO5310,THEO 5310,equivalent,,"same title, different level"
+LEVEL_THEO4320_THEO5320,THEO 4320,equivalent,,"same title, different level"
+LEVEL_THEO4320_THEO5320,THEO 5320,equivalent,,"same title, different level"
+LEVEL_THEO4400_THEO5400,THEO 4400,equivalent,,"same title, different level"
+LEVEL_THEO4400_THEO5400,THEO 5400,equivalent,,"same title, different level"
+LEVEL_THEO4405_THEO5405,THEO 4405,equivalent,,"same title, different level"
+LEVEL_THEO4405_THEO5405,THEO 5405,equivalent,,"same title, different level"
+LEVEL_THEO4410_THEO5410,THEO 4410,equivalent,,"same title, different level"
+LEVEL_THEO4410_THEO5410,THEO 5410,equivalent,,"same title, different level"
+LEVEL_THEO4440_THEO5440,THEO 4440,equivalent,,"same title, different level"
+LEVEL_THEO4440_THEO5440,THEO 5440,equivalent,,"same title, different level"
+LEVEL_THEO4450_THEO5450,THEO 4450,equivalent,,"same title, different level"
+LEVEL_THEO4450_THEO5450,THEO 5450,equivalent,,"same title, different level"
+LEVEL_THEO4520_THEO5520,THEO 4520,equivalent,,"same title, different level"
+LEVEL_THEO4520_THEO5520,THEO 5520,equivalent,,"same title, different level"
+LEVEL_THEO4530_THEO5530,THEO 4530,equivalent,,"same title, different level"
+LEVEL_THEO4530_THEO5530,THEO 5530,equivalent,,"same title, different level"
+XLIST_001,BIEN 4420,cross_listed,,cross-listed
+XLIST_001,MEEN 4570,cross_listed,,cross-listed
+XLIST_002,BIEN 4420,cross_listed,,cross-listed
+XLIST_002,MEEN 5570,cross_listed,,cross-listed
+XLIST_003,BIEN 4920,cross_listed,,cross-listed
+XLIST_003,COEN 4920,cross_listed,,cross-listed
+XLIST_004,BIEN 4920,cross_listed,,cross-listed
+XLIST_004,ELEN 4920,cross_listed,,cross-listed
+XLIST_005,BIEN 4920,cross_listed,,cross-listed
+XLIST_005,MEEN 4920,cross_listed,,cross-listed
+XLIST_006,BIEN 4998,cross_listed,,cross-listed
+XLIST_006,COEN 4998,cross_listed,,cross-listed
+XLIST_007,BIEN 4998,cross_listed,,cross-listed
+XLIST_007,ELEN 4998,cross_listed,,cross-listed
+XLIST_008,BIEN 4998,cross_listed,,cross-listed
+XLIST_008,MEEN 4998,cross_listed,,cross-listed
+XLIST_009,BISC 4381,cross_listed,,cross-listed
+XLIST_009,POSC 4381,cross_listed,,cross-listed
+XLIST_010,BISC 4461,cross_listed,,cross-listed
+XLIST_010,POSC 4461,cross_listed,,cross-listed
+XLIST_011,BISC 7461,cross_listed,,cross-listed
+XLIST_011,POSC 4461,cross_listed,,cross-listed
+XLIST_012,BISC 8003,cross_listed,,cross-listed
+XLIST_012,NRSC 8003,cross_listed,,cross-listed
+XLIST_013,BISC 8004,cross_listed,,cross-listed
+XLIST_013,NRSC 8004,cross_listed,,cross-listed
+XLIST_014,BISC 8005,cross_listed,,cross-listed
+XLIST_014,NRSC 8005,cross_listed,,cross-listed
+XLIST_015,BISC 8096,cross_listed,,cross-listed
+XLIST_015,NRSC 8096,cross_listed,,cross-listed
+XLIST_016,BISC 8931,cross_listed,,cross-listed
+XLIST_016,NRSC 8931,cross_listed,,cross-listed
+XLIST_017,EDUC 4540,cross_listed,,cross-listed
+XLIST_017,PHIL 4540,cross_listed,,cross-listed
+XLIST_018,INCG 2010,cross_listed,,cross-listed
+XLIST_018,PHIL 2010,cross_listed,,cross-listed
+XLIST_019,THEO 8415,cross_listed,,cross-listed
+XLIST_019,THEO 8417,cross_listed,,cross-listed
+XLIST_020,THEO 8417,cross_listed,,cross-listed
+XLIST_020,THEO 8418,cross_listed,,cross-listed
+XLIST_021,THEO 8418,cross_listed,,cross-listed
+XLIST_021,THEO 8419,cross_listed,,cross-listed
+NDC_001,ACCO 4000,no_double_count,,credit restriction
+NDC_001,ACCO 6001,no_double_count,,credit restriction
+NDC_002,BISC 1035,no_double_count,,credit restriction
+NDC_002,BISC 3135,no_double_count,,credit restriction
+NDC_003,BISC 3110,no_double_count,,credit restriction
+NDC_003,HEAL 2045,no_double_count,,credit restriction
+NDC_004,BISC 4112,no_double_count,,credit restriction
+NDC_004,BISC 4113,no_double_count,,credit restriction
+NDC_005,BISC 4113,no_double_count,,credit restriction
+NDC_005,BISC 5112,no_double_count,,credit restriction
+NDC_006,CRLS 3050,no_double_count,,credit restriction
+NDC_006,SOCI 3050,no_double_count,,credit restriction
+NDC_007,MATH 2100,no_double_count,,credit restriction
+NDC_007,MATH 2350,no_double_count,,credit restriction
+NDC_008,MATH 4710,no_double_count,,credit restriction
+NDC_008,MATH 4720,no_double_count,,credit restriction
+NDC_009,THEO 8415,no_double_count,,credit restriction
+NDC_009,THEO 8417,no_double_count,,credit restriction
+NDC_010,THEO 8417,no_double_count,,credit restriction
+NDC_010,THEO 8418,no_double_count,,credit restriction
+NDC_011,THEO 8418,no_double_count,,credit restriction
+NDC_011,THEO 8419,no_double_count,,credit restriction

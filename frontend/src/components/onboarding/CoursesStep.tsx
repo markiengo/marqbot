@@ -60,8 +60,8 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
         description="This is what keeps your plan realistic. Add passed classes, then anything you are taking right now."
       />
 
-      <div className="grid min-h-0 flex-1 items-stretch gap-4 xl:grid-cols-2">
-        <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <div className="flex flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
           <div className="space-y-1">
             <label className="text-base font-semibold text-ink-secondary md:text-lg">
               Classes you&apos;ve already passed
@@ -70,7 +70,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               Finished classes, AP, IB, and transfer credit all count here.
             </p>
           </div>
-          <div className="mt-3 min-h-0 flex-1">
+          <div className="mt-3">
             <MultiSelect
               courses={state.courses}
               selected={state.completed}
@@ -85,7 +85,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+        <div className="flex flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
           <div className="space-y-1">
             <label className="text-base font-semibold text-ink-secondary md:text-lg">
               Classes you&apos;re taking right now
@@ -94,7 +94,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               Current semester only. If you are enrolled but not done yet, put it here.
             </p>
           </div>
-          <div className="mt-3 min-h-0 flex-1">
+          <div className="mt-3">
             <MultiSelect
               courses={state.courses}
               selected={state.inProgress}

@@ -34,9 +34,8 @@ export function MultiSelect({
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [chipViewportMaxHeight, setChipViewportMaxHeight] = useState<number | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const inputWrapRef = useRef<HTMLDivElement>(null);
+  const [chipContentHeight, setChipContentHeight] = useState(0);
+  const chipContentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -169,56 +168,32 @@ export function MultiSelect({
     }
   }, [activeIndex, isOpen, matches.length]);
 
+  // Track chip content height for smooth auto-resize
   useEffect(() => {
-    if (!dynamicChipViewport) {
-      setChipViewportMaxHeight(null);
-      return;
-    }
-
-    const measure = () => {
-      const root = rootRef.current;
-      const inputWrap = inputWrapRef.current;
-      if (!root || !inputWrap) return;
-
-      const verticalGap = 12; // matches flex gap-3
-      const available = root.clientHeight - inputWrap.offsetHeight - verticalGap;
-      if (available <= 0) return;
-      setChipViewportMaxHeight(available);
-    };
-
-    measure();
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", measure);
-      return () => window.removeEventListener("resize", measure);
-    }
-
-    const ro = new ResizeObserver(() => measure());
-    if (rootRef.current) ro.observe(rootRef.current);
-    if (inputWrapRef.current) ro.observe(inputWrapRef.current);
-    window.addEventListener("resize", measure);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", measure);
-    };
+    const el = chipContentRef.current;
+    if (!el || !dynamicChipViewport) return;
+    const ro = new ResizeObserver(() => {
+      setChipContentHeight(el.scrollHeight);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [dynamicChipViewport]);
 
   const atLimit = maxSelections ? selected.size >= maxSelections : false;
-  const chipViewportStyle = dynamicChipViewport && chipViewportMaxHeight
-    ? { maxHeight: `${chipViewportMaxHeight}px` }
+  const chipViewportStyle = dynamicChipViewport
+    ? { height: chipContentHeight > 0 ? `${chipContentHeight}px` : undefined }
     : undefined;
 
   return (
     <div
-      ref={rootRef}
-      className={`relative flex min-h-0 flex-1 flex-col gap-3 overflow-visible ${isOpen ? "z-40" : ""}`}
+      className={`relative flex flex-col gap-3 overflow-visible ${isOpen ? "z-40" : ""}`}
     >
       {/* Chips */}
       <div
-        className={`${chipViewportClassName} overflow-y-auto pr-1 transition-[max-height] duration-150 ease-out`}
+        className={`${chipViewportClassName} pr-1 transition-[height] duration-200 ease-out`}
         style={chipViewportStyle}
       >
-        <div className="flex flex-wrap gap-1.5">
+        <div ref={chipContentRef} className="flex flex-wrap gap-1.5">
           <AnimatePresence mode="popLayout">
             {[...selected].map((code) => (
               <Chip
@@ -233,7 +208,7 @@ export function MultiSelect({
       </div>
 
       {/* Search input */}
-      <div ref={inputWrapRef} className="relative">
+      <div className="relative">
         <input
           ref={inputRef}
           type="text"

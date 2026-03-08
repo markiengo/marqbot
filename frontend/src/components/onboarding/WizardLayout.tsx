@@ -156,7 +156,7 @@ export function WizardLayout({
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.08),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(0,114,206,0.10),transparent_34%)]" />
                   <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)]" />
                 </div>
-                <div className="relative flex h-full min-h-0 flex-1 flex-col">
+                <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
                   {children}
                 </div>
               </motion.div>
