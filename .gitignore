@@ -35,25 +35,17 @@ frontend/nul
 .claude/
 .vscode/
 .pytest-tmp/
-docs_local/
+/docs_local/
 test-reports/
 tests/nightly_reports/
 
-# Docs policy: keep selected docs trackable
-docs/*
-!docs/CHANGELOG.md
-!docs/algorithm.md
-!docs/early_prd.md
-!docs/data_model.md
-
-# Ignore all markdown except explicitly allowed filenames
+# Keep markdown local by default, but allow the full docs/ tree
 *.md
+!docs/
+!docs/**
 !**/README.md
 !**/readme.md
 !**/CHANGELOG.md
 !**/changelog.md
-!**/data_model.md
-!**/early_prd.md
-!**/algorithm.md
 !tests/test_structure.md
 

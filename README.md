@@ -66,7 +66,7 @@ cd ..
 - `data/`: course, prereq, offering, and requirement CSVs
 - `scripts/`: local tooling + data utilities
 - `tests/`: backend and frontend tests
-- `docs/`: changelog, PRD, and data model docs
+- `docs/`: changelog, algorithm notes, prompts, and working memos
 
 ## How It Works
 
