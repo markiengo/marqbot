@@ -1,3 +1,25 @@
+# 2026-03-08 Current Overrides
+
+If anything below conflicts with this section, trust this section.
+
+- Current deploy target is Render, not Vercel. Production stays as one Dockerized Flask service that serves both the API and the static Next export.
+- Canonical runtime data now uses split prereq CSVs plus equivalencies:
+  - `course_hard_prereqs.csv`
+  - `course_soft_prereqs.csv`
+  - `course_equivalencies.csv`
+  - `course_offerings.csv` is still loaded, but recommendation filtering currently treats courses as available every term.
+- `course_prereqs.csv` and `double_count_policy.csv` are no longer canonical runtime inputs for the current repo state.
+- Canonical API routes now include `GET /api/courses` and `POST /api/feedback` in addition to the existing health/programs/recommend/can-take/validate-prereqs routes.
+- Planner state now includes saved plans in browser localStorage and an in-app feedback modal in the planner header.
+- Feedback submissions are stored through `FEEDBACK_PATH`; on Render this should point at a persistent disk file.
+- Honors students can receive honors-section variants, and honors/base equivalents are deduplicated in recommendations.
+- Important env vars now include `REQUEST_CACHE_SIZE`, `SLOW_REQUEST_LOG_MS`, and `FEEDBACK_PATH`.
+- Frontend default test command is `cd frontend && npm test`; backend default test command is `python -m pytest -q`.
+- Current Vitest config excludes `tests/frontend/*.dom.test.ts` from the default run.
+- User preference from this session: do not run local tests unless explicitly asked. Let GitHub / nightly handle verification.
+- `.claude/` and `docs/docs_local/` stay local-only. Do not push them.
+- Prefer `local` for normal work, never push `local`, and be explicit before pushing if `main` is already ahead of `origin/main`.
+
 # Overview
 MarqBot is a deterministic degree-planning assistant for Marquette business students and advisors, generating recommendations, requirement progress, and can-take checks from workbook-driven rules.
 
@@ -7,7 +29,7 @@ MarqBot is a deterministic degree-planning assistant for Marquette business stud
 - `scripts/`: local run helpers and workbook governance/migration utilities. One-time migration scripts are archived under `scripts/archive/`.
 - `tests/backend`, `tests/frontend`: pytest and vitest coverage.
 - `infra/docker/Dockerfile` + `render.yaml`: Docker/Render deployment wiring.
-- `data/`: canonical runtime data source (CSV directory). Eight files: `courses.csv`, `course_prereqs.csv`, `course_offerings.csv`, `parent_buckets.csv`, `child_buckets.csv`, `master_bucket_courses.csv`, `double_count_policy.csv`, `quips.csv`.
+- `data/`: canonical runtime data source (CSV directory). Current runtime CSVs are `courses.csv`, `course_hard_prereqs.csv`, `course_soft_prereqs.csv`, `course_offerings.csv`, `course_equivalencies.csv`, `parent_buckets.csv`, `child_buckets.csv`, `master_bucket_courses.csv`, and `quips.csv`.
 - `marquette_courses_full.xlsx`: legacy Excel source; still present but no longer the default. Override with `DATA_PATH=marquette_courses_full.xlsx` to use it.
 
 # Commands
@@ -19,8 +41,8 @@ MarqBot is a deterministic degree-planning assistant for Marquette business stud
 - **Backend tests (standard suite)**: `.\.venv\Scripts\python.exe -m pytest -q`
 - **Backend planner sweep**: `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q`
 - **Backend nightly sweep**: `.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` (only when explicitly requested or release-grade confidence is needed)
-- **Frontend tests (default config)**: `cd frontend && npm run test`
-- **Frontend pushable checks**: `cd frontend && npm run test && npm run lint && npm run build`
+- **Frontend tests (default config)**: `cd frontend && npm test`
+- **Frontend pushable checks**: `cd frontend && npm test && npm run lint && npm run build`
 - **Validate tracks**: `.\.venv\Scripts\python.exe scripts/validate_track.py --all`
 - **Docker**: `docker build -f infra/docker/Dockerfile -t marqbot:local .` → `docker run --rm -p 5000:5000 -e PORT=5000 -e WEB_CONCURRENCY=1 marqbot:local`
 
@@ -46,9 +68,9 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - Keep production frontend serving model as Flask + static export (`frontend/out`).
 
 # Data Model Rules
-- All seven CSVs in `data/` must be read with `encoding="utf-8-sig"` (BOM-safe) when using Python's csv module directly.
+- All checked-in runtime CSVs in `data/` should be read with `encoding="utf-8-sig"` (BOM-safe) when using Python's csv module directly.
 - `parent_bucket_label` values are the display names shown to users — no "Major" or "Minor" suffix. Labels must be clean (e.g., "Finance", "Accounting", "Marketing").
-- `prereq_warnings` in `course_prereqs.csv` use comma `,` as separator, never semicolon.
+- Soft warning metadata now lives in `course_soft_prereqs.csv`; do not rely on a legacy `prereq_warnings` field in `course_prereqs.csv`.
 - `min_standing` is a float (1.0–4.0 for undergrad). 5.0+ is graduate-level and makes a course unreachable for undergrads — never set this for undergrad courses.
 - Courses tagged `elective_pool_tag=biz_elective` flow automatically into any `credits_pool` child bucket scoped to their program — no explicit `master_bucket_courses` row needed.
 - `_canonical_program_label` in `server.py` uses CSV label as priority; falls back to generated format only when label is empty.
@@ -57,7 +79,7 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - Non-business courses without bucket mappings or `biz_elective` tags are present solely to satisfy prereq references or future MCC Discovery mappings. They are not recommended by the engine unless mapped to an active bucket.
 - `requires_primary_major` in `parent_buckets.csv`: when `True`, a major (e.g., AIM_MAJOR, BUAN_MAJOR) cannot be declared alone — it must be paired with a primary (non-requiring) major like FIN_MAJOR or ACCO_MAJOR. Tests involving these majors must always include a primary major in `declared_majors`.
 - V2 parent/child bucket model: when a track is selected alongside its parent major, both the base major's child buckets AND the track's child buckets appear in progress. They coexist (no deduplication/replacement).
-- `double_count_policy.csv` controls which child buckets may share courses across programs. Referenced by `allocate_courses()` and `get_allowed_double_count_pairs()`.
+- No-double-count behavior is now driven by `course_equivalencies.csv` groups with `type=no_double_count`.
 - Data model documentation lives at `docs/data_model.md` (Mermaid ER diagram).
 
 # Backend Module Structure
@@ -118,8 +140,8 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - **Claude Code Bash tool on Windows**: The Bash tool may return empty output on Windows (known issue, GitHub #26545). Workaround: use Agent tool to spawn subagents for running commands, or run commands directly in a separate terminal. Setting `CLAUDE_CODE_GIT_BASH_PATH` environment variable to Git Bash path (e.g., `$env:CLAUDE_CODE_GIT_BASH_PATH = "C:\Program Files\Git\bin\bash.exe"` in PowerShell) may help but is not guaranteed.
 
 # Prereq Data Rules
-- `course_prereqs.csv` uses `;` for AND (all required) and `or` for OR (any one). Mixed AND/OR is supported: `A;B;C or D or E` means "A AND B AND (C or D or E)". `none` = no prereqs.
+- `course_hard_prereqs.csv` uses `;` for AND (all required) and `or` for OR (any one). Mixed AND/OR is supported: `A;B;C or D or E` means "A AND B AND (C or D or E)". `none` = no prereqs.
 - OR alternatives in prereqs should be avoided — they cause phantom recommendations. Use AND where all prereqs are truly required, keep only the primary course otherwise. Exception: mixed AND/OR is acceptable when a course genuinely requires "all of X plus one of Y" (e.g., OSCM 4997).
-- Future `course_equivalencies.csv` will handle OR equivalences for completed/in-progress credit checks only.
+- `course_equivalencies.csv` already handles equivalence expansion for completed/in-progress credit checks, prereq satisfaction, and bucket mapping.
 - `hard_prereq_complex` tag is reserved for genuinely unparseable patterns (e.g., "choose 2 from 5"). Currently: no business-school courses use this tag. INSY 4158's "2 from 5" prereq was moved to `other_requirements` soft tag.
 - CORE 1929 (`THEO 1001 or PHIL 1001`) is the only intentional OR prereq — kept because both options are commonly known MCC Foundation courses.
