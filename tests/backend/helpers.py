@@ -322,7 +322,7 @@ def generate_random_profiles(
     course_universe: list[str],
     start_term: str = "Fall 2026",
 ) -> list[tuple[str, "PlanCase"]]:
-    """Generate 8 random student profiles (2 per standing level).
+    """Generate 12 random student profiles (3 per standing level).
 
     Returns list of (standing_label, PlanCase).
     """
@@ -337,7 +337,7 @@ def generate_random_profiles(
 
     profiles = []
     for standing_label, min_courses, max_courses in STANDING_CONFIGS:
-        for i in range(2):
+        for i in range(3):
             effective_max = min(max_courses, len(course_universe))
             effective_min = min(min_courses, effective_max)
             if effective_max <= 0:

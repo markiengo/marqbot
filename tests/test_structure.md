@@ -8,7 +8,7 @@ Last updated: 2026-03-08
 |---|---|---:|
 | **Standard suite** | `python -m pytest -q` | ~633 |
 | **Fast dead-end check** | `python -m pytest tests/backend/test_dead_end_fast.py -q` | 55 |
-| **Nightly sweep** | `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | ~8,248 |
+| **Nightly sweep** | `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | ~12,372 |
 | **Frontend** | `cd frontend && npm run test` | 60 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
@@ -33,7 +33,7 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 | `test_data_integrity.py` | 34 | CSV schema, FK integrity, prereq graph sanity |
 | `test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
 | `test_dead_end_fast.py` | 55 | Single-program empty-state, curated combos, smoke tests |
-| `test_dead_end_nightly.py` | ~8,248 | Triple-combo sweep with randomized profiles (nightly only) |
+| `test_dead_end_nightly.py` | ~12,372 | Triple-combo sweep with randomized profiles (nightly only) |
 | `test_eligibility.py` | 42 | Eligibility filters, restrictions, bridge courses, can-take helpers |
 | `test_equivalencies.py` | 25 | Equivalency maps, prereq satisfaction, NDC blocking, schema checks |
 | `test_feedback_api.py` | 9 | `/api/feedback` contract, JSONL persistence, validation, rate limiting |
@@ -75,10 +75,48 @@ Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 
 DOM specs (`*.dom.test.ts`) are checked in but excluded from the default Vitest config.
 
+## CI Workflow
+
+One unified workflow: `.github/workflows/nightly-sweep.yml`
+
+| Trigger | Jobs that run |
+|---|---|
+| **Pull request** | Backend Regression, Planner Fast Guardrail, Frontend Tests |
+| **Schedule** (2:39 AM Milwaukee) | Nightly Exhaustive Sweep |
+| **Manual** (`workflow_dispatch`) | Nightly Exhaustive Sweep |
+
+## Running Tests Locally
+
+All tests run fully offline — no internet needed. Everything reads from the CSVs in `data/`.
+
+```bash
+# Standard suite (~1 min)
+python -m pytest -q
+
+# Fast dead-end only (~30s)
+python -m pytest tests/backend/test_dead_end_fast.py -q
+
+# Nightly sweep (~45 min, ~12k tests)
+python -m pytest -m nightly -q
+
+# Nightly with a specific seed (replay a past day's profiles)
+NIGHTLY_SEED=20260308 python -m pytest -m nightly -q
+
+# Run one specific combo
+python -m pytest -m nightly -k "FIN_MAJOR+AIM_CFA_TRACK" -q
+
+# Frontend
+cd frontend && npm test
+```
+
+The nightly sweep generates a report at `tests/nightly_reports/YYYY-MM-DD.md` after finishing.
+
 ## Nightly Sweep Details
 
-The nightly sweep tests every valid triple combination of programs (major + track + minor) against 8 randomized student profiles (2 per class level: freshman, sophomore, junior, senior).
+The nightly sweep tests every valid triple combination of programs (major + track + minor) against 12 randomized student profiles (3 per class level: freshman, sophomore, junior, senior).
 
 - **Seed**: date-based (`YYYYMMDD`) for daily reproducibility; override with `NIGHTLY_SEED` env var
-- **Failure collection**: `NightlyFailureCollector` aggregates patterns; combos with 5+ failures flagged in report artifact
-- **CI**: runs via `.github/workflows/nightly-dead-end-sweep.yml` at ~2:39 AM Milwaukee time
+- **Report**: uploaded as artifact `nightly-sweep-report` (14-day retention); includes what broke, analysis, and next steps
+- **Fallback**: if pytest crashes during collection, a fallback report captures the error output
+- **Where to find results**: [GitHub Actions → Nightly Sweep](../../actions/workflows/nightly-sweep.yml) → click a run → scroll to Artifacts at the bottom → download `nightly-sweep-report`
+- **Local runs** generate the report at `tests/nightly_reports/YYYY-MM-DD.md`

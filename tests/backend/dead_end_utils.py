@@ -436,66 +436,166 @@ class NightlyFailureCollector:
         self._start_time: float = time.time()
 
     def record_failure(self, label: str, check: "DeadEndCheck", standing: str = ""):
+        case = check.reproduction_case
         self.failures.append({
             "label": label,
             "failure_kind": check.failure_kind,
             "unsatisfied_buckets": check.unsatisfied_buckets,
+            "manual_review_courses": check.manual_review_courses,
+            "semester_label": check.semester_label,
+            "eligible_count": check.eligible_count,
             "standing": standing,
-            "programs": "+".join(check.reproduction_case.declared_majors + check.reproduction_case.track_ids),
+            "programs": "+".join(case.declared_majors + case.track_ids),
+            "declared_majors": list(case.declared_majors),
+            "track_ids": list(case.track_ids),
+            "declared_minors": list(case.declared_minors),
+            "completed_courses": list(case.completed_courses),
+            "in_progress_courses": list(case.in_progress_courses),
+            "target_semester": case.target_semester_primary,
+            "include_summer": case.include_summer,
         })
 
     def generate_report(self) -> str:
         """Generate markdown report. Always produces output (even on clean runs)."""
+        from datetime import date as _date
+
         elapsed = time.time() - self._start_time
         mins, secs = divmod(int(elapsed), 60)
         passed = self.total_tests - len(self.failures)
-        status = "ALL PASSED" if not self.failures else f"{len(self.failures)} FAILED"
+        fail_rate = (len(self.failures) / self.total_tests * 100) if self.total_tests else 0
 
         lines = [
-            f"# Nightly Report — {status}",
-            f"- **Seed:** {self.seed or 'unknown'}",
-            f"- **Result:** {passed}/{self.total_tests} passed, {len(self.failures)} failed",
-            f"- **Duration:** {mins}m {secs}s",
+            f"# Nightly Sweep — {_date.today().isoformat()}",
+            "",
+            f"**{passed}/{self.total_tests} passed** ({fail_rate:.1f}% failure rate) | "
+            f"Seed `{self.seed or 'unknown'}` | {mins}m {secs}s",
         ]
 
         if not self.failures:
+            lines.extend(["", "All combos passed. No action needed."])
             return "\n".join(lines)
 
-        # Flagged patterns (5+ occurrences)
-        patterns: dict[tuple, list[str]] = {}
+        # ── What to fix ──────────────────────────────────────────────
+        # Group failures by the bucket that got stuck
+        bucket_groups: dict[str, list[dict]] = {}
         for f in self.failures:
             for bucket in f["unsatisfied_buckets"]:
-                key = (bucket, f["failure_kind"], f["standing"])
-                patterns.setdefault(key, []).append(f["programs"])
+                bucket_groups.setdefault(bucket, []).append(f)
 
-        flagged = {k: v for k, v in patterns.items() if len(v) >= self.THRESHOLD}
-        if flagged:
-            lines.extend([
-                "",
-                f"## Flagged Patterns ({len(flagged)})",
-                "",
-                "| Bucket | Kind | Count | Standing | Programs (sample) |",
-                "|--------|------|------:|----------|--------------------|",
-            ])
-            for (bucket, kind, standing), programs in sorted(flagged.items(), key=lambda x: -len(x[1])):
-                sample = ", ".join(sorted(set(programs))[:3])
-                if len(set(programs)) > 3:
-                    sample += ", ..."
-                lines.append(f"| {bucket} | {kind} | {len(programs)} | {standing} | {sample} |")
-
-        # All individual failures
         lines.extend([
             "",
-            "## Failures",
+            "---",
             "",
-            "| # | Label | Kind | Standing | Buckets |",
-            "|--:|-------|------|----------|---------|",
+            "## What broke",
+            "",
         ])
+
+        for bucket, fails in sorted(bucket_groups.items(), key=lambda x: -len(x[1])):
+            standings = set(f["standing"] for f in fails)
+            programs = sorted(set(f["programs"] for f in fails))
+            sample_programs = ", ".join(programs[:4])
+            if len(programs) > 4:
+                sample_programs += f", +{len(programs) - 4} more"
+
+            lines.extend([
+                f"### `{bucket}` — {len(fails)} failure{'s' if len(fails) != 1 else ''}",
+                "",
+                f"- **Who:** {sample_programs}",
+                f"- **When:** {', '.join(sorted(standings))} standing",
+                f"- **Why:** {fails[0]['failure_kind']}",
+                "",
+            ])
+
+        # ── Analysis ─────────────────────────────────────────────────
+        lines.extend([
+            "---",
+            "",
+            "## Analysis",
+            "",
+        ])
+
+        # Patterns: same bucket failing across many combos = data issue
+        widespread = [(b, fs) for b, fs in bucket_groups.items() if len(fs) >= self.THRESHOLD]
+        isolated = [(b, fs) for b, fs in bucket_groups.items() if len(fs) < self.THRESHOLD]
+
+        if widespread:
+            lines.append("**Widespread (likely a data or rule issue):**")
+            for bucket, fails in sorted(widespread, key=lambda x: -len(x[1])):
+                lines.append(f"- `{bucket}` stuck in {len(fails)} combos — check bucket mappings, prereqs, or standing gates")
+            lines.append("")
+
+        if isolated:
+            lines.append("**Isolated (likely combo-specific):**")
+            for bucket, fails in sorted(isolated, key=lambda x: -len(x[1])):
+                combo_names = ", ".join(sorted(set(f["programs"] for f in fails)))
+                lines.append(f"- `{bucket}` only in: {combo_names}")
+            lines.append("")
+
+        # Standing breakdown
+        standing_counts: dict[str, int] = {}
+        for f in self.failures:
+            standing_counts[f["standing"]] = standing_counts.get(f["standing"], 0) + 1
+        if standing_counts:
+            worst_standing = max(standing_counts, key=standing_counts.get)
+            lines.extend([
+                "**Standing breakdown:**",
+                ", ".join(f"{s}: {c}" for s, c in sorted(standing_counts.items())),
+                "",
+                f"Most failures at **{worst_standing}** standing — "
+                + ("early students lack prereqs?" if worst_standing in ("freshman", "sophomore")
+                   else "late students blocked by standing gates or missing mappings?"),
+                "",
+            ])
+
+        # ── Next steps ───────────────────────────────────────────────
+        lines.extend([
+            "---",
+            "",
+            "## Next steps",
+            "",
+        ])
+
+        if widespread:
+            lines.append("1. Fix widespread buckets first — they affect the most students")
+        if isolated:
+            lines.append(f"{'2' if widespread else '1'}. Investigate isolated failures — "
+                         "run the specific combo locally to see the debug trace")
+        lines.extend([
+            "",
+            f"Reproduce any failure: `python -m pytest -m nightly -k \"<label>\" -q`",
+            "",
+            f"Re-run with same seed: `NIGHTLY_SEED={self.seed} python -m pytest -m nightly -q`",
+        ])
+
+        # ── Full failure log ─────────────────────────────────────────
+        lines.extend([
+            "",
+            "---",
+            "",
+            "<details>",
+            "<summary>Full failure log (click to expand)</summary>",
+            "",
+        ])
+
         for i, f in enumerate(self.failures, 1):
-            buckets = ", ".join(f["unsatisfied_buckets"][:3])
-            if len(f["unsatisfied_buckets"]) > 3:
-                buckets += ", ..."
-            lines.append(f"| {i} | {f['label']} | {f['failure_kind']} | {f['standing']} | {buckets} |")
+            buckets = ", ".join(f["unsatisfied_buckets"])
+            completed_count = len(f["completed_courses"])
+            completed_sample = ", ".join(f["completed_courses"][:10])
+            if completed_count > 10:
+                completed_sample += f", +{completed_count - 10} more"
+            minors = ", ".join(f["declared_minors"]) if f["declared_minors"] else "none"
+            tracks = ", ".join(f["track_ids"]) if f["track_ids"] else "none"
+
+            lines.extend([
+                f"**{i}. {f['label']}**",
+                f"- Programs: {', '.join(f['declared_majors'])} | Tracks: {tracks} | Minors: {minors}",
+                f"- Standing: {f['standing']} | Completed: {completed_count} courses",
+                f"- Stuck at: {f['semester_label']} | Buckets: {buckets}",
+                f"- Completed courses: {completed_sample if completed_sample else 'none'}",
+                "",
+            ])
+
+        lines.extend(["</details>"])
 
         return "\n".join(lines)
 
