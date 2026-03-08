@@ -293,18 +293,28 @@ def _prereqs_satisfied_for_semester(
     completed_set: set[str],
     satisfied_codes: set[str],
     semester_codes: set[str],
+    equiv_map: dict[str, set[str]] | None = None,
 ) -> bool:
     semester_satisfied = satisfied_codes | set(semester_codes)
     if has_explicit_concurrent:
-        hard_ok = prereqs_satisfied(parsed, completed_set)
-        concurrent_ok = prereqs_satisfied(parsed_concurrent, semester_satisfied)
+        hard_ok = prereqs_satisfied(parsed, completed_set, equiv_map=equiv_map)
+        concurrent_ok = prereqs_satisfied(parsed_concurrent, semester_satisfied, equiv_map=equiv_map)
         return hard_ok and concurrent_ok
 
     prereq_source = semester_satisfied if allow_concurrent else completed_set
-    return prereqs_satisfied(parsed, prereq_source)
+    return prereqs_satisfied(parsed, prereq_source, equiv_map=equiv_map)
 
 
-def _missing_from(parsed_req: dict, source: set[str]) -> list[str]:
+def _missing_from(
+    parsed_req: dict,
+    source: set[str],
+    equiv_map: dict[str, set[str]] | None = None,
+) -> list[str]:
+    if equiv_map:
+        expanded = set(source)
+        for code in source:
+            expanded.update(equiv_map.get(code, set()))
+        source = expanded
     req_type = parsed_req["type"]
     if req_type == "single":
         return [parsed_req["course"]] if parsed_req["course"] not in source else []
@@ -577,6 +587,9 @@ def get_eligible_courses(
     selected_program_ids: list[str] | None = None,
     restrict_to_unmet_buckets: bool = True,
     is_honors_student: bool = False,
+    equiv_map: dict[str, set[str]] | None = None,
+    cross_listed_map: dict[str, set[str]] | None = None,
+    current_standing: int = 0,
 ) -> list[dict]:
     """
     Returns eligible courses for the target term, sorted by:
@@ -727,6 +740,11 @@ def get_eligible_courses(
 
         if code in completed_set or code in in_progress_set:
             continue
+        # Skip cross-listed aliases of already completed/in-progress courses.
+        if cross_listed_map:
+            aliases = cross_listed_map.get(code, set())
+            if aliases & (completed_set | in_progress_set):
+                continue
         if _is_non_recommendable_course(
             code,
             row.get("course_name"),
@@ -815,6 +833,7 @@ def get_eligible_courses(
                 completed_set=completed_set,
                 satisfied_codes=satisfied_codes,
                 semester_codes=semester_candidate_codes,
+                equiv_map=equiv_map,
             ):
                 semester_candidate_codes.add(candidate["code"])
                 changed = True
@@ -952,6 +971,8 @@ def get_eligible_courses(
                     min_standing = max(1, level_digit - 1)
         if min_standing > 0 and "standing_requirement" not in soft_tags:
             soft_tags = list(soft_tags) + ["standing_requirement"]
+        if min_standing > 0 and current_standing >= min_standing:
+            soft_tags = [t for t in soft_tags if t != "standing_requirement"]
 
         warning_tags = [tag for tag in soft_tags if tag in SOFT_WARNING_TAGS]
         has_soft_requirement = bool(warning_tags)
@@ -1010,6 +1031,7 @@ def check_can_take(
     prereq_map: dict,
     selected_program_ids: list[str] | None = None,
     runtime_indexes: dict | None = None,
+    equiv_map: dict[str, set[str]] | None = None,
 ) -> dict:
     """
     Returns a can-take assessment for a specific requested course.
@@ -1125,12 +1147,12 @@ def check_can_take(
         }
 
     if has_explicit_concurrent:
-        hard_ok = prereqs_satisfied(parsed, completed_set)
-        concurrent_ok = prereqs_satisfied(parsed_concurrent, satisfied_codes)
+        hard_ok = prereqs_satisfied(parsed, completed_set, equiv_map=equiv_map)
+        concurrent_ok = prereqs_satisfied(parsed_concurrent, satisfied_codes, equiv_map=equiv_map)
         overall_ok = hard_ok and concurrent_ok
     else:
         prereq_source = satisfied_codes if allow_concurrent else completed_set
-        overall_ok = prereqs_satisfied(parsed, prereq_source)
+        overall_ok = prereqs_satisfied(parsed, prereq_source, equiv_map=equiv_map)
 
     if overall_ok:
         return {
@@ -1144,12 +1166,12 @@ def check_can_take(
     # Determine which prereqs are missing
     missing: list[str] = []
     if has_explicit_concurrent:
-        missing_hard = _missing_from(parsed, completed_set)
-        missing_conc = _missing_from(parsed_concurrent, satisfied_codes)
+        missing_hard = _missing_from(parsed, completed_set, equiv_map=equiv_map)
+        missing_conc = _missing_from(parsed_concurrent, satisfied_codes, equiv_map=equiv_map)
         missing = missing_hard + [m for m in missing_conc if m not in missing_hard]
     else:
         source = satisfied_codes if allow_concurrent else completed_set
-        missing = _missing_from(parsed, source)
+        missing = _missing_from(parsed, source, equiv_map=equiv_map)
 
     if parsed["type"] == "choose_n" and missing:
         needed_more = max(0, parsed["count"] - sum(1 for c in parsed["courses"] if c in (satisfied_codes if allow_concurrent else completed_set)))

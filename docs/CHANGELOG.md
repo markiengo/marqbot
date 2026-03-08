@@ -8,6 +8,29 @@ Format per release:
 
 ---
 
+## [v2.3.1] - 2026-03-07
+
+### Changes
+
+- Migrated `course_equivalencies.csv` from long format (571 rows, one per group member) to wide format (275 rows, one per equivalency group) with columns: `id`, `course_1`, `course_2`, `course_3`, `type`, `parent_bucket`, `child_bucket`, `notes`.
+- Updated `_load_v2_equivalencies()` in `data_loader.py` to detect wide format and unpivot to internal long format via new `_unpivot_wide_equivalencies()` helper. Legacy long format still supported as fallback.
+- Updated `discover_equivalencies.py` to output wide format.
+- Redesigned nightly dead-end tests: triple-combo sweep with randomized student profiles (8,248 tests, down from 14,382 pairwise). Date-based seed for daily reproducibility.
+- Trimmed fast dead-end regression suite from 93 to 55 tests. Single programs use empty-state only; curated combos keep state variants.
+- Added `NightlyFailureCollector` for report aggregation and CI artifact upload.
+- Updated `test_structure.md` with new counts and simplified layout.
+- Dynamic warning suppression: `standing_requirement` soft tag is now suppressed when the student's current standing meets or exceeds the course's `min_standing`. A sophomore no longer sees "sophomore standing required" on courses they're already eligible for. `major_restriction` and `college_restriction` were already dynamically cleared.
+
+### Design Decisions
+
+- Wide CSV format is human-readable and editable — one row per equivalency group instead of 2-3 rows. The loader unpivots at load time so all downstream code (map builders, allocator, prereq checker) is unchanged.
+- Standing warning suppression follows the same `cleared_tags` pattern already used for `major_restriction` and `college_restriction` — `current_standing` is threaded into `get_eligible_courses()` and the tag is removed from `soft_tags` before results are built. No frontend changes needed; the frontend already renders only the tags it receives.
+- `course_3` column handles triples (21 groups have 3 members); empty for pairs.
+- `parent_bucket` replaces `scope_program_id` for clarity — it names which parent bucket the equivalency applies to.
+- Nightly test redesign targets triple combos (major + track + minor) which better reflect real student declarations than pairwise. Randomized profiles add variety without manual curation.
+
+---
+
 ## [v2.3.0] - 2026-03-07
 
 ### Changes

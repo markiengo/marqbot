@@ -238,6 +238,9 @@ def _build_standing_recovery_candidates(
         selected_program_ids=selected_program_ids,
         restrict_to_unmet_buckets=False,
         is_honors_student=is_honors_student,
+        equiv_map=data.get("equiv_prereq_map"),
+        cross_listed_map=data.get("cross_listed_map"),
+        current_standing=current_standing,
     )
     filler_candidates = [
         c for c in filler_candidates
@@ -1128,6 +1131,9 @@ def run_recommendation_semester(
         runtime_indexes=data.get("runtime_indexes"),
         selected_program_ids=selection_program_ids,
         is_honors_student=is_honors_student,
+        equiv_map=data.get("equiv_prereq_map"),
+        cross_listed_map=data.get("cross_listed_map"),
+        current_standing=current_standing,
     )
     standing_blocked_sem = [
         c for c in eligible_sem
