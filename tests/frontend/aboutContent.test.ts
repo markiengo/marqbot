@@ -17,6 +17,7 @@ describe("about content", () => {
 
   test("keeps build cards and contact links available", () => {
     expect(ABOUT_BUILD_CARDS).toHaveLength(4);
+    expect(ABOUT_BUILD_CARDS.some((card) => card.body.includes("Feedback"))).toBe(true);
     expect(ABOUT_CONTACT_LINKS).toHaveLength(4);
     expect(ABOUT_CONTACT_LINKS.some((link) => link.href.startsWith("mailto:"))).toBe(true);
   });

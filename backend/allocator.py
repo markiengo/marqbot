@@ -361,9 +361,9 @@ def _expand_map_with_equivalencies(
     else:
         eq["scope_program_id"] = ""
     eq = eq[(eq["equiv_group_id"] != "") & (eq["course_code"] != "")]
-    # Only equivalent and cross_listed types expand bucket mappings.
+    # Only equivalent-like and cross_listed types expand bucket mappings.
     if "relation_type" in eq.columns:
-        eq = eq[eq["relation_type"].isin(["equivalent", "cross_listed", ""])]
+        eq = eq[eq["relation_type"].isin(["equivalent", "cross_listed", "honors", "grad", ""])]
     if len(eq) == 0:
         return track_map
 

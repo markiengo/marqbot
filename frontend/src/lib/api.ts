@@ -1,4 +1,11 @@
-import type { Course, ProgramsData, RecommendationResponse, CanTakeResponse } from "./types";
+import type {
+  Course,
+  ProgramsData,
+  RecommendationResponse,
+  CanTakeResponse,
+  FeedbackPayload,
+  FeedbackResponse,
+} from "./types";
 
 const API_BASE = typeof window !== "undefined" ? "" : "http://localhost:5000";
 
@@ -83,6 +90,19 @@ export async function postCanTake(
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new Error(body?.error?.message || body?.error || `Can-take request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function postFeedback(payload: FeedbackPayload): Promise<FeedbackResponse> {
+  const res = await fetch(`${API_BASE}/api/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error?.message || `Feedback request failed: ${res.status}`);
   }
   return res.json();
 }

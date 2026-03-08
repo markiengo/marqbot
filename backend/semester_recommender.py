@@ -1351,6 +1351,8 @@ def run_recommendation_semester(
             1 if c.get("is_bridge_course") else 0,
             -_chain.get(c["course_code"], 0),
             -c.get("multi_bucket_score", 0),
+            # Honors students: prefer H variants (sort before base course).
+            0 if is_honors_student and re.search(r"\d+H$", c["course_code"]) else 1 if is_honors_student else 0,
             _course_level(c) if _course_level(c) is not None else 9999,
             c["course_code"],
         ),
@@ -1358,6 +1360,17 @@ def run_recommendation_semester(
     eligible_count_sem = len(ranked_sem)
     # ---------- Selection setup ----------
     selected_sem = []
+    _equiv_map = data.get("equiv_prereq_map") or {}
+    _cross_map = data.get("cross_listed_map") or {}
+
+    def _expand_with_equivalents(codes: set[str]) -> set[str]:
+        """Expand a code set to include all equivalent and cross-listed aliases."""
+        expanded = set(codes)
+        for c in codes:
+            expanded.update(_equiv_map.get(c, set()))
+            expanded.update(_cross_map.get(c, set()))
+        return expanded
+
     selection_bucket_meta = _build_selection_bucket_meta(data, track_id)
     allowed_pairs = get_allowed_double_count_pairs(
         data.get("buckets_df", pd.DataFrame()),
@@ -1600,8 +1613,8 @@ def run_recommendation_semester(
         _accept_candidate(cand, assigned_buckets)
         declared_min_achieved += 1
 
-    # Track which courses were already selected in pass 1.
-    selected_codes_set = {c["course_code"] for c in selected_sem}
+    # Track which courses were already selected in pass 1 (including equivalents).
+    selected_codes_set = _expand_with_equivalents({c["course_code"] for c in selected_sem})
 
     # ---------- Pass 2: Normal greedy fill ----------
     # Fill remaining slots with the standard ranked greedy loop, now with
@@ -1744,7 +1757,7 @@ def run_recommendation_semester(
     # If we still have unfilled slots and the family cap blocked candidates,
     # relax the family cap and try again.
     if len(selected_sem) < max_recs:
-        selected_codes_set = {c["course_code"] for c in selected_sem}
+        selected_codes_set = _expand_with_equivalents({c["course_code"] for c in selected_sem})
         if family_blocked_codes - selected_codes_set:
             family_cap_relaxed = True
             for cand in ranked_sem:
@@ -1771,11 +1784,11 @@ def run_recommendation_semester(
                 if not assigned_buckets:
                     continue
                 _accept_candidate(cand, assigned_buckets)
-                selected_codes_set.add(cand["course_code"])
+                selected_codes_set.update(_expand_with_equivalents({cand["course_code"]}))
 
     # ---------- Same-semester concurrent follow-up ----------
     if len(selected_sem) < max_recs:
-        selected_codes_set = {c["course_code"] for c in selected_sem}
+        selected_codes_set = _expand_with_equivalents({c["course_code"] for c in selected_sem})
         for cand in ranked_sem:
             if len(selected_sem) >= max_recs:
                 break
@@ -1812,7 +1825,7 @@ def run_recommendation_semester(
             if assigned_buckets and _family_cap_exceeded(assigned_buckets):
                 continue
             _accept_candidate(cand, assigned_buckets)
-            selected_codes_set.add(cand["course_code"])
+            selected_codes_set.update(_expand_with_equivalents({cand["course_code"]}))
 
     # ---------- Rescue pass ----------
     # When all passes produced nothing, force-assign to any mapped bucket.

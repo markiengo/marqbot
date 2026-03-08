@@ -25,6 +25,9 @@ Format per release:
 - xfail'd REAL REAP track dead-end tests (`combo-REAL+REAP/mid`, `combo-REAL+REAP/late`) — the 4210→4220→4230 sequential chain requires summer terms which the test cases exclude.
 - Updated about page: moved course equivalencies off the roadmap (shipped), added "Semester offering awareness" as a future feature.
 - Updated `data_model.md` and `algorithm.md` to reflect disabled offerings.
+- Equivalency CSV schema: replaced generic `equivalent` type with `honors` (35 groups) and `grad` (200 groups) for self-documenting equivalency categories. Dropped `notes` column — the type now carries the semantic meaning.
+- Honors student dedup: when `is_honors_student=True`, base courses are removed from eligible candidates when their H variant is also eligible. H variants replace base courses in recommendations instead of appearing alongside them.
+- Equivalency-aware greedy selection: `selected_codes_set` in the recommendation loop now expands via `_expand_with_equivalents()` so picking ECON 1103H also blocks ECON 1103 from being selected later.
 
 ### Design Decisions
 
@@ -34,6 +37,8 @@ Format per release:
 - `parent_bucket` replaces `scope_program_id` for clarity — it names which parent bucket the equivalency applies to.
 - Nightly test redesign targets triple combos (major + track + minor) which better reflect real student declarations than pairwise. Randomized profiles add variety without manual curation.
 - Offering filtering was causing false dead-ends (REAP track) and adding complexity without reliable data. Disabling it removes a source of incorrect recommendations while the offering data is curated. The infrastructure remains in place for re-enablement.
+- Five equivalency types (`honors`, `grad`, `cross_listed`, `no_double_count`, `equivalent`) replace the old three-type model. `honors` and `grad` behave like `equivalent` for prereq satisfaction and bucket expansion, but the type is self-documenting and enables type-specific logic (e.g., honors dedup).
+- Honors dedup happens at the eligibility stage (candidate filtering), not just ranking. This guarantees the base course is never a candidate when the H variant is available — no sort-key ordering issues.
 
 ---
 

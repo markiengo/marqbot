@@ -56,7 +56,7 @@ export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
     eyebrow: "From you",
     title: "Bug reports and ideas",
     body:
-      "Some of the best fixes came from students breaking things I was sure were unbreakable. If something's weird, tell me. You're doing QA and I can't afford to pay you.",
+      "Some of the best fixes came from students breaking things I was sure were unbreakable. If something's weird, use the in-app Feedback button or message me directly. You're doing QA and I can't afford to pay you.",
   },
 ];
 

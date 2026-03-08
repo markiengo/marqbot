@@ -4,7 +4,9 @@ import time
 import threading
 import hashlib
 import json
+from datetime import datetime, timezone
 from collections import OrderedDict, defaultdict
+from uuid import uuid4
 
 # Ensure backend/ is on sys.path so sibling imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -62,6 +64,14 @@ _RATE_LIMIT_MAX = 10
 _RATE_LIMIT_WINDOW = 60  # seconds
 _rate_limit_lock = threading.Lock()
 _rate_limit_tracker: dict[str, list[float]] = defaultdict(list)
+_FEEDBACK_RATE_LIMIT_MAX = 5
+_FEEDBACK_RATE_LIMIT_WINDOW = 600  # seconds
+_feedback_rate_limit_lock = threading.Lock()
+_feedback_rate_limit_tracker: dict[str, list[float]] = defaultdict(list)
+_feedback_file_lock = threading.Lock()
+_FEEDBACK_MIN_MESSAGE_LEN = 10
+_FEEDBACK_MAX_MESSAGE_LEN = 2000
+_FEEDBACK_MAX_CONTEXT_BYTES = 120_000
 
 
 def _env_float(name: str, default: float, minimum: float = 0.0) -> float:
@@ -151,16 +161,46 @@ def _clear_request_caches() -> None:
     _program_data_cache.clear()
 
 
-def _check_rate_limit(ip: str) -> bool:
+def _check_window_rate_limit(
+    ip: str,
+    tracker: dict[str, list[float]],
+    lock: threading.Lock,
+    max_requests: int,
+    window_seconds: int,
+) -> bool:
     """Return True if request is allowed, False if rate-limited."""
     now = time.time()
-    with _rate_limit_lock:
-        timestamps = _rate_limit_tracker[ip]
-        _rate_limit_tracker[ip] = [t for t in timestamps if now - t < _RATE_LIMIT_WINDOW]
-        if len(_rate_limit_tracker[ip]) >= _RATE_LIMIT_MAX:
+    with lock:
+        timestamps = tracker[ip]
+        tracker[ip] = [t for t in timestamps if now - t < window_seconds]
+        if len(tracker[ip]) >= max_requests:
             return False
-        _rate_limit_tracker[ip].append(now)
+        tracker[ip].append(now)
         return True
+
+
+def _check_rate_limit(ip: str) -> bool:
+    return _check_window_rate_limit(
+        ip,
+        _rate_limit_tracker,
+        _rate_limit_lock,
+        _RATE_LIMIT_MAX,
+        _RATE_LIMIT_WINDOW,
+    )
+
+
+def _check_feedback_rate_limit(ip: str) -> bool:
+    return _check_window_rate_limit(
+        ip,
+        _feedback_rate_limit_tracker,
+        _feedback_rate_limit_lock,
+        _FEEDBACK_RATE_LIMIT_MAX,
+        _FEEDBACK_RATE_LIMIT_WINDOW,
+    )
+
+
+def _client_ip() -> str:
+    return request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
 
 
 def _data_file_mtime(path: str):
@@ -304,6 +344,134 @@ def health_endpoint():
 
 
 # -- Input validation ------------------------------------------------------
+def _feedback_path() -> str:
+    raw = str(os.environ.get("FEEDBACK_PATH", "")).strip()
+    if not raw:
+        return os.path.join(PROJECT_ROOT, "feedback.jsonl")
+    if os.path.isabs(raw):
+        return raw
+    return os.path.join(PROJECT_ROOT, raw)
+
+
+def _coerce_string_list(raw, limit: int = 200) -> list[str] | None:
+    if not isinstance(raw, list):
+        return None
+    values = []
+    seen = set()
+    for item in raw:
+        text = str(item or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        values.append(text[:120])
+        if len(values) >= limit:
+            break
+    return values
+
+
+def _normalize_feedback_context(raw_context):
+    if not isinstance(raw_context, dict):
+        return None, "context is required."
+
+    source = str(raw_context.get("source", "")).strip()
+    if source != "planner":
+        return None, "context.source must be 'planner'."
+
+    route = str(raw_context.get("route", "")).strip()
+    if not route:
+        return None, "context.route is required."
+
+    raw_session = raw_context.get("session_snapshot")
+    if not isinstance(raw_session, dict):
+        return None, "context.session_snapshot is required."
+
+    recommendation_snapshot = raw_context.get("recommendation_snapshot")
+    if recommendation_snapshot is not None and not isinstance(recommendation_snapshot, dict):
+        return None, "context.recommendation_snapshot must be an object or null."
+
+    try:
+        last_requested_count = max(0, int(raw_session.get("last_requested_count", 0) or 0))
+    except (TypeError, ValueError):
+        return None, "context.session_snapshot.last_requested_count must be numeric."
+
+    normalized_session = {
+        "completed": _coerce_string_list(raw_session.get("completed"), limit=400),
+        "in_progress": _coerce_string_list(raw_session.get("in_progress"), limit=200),
+        "declared_majors": _coerce_string_list(raw_session.get("declared_majors"), limit=20),
+        "declared_tracks": _coerce_string_list(raw_session.get("declared_tracks"), limit=20),
+        "declared_minors": _coerce_string_list(raw_session.get("declared_minors"), limit=20),
+        "discovery_theme": str(raw_session.get("discovery_theme", "")).strip()[:120],
+        "target_semester": str(raw_session.get("target_semester", "")).strip()[:60],
+        "semester_count": str(raw_session.get("semester_count", "")).strip()[:20],
+        "max_recs": str(raw_session.get("max_recs", "")).strip()[:20],
+        "include_summer": bool(raw_session.get("include_summer", False)),
+        "is_honors_student": bool(raw_session.get("is_honors_student", False)),
+        "active_nav_tab": str(raw_session.get("active_nav_tab", "")).strip()[:40],
+        "onboarding_complete": bool(raw_session.get("onboarding_complete", False)),
+        "last_requested_count": last_requested_count,
+    }
+    for key in ("completed", "in_progress", "declared_majors", "declared_tracks", "declared_minors"):
+        if normalized_session[key] is None:
+            return None, f"context.session_snapshot.{key} must be an array."
+
+    normalized_context = {
+        "source": source,
+        "route": route[:200],
+        "session_snapshot": normalized_session,
+        "recommendation_snapshot": recommendation_snapshot,
+    }
+    encoded = json.dumps(
+        normalized_context,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    if len(encoded) > _FEEDBACK_MAX_CONTEXT_BYTES:
+        return None, "context is too large."
+    return normalized_context, None
+
+
+def _validate_feedback_body(body):
+    if body is None or not isinstance(body, dict):
+        return None, ("INVALID_INPUT", "Request body must be valid JSON.", 400)
+
+    try:
+        rating = int(body.get("rating"))
+    except (TypeError, ValueError):
+        return None, ("INVALID_INPUT", "rating must be an integer between 1 and 5.", 400)
+    if rating < 1 or rating > 5:
+        return None, ("INVALID_INPUT", "rating must be an integer between 1 and 5.", 400)
+
+    message = str(body.get("message", "")).strip()
+    if len(message) < _FEEDBACK_MIN_MESSAGE_LEN:
+        return None, ("INVALID_INPUT", f"message must be at least {_FEEDBACK_MIN_MESSAGE_LEN} characters.", 400)
+    if len(message) > _FEEDBACK_MAX_MESSAGE_LEN:
+        return None, ("PAYLOAD_TOO_LARGE", f"message must be at most {_FEEDBACK_MAX_MESSAGE_LEN} characters.", 413)
+
+    context, context_error = _normalize_feedback_context(body.get("context"))
+    if context_error:
+        status = 413 if context_error == "context is too large." else 400
+        error_code = "PAYLOAD_TOO_LARGE" if status == 413 else "INVALID_INPUT"
+        return None, (error_code, context_error, status)
+
+    return {
+        "rating": rating,
+        "message": message,
+        "context": context,
+    }, None
+
+
+def _append_feedback_record(record: dict) -> None:
+    path = _feedback_path()
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    line = json.dumps(record, ensure_ascii=True) + "\n"
+    with _feedback_file_lock:
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(line)
+
+
 def _validate_recommend_body(body):
     """Returns (error_code, message) on invalid input, (None, None) on success."""
     if body is None:
@@ -1875,9 +2043,57 @@ def get_programs():
     })
 
 
+@app.route("/feedback", methods=["POST"])
+def feedback_endpoint():
+    client_ip = _client_ip()
+    if not app.config.get("TESTING") and not _check_feedback_rate_limit(client_ip):
+        return jsonify({
+            "error": {
+                "error_code": "RATE_LIMITED",
+                "message": "Too many feedback submissions. Please wait before sending another one.",
+            },
+        }), 429
+
+    body = request.get_json(force=True, silent=True)
+    normalized, error = _validate_feedback_body(body)
+    if error:
+        error_code, message, status = error
+        return jsonify({"error": {"error_code": error_code, "message": message}}), status
+
+    submitted_at = datetime.now(timezone.utc).isoformat()
+    feedback_id = f"fb_{uuid4().hex[:12]}"
+    record = {
+        "feedback_id": feedback_id,
+        "submitted_at": submitted_at,
+        "rating": normalized["rating"],
+        "message": normalized["message"],
+        "context": normalized["context"],
+        "request_meta": {
+            "path": request.path[:200],
+            "referer": request.headers.get("Referer", "")[:400],
+            "user_agent": request.headers.get("User-Agent", "")[:400],
+        },
+    }
+    try:
+        _append_feedback_record(record)
+    except OSError:
+        return jsonify({
+            "error": {
+                "error_code": "SERVER_ERROR",
+                "message": "Could not save feedback right now.",
+            },
+        }), 500
+
+    return jsonify({
+        "ok": True,
+        "feedback_id": feedback_id,
+        "submitted_at": submitted_at,
+    }), 201
+
+
 @app.route("/recommend", methods=["POST"])
 def recommend():
-    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    client_ip = _client_ip()
     if not app.config.get("TESTING") and not _check_rate_limit(client_ip):
         return jsonify({
             "mode": "error",
@@ -2334,6 +2550,7 @@ def validate_prereqs_endpoint():
 app.add_url_rule("/api/health", endpoint="api_health", view_func=health_endpoint, methods=["GET"])
 app.add_url_rule("/api/courses", endpoint="api_courses", view_func=get_courses, methods=["GET"])
 app.add_url_rule("/api/programs", endpoint="api_programs", view_func=get_programs, methods=["GET"])
+app.add_url_rule("/api/feedback", endpoint="api_feedback", view_func=feedback_endpoint, methods=["POST"])
 app.add_url_rule("/api/recommend", endpoint="api_recommend", view_func=recommend, methods=["POST"])
 app.add_url_rule("/api/can-take", endpoint="api_can_take", view_func=can_take_endpoint, methods=["POST"])
 app.add_url_rule("/api/validate-prereqs", endpoint="api_validate_prereqs", view_func=validate_prereqs_endpoint, methods=["POST"])

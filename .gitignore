@@ -37,6 +37,7 @@ frontend/nul
 .pytest-tmp/
 docs_local/
 test-reports/
+tests/nightly_reports/
 
 # Docs policy: keep selected docs trackable
 docs/*

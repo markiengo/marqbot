@@ -1,4 +1,4 @@
-"""Tests for course equivalency system (3 relation types)."""
+"""Tests for course equivalency system (5 relation types)."""
 
 import pytest
 import pandas as pd
@@ -19,10 +19,14 @@ from allocator import allocate_courses, ensure_runtime_indexes, _expand_map_with
 
 @pytest.fixture
 def equiv_df():
-    """Equivalency DataFrame with all three relation types."""
+    """Equivalency DataFrame with all five relation types."""
     return pd.DataFrame([
         {"equiv_group_id": "STAT_1", "course_code": "STAT 2200", "relation_type": "equivalent", "scope_program_id": "", "label": ""},
         {"equiv_group_id": "STAT_1", "course_code": "STAT 2210", "relation_type": "equivalent", "scope_program_id": "", "label": ""},
+        {"equiv_group_id": "HON_1", "course_code": "ECON 1103", "relation_type": "honors", "scope_program_id": "", "label": ""},
+        {"equiv_group_id": "HON_1", "course_code": "ECON 1103H", "relation_type": "honors", "scope_program_id": "", "label": ""},
+        {"equiv_group_id": "GRAD_1", "course_code": "FINA 4001", "relation_type": "grad", "scope_program_id": "", "label": ""},
+        {"equiv_group_id": "GRAD_1", "course_code": "FINA 5001", "relation_type": "grad", "scope_program_id": "", "label": ""},
         {"equiv_group_id": "XLIST_1", "course_code": "PHIL 1001", "relation_type": "cross_listed", "scope_program_id": "", "label": ""},
         {"equiv_group_id": "XLIST_1", "course_code": "PHIL 1001H", "relation_type": "cross_listed", "scope_program_id": "", "label": ""},
         {"equiv_group_id": "NDC_1", "course_code": "MATH 4710", "relation_type": "no_double_count", "scope_program_id": "", "label": ""},
@@ -62,6 +66,10 @@ def simple_courses():
     return pd.DataFrame([
         {"course_code": "STAT 2200", "course_name": "Intro Stats", "credits": 3, "level": 2000},
         {"course_code": "STAT 2210", "course_name": "Intro Stats Alt", "credits": 3, "level": 2000},
+        {"course_code": "ECON 1103", "course_name": "Micro Econ", "credits": 3, "level": 1000},
+        {"course_code": "ECON 1103H", "course_name": "Honors Micro Econ", "credits": 3, "level": 1000},
+        {"course_code": "FINA 4001", "course_name": "Investments", "credits": 3, "level": 4000},
+        {"course_code": "FINA 5001", "course_name": "Investments", "credits": 3, "level": 5000},
         {"course_code": "PHIL 1001", "course_name": "Intro Philosophy", "credits": 3, "level": 1000},
         {"course_code": "PHIL 1001H", "course_name": "Honors Intro Philosophy", "credits": 3, "level": 1000},
         {"course_code": "MATH 4710", "course_name": "Probability", "credits": 3, "level": 4000},
@@ -73,10 +81,13 @@ def simple_courses():
 
 
 class TestBuildEquivPrereqMap:
-    def test_only_equivalent_type(self, equiv_df):
+    def test_only_equivalent_like_types(self, equiv_df):
         result = _build_equiv_prereq_map(equiv_df)
         assert "STAT 2200" in result
         assert "STAT 2210" in result["STAT 2200"]
+        # honors and grad types are included
+        assert "ECON 1103H" in result.get("ECON 1103", set())
+        assert "FINA 5001" in result.get("FINA 4001", set())
         # cross_listed and no_double_count should NOT appear
         assert "PHIL 1001" not in result
         assert "MATH 4710" not in result
@@ -168,6 +179,18 @@ class TestExpandMapWithEquivalencies:
         codes = expanded["course_code"].tolist()
         # STAT 2210 should be added to CORE bucket (equivalent of STAT 2200)
         assert "STAT 2210" in codes
+
+    def test_honors_and_grad_expand_buckets(self, equiv_df, simple_map):
+        # Add ECON 1103 and FINA 4001 to the map so their equivalents can expand
+        extra = pd.DataFrame([
+            {"track_id": "TEST_MAJOR", "bucket_id": "CORE", "course_code": "ECON 1103"},
+            {"track_id": "TEST_MAJOR", "bucket_id": "ELEC", "course_code": "FINA 4001"},
+        ])
+        combined = pd.concat([simple_map, extra], ignore_index=True)
+        expanded = _expand_map_with_equivalencies(combined, equiv_df, "TEST_MAJOR")
+        codes = expanded["course_code"].tolist()
+        assert "ECON 1103H" in codes  # honors type expands
+        assert "FINA 5001" in codes   # grad type expands
 
     def test_cross_listed_expands_buckets(self, equiv_df, simple_map):
         expanded = _expand_map_with_equivalencies(simple_map, equiv_df, "TEST_MAJOR")

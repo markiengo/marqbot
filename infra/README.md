@@ -14,3 +14,7 @@ This repo now groups deploy/runtime assets under `infra/` where possible.
 
 ## Practical rule
 Keep infra implementation files in `infra/`, but keep root-level integration entrypoints that external tools expect.
+
+## Feedback storage
+- In production, set `FEEDBACK_PATH` to a file on a mounted Render persistent disk, for example `/var/data/marqbot/feedback.jsonl`.
+- In local dev, `FEEDBACK_PATH` can be omitted and the app will default to `feedback.jsonl` at the repo root.

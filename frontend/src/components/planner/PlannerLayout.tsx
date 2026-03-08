@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/shared/Skeleton";
 import { SavePlanModal } from "@/components/saved/SavePlanModal";
 import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
 import { CourseListModal } from "./CourseListModal";
+import { FeedbackModal } from "./FeedbackModal";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
@@ -40,8 +41,10 @@ export function PlannerLayout() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccessName, setSaveSuccessName] = useState<string | null>(null);
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [semEditCandidates, setSemEditCandidates] = useState<RecommendedCourse[] | null>(null);
   const [semEditLoading, setSemEditLoading] = useState(false);
   const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
@@ -304,6 +307,17 @@ export function PlannerLayout() {
               variant="secondary"
               size="sm"
               onClick={() => {
+                setFeedbackSuccess(false);
+                setFeedbackModalOpen(true);
+              }}
+              className="shrink-0"
+            >
+              Feedback
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
                 setSaveError(null);
                 setSaveModalOpen(true);
               }}
@@ -333,13 +347,25 @@ export function PlannerLayout() {
       ) : (
         <div className="px-4 py-2 mb-2 rounded-xl surface-depth-2 flex items-center justify-between gap-3">
           <span className="text-sm text-ink-faint">No program selected</span>
-          <button
-            type="button"
-            onClick={() => setProfileModalOpen(true)}
-            className="text-xs font-semibold text-gold hover:text-gold-light transition-colors cursor-pointer"
-          >
-            Edit Profile
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setFeedbackSuccess(false);
+                setFeedbackModalOpen(true);
+              }}
+            >
+              Feedback
+            </Button>
+            <button
+              type="button"
+              onClick={() => setProfileModalOpen(true)}
+              className="text-xs font-semibold text-gold hover:text-gold-light transition-colors cursor-pointer"
+            >
+              Edit Profile
+            </button>
+          </div>
         </div>
       )}
 
@@ -349,6 +375,12 @@ export function PlannerLayout() {
           <Link href="/saved" className="font-semibold underline underline-offset-2">
             View saved plans
           </Link>
+        </div>
+      )}
+
+      {feedbackSuccess && (
+        <div className="mb-3 rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok">
+          Feedback sent. If that was a bug report, your current planner snapshot went with it.
         </div>
       )}
 
@@ -630,6 +662,11 @@ export function PlannerLayout() {
         onSave={handleSavePlan}
         error={saveError}
         disabled={!savedPlansReady || !canSavePlan}
+      />
+      <FeedbackModal
+        open={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+        onSubmitted={() => setFeedbackSuccess(true)}
       />
     </div>
   );

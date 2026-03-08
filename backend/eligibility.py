@@ -745,6 +745,11 @@ def get_eligible_courses(
             aliases = cross_listed_map.get(code, set())
             if aliases & (completed_set | in_progress_set):
                 continue
+        # Skip equivalent aliases of already completed/in-progress courses.
+        if equiv_map:
+            equiv_aliases = equiv_map.get(code, set())
+            if equiv_aliases & (completed_set | in_progress_set):
+                continue
         if _is_non_recommendable_course(
             code,
             row.get("course_name"),
@@ -1006,6 +1011,19 @@ def get_eligible_courses(
             "notes": course_notes,
             "unlocks": [],  # populated by server.py
         })
+
+    # ── Honors dedup: drop base courses when H variant is also eligible ──
+    if is_honors_student and equiv_map:
+        result_codes = {r["course_code"] for r in results}
+        drop_bases: set[str] = set()
+        for code in result_codes:
+            if re.search(r"\d+H$", code):
+                # Find the base code (strip trailing H)
+                base = code[:-1]
+                if base in result_codes:
+                    drop_bases.add(base)
+        if drop_bases:
+            results = [r for r in results if r["course_code"] not in drop_bases]
 
     # Sort: bucket priority ASC (higher-priority requirements first),
     # then multi_bucket_score DESC (fills more unmet buckets),

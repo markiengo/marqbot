@@ -118,6 +118,42 @@ export interface RecommendationResponse {
   not_in_catalog?: string[];
 }
 
+export interface FeedbackSessionSnapshot {
+  completed: string[];
+  in_progress: string[];
+  declared_majors: string[];
+  declared_tracks: string[];
+  declared_minors: string[];
+  discovery_theme: string;
+  target_semester: string;
+  semester_count: string;
+  max_recs: string;
+  include_summer: boolean;
+  is_honors_student: boolean;
+  active_nav_tab: string;
+  onboarding_complete: boolean;
+  last_requested_count: number;
+}
+
+export interface FeedbackContext {
+  source: "planner";
+  route: string;
+  session_snapshot: FeedbackSessionSnapshot;
+  recommendation_snapshot: RecommendationResponse | null;
+}
+
+export interface FeedbackPayload {
+  rating: number;
+  message: string;
+  context: FeedbackContext;
+}
+
+export interface FeedbackResponse {
+  ok: true;
+  feedback_id: string;
+  submitted_at: string;
+}
+
 export interface CanTakeResponse {
   can_take: boolean | null;
   requested_course: string;

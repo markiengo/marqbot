@@ -23,19 +23,19 @@ def get_nightly_collector():
 
 
 def pytest_sessionfinish(session, exitstatus):
-    """After all tests, generate nightly report if there are flagged patterns."""
+    """After all tests, generate nightly report as tests/nightly_reports/YYYY-MM-DD.md."""
     global _nightly_collector
     if _nightly_collector is None:
         return
 
+    from datetime import date
+
     collector = _nightly_collector
     report = collector.generate_report()
-    if report is None:
-        return
 
-    report_dir = os.path.join(os.path.dirname(__file__), "..", "..", "test-reports")
+    report_dir = os.path.join(os.path.dirname(__file__), "..", "nightly_reports")
     os.makedirs(report_dir, exist_ok=True)
-    report_path = os.path.join(report_dir, "nightly-dead-end-report.md")
+    report_path = os.path.join(report_dir, f"{date.today().isoformat()}.md")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report)
     print(f"\n[NIGHTLY REPORT] Written to {report_path}")

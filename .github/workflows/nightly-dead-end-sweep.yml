@@ -58,6 +58,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nightly-dead-end-report
-          path: test-reports/nightly-dead-end-report.md
+          path: tests/nightly_reports/*.md
           if-no-files-found: ignore
           retention-days: 14

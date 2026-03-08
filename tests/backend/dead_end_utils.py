@@ -12,6 +12,7 @@ Provides:
 
 from __future__ import annotations
 
+import time
 import textwrap
 from dataclasses import dataclass, field
 
@@ -432,6 +433,7 @@ class NightlyFailureCollector:
         self.failures: list[dict] = []
         self.total_tests = 0
         self.seed: int | None = None
+        self._start_time: float = time.time()
 
     def record_failure(self, label: str, check: "DeadEndCheck", standing: str = ""):
         self.failures.append({
@@ -442,44 +444,58 @@ class NightlyFailureCollector:
             "programs": "+".join(check.reproduction_case.declared_majors + check.reproduction_case.track_ids),
         })
 
-    def generate_report(self) -> str | None:
-        """Generate markdown report. Returns None if no patterns exceed threshold."""
-        if not self.failures:
-            return None
+    def generate_report(self) -> str:
+        """Generate markdown report. Always produces output (even on clean runs)."""
+        elapsed = time.time() - self._start_time
+        mins, secs = divmod(int(elapsed), 60)
+        passed = self.total_tests - len(self.failures)
+        status = "ALL PASSED" if not self.failures else f"{len(self.failures)} FAILED"
 
-        # Group by (failure_kind, unsatisfied buckets, standing)
-        from collections import Counter
+        lines = [
+            f"# Nightly Report — {status}",
+            f"- **Seed:** {self.seed or 'unknown'}",
+            f"- **Result:** {passed}/{self.total_tests} passed, {len(self.failures)} failed",
+            f"- **Duration:** {mins}m {secs}s",
+        ]
+
+        if not self.failures:
+            return "\n".join(lines)
+
+        # Flagged patterns (5+ occurrences)
         patterns: dict[tuple, list[str]] = {}
         for f in self.failures:
             for bucket in f["unsatisfied_buckets"]:
                 key = (bucket, f["failure_kind"], f["standing"])
-                if key not in patterns:
-                    patterns[key] = []
-                patterns[key].append(f["programs"])
+                patterns.setdefault(key, []).append(f["programs"])
 
-        # Filter to patterns above threshold
         flagged = {k: v for k, v in patterns.items() if len(v) >= self.THRESHOLD}
-        if not flagged:
-            return None
+        if flagged:
+            lines.extend([
+                "",
+                f"## Flagged Patterns ({len(flagged)})",
+                "",
+                "| Bucket | Kind | Count | Standing | Programs (sample) |",
+                "|--------|------|------:|----------|--------------------|",
+            ])
+            for (bucket, kind, standing), programs in sorted(flagged.items(), key=lambda x: -len(x[1])):
+                sample = ", ".join(sorted(set(programs))[:3])
+                if len(set(programs)) > 3:
+                    sample += ", ..."
+                lines.append(f"| {bucket} | {kind} | {len(programs)} | {standing} | {sample} |")
 
-        passed = self.total_tests - len(self.failures)
-        lines = [
-            f"# Nightly Report — seed: {self.seed or 'unknown'}",
-            f"## Status: {len(flagged)} flagged patterns (threshold: {self.THRESHOLD}+ occurrences)",
-            "",
-            "| Pattern | Kind | Occurrences | Standing | Programs affected (sample) |",
-            "|---------|------|------------:|----------|---------------------------|",
-        ]
-        for (bucket, kind, standing), programs in sorted(flagged.items(), key=lambda x: -len(x[1])):
-            sample = ", ".join(sorted(set(programs))[:3])
-            if len(set(programs)) > 3:
-                sample += ", ..."
-            lines.append(f"| {bucket} | {kind} | {len(programs)} | {standing} | {sample} |")
-
+        # All individual failures
         lines.extend([
             "",
-            f"## Summary: {passed} / {self.total_tests} passed, {len(self.failures)} failures",
+            "## Failures",
+            "",
+            "| # | Label | Kind | Standing | Buckets |",
+            "|--:|-------|------|----------|---------|",
         ])
+        for i, f in enumerate(self.failures, 1):
+            buckets = ", ".join(f["unsatisfied_buckets"][:3])
+            if len(f["unsatisfied_buckets"]) > 3:
+                buckets += ", ..."
+            lines.append(f"| {i} | {f['label']} | {f['failure_kind']} | {f['standing']} | {buckets} |")
 
         return "\n".join(lines)
 

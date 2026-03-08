@@ -1114,20 +1114,28 @@ def _derive_runtime_from_v2(
     return runtime_buckets, runtime_map
 
 
-_VALID_RELATION_TYPES = {"equivalent", "cross_listed", "no_double_count"}
+_VALID_RELATION_TYPES = {"equivalent", "cross_listed", "no_double_count", "honors", "grad"}
 
 
 def _build_equiv_prereq_map(equivalencies_df: pd.DataFrame) -> dict[str, set[str]]:
-    """Build course → set of equivalent course codes (only ``equivalent`` type)."""
+    """Build course → set of equivalent course codes (only global ``equivalent`` type).
+
+    Only unscoped (global) equivalencies are included. Scoped equivalencies
+    are handled separately by ``_expand_map_with_equivalencies`` in the allocator
+    where program context is available.
+    """
     result: dict[str, set[str]] = {}
     if equivalencies_df is None or len(equivalencies_df) == 0:
         return result
     if "relation_type" not in equivalencies_df.columns:
         eq = equivalencies_df
     else:
-        eq = equivalencies_df[equivalencies_df["relation_type"] == "equivalent"]
+        eq = equivalencies_df[equivalencies_df["relation_type"].isin({"equivalent", "honors", "grad"})]
     if len(eq) == 0:
         return result
+    # Only include global (unscoped) equivalencies.
+    if "scope_program_id" in eq.columns:
+        eq = eq[eq["scope_program_id"].fillna("").astype(str).str.strip() == ""]
     for _, grp in eq.groupby("equiv_group_id"):
         members = sorted({str(c).strip() for c in grp["course_code"].tolist() if str(c).strip()})
         if len(members) < 2:
@@ -1237,9 +1245,6 @@ def _unpivot_wide_equivalencies(eq: pd.DataFrame) -> pd.DataFrame:
         rtype = ("equivalent" if pd.isna(raw_type) else str(raw_type).strip().lower()) or "equivalent"
         raw_scope = r.get("parent_bucket", "")
         scope = "" if pd.isna(raw_scope) else str(raw_scope).strip()
-        raw_notes = r.get("notes", "")
-        notes = "" if pd.isna(raw_notes) else str(raw_notes).strip()
-
         for col in ("course_1", "course_2", "course_3"):
             raw = r.get(col, "")
             code = "" if pd.isna(raw) else str(raw).strip()
@@ -1248,7 +1253,7 @@ def _unpivot_wide_equivalencies(eq: pd.DataFrame) -> pd.DataFrame:
                     "equiv_group_id": gid,
                     "course_code": code,
                     "relation_type": rtype,
-                    "label": notes,
+                    "label": "",
                     "scope_program_id": scope,
                 })
 

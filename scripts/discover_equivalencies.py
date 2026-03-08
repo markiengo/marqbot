@@ -201,40 +201,40 @@ def main():
     mapped_codes = {r["course_code"].strip() for r in mbc if r.get("course_code", "").strip()}
 
     writer = csv.writer(sys.stdout)
-    writer.writerow(["id", "course_1", "course_2", "course_3", "type", "parent_bucket", "child_bucket", "notes"])
+    writer.writerow(["id", "course_1", "course_2", "course_3", "type", "parent_bucket", "child_bucket"])
 
     row_id = 0
-    counts = {"equivalent": 0, "cross_listed": 0, "no_double_count": 0}
+    counts = {"honors": 0, "grad": 0, "cross_listed": 0, "no_double_count": 0}
 
-    def _write_group(codes, rtype, notes, parent_bucket=""):
+    def _write_group(codes, rtype, parent_bucket=""):
         nonlocal row_id
         row_id += 1
         c1 = codes[0] if len(codes) > 0 else ""
         c2 = codes[1] if len(codes) > 1 else ""
         c3 = codes[2] if len(codes) > 2 else ""
-        writer.writerow([row_id, c1, c2, c3, rtype, parent_bucket, "", notes])
+        writer.writerow([row_id, c1, c2, c3, rtype, parent_bucket, ""])
 
     # Pass 1: Honors (filtered to bucket-mapped courses)
     print("# ── Pass 1: Honors variants (bucket-mapped only) ──", file=sys.stderr)
     honors = find_honors_pairs(courses, mapped_codes)
     for base, h_variant in honors:
-        _write_group([base, h_variant], "equivalent", "honors variant")
-        counts["equivalent"] += 1
+        _write_group([base, h_variant], "honors")
+        counts["honors"] += 1
     print(f"  Found {len(honors)} honors pairs", file=sys.stderr)
 
     # Pass 2: Level pairs (filtered to bucket-mapped courses)
     print("# ── Pass 2: Undergrad/grad level pairs (bucket-mapped only) ──", file=sys.stderr)
     level_groups = find_level_pairs(courses, mapped_codes)
     for group in level_groups:
-        _write_group(group, "equivalent", "same title, different level")
-        counts["equivalent"] += 1
+        _write_group(group, "grad")
+        counts["grad"] += 1
     print(f"  Found {len(level_groups)} level-pair groups", file=sys.stderr)
 
     # Pass 3: Cross-listed
     print("# ── Pass 3: Cross-listed pairs ──", file=sys.stderr)
     xlist = find_cross_listed(courses, soft_prereqs)
     for a, b in xlist:
-        _write_group([a, b], "cross_listed", "cross-listed")
+        _write_group([a, b], "cross_listed")
         counts["cross_listed"] += 1
     print(f"  Found {len(xlist)} cross-listed pairs", file=sys.stderr)
 
@@ -242,7 +242,7 @@ def main():
     print("# ── Pass 4: No-double-count pairs ──", file=sys.stderr)
     ndc = find_no_double_count(courses, soft_prereqs)
     for a, b in ndc:
-        _write_group([a, b], "no_double_count", "credit restriction")
+        _write_group([a, b], "no_double_count")
         counts["no_double_count"] += 1
     print(f"  Found {len(ndc)} no-double-count pairs", file=sys.stderr)
 

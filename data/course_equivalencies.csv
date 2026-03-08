@@ -1,277 +1,277 @@
-id,course_1,course_2,course_3,type,parent_bucket,child_bucket,notes
-1,BIOL 4987,BIOL 4987H,,equivalent,,,honors variant
-2,CHEM 1002,CHEM 1002H,,equivalent,,,honors variant
-3,CHEM 1014,CHEM 1014H,,equivalent,,,honors variant
-4,COMM 4550,COMM 4550H,,equivalent,,,honors variant
-5,COMM 4750,COMM 4750H,,equivalent,,,honors variant
-6,CORE 1929,CORE 1929H,,equivalent,,,honors variant
-7,CORE 4929,CORE 4929H,,equivalent,,,honors variant
-8,ECON 1103,ECON 1103H,,equivalent,,,honors variant
-9,ECON 1104,ECON 1104H,,equivalent,,,honors variant
-10,GRMN 3500,GRMN 3500H,,equivalent,,,honors variant
-11,HEAL 1025,HEAL 1025H,,equivalent,,,honors variant
-12,HEAL 4901,HEAL 4901H,,equivalent,,,honors variant
-13,HIST 4255,HIST 4255H,,equivalent,,,honors variant
-14,HIST 4271,HIST 4271H,,equivalent,,,honors variant
-15,HIST 4955,HIST 4955H,,equivalent,,,honors variant
-16,MATH 1700,MATH 1700H,,equivalent,,,honors variant
-17,PHIL 1001,PHIL 1001H,,equivalent,,,honors variant
-18,POSC 2201,POSC 2201H,,equivalent,,,honors variant
-19,POSC 2401,POSC 2401H,,equivalent,,,honors variant
-20,POSC 2601,POSC 2601H,,equivalent,,,honors variant
-21,THEO 1001,THEO 1001H,,equivalent,,,honors variant
-22,THEO 2200,THEO 2200H,,equivalent,,,honors variant
-23,THEO 2240,THEO 2240H,,equivalent,,,honors variant
-24,THEO 2400,THEO 2400H,,equivalent,,,honors variant
-25,THEO 3100,THEO 3100H,,equivalent,,,honors variant
-26,THEO 3130,THEO 3130H,,equivalent,,,honors variant
-27,THEO 3230,THEO 3230H,,equivalent,,,honors variant
-28,THEO 3340,THEO 3340H,,equivalent,,,honors variant
-29,THEO 3430,THEO 3430H,,equivalent,,,honors variant
-30,THEO 3470,THEO 3470H,,equivalent,,,honors variant
-31,THEO 3530,THEO 3530H,,equivalent,,,honors variant
-32,THEO 4000,THEO 4000H,,equivalent,,,honors variant
-33,THEO 4300,THEO 4300H,,equivalent,,,honors variant
-34,THEO 4400,THEO 4400H,,equivalent,,,honors variant
-35,THEO 4405,THEO 4405H,,equivalent,,,honors variant
-36,ACCO 4010,ACCO 5010,,equivalent,,,"same title, different level"
-37,ACCO 4040,ACCO 5040,ACCO 6040,equivalent,,,"same title, different level"
-38,ACCO 4045,ACCO 5045,ACCO 6045,equivalent,,,"same title, different level"
-39,ACCO 4050,ACCO 5050,ACCO 6050,equivalent,,,"same title, different level"
-40,ACCO 4060,ACCO 5060,,equivalent,,,"same title, different level"
-41,ACCO 4080,ACCO 5080,,equivalent,,,"same title, different level"
-42,ACCO 4119,ACCO 5119,ACCO 6119,equivalent,,,"same title, different level"
-43,ACCO 4931,ACCO 5931,ACCO 6931,equivalent,,,"same title, different level"
-44,ADPR 4600,ADPR 5600,,equivalent,,,"same title, different level"
-45,ANTH 4316,ANTH 5316,,equivalent,,,"same title, different level"
-46,BIEN 4600,BIEN 5600,,equivalent,,,"same title, different level"
-47,BIOL 4102,BIOL 5102,,equivalent,,,"same title, different level"
-48,BIOL 4201,BIOL 5201,,equivalent,,,"same title, different level"
-49,BIOL 4403,BIOL 5403,,equivalent,,,"same title, different level"
-50,BIOL 4410,BIOL 5410,,equivalent,,,"same title, different level"
-51,BIOL 4501,BIOL 5501,,equivalent,,,"same title, different level"
-52,BIOL 4802,BIOL 5802,,equivalent,,,"same title, different level"
-53,BISC 4010,BISC 5010,,equivalent,,,"same title, different level"
-54,BISC 4140,BISC 5140,,equivalent,,,"same title, different level"
-55,BISC 4150,BISC 7150,,equivalent,,,"same title, different level"
-56,BISC 4153,BISC 7153,,equivalent,,,"same title, different level"
-57,BISC 4155,BISC 5155,,equivalent,,,"same title, different level"
-58,BISC 4157,BISC 7157,,equivalent,,,"same title, different level"
-59,BISC 4160,BISC 5160,,equivalent,,,"same title, different level"
-60,BISC 4170,BISC 5170,,equivalent,,,"same title, different level"
-61,BISC 4325,BISC 5325,,equivalent,,,"same title, different level"
-62,BISC 4340,BISC 5340,,equivalent,,,"same title, different level"
-63,BISC 4850,BISC 5850,,equivalent,,,"same title, different level"
-64,CEEN 4515,CEEN 5515,,equivalent,,,"same title, different level"
-65,CHEM 4530,CHEM 5530,,equivalent,,,"same title, different level"
-66,CMST 4120,CMST 5120,,equivalent,,,"same title, different level"
-67,CMST 4140,CMST 5140,,equivalent,,,"same title, different level"
-68,CMST 3200,CMST 6200,,equivalent,,,"same title, different level"
-69,CMST 4250,CMST 5250,,equivalent,,,"same title, different level"
-70,CMST 4400,CMST 5400,,equivalent,,,"same title, different level"
-71,CMST 4410,CMST 5410,,equivalent,,,"same title, different level"
-72,CMST 4500,CMST 5500,,equivalent,,,"same title, different level"
-73,COMM 4500,COMM 5500,,equivalent,,,"same title, different level"
-74,COMM 4550,COMM 4550H,COMM 5550,equivalent,,,"same title, different level"
-75,COMM 4750,COMM 5750,,equivalent,,,"same title, different level"
-76,ECON 4005,ECON 5005,,equivalent,,,"same title, different level"
-77,ECON 4008,ECON 5008,,equivalent,,,"same title, different level"
-78,ECON 4016,ECON 5016,,equivalent,,,"same title, different level"
-79,ECON 4040,ECON 5040,,equivalent,,,"same title, different level"
-80,ECON 4045,ECON 5045,,equivalent,,,"same title, different level"
-81,ECON 4072,ECON 5072,,equivalent,,,"same title, different level"
-82,ECON 4931,ECON 5931,ECON 6931,equivalent,,,"same title, different level"
-83,ECON 4995,ECON 6995,,equivalent,,,"same title, different level"
-84,EDUC 4000,EDUC 5000,,equivalent,,,"same title, different level"
-85,EDUC 4100,EDUC 5100,,equivalent,,,"same title, different level"
-86,EDUC 4200,EDUC 5200,,equivalent,,,"same title, different level"
-87,EDUC 4540,EDUC 5540,,equivalent,,,"same title, different level"
-88,EDUC 4600,EDUC 5600,,equivalent,,,"same title, different level"
-89,ENGL 3110,ENGL 5110,,equivalent,,,"same title, different level"
-90,ENGL 4220,ENGL 5220,,equivalent,,,"same title, different level"
-91,ENGL 4230,ENGL 5230,,equivalent,,,"same title, different level"
-92,ENGL 4250,ENGL 5250,,equivalent,,,"same title, different level"
-93,ENGL 4260,ENGL 5260,,equivalent,,,"same title, different level"
-94,ENGL 4303,ENGL 5303,,equivalent,,,"same title, different level"
-95,ENGL 4311,ENGL 5311,,equivalent,,,"same title, different level"
-96,ENGL 4402,ENGL 5402,,equivalent,,,"same title, different level"
-97,ENGL 4412,ENGL 5412,,equivalent,,,"same title, different level"
-98,ENGL 4422,ENGL 5422,,equivalent,,,"same title, different level"
-99,ENGL 4423,ENGL 5423,,equivalent,,,"same title, different level"
-100,ENGL 4472,ENGL 5472,,equivalent,,,"same title, different level"
-101,ENGL 4612,ENGL 5612,,equivalent,,,"same title, different level"
-102,ENGL 4616,ENGL 5616,,equivalent,,,"same title, different level"
-103,ENGL 4715,ENGL 5715,,equivalent,,,"same title, different level"
-104,ENGL 4716,ENGL 5716,,equivalent,,,"same title, different level"
-105,ENGL 4717,ENGL 5717,,equivalent,,,"same title, different level"
-106,ENGL 4746,ENGL 5746,,equivalent,,,"same title, different level"
-107,ENGL 4755,ENGL 5755,,equivalent,,,"same title, different level"
-108,ENGL 4820,ENGL 5820,,equivalent,,,"same title, different level"
-109,ENGL 4825,ENGL 5825,,equivalent,,,"same title, different level"
-110,ENGL 4830,ENGL 5830,,equivalent,,,"same title, different level"
-111,ENGL 4840,ENGL 5840,,equivalent,,,"same title, different level"
-112,ENGL 4932,ENGL 5932,,equivalent,,,"same title, different level"
-113,ENGL 4954,ENGL 5954,,equivalent,,,"same title, different level"
-114,ENGL 4988,ENGL 5988,,equivalent,,,"same title, different level"
-115,ENGL 4997,ENGL 5997,,equivalent,,,"same title, different level"
-116,EXPH 4187,EXPH 5187,,equivalent,,,"same title, different level"
-117,EXPH 4189,EXPH 7189,,equivalent,,,"same title, different level"
-118,FINA 4001,FINA 5001,,equivalent,,,"same title, different level"
-119,FINA 4002,FINA 5002,,equivalent,,,"same title, different level"
-120,FINA 4011,FINA 5011,,equivalent,,,"same title, different level"
-121,FINA 4023,FINA 5023,,equivalent,,,"same title, different level"
-122,FINA 4040,FINA 5040,,equivalent,,,"same title, different level"
-123,FINA 4075,FINA 5075,,equivalent,,,"same title, different level"
-124,FINA 4081,FINA 5081,FINA 6081,equivalent,,,"same title, different level"
-125,FINA 4084,FINA 5084,,equivalent,,,"same title, different level"
-126,FINA 4085,FINA 5085,,equivalent,,,"same title, different level"
-127,FINA 4931,FINA 5931,FINA 6931,equivalent,,,"same title, different level"
-128,FINA 4953,FINA 6953,,equivalent,,,"same title, different level"
-129,FINAI 4931,FINAI 5931,,equivalent,,,"same title, different level"
-130,FREN 4110,FREN 5110,,equivalent,,,"same title, different level"
-131,HEAL 4901,HEAL 5901,,equivalent,,,"same title, different level"
-132,HIST 4120,HIST 5120,,equivalent,,,"same title, different level"
-133,HIST 4125,HIST 5125,,equivalent,,,"same title, different level"
-134,HIST 4127,HIST 5127,,equivalent,,,"same title, different level"
-135,HIST 4135,HIST 5135,,equivalent,,,"same title, different level"
-136,HIST 4140,HIST 5140,,equivalent,,,"same title, different level"
-137,HIST 4145,HIST 5145,,equivalent,,,"same title, different level"
-138,HIST 4150,HIST 5150,,equivalent,,,"same title, different level"
-139,HIST 4155,HIST 5155,,equivalent,,,"same title, different level"
-140,HIST 4156,HIST 5156,,equivalent,,,"same title, different level"
-141,HIST 4210,HIST 5210,,equivalent,,,"same title, different level"
-142,HIST 4212,HIST 5212,,equivalent,,,"same title, different level"
-143,HIST 4245,HIST 5245,,equivalent,,,"same title, different level"
-144,HIST 4251,HIST 5251,,equivalent,,,"same title, different level"
-145,HIST 4252,HIST 5252,,equivalent,,,"same title, different level"
-146,HIST 4255,HIST 5255,,equivalent,,,"same title, different level"
-147,HIST 4260,HIST 5260,,equivalent,,,"same title, different level"
-148,HIST 4262,HIST 5262,,equivalent,,,"same title, different level"
-149,HIST 4264,HIST 5264,,equivalent,,,"same title, different level"
-150,HIST 4266,HIST 5266,,equivalent,,,"same title, different level"
-151,HIST 4271,HIST 5271,,equivalent,,,"same title, different level"
-152,HIST 4298,HIST 5298,,equivalent,,,"same title, different level"
-153,HIST 4310,HIST 5310,,equivalent,,,"same title, different level"
-154,HIST 4350,HIST 5350,,equivalent,,,"same title, different level"
-155,HIST 4450,HIST 5450,,equivalent,,,"same title, different level"
-156,HIST 4460,HIST 5460,,equivalent,,,"same title, different level"
-157,HIST 4500,HIST 5500,,equivalent,,,"same title, different level"
-158,HIST 4555,HIST 5555,,equivalent,,,"same title, different level"
-159,HIST 4705,HIST 5705,,equivalent,,,"same title, different level"
-160,HIST 4747,HIST 5747,,equivalent,,,"same title, different level"
-161,HURE 4003,HURE 5003,,equivalent,,,"same title, different level"
-162,HURE 4010,HURE 5010,,equivalent,,,"same title, different level"
-163,HURE 4080,HURE 5080,,equivalent,,,"same title, different level"
-164,HURE 4140,HURE 5140,,equivalent,,,"same title, different level"
-165,HURE 4931,HURE 5931,,equivalent,,,"same title, different level"
-166,INBU 4931,INBU 5931,INBU 6931,equivalent,,,"same title, different level"
-167,INBU 4953,INBU 6953,,equivalent,,,"same title, different level"
-168,INBUI 4931,INBUI 6931,,equivalent,,,"same title, different level"
-169,INSY 4054,INSY 5054,,equivalent,,,"same title, different level"
-170,INSY 4056,INSY 5056,,equivalent,,,"same title, different level"
-171,INSY 4156,INSY 5156,INSY 6156,equivalent,,,"same title, different level"
-172,INSY 4158,INSY 6158,,equivalent,,,"same title, different level"
-173,INSY 4931,INSY 5931,INSY 6931,equivalent,,,"same title, different level"
-174,JOUR 3986,JOUR 4986,,equivalent,,,"same title, different level"
-175,MARK 4065,MARK 5065,,equivalent,,,"same title, different level"
-176,MARK 4085,MARK 6085,,equivalent,,,"same title, different level"
-177,MARK 4931,MARK 5931,MARK 6931,equivalent,,,"same title, different level"
-178,MLSC 4127,MLSC 7127,,equivalent,,,"same title, different level"
-179,MLSC 4180,MLSC 7180,,equivalent,,,"same title, different level"
-180,OSCM 4931,OSCM 5931,OSCM 6931,equivalent,,,"same title, different level"
-181,PHIL 4450,PHIL 6450,,equivalent,,,"same title, different level"
-182,PHIL 3710,PHIL 6710,,equivalent,,,"same title, different level"
-183,PHIL 4954,PHIL 5954,,equivalent,,,"same title, different level"
-184,PHYS 4046,PHYS 5046,,equivalent,,,"same title, different level"
-185,PHYS 4050,PHYS 5050,,equivalent,,,"same title, different level"
-186,POSC 2201,POSC 6201,,equivalent,,,"same title, different level"
-187,POSC 4201,POSC 5201,,equivalent,,,"same title, different level"
-188,POSC 4221,POSC 5221,,equivalent,,,"same title, different level"
-189,POSC 4371,POSC 5371,,equivalent,,,"same title, different level"
-190,POSC 2401,POSC 6401,,equivalent,,,"same title, different level"
-191,POSC 4406,POSC 5406,,equivalent,,,"same title, different level"
-192,POSC 4501,POSC 5501,POSC 6501,equivalent,,,"same title, different level"
-193,POSC 4511,POSC 5511,,equivalent,,,"same title, different level"
-194,POSC 4521,POSC 5521,POSC 6521,equivalent,,,"same title, different level"
-195,POSC 4541,POSC 5541,,equivalent,,,"same title, different level"
-196,POSC 4601,POSC 5601,,equivalent,,,"same title, different level"
-197,POSC 2601,POSC 2601H,POSC 6601,equivalent,,,"same title, different level"
-198,POSC 4611,POSC 5611,,equivalent,,,"same title, different level"
-199,POSC 4621,POSC 5621,,equivalent,,,"same title, different level"
-200,POSC 4646,POSC 5646,,equivalent,,,"same title, different level"
-201,POSC 4661,POSC 5661,,equivalent,,,"same title, different level"
-202,POSC 4731,POSC 5731,POSC 6731,equivalent,,,"same title, different level"
-203,PSYC 4210,PSYC 5210,,equivalent,,,"same title, different level"
-204,PSYC 4330,PSYC 5330,,equivalent,,,"same title, different level"
-205,PSYC 4350,PSYC 5350,,equivalent,,,"same title, different level"
-206,PSYC 4420,PSYC 5420,,equivalent,,,"same title, different level"
-207,REAL 4061,REAL 5061,,equivalent,,,"same title, different level"
-208,REAL 4931,REAL 5931,REAL 6931,equivalent,,,"same title, different level"
-209,SOWJ 4700,SOWJ 5700,,equivalent,,,"same title, different level"
-210,SPAN 4110,SPAN 5110,,equivalent,,,"same title, different level"
-211,SPAN 4120,SPAN 5120,,equivalent,,,"same title, different level"
-212,SPAN 4130,SPAN 5130,,equivalent,,,"same title, different level"
-213,SPAN 4140,SPAN 5140,,equivalent,,,"same title, different level"
-214,SPAN 4150,SPAN 5150,,equivalent,,,"same title, different level"
-215,SPAN 4320,SPAN 5320,,equivalent,,,"same title, different level"
-216,SPAN 4450,SPAN 5450,,equivalent,,,"same title, different level"
-217,THAR 4210,THAR 5210,,equivalent,,,"same title, different level"
-218,THAR 4220,THAR 5220,,equivalent,,,"same title, different level"
-219,THAR 4230,THAR 5230,,equivalent,,,"same title, different level"
-220,THAR 4600,THAR 5600,,equivalent,,,"same title, different level"
-221,THEO 4000,THEO 5000,,equivalent,,,"same title, different level"
-222,THEO 4020,THEO 5020,,equivalent,,,"same title, different level"
-223,THEO 4210,THEO 5210,,equivalent,,,"same title, different level"
-224,THEO 4250,THEO 5250,,equivalent,,,"same title, different level"
-225,THEO 4270,THEO 5270,,equivalent,,,"same title, different level"
-226,THEO 4300,THEO 5300,,equivalent,,,"same title, different level"
-227,THEO 4310,THEO 5310,,equivalent,,,"same title, different level"
-228,THEO 4320,THEO 5320,,equivalent,,,"same title, different level"
-229,THEO 4400,THEO 5400,,equivalent,,,"same title, different level"
-230,THEO 4405,THEO 5405,,equivalent,,,"same title, different level"
-231,THEO 4410,THEO 5410,,equivalent,,,"same title, different level"
-232,THEO 4440,THEO 5440,,equivalent,,,"same title, different level"
-233,THEO 4450,THEO 5450,,equivalent,,,"same title, different level"
-234,THEO 4520,THEO 5520,,equivalent,,,"same title, different level"
-235,THEO 4530,THEO 5530,,equivalent,,,"same title, different level"
-236,BIEN 4420,MEEN 4570,,cross_listed,,,cross-listed
-237,BIEN 4420,MEEN 5570,,cross_listed,,,cross-listed
-238,BIEN 4920,COEN 4920,,cross_listed,,,cross-listed
-239,BIEN 4920,ELEN 4920,,cross_listed,,,cross-listed
-240,BIEN 4920,MEEN 4920,,cross_listed,,,cross-listed
-241,BIEN 4998,COEN 4998,,cross_listed,,,cross-listed
-242,BIEN 4998,ELEN 4998,,cross_listed,,,cross-listed
-243,BIEN 4998,MEEN 4998,,cross_listed,,,cross-listed
-244,BISC 4381,POSC 4381,,cross_listed,,,cross-listed
-245,BISC 4461,POSC 4461,,cross_listed,,,cross-listed
-246,BISC 7461,POSC 4461,,cross_listed,,,cross-listed
-247,BISC 8003,NRSC 8003,,cross_listed,,,cross-listed
-248,BISC 8004,NRSC 8004,,cross_listed,,,cross-listed
-249,BISC 8005,NRSC 8005,,cross_listed,,,cross-listed
-250,BISC 8096,NRSC 8096,,cross_listed,,,cross-listed
-251,BISC 8931,NRSC 8931,,cross_listed,,,cross-listed
-252,EDUC 4540,PHIL 4540,,cross_listed,,,cross-listed
-253,INCG 2010,PHIL 2010,,cross_listed,,,cross-listed
-254,THEO 8415,THEO 8417,,cross_listed,,,cross-listed
-255,THEO 8417,THEO 8418,,cross_listed,,,cross-listed
-256,THEO 8418,THEO 8419,,cross_listed,,,cross-listed
-257,ACCO 4000,ACCO 6001,,no_double_count,,,credit restriction
-258,BISC 1035,BISC 3135,,no_double_count,,,credit restriction
-259,BISC 3110,HEAL 2045,,no_double_count,,,credit restriction
-260,BISC 4112,BISC 4113,,no_double_count,,,credit restriction
-261,BISC 4113,BISC 5112,,no_double_count,,,credit restriction
-262,CRLS 3050,SOCI 3050,,no_double_count,,,credit restriction
-263,MATH 2100,MATH 2350,,no_double_count,,,credit restriction
-264,MATH 4710,MATH 4720,,no_double_count,,,credit restriction
-265,THEO 8415,THEO 8417,,no_double_count,,,credit restriction
-266,THEO 8417,THEO 8418,,no_double_count,,,credit restriction
-267,THEO 8418,THEO 8419,,no_double_count,,,credit restriction
-268,MATH 1400,MATH 1450,,equivalent,,,manual: BCC equivalency
-269,CMST 2300,COMM 1100,,equivalent,,,manual: BCC equivalency
-270,INSY 3001,ACCO 4050,,equivalent,ACCO_MAJOR,,manual: ACCO-scoped substitution
-271,HURE 4140,FINA 5040,,equivalent,INBU_MAJOR,,manual: INBU-scoped equivalency
-272,ACCO 4080,FINA 4075,,equivalent,AIM_MAJOR,,manual: AIM-scoped equivalency
-273,AIM 4310,AIM 4400,FINA 4210,equivalent,AIM_IB_TRACK,,manual: AIM IB track equivalency
-274,FINA 4081,FINA 4023,FINA 4191,equivalent,AIM_IB_TRACK,,manual: AIM IB track equivalency
-275,BUAN 4061,INSY 4054,,equivalent,BUAN_MAJOR,,manual: BUAN-scoped equivalency
-276,REAL 4061,REAL 4100,,equivalent,,,catalog: "or" alternative
+﻿id,course_1,course_2,course_3,type,parent_bucket,child_bucket
+1,BIOL 4987,BIOL 4987H,,honors,,
+2,CHEM 1002,CHEM 1002H,,honors,,
+3,CHEM 1014,CHEM 1014H,,honors,,
+4,COMM 4550,COMM 4550H,,honors,,
+5,COMM 4750,COMM 4750H,,honors,,
+6,CORE 1929,CORE 1929H,,honors,,
+7,CORE 4929,CORE 4929H,,honors,,
+8,ECON 1103,ECON 1103H,,honors,,
+9,ECON 1104,ECON 1104H,,honors,,
+10,GRMN 3500,GRMN 3500H,,honors,,
+11,HEAL 1025,HEAL 1025H,,honors,,
+12,HEAL 4901,HEAL 4901H,,honors,,
+13,HIST 4255,HIST 4255H,,honors,,
+14,HIST 4271,HIST 4271H,,honors,,
+15,HIST 4955,HIST 4955H,,honors,,
+16,MATH 1700,MATH 1700H,,honors,,
+17,PHIL 1001,PHIL 1001H,,honors,,
+18,POSC 2201,POSC 2201H,,honors,,
+19,POSC 2401,POSC 2401H,,honors,,
+20,POSC 2601,POSC 2601H,,honors,,
+21,THEO 1001,THEO 1001H,,honors,,
+22,THEO 2200,THEO 2200H,,honors,,
+23,THEO 2240,THEO 2240H,,honors,,
+24,THEO 2400,THEO 2400H,,honors,,
+25,THEO 3100,THEO 3100H,,honors,,
+26,THEO 3130,THEO 3130H,,honors,,
+27,THEO 3230,THEO 3230H,,honors,,
+28,THEO 3340,THEO 3340H,,honors,,
+29,THEO 3430,THEO 3430H,,honors,,
+30,THEO 3470,THEO 3470H,,honors,,
+31,THEO 3530,THEO 3530H,,honors,,
+32,THEO 4000,THEO 4000H,,honors,,
+33,THEO 4300,THEO 4300H,,honors,,
+34,THEO 4400,THEO 4400H,,honors,,
+35,THEO 4405,THEO 4405H,,honors,,
+36,ACCO 4010,ACCO 5010,,grad,,
+37,ACCO 4040,ACCO 5040,ACCO 6040,grad,,
+38,ACCO 4045,ACCO 5045,ACCO 6045,grad,,
+39,ACCO 4050,ACCO 5050,ACCO 6050,grad,,
+40,ACCO 4060,ACCO 5060,,grad,,
+41,ACCO 4080,ACCO 5080,,grad,,
+42,ACCO 4119,ACCO 5119,ACCO 6119,grad,,
+43,ACCO 4931,ACCO 5931,ACCO 6931,grad,,
+44,ADPR 4600,ADPR 5600,,grad,,
+45,ANTH 4316,ANTH 5316,,grad,,
+46,BIEN 4600,BIEN 5600,,grad,,
+47,BIOL 4102,BIOL 5102,,grad,,
+48,BIOL 4201,BIOL 5201,,grad,,
+49,BIOL 4403,BIOL 5403,,grad,,
+50,BIOL 4410,BIOL 5410,,grad,,
+51,BIOL 4501,BIOL 5501,,grad,,
+52,BIOL 4802,BIOL 5802,,grad,,
+53,BISC 4010,BISC 5010,,grad,,
+54,BISC 4140,BISC 5140,,grad,,
+55,BISC 4150,BISC 7150,,grad,,
+56,BISC 4153,BISC 7153,,grad,,
+57,BISC 4155,BISC 5155,,grad,,
+58,BISC 4157,BISC 7157,,grad,,
+59,BISC 4160,BISC 5160,,grad,,
+60,BISC 4170,BISC 5170,,grad,,
+61,BISC 4325,BISC 5325,,grad,,
+62,BISC 4340,BISC 5340,,grad,,
+63,BISC 4850,BISC 5850,,grad,,
+64,CEEN 4515,CEEN 5515,,grad,,
+65,CHEM 4530,CHEM 5530,,grad,,
+66,CMST 4120,CMST 5120,,grad,,
+67,CMST 4140,CMST 5140,,grad,,
+68,CMST 3200,CMST 6200,,grad,,
+69,CMST 4250,CMST 5250,,grad,,
+70,CMST 4400,CMST 5400,,grad,,
+71,CMST 4410,CMST 5410,,grad,,
+72,CMST 4500,CMST 5500,,grad,,
+73,COMM 4500,COMM 5500,,grad,,
+74,COMM 4550,COMM 4550H,COMM 5550,grad,,
+75,COMM 4750,COMM 5750,,grad,,
+76,ECON 4005,ECON 5005,,grad,,
+77,ECON 4008,ECON 5008,,grad,,
+78,ECON 4016,ECON 5016,,grad,,
+79,ECON 4040,ECON 5040,,grad,,
+80,ECON 4045,ECON 5045,,grad,,
+81,ECON 4072,ECON 5072,,grad,,
+82,ECON 4931,ECON 5931,ECON 6931,grad,,
+83,ECON 4995,ECON 6995,,grad,,
+84,EDUC 4000,EDUC 5000,,grad,,
+85,EDUC 4100,EDUC 5100,,grad,,
+86,EDUC 4200,EDUC 5200,,grad,,
+87,EDUC 4540,EDUC 5540,,grad,,
+88,EDUC 4600,EDUC 5600,,grad,,
+89,ENGL 3110,ENGL 5110,,grad,,
+90,ENGL 4220,ENGL 5220,,grad,,
+91,ENGL 4230,ENGL 5230,,grad,,
+92,ENGL 4250,ENGL 5250,,grad,,
+93,ENGL 4260,ENGL 5260,,grad,,
+94,ENGL 4303,ENGL 5303,,grad,,
+95,ENGL 4311,ENGL 5311,,grad,,
+96,ENGL 4402,ENGL 5402,,grad,,
+97,ENGL 4412,ENGL 5412,,grad,,
+98,ENGL 4422,ENGL 5422,,grad,,
+99,ENGL 4423,ENGL 5423,,grad,,
+100,ENGL 4472,ENGL 5472,,grad,,
+101,ENGL 4612,ENGL 5612,,grad,,
+102,ENGL 4616,ENGL 5616,,grad,,
+103,ENGL 4715,ENGL 5715,,grad,,
+104,ENGL 4716,ENGL 5716,,grad,,
+105,ENGL 4717,ENGL 5717,,grad,,
+106,ENGL 4746,ENGL 5746,,grad,,
+107,ENGL 4755,ENGL 5755,,grad,,
+108,ENGL 4820,ENGL 5820,,grad,,
+109,ENGL 4825,ENGL 5825,,grad,,
+110,ENGL 4830,ENGL 5830,,grad,,
+111,ENGL 4840,ENGL 5840,,grad,,
+112,ENGL 4932,ENGL 5932,,grad,,
+113,ENGL 4954,ENGL 5954,,grad,,
+114,ENGL 4988,ENGL 5988,,grad,,
+115,ENGL 4997,ENGL 5997,,grad,,
+116,EXPH 4187,EXPH 5187,,grad,,
+117,EXPH 4189,EXPH 7189,,grad,,
+118,FINA 4001,FINA 5001,,grad,,
+119,FINA 4002,FINA 5002,,grad,,
+120,FINA 4011,FINA 5011,,grad,,
+121,FINA 4023,FINA 5023,,grad,,
+122,FINA 4040,FINA 5040,,grad,,
+123,FINA 4075,FINA 5075,,grad,,
+124,FINA 4081,FINA 5081,FINA 6081,grad,,
+125,FINA 4084,FINA 5084,,grad,,
+126,FINA 4085,FINA 5085,,grad,,
+127,FINA 4931,FINA 5931,FINA 6931,grad,,
+128,FINA 4953,FINA 6953,,grad,,
+129,FINAI 4931,FINAI 5931,,grad,,
+130,FREN 4110,FREN 5110,,grad,,
+131,HEAL 4901,HEAL 5901,,grad,,
+132,HIST 4120,HIST 5120,,grad,,
+133,HIST 4125,HIST 5125,,grad,,
+134,HIST 4127,HIST 5127,,grad,,
+135,HIST 4135,HIST 5135,,grad,,
+136,HIST 4140,HIST 5140,,grad,,
+137,HIST 4145,HIST 5145,,grad,,
+138,HIST 4150,HIST 5150,,grad,,
+139,HIST 4155,HIST 5155,,grad,,
+140,HIST 4156,HIST 5156,,grad,,
+141,HIST 4210,HIST 5210,,grad,,
+142,HIST 4212,HIST 5212,,grad,,
+143,HIST 4245,HIST 5245,,grad,,
+144,HIST 4251,HIST 5251,,grad,,
+145,HIST 4252,HIST 5252,,grad,,
+146,HIST 4255,HIST 5255,,grad,,
+147,HIST 4260,HIST 5260,,grad,,
+148,HIST 4262,HIST 5262,,grad,,
+149,HIST 4264,HIST 5264,,grad,,
+150,HIST 4266,HIST 5266,,grad,,
+151,HIST 4271,HIST 5271,,grad,,
+152,HIST 4298,HIST 5298,,grad,,
+153,HIST 4310,HIST 5310,,grad,,
+154,HIST 4350,HIST 5350,,grad,,
+155,HIST 4450,HIST 5450,,grad,,
+156,HIST 4460,HIST 5460,,grad,,
+157,HIST 4500,HIST 5500,,grad,,
+158,HIST 4555,HIST 5555,,grad,,
+159,HIST 4705,HIST 5705,,grad,,
+160,HIST 4747,HIST 5747,,grad,,
+161,HURE 4003,HURE 5003,,grad,,
+162,HURE 4010,HURE 5010,,grad,,
+163,HURE 4080,HURE 5080,,grad,,
+164,HURE 4140,HURE 5140,,grad,,
+165,HURE 4931,HURE 5931,,grad,,
+166,INBU 4931,INBU 5931,INBU 6931,grad,,
+167,INBU 4953,INBU 6953,,grad,,
+168,INBUI 4931,INBUI 6931,,grad,,
+169,INSY 4054,INSY 5054,,grad,,
+170,INSY 4056,INSY 5056,,grad,,
+171,INSY 4156,INSY 5156,INSY 6156,grad,,
+172,INSY 4158,INSY 6158,,grad,,
+173,INSY 4931,INSY 5931,INSY 6931,grad,,
+174,JOUR 3986,JOUR 4986,,grad,,
+175,MARK 4065,MARK 5065,,grad,,
+176,MARK 4085,MARK 6085,,grad,,
+177,MARK 4931,MARK 5931,MARK 6931,grad,,
+178,MLSC 4127,MLSC 7127,,grad,,
+179,MLSC 4180,MLSC 7180,,grad,,
+180,OSCM 4931,OSCM 5931,OSCM 6931,grad,,
+181,PHIL 4450,PHIL 6450,,grad,,
+182,PHIL 3710,PHIL 6710,,grad,,
+183,PHIL 4954,PHIL 5954,,grad,,
+184,PHYS 4046,PHYS 5046,,grad,,
+185,PHYS 4050,PHYS 5050,,grad,,
+186,POSC 2201,POSC 6201,,grad,,
+187,POSC 4201,POSC 5201,,grad,,
+188,POSC 4221,POSC 5221,,grad,,
+189,POSC 4371,POSC 5371,,grad,,
+190,POSC 2401,POSC 6401,,grad,,
+191,POSC 4406,POSC 5406,,grad,,
+192,POSC 4501,POSC 5501,POSC 6501,grad,,
+193,POSC 4511,POSC 5511,,grad,,
+194,POSC 4521,POSC 5521,POSC 6521,grad,,
+195,POSC 4541,POSC 5541,,grad,,
+196,POSC 4601,POSC 5601,,grad,,
+197,POSC 2601,POSC 2601H,POSC 6601,grad,,
+198,POSC 4611,POSC 5611,,grad,,
+199,POSC 4621,POSC 5621,,grad,,
+200,POSC 4646,POSC 5646,,grad,,
+201,POSC 4661,POSC 5661,,grad,,
+202,POSC 4731,POSC 5731,POSC 6731,grad,,
+203,PSYC 4210,PSYC 5210,,grad,,
+204,PSYC 4330,PSYC 5330,,grad,,
+205,PSYC 4350,PSYC 5350,,grad,,
+206,PSYC 4420,PSYC 5420,,grad,,
+207,REAL 4061,REAL 5061,,grad,,
+208,REAL 4931,REAL 5931,REAL 6931,grad,,
+209,SOWJ 4700,SOWJ 5700,,grad,,
+210,SPAN 4110,SPAN 5110,,grad,,
+211,SPAN 4120,SPAN 5120,,grad,,
+212,SPAN 4130,SPAN 5130,,grad,,
+213,SPAN 4140,SPAN 5140,,grad,,
+214,SPAN 4150,SPAN 5150,,grad,,
+215,SPAN 4320,SPAN 5320,,grad,,
+216,SPAN 4450,SPAN 5450,,grad,,
+217,THAR 4210,THAR 5210,,grad,,
+218,THAR 4220,THAR 5220,,grad,,
+219,THAR 4230,THAR 5230,,grad,,
+220,THAR 4600,THAR 5600,,grad,,
+221,THEO 4000,THEO 5000,,grad,,
+222,THEO 4020,THEO 5020,,grad,,
+223,THEO 4210,THEO 5210,,grad,,
+224,THEO 4250,THEO 5250,,grad,,
+225,THEO 4270,THEO 5270,,grad,,
+226,THEO 4300,THEO 5300,,grad,,
+227,THEO 4310,THEO 5310,,grad,,
+228,THEO 4320,THEO 5320,,grad,,
+229,THEO 4400,THEO 5400,,grad,,
+230,THEO 4405,THEO 5405,,grad,,
+231,THEO 4410,THEO 5410,,grad,,
+232,THEO 4440,THEO 5440,,grad,,
+233,THEO 4450,THEO 5450,,grad,,
+234,THEO 4520,THEO 5520,,grad,,
+235,THEO 4530,THEO 5530,,grad,,
+236,BIEN 4420,MEEN 4570,,cross_listed,,
+237,BIEN 4420,MEEN 5570,,cross_listed,,
+238,BIEN 4920,COEN 4920,,cross_listed,,
+239,BIEN 4920,ELEN 4920,,cross_listed,,
+240,BIEN 4920,MEEN 4920,,cross_listed,,
+241,BIEN 4998,COEN 4998,,cross_listed,,
+242,BIEN 4998,ELEN 4998,,cross_listed,,
+243,BIEN 4998,MEEN 4998,,cross_listed,,
+244,BISC 4381,POSC 4381,,cross_listed,,
+245,BISC 4461,POSC 4461,,cross_listed,,
+246,BISC 7461,POSC 4461,,cross_listed,,
+247,BISC 8003,NRSC 8003,,cross_listed,,
+248,BISC 8004,NRSC 8004,,cross_listed,,
+249,BISC 8005,NRSC 8005,,cross_listed,,
+250,BISC 8096,NRSC 8096,,cross_listed,,
+251,BISC 8931,NRSC 8931,,cross_listed,,
+252,EDUC 4540,PHIL 4540,,cross_listed,,
+253,INCG 2010,PHIL 2010,,cross_listed,,
+254,THEO 8415,THEO 8417,,cross_listed,,
+255,THEO 8417,THEO 8418,,cross_listed,,
+256,THEO 8418,THEO 8419,,cross_listed,,
+257,ACCO 4000,ACCO 6001,,no_double_count,,
+258,BISC 1035,BISC 3135,,no_double_count,,
+259,BISC 3110,HEAL 2045,,no_double_count,,
+260,BISC 4112,BISC 4113,,no_double_count,,
+261,BISC 4113,BISC 5112,,no_double_count,,
+262,CRLS 3050,SOCI 3050,,no_double_count,,
+263,MATH 2100,MATH 2350,,no_double_count,,
+264,MATH 4710,MATH 4720,,no_double_count,,
+265,THEO 8415,THEO 8417,,no_double_count,,
+266,THEO 8417,THEO 8418,,no_double_count,,
+267,THEO 8418,THEO 8419,,no_double_count,,
+268,MATH 1400,MATH 1450,,equivalent,,
+269,CMST 2300,COMM 1100,,equivalent,,
+270,INSY 3001,ACCO 4050,,equivalent,ACCO_MAJOR,
+271,HURE 4140,FINA 5040,,equivalent,INBU_MAJOR,
+272,ACCO 4080,FINA 4075,,equivalent,AIM_MAJOR,
+273,AIM 4310,AIM 4400,FINA 4210,equivalent,AIM_IB_TRACK,
+274,FINA 4081,FINA 4023,FINA 4191,equivalent,AIM_IB_TRACK,
+275,BUAN 4061,INSY 4054,,equivalent,BUAN_MAJOR,
+276,REAL 4061,REAL 4100,,equivalent,,

@@ -93,6 +93,14 @@ export function AboutCTA() {
               Bug reports, feature ideas, compliments, complaints, unsolicited life advice — I&apos;ll take it all.
             </motion.p>
 
+            <motion.p
+              {...viewAnim(10, 0.25)}
+              className="mx-auto mt-3 max-w-[34rem] text-sm leading-relaxed text-ink-secondary"
+            >
+              Fastest route: use the Feedback button inside the planner. If you&apos;d rather just reach out,
+              email or DM me here.
+            </motion.p>
+
             <motion.div
               {...viewAnim(10, 0.28)}
               className="mt-8 flex flex-wrap items-center justify-center gap-3"
@@ -107,7 +115,7 @@ export function AboutCTA() {
                 href="mailto:markie.ngo@marquette.edu"
                 className="inline-flex min-w-[170px] items-center justify-center rounded-xl glass-card px-5 py-3 text-sm font-medium text-ink-primary transition-all hover:border-gold/25"
               >
-                Connect with Markie
+                Email Markie
               </a>
             </motion.div>
 
@@ -136,7 +144,7 @@ export function AboutCTA() {
             </div>
 
             <p className="mt-8 text-sm leading-relaxed text-ink-muted">
-              Bonus points if your bug report includes the course code. Minus points if it&apos;s just &quot;it doesn&apos;t work.&quot;
+              If you&apos;re already in the app, use Feedback. If not, send me the course code, what you clicked, and what felt wrong.
             </p>
 
             <AnchorLine variant="fade" className="mt-8" />
