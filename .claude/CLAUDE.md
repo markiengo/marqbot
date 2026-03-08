@@ -118,7 +118,7 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - Source of truth for what is tracked vs local-only is `.gitignore` in the current branch. Do not maintain manual allow/deny lists in this file.
 - Always work on `local`. To push: checkout `main`, merge `local`, restore/unstage local-only files, push, return to `local`. Or: commit pushable work on `main` directly, then `git checkout local && git merge main`.
 - **Never push the `local` branch to remote.**
-- `.github/workflows/nightly-dead-end-sweep.yml` targets Milwaukee `2:39 AM` with two UTC cron entries (`07:39`, `08:39`) plus an `America/Chicago` runtime gate. Keep both pieces together if you edit the schedule.
+- `.github/workflows/nightly-sweep.yml` is the single CI workflow. PR gate jobs (backend regression, planner fast, frontend) run on pull requests; nightly exhaustive sweep runs on schedule at `2:39 AM` Milwaukee time (two UTC cron entries + hour-based `America/Chicago` gate).
 - Backend standard pytest run is `.\.venv\Scripts\python.exe -m pytest -q`; it excludes `nightly` via `pytest.ini`.
 - Frontend default Vitest run does not include `tests/frontend/*.dom.test.ts`; those DOM specs are checked in but outside the current default include set.
 
