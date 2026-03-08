@@ -1,7 +1,7 @@
 # MarqBot Data Model
 
 All checked-in runtime inputs live in `data/` as UTF-8-BOM CSVs. The loader builds two runtime structures:
-- a course catalog overlay (`courses.csv` + prereqs + offerings)
+- a course catalog overlay (`courses.csv` + prereqs)
 - a parent/child requirement graph (`parent_buckets.csv` + `child_buckets.csv` + `master_bucket_courses.csv`)
 
 ## Runtime Assembly
@@ -18,7 +18,6 @@ flowchart TD
         C["courses.csv\n~5000 courses"]
         HP["course_hard_prereqs.csv\nprereq expressions"]
         SP["course_soft_prereqs.csv\nwarnings & tags"]
-        O["course_offerings.csv\nfall / spring / summer"]
         PB["parent_buckets.csv\nmajors, tracks, minors"]
         CB["child_buckets.csv\nrequirement slots"]
         MBC["master_bucket_courses.csv\ncourse ↔ bucket mapping"]
@@ -26,7 +25,7 @@ flowchart TD
 
     subgraph BUILD["⚙️ Load & Build"]
         direction LR
-        RC["Course Catalog\ncourses + prereqs + offerings"]
+        RC["Course Catalog\ncourses + prereqs"]
         BG["Requirement Graph\nparent → child → courses"]
         DYN["Elective Synthesis\nbiz_elective → credits_pool"]
     end
@@ -35,12 +34,12 @@ flowchart TD
         ENG["Allocator → Eligibility → Recommender"]
     end
 
-    C & HP & SP & O --> RC
+    C & HP & SP --> RC
     PB & CB & MBC --> BG
     C & CB --> DYN --> BG
     RC & BG --> ENG
 
-    class C,HP,SP,O blue
+    class C,HP,SP blue
     class PB,CB,MBC orange
     class RC,BG,DYN green
     class ENG purple
@@ -93,16 +92,8 @@ erDiagram
         string catalog_prereq_raw "full bulletin text"
     }
 
-    OFFERINGS {
-        string course_code FK
-        bool fall
-        bool spring
-        bool summer
-    }
-
     COURSES ||--o| HARD_PREREQS : "eligibility gates"
     COURSES ||--o| SOFT_PREREQS : "warnings"
-    COURSES ||--o| OFFERINGS : "when offered"
     COURSES ||--o{ MASTER_BUCKET_COURSES : "mapped to"
     CHILD_BUCKETS ||--o{ MASTER_BUCKET_COURSES : "contains"
     PARENT_BUCKETS ||--o{ CHILD_BUCKETS : "has requirements"
@@ -119,7 +110,7 @@ erDiagram
 | `master_bucket_courses.csv` | Explicit course membership for child buckets. |
 | `course_hard_prereqs.csv` | Hard eligibility gates only. |
 | `course_soft_prereqs.csv` | Soft warnings, raw prerequisite text, and audit detail columns. |
-| `course_offerings.csv` | Seasonal offering history used for recommendation filtering. |
+| `course_offerings.csv` | Seasonal offering history. Currently disabled — all courses treated as offered every term. |
 
 ## Parent/Child Program Model
 

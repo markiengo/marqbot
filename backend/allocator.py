@@ -287,6 +287,8 @@ def ensure_runtime_indexes(data: dict, *, force: bool = False) -> dict:
             if _normalize_track_key(track_id)
         )
 
+    ndc_groups = data.get("no_double_count_groups") or []
+
     for track_key in sorted(track_ids):
         track_index = _build_track_runtime_index(
             buckets_df,
@@ -298,6 +300,7 @@ def ensure_runtime_indexes(data: dict, *, force: bool = False) -> dict:
             course_indexes=course_indexes,
         )
         if track_index is not None:
+            track_index["no_double_count_groups"] = ndc_groups
             tracks[track_key] = track_index
 
     parent_type_map: dict[str, str] = {}
@@ -358,6 +361,9 @@ def _expand_map_with_equivalencies(
     else:
         eq["scope_program_id"] = ""
     eq = eq[(eq["equiv_group_id"] != "") & (eq["course_code"] != "")]
+    # Only equivalent and cross_listed types expand bucket mappings.
+    if "relation_type" in eq.columns:
+        eq = eq[eq["relation_type"].isin(["equivalent", "cross_listed", ""])]
     if len(eq) == 0:
         return track_map
 
@@ -618,6 +624,14 @@ def allocate_courses(
         bucket_meta[bid]["credits_used"] += credits
         update_satisfied(bid)
 
+    # Build no-double-count reverse index for credit blocking.
+    ndc_groups = track_runtime.get("no_double_count_groups") or []
+    ndc_course_to_group: dict[str, int] = {}
+    for gi, group in enumerate(ndc_groups):
+        for member in group:
+            ndc_course_to_group[member] = gi
+    ndc_allocated_groups: dict[int, str] = {}  # group_index → first allocated code
+
     # Step 1: sort by constrained courses first.
     completed_with_buckets = []
     for code in completed:
@@ -628,6 +642,15 @@ def allocate_courses(
     # Step 2: assign completed courses.
     for course_code, eligible_buckets in completed_with_buckets:
         if not eligible_buckets:
+            continue
+        # No-double-count credit blocking: skip if another course in the
+        # same NDC group has already been allocated.
+        ndc_gi = ndc_course_to_group.get(course_code)
+        if ndc_gi is not None and ndc_gi in ndc_allocated_groups:
+            already = ndc_allocated_groups[ndc_gi]
+            notes.append(
+                f"{course_code} not counted toward progress — overlaps with {already} (no double credit)."
+            )
             continue
         credits = get_course_credits(course_code)
         assigned_to: list[str] = []
@@ -668,6 +691,10 @@ def allocate_courses(
 
             assign_completed_to_bucket(course_code, bid, credits)
             assigned_to.append(bid)
+
+        # Mark NDC group as allocated so subsequent members are blocked.
+        if assigned_to and ndc_gi is not None:
+            ndc_allocated_groups[ndc_gi] = course_code
 
         if len(assigned_to) > 1:
             double_counted.append(

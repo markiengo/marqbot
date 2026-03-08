@@ -1,106 +1,82 @@
 # Test Structure
 
-## Snapshot metadata
+Last updated: 2026-03-07
 
-| Field | Value |
+## Quick Reference
+
+| What to run | Command | Tests |
+|---|---|---:|
+| **Standard suite** | `python -m pytest -q` | ~624 |
+| **Fast dead-end check** | `python -m pytest tests/backend/test_dead_end_fast.py -q` | 55 |
+| **Nightly sweep** | `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | ~8,248 |
+| **Frontend** | `cd frontend && npm run test` | 58 |
+
+The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
+
+## When to Run What
+
+| Change type | Run these |
 |---|---|
-| Snapshot date | 2026-03-07 |
-| Source | Local suite collection |
-| Backend default collector | `python -m pytest -q` |
-| Frontend default collector | `cd frontend && npm run test` |
-| Purpose | Show the current test footprint, grouped coverage, and practical validation targets |
+| Narrow backend fix | Closest test file |
+| Broad backend change | Focused file + `python -m pytest -q` |
+| Planner / recommendation logic | Focused file + `test_dead_end_fast.py` |
+| Release confidence | Nightly sweep (separately) |
+| Frontend helper | Closest test file |
+| Frontend broad / pre-push | `npm run test && npm run lint && npm run build` |
 
-## Run profiles
+## Backend Test Files
 
-| Profile | Count | How it runs | Notes |
-|---|---:|---|---|
-| Backend standard suite | ~570 | `python -m pytest -q` | Comes from `pytest.ini`; runs `tests/backend` and excludes `nightly` |
-| Backend nightly sweep | ~9,040 | `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | Triple-combo dead-end simulation with randomized student profiles; date-seeded for daily variety |
-| Frontend checked-in tests | 64 | Files under `tests/frontend` | Includes DOM specs that are checked in but not in the default Vitest include set |
-| Frontend default Vitest run | 58 | `cd frontend && npm run test` | Current config excludes `../tests/frontend/**/*.dom.test.ts` |
-| All checked-in repo tests | ~9,700 | Backend + frontend + nightly | Full footprint, not the normal validation target |
-
-## Group summary
-
-| Group | Count | What the group does | Count breakdown |
-|---|---:|---|---|
-| Data and schema governance | 117 | Protects workbook shape, migration behavior, and publish-gate data quality. | `7` schema and PK audits; `10` FK audits; `17` prereq and bucket integrity audits; `20` bool coercion tests; `18` loader and migration tests; `25` legacy validator checks; `20` V2 governance checks |
-| Prereq parsing, normalization, and inference | 89 | Normalizes course codes, parses prereq text, expands transitive prereqs, and detects inconsistent histories. | `20` normalization tests; `18` prereq parsing tests; `11` prereq satisfaction tests; `4` prereq explanation-string tests; `9` recursive prereq discovery tests; `10` inconsistency detection tests; `17` completed and in-progress expansion plus provenance tests |
-| Allocation, eligibility, and unlocks | 77 | Verifies bucket allocation, eligible-course selection, restriction-aware can-take helper logic, and unlock warnings. | `1` runtime standing-index test; `25` allocation and double-count tests; `30` eligibility filter and routing tests; `8` helper-level can-take tests; `4` term parsing tests; `9` reverse-unlock and blocker-warning tests |
-| API contracts and server hardening | 54 | Locks down `/recommend`, `/can-take`, `/validate-prereqs`, security headers, rate limiting, and hot reload behavior. | `22` `/recommend` contract tests; `15` `/can-take` tests; `8` `/validate-prereqs` tests; `6` health, security, and rate-limit tests; `3` data-reload safety tests |
-| Recommendation ranking and quality invariants | 69 | Checks ranking tiers, bucket caps, bridge-course selection, same-semester concurrent picks, monotonic progress, and no-repeat planner rules. | `26` semester recommender heuristic tests; `6` tier invariant tests; `37` live-data recommendation-quality invariants |
-| Track-aware planning | 68 | Ensures multi-program planning respects track context, aliases, merged progress, projections, and catalog metadata. | `5` track allocation-isolation tests; `4` track eligibility-filter tests; `5` role-lookup tests; `50` live `/recommend` track, program, projection, and catalog audits; `4` synthetic-track smoke tests |
-| Live profile regressions and advisor alignment | 53 | Replays realistic student scenarios and gold advisor profiles to keep outputs aligned with expected recommendations. | `10` finance-major lifecycle regressions; `11` other-major smoke and regression tests; `7` track smoke regressions; `11` special regressions for BUAN, HURE, INSY, BECO, BADM, and debug payloads; `14` advisor-gold overlap tests |
-| Dead-end prevention, standard suite | ~56 | Prevents 2-term planner dead ends with single-program empty-state checks, curated combo regressions, and smoke tests. | `12` single-major empty-state tests; `8` single-track empty-state tests; `~20` curated combo state-variant tests; `7` minor smoke tests; `4` three-semester major smokes; `3` three-semester track smokes; `1` include-summer smoke |
-| Frontend state and UX helpers | 64 | Protects planner UI state restore, onboarding flows, content helpers, rendering helpers, quips, and saved-plan behavior. | `5` reducer tests; `3` can-take query-match tests; `6` DOM and onboarding interaction tests; `17` quip tests; `10` rendering and credit-metric tests; `12` saved-plan storage and presentation tests; `11` about and utility helper tests |
-
-## Nightly-only group
-
-| Nightly group | Count | What it does | Count breakdown |
-|---|---:|---|---|
-| Dead-end nightly sweep | ~9,040 | Triple-combo dead-end simulation with randomized student profiles, excluded from default `pytest` by the `nightly` marker. | `1,130` valid triple program combinations x `8` random student profiles (`2` freshman, `2` sophomore, `2` junior, `2` senior). Date-based seed (`YYYYMMDD`) for daily reproducibility; override via `NIGHTLY_SEED` env var. Failures aggregated — patterns with 5+ occurrences flagged in report artifact. |
-
-## Backend file inventory
-
-| File | Count | Main focus |
+| File | Tests | What it covers |
 |---|---:|---|
-| `tests/backend/test_advisor_match.py` | 14 | Gold-profile overlap against advisor expectations |
-| `tests/backend/test_allocator.py` | 26 | Allocation routing, min-level checks, and double-count policy behavior |
-| `tests/backend/test_data_integrity.py` | 34 | CSV schema, referential integrity, runtime bucket integrity, and prereq graph sanity |
-| `tests/backend/test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
-| `tests/backend/test_dead_end_fast.py` | ~56 | Regression dead-end checks (single programs + curated combos) plus smoke coverage |
-| `tests/backend/test_dead_end_nightly.py` | ~9,040 | Nightly triple-combo dead-end sweep with randomized profiles |
-| `tests/backend/test_eligibility.py` | 42 | Recommendation eligibility, major and college restriction filtering, hard and soft concurrent handling, bridge courses, helper can-take logic, and term parsing |
-| `tests/backend/test_equivalencies.py` | 25 | Course equivalency system: map builders, prereq satisfaction with equiv_map, bucket expansion by relation type, NDC credit blocking, schema integrity, backward compatibility |
-| `tests/backend/test_input_validation.py` | 36 | Prereq contradiction detection and inferred prereq expansion |
-| `tests/backend/test_normalizer.py` | 20 | Course-code and input normalization |
-| `tests/backend/test_prereq_parser.py` | 33 | Prereq parsing, satisfaction rules, and human-readable check strings |
-| `tests/backend/test_recommend_api_contract.py` | 22 | `/recommend` request and response contract, including restriction-context expansion |
-| `tests/backend/test_recommendation_quality.py` | 37 | Cross-major recommendation invariants and multi-semester quality checks |
-| `tests/backend/test_regression_profiles.py` | 39 | Realistic program and student-profile regression coverage |
-| `tests/backend/test_schema_migration.py` | 38 | Schema migration, loader compatibility, and clean-mode behavior |
-| `tests/backend/test_semester_recommender.py` | 26 | Ranking heuristics, same-semester concurrent picks, caps, bridge behavior, and standing recovery |
-| `tests/backend/test_server_can_take.py` | 15 | `/can-take` endpoint contract, program-context behavior, and restriction enforcement |
-| `tests/backend/test_server_data_reload.py` | 3 | Runtime data hot-reload safety |
-| `tests/backend/test_server_security.py` | 6 | Health endpoint, security headers, and rate limiting |
-| `tests/backend/test_tier_invariants.py` | 6 | Stable recommendation tier ordering |
-| `tests/backend/test_track_aware.py` | 68 | Track-aware allocation, endpoint behavior, aliases, merged progress, and catalog audits |
-| `tests/backend/test_unlocks.py` | 9 | Reverse prereq map and blocker warnings |
-| `tests/backend/test_validate_prereqs_endpoint.py` | 8 | `/validate-prereqs` endpoint contract and alias behavior |
-| `tests/backend/test_validate_track.py` | 45 | Publish-gate validation for tracks and V2 governance checks |
+| `test_advisor_match.py` | 14 | Gold-profile overlap against advisor expectations |
+| `test_allocator.py` | 26 | Allocation routing, min-level, double-count policy |
+| `test_data_integrity.py` | 34 | CSV schema, FK integrity, prereq graph sanity |
+| `test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
+| `test_dead_end_fast.py` | 55 | Single-program empty-state, curated combos, smoke tests |
+| `test_dead_end_nightly.py` | ~8,248 | Triple-combo sweep with randomized profiles (nightly only) |
+| `test_eligibility.py` | 42 | Eligibility filters, restrictions, bridge courses, can-take helpers |
+| `test_equivalencies.py` | 25 | Equivalency maps, prereq satisfaction, NDC blocking, schema checks |
+| `test_input_validation.py` | 36 | Prereq contradiction detection, inferred prereq expansion |
+| `test_normalizer.py` | 20 | Course-code normalization |
+| `test_prereq_parser.py` | 33 | Prereq parsing, satisfaction rules, human-readable strings |
+| `test_recommend_api_contract.py` | 22 | `/recommend` request/response contract |
+| `test_recommendation_quality.py` | 37 | Cross-major recommendation invariants, multi-semester quality |
+| `test_regression_profiles.py` | 39 | Realistic student-profile regressions |
+| `test_schema_migration.py` | 38 | Schema migration, loader compatibility, clean-mode |
+| `test_semester_recommender.py` | 26 | Ranking heuristics, concurrent picks, caps, standing recovery |
+| `test_server_can_take.py` | 15 | `/can-take` endpoint contract |
+| `test_server_data_reload.py` | 3 | Hot-reload safety |
+| `test_server_security.py` | 6 | Health, security headers, rate limiting |
+| `test_tier_invariants.py` | 6 | Stable recommendation tier ordering |
+| `test_track_aware.py` | 68 | Track allocation, aliases, merged progress, catalog audits |
+| `test_unlocks.py` | 9 | Reverse prereq map, blocker warnings |
+| `test_validate_prereqs_endpoint.py` | 8 | `/validate-prereqs` endpoint contract |
+| `test_validate_track.py` | 45 | Publish-gate validation, V2 governance |
 
-## Frontend file inventory
+Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 
-| File | Count | In default `npm run test` | Main focus |
+## Frontend Test Files
+
+| File | Tests | Default run | What it covers |
 |---|---:|---|---|
-| `tests/frontend/aboutContent.test.ts` | 2 | Yes | About-page content constants stay populated |
-| `tests/frontend/appReducer.test.ts` | 5 | Yes | Bootstrap error handling and planner snapshot restore |
-| `tests/frontend/canTake.test.ts` | 3 | Yes | Can-take query/result matching rules |
-| `tests/frontend/coursesStep.dom.test.ts` | 1 | No | DOM flow for prereq inconsistency warnings |
-| `tests/frontend/multiSelect.dom.test.ts` | 2 | No | DOM picker filtering and keyboard behavior |
-| `tests/frontend/onboardingPage.dom.test.ts` | 3 | No | DOM onboarding flow and route launch |
-| `tests/frontend/quips.test.ts` | 17 | Yes | Progress and semester quip generation |
-| `tests/frontend/rendering.test.ts` | 10 | Yes | Progress grouping, label compaction, and credit metrics |
-| `tests/frontend/savedPlanPresentation.test.ts` | 3 | Yes | Saved-plan display strings and sorting |
-| `tests/frontend/savedPlans.test.ts` | 9 | Yes | Saved-plan persistence, freshness, and snapshot transforms |
-| `tests/frontend/utils.test.ts` | 9 | Yes | Bucket labels, note formatting, and course filtering helpers |
+| `aboutContent.test.ts` | 2 | Yes | About-page content constants |
+| `appReducer.test.ts` | 5 | Yes | Bootstrap errors, snapshot restore |
+| `canTake.test.ts` | 3 | Yes | Can-take query matching |
+| `coursesStep.dom.test.ts` | 1 | No | Prereq inconsistency warnings (DOM) |
+| `multiSelect.dom.test.ts` | 2 | No | Picker filtering, keyboard (DOM) |
+| `onboardingPage.dom.test.ts` | 3 | No | Onboarding flow, route launch (DOM) |
+| `quips.test.ts` | 17 | Yes | Progress and semester quips |
+| `rendering.test.ts` | 10 | Yes | Progress grouping, credit metrics |
+| `savedPlanPresentation.test.ts` | 3 | Yes | Saved-plan display strings |
+| `savedPlans.test.ts` | 9 | Yes | Plan persistence, freshness |
+| `utils.test.ts` | 9 | Yes | Bucket labels, note formatting |
 
-## Validation guide
+DOM specs (`*.dom.test.ts`) are checked in but excluded from the default Vitest config.
 
-| Situation | Minimum reasonable validation |
-|---|---|
-| Narrow backend change | Closest focused backend test file |
-| Shared backend change | Focused backend tests plus `python -m pytest -q` |
-| Recommendation or planner logic change | Focused backend tests plus `python -m pytest tests/backend/test_dead_end_fast.py -q`; add `python -m pytest -q` if the change is broad |
-| Narrow frontend helper change | Closest focused frontend test |
-| Shared frontend change | Focused frontend tests plus `cd frontend && npm run test` |
-| Frontend pushable UI change | `cd frontend && npm run lint` and `cd frontend && npm run build` |
-| Release or exhaustive dead-end confidence check | Nightly sweep, explicitly and separately |
+## Nightly Sweep Details
 
-## Default-vs-extra reference
+The nightly sweep tests every valid triple combination of programs (major + track + minor) against 8 randomized student profiles (2 per class level: freshman, sophomore, junior, senior).
 
-| Area | Default run | Extra run only when justified |
-|---|---|---|
-| Backend | `python -m pytest -q` | `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` |
-| Backend planner logic | focused file plus `tests/backend/test_dead_end_fast.py` | nightly sweep |
-| Frontend | `cd frontend && npm run test` | DOM specs or extra focused runs outside current Vitest include set |
+- **Seed**: date-based (`YYYYMMDD`) for daily reproducibility; override with `NIGHTLY_SEED` env var
+- **Failure collection**: `NightlyFailureCollector` aggregates patterns; combos with 5+ failures flagged in report artifact
+- **CI**: runs via `.github/workflows/nightly-dead-end-sweep.yml` at ~2:39 AM Milwaukee time

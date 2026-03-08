@@ -165,11 +165,26 @@ def parse_prereqs(prereq_str) -> dict:
     return {"type": "single", "course": normalized}
 
 
-def prereqs_satisfied(parsed_prereq: dict, satisfied_codes: set) -> bool:
+def prereqs_satisfied(
+    parsed_prereq: dict,
+    satisfied_codes: set,
+    equiv_map: dict[str, set[str]] | None = None,
+) -> bool:
     """
     Returns True if the parsed prerequisite is satisfied by the given set of codes.
     satisfied_codes = completed ∪ in_progress (for eligibility checking).
+
+    If equiv_map is provided (only ``equivalent`` type), the satisfied set is
+    expanded once at the top level so that equivalent courses count.
     """
+    if equiv_map:
+        expanded = set(satisfied_codes)
+        for code in satisfied_codes:
+            expanded.update(equiv_map.get(code, set()))
+        satisfied_codes = expanded
+        # Clear equiv_map so recursive calls use the already-expanded set.
+        equiv_map = None
+
     t = parsed_prereq["type"]
     if t == "none":
         return True

@@ -859,52 +859,19 @@ def _normalize_offering_rows(
 
 def _overlay_course_offerings(courses_df: pd.DataFrame, offerings_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Derive offered_fall/spring/summer + confidence + last_four_terms from course_offerings.
+    Set all courses as offered every term with high confidence.
 
-    confidence derivation (last 3 semesters):
-      - 3 offered: high
-      - 2 offered: medium
-      - 0/1 offered: low
+    Course-offerings filtering is disabled — all courses are treated as
+    available in Fall, Spring, and Summer until offering data is re-enabled.
+    The offerings_df parameter is accepted but ignored.
     """
-    course_terms, ordered_semesters = _normalize_offering_rows(offerings_df)
-    if not course_terms:
-        return courses_df
-
     out = courses_df.copy()
-    for col in ("offered_fall", "offered_spring", "offered_summer", "offering_confidence", "last_four_terms"):
-        if col not in out.columns:
-            out[col] = None
-
-    offered_fall: dict[str, bool] = {}
-    offered_spring: dict[str, bool] = {}
-    offered_summer: dict[str, bool] = {}
-    conf_map: dict[str, str] = {}
-    terms_map: dict[str, str] = {}
-    offering_freq: dict[str, int] = {}
-
-    latest_three = list(sorted(ordered_semesters, key=_semester_sort_key, reverse=True)[:3])
-    latest_four = list(sorted(ordered_semesters, key=_semester_sort_key, reverse=True)[:4])
-
-    for code, sem_map in course_terms.items():
-        offered_semesters = [s for s, offered in sem_map.items() if offered]
-        seasons = [_semester_to_season(s) for s in offered_semesters]
-        offered_fall[code] = "fall" in seasons
-        offered_spring[code] = "spring" in seasons
-        offered_summer[code] = "summer" in seasons
-
-        freq = sum(1 for sem in latest_three if sem_map.get(sem, False))
-        offering_freq[code] = int(freq)
-        conf_map[code] = _offering_confidence_from_frequency(freq)
-
-        shown = [sem for sem in latest_four if sem_map.get(sem, False)]
-        terms_map[code] = ", ".join(shown)
-
-    out["offered_fall"] = out["course_code"].map(offered_fall).fillna(out["offered_fall"])
-    out["offered_spring"] = out["course_code"].map(offered_spring).fillna(out["offered_spring"])
-    out["offered_summer"] = out["course_code"].map(offered_summer).fillna(out["offered_summer"])
-    out["offering_confidence"] = out["course_code"].map(conf_map).fillna(out["offering_confidence"])
-    out["last_four_terms"] = out["course_code"].map(terms_map).fillna(out["last_four_terms"])
-    out["offering_freq_last3"] = out["course_code"].map(offering_freq).fillna(0).astype(int)
+    out["offered_fall"] = True
+    out["offered_spring"] = True
+    out["offered_summer"] = True
+    out["offering_confidence"] = "high"
+    out["last_four_terms"] = ""
+    out["offering_freq_last3"] = 3
     return out
 
 
@@ -1147,13 +1114,81 @@ def _derive_runtime_from_v2(
     return runtime_buckets, runtime_map
 
 
+_VALID_RELATION_TYPES = {"equivalent", "cross_listed", "no_double_count"}
+
+
+def _build_equiv_prereq_map(equivalencies_df: pd.DataFrame) -> dict[str, set[str]]:
+    """Build course → set of equivalent course codes (only ``equivalent`` type)."""
+    result: dict[str, set[str]] = {}
+    if equivalencies_df is None or len(equivalencies_df) == 0:
+        return result
+    if "relation_type" not in equivalencies_df.columns:
+        eq = equivalencies_df
+    else:
+        eq = equivalencies_df[equivalencies_df["relation_type"] == "equivalent"]
+    if len(eq) == 0:
+        return result
+    for _, grp in eq.groupby("equiv_group_id"):
+        members = sorted({str(c).strip() for c in grp["course_code"].tolist() if str(c).strip()})
+        if len(members) < 2:
+            continue
+        member_set = set(members)
+        for m in members:
+            result.setdefault(m, set()).update(member_set - {m})
+    return result
+
+
+def _build_cross_listed_map(equivalencies_df: pd.DataFrame) -> dict[str, set[str]]:
+    """Build course → set of cross-listed aliases (only ``cross_listed`` type)."""
+    result: dict[str, set[str]] = {}
+    if equivalencies_df is None or len(equivalencies_df) == 0:
+        return result
+    if "relation_type" not in equivalencies_df.columns:
+        return result
+    eq = equivalencies_df[equivalencies_df["relation_type"] == "cross_listed"]
+    if len(eq) == 0:
+        return result
+    for _, grp in eq.groupby("equiv_group_id"):
+        members = sorted({str(c).strip() for c in grp["course_code"].tolist() if str(c).strip()})
+        if len(members) < 2:
+            continue
+        member_set = set(members)
+        for m in members:
+            result.setdefault(m, set()).update(member_set - {m})
+    return result
+
+
+def _build_no_double_count_groups(equivalencies_df: pd.DataFrame) -> list[set[str]]:
+    """Build list of no-double-count course groups."""
+    result: list[set[str]] = []
+    if equivalencies_df is None or len(equivalencies_df) == 0:
+        return result
+    if "relation_type" not in equivalencies_df.columns:
+        return result
+    eq = equivalencies_df[equivalencies_df["relation_type"] == "no_double_count"]
+    if len(eq) == 0:
+        return result
+    for _, grp in eq.groupby("equiv_group_id"):
+        members = {str(c).strip() for c in grp["course_code"].tolist() if str(c).strip()}
+        if len(members) >= 2:
+            result.append(members)
+    return result
+
+
 def _load_v2_equivalencies(xl: pd.ExcelFile, sheet_set: set[str]) -> pd.DataFrame:
+    _empty_cols = ["equiv_group_id", "course_code", "relation_type", "label"]
     if "course_equivalencies" not in sheet_set:
-        return pd.DataFrame(columns=["equiv_group_id", "course_code", "label"])
+        return pd.DataFrame(columns=_empty_cols)
 
     eq = xl.parse("course_equivalencies")
+
+    # ── Wide format (id, course_1, course_2, course_3, type, ...) ──
+    if "course_1" in eq.columns:
+        return _unpivot_wide_equivalencies(eq)
+
+    # ── Legacy long format (equiv_group_id, course_code, relation_type, ...) ──
     if "equiv_group_id" not in eq.columns:
-        return pd.DataFrame(columns=["equiv_group_id", "course_code", "label"])
+        return pd.DataFrame(columns=_empty_cols)
     if "course_code" not in eq.columns:
         eq["course_code"] = ""
     if "course_name" in eq.columns:
@@ -1164,19 +1199,66 @@ def _load_v2_equivalencies(xl: pd.ExcelFile, sheet_set: set[str]) -> pd.DataFram
         label = eq["notes"].fillna("").astype(str)
     else:
         label = ""
+
+    if "relation_type" in eq.columns:
+        relation_type = eq["relation_type"].fillna("equivalent").astype(str).str.strip().str.lower()
+    else:
+        relation_type = "equivalent"
     out = pd.DataFrame(
         {
             "equiv_group_id": eq["equiv_group_id"],
             "course_code": eq["course_code"],
+            "relation_type": relation_type,
             "label": label,
         }
     )
-    # Normalize program scope column to canonical name for governance validation.
-    # The workbook uses 'program_scope'; 'scope_program_id' is the legacy/alt name.
+    if len(out) > 0:
+        invalid_mask = ~out["relation_type"].isin(_VALID_RELATION_TYPES)
+        if invalid_mask.any():
+            bad = sorted(out.loc[invalid_mask, "relation_type"].unique())
+            print(f"[WARN] Invalid relation_type values in course_equivalencies: {bad}; defaulting to 'equivalent'.")
+            out.loc[invalid_mask, "relation_type"] = "equivalent"
     if "program_scope" in eq.columns:
         out["scope_program_id"] = eq["program_scope"]
     elif "scope_program_id" in eq.columns:
         out["scope_program_id"] = eq["scope_program_id"]
+    return out
+
+
+def _unpivot_wide_equivalencies(eq: pd.DataFrame) -> pd.DataFrame:
+    """Unpivot wide-format equivalencies (one row per group) into internal long format."""
+    rows = []
+    for _, r in eq.iterrows():
+        raw_id = r.get("id", "")
+        gid = "" if pd.isna(raw_id) else str(raw_id).strip()
+        if not gid:
+            continue
+        raw_type = r.get("type", "equivalent")
+        rtype = ("equivalent" if pd.isna(raw_type) else str(raw_type).strip().lower()) or "equivalent"
+        raw_scope = r.get("parent_bucket", "")
+        scope = "" if pd.isna(raw_scope) else str(raw_scope).strip()
+        raw_notes = r.get("notes", "")
+        notes = "" if pd.isna(raw_notes) else str(raw_notes).strip()
+
+        for col in ("course_1", "course_2", "course_3"):
+            raw = r.get(col, "")
+            code = "" if pd.isna(raw) else str(raw).strip()
+            if code:
+                rows.append({
+                    "equiv_group_id": gid,
+                    "course_code": code,
+                    "relation_type": rtype,
+                    "label": notes,
+                    "scope_program_id": scope,
+                })
+
+    out = pd.DataFrame(rows, columns=["equiv_group_id", "course_code", "relation_type", "label", "scope_program_id"])
+    if len(out) > 0:
+        invalid_mask = ~out["relation_type"].isin(_VALID_RELATION_TYPES)
+        if invalid_mask.any():
+            bad = sorted(out.loc[invalid_mask, "relation_type"].unique())
+            print(f"[WARN] Invalid relation_type values in course_equivalencies: {bad}; defaulting to 'equivalent'.")
+            out.loc[invalid_mask, "relation_type"] = "equivalent"
     return out
 
 
@@ -1346,13 +1428,7 @@ def load_data(data_path: str) -> dict:
         course_bucket_map_df,
     )
 
-    # Inject not_frequently_offered tag for courses offered in fewer than 3 of last 3 terms.
-    if "offering_freq_last3" in courses_df.columns:
-        infrequent_mask = courses_df["offering_freq_last3"] < 3
-        for idx in courses_df[infrequent_mask].index:
-            existing = str(courses_df.at[idx, "prereq_soft"] or "").strip()
-            if "not_frequently_offered" not in existing:
-                courses_df.at[idx, "prereq_soft"] = (existing + ";not_frequently_offered").strip(";")
+    # not_frequently_offered tag injection disabled — offering filtering is off.
     catalog_codes = set(c for c in courses_df["course_code"].tolist() if c)
 
     prereq_map: dict = {}
@@ -1404,6 +1480,9 @@ def load_data(data_path: str) -> dict:
     data = {
         "courses_df": courses_df,
         "equivalencies_df": equivalencies_df,
+        "equiv_prereq_map": _build_equiv_prereq_map(equivalencies_df),
+        "cross_listed_map": _build_cross_listed_map(equivalencies_df),
+        "no_double_count_groups": _build_no_double_count_groups(equivalencies_df),
         "buckets_df": buckets_df,
         "course_bucket_map_df": course_bucket_map_df,
         "tracks_df": tracks_df,

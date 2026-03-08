@@ -315,8 +315,9 @@ class TestLoaderStrictMode:
 
         data = load_data(path)
         row = data["courses_df"].iloc[0]
+        # Offerings disabled — all courses default to offered every term.
         assert row["offered_fall"] == True
-        assert row["offered_summer"] == False
+        assert row["offered_summer"] == True
         assert type(row["offered_fall"]) in (bool, __import__("numpy").bool_)
 
     def test_runtime_uses_priority_when_present(self, tmp_path):

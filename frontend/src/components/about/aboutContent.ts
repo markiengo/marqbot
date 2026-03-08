@@ -36,15 +36,15 @@ export const ABOUT_INTRO_COPY = {
 export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
   {
     eyebrow: "Building now",
-    title: "Course equivalencies",
-    body:
-      "Some courses satisfy the same prereq but MarqBot doesn't know that yet. So it gaslights you into thinking you haven't done something you definitely did. Fixing that.",
-  },
-  {
-    eyebrow: "Next up",
     title: "Full policy documentation",
     body:
       "Diving into the weird rules and edge-case policies the school actually enforces. The ones nobody reads until they get denied a course. MarqBot will know them so you don't have to.",
+  },
+  {
+    eyebrow: "Next up",
+    title: "Semester offering awareness",
+    body:
+      "Right now MarqBot assumes every course is available every semester, which is adorably optimistic. Soon it'll actually know that your dream 8 AM is only offered in fall. Surprise.",
   },
   {
     eyebrow: "Planned",

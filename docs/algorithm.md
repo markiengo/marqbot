@@ -11,7 +11,7 @@ Status: `current behavior (parent/child + split prereq model)`
 | Catalog | `courses.csv` | Base course catalog, credits, level, description, and `elective_pool_tag`. |
 | Program graph | `parent_buckets.csv`, `child_buckets.csv`, `master_bucket_courses.csv` | Defines majors, tracks, minors, universal requirements, child buckets, explicit course membership, and overlap governance. |
 | Prereqs | `course_hard_prereqs.csv`, `course_soft_prereqs.csv` | Splits eligibility gates from warning-only or manual-review metadata. |
-| Offerings | `course_offerings.csv` | Fall/spring/summer scheduling confidence used by recommendation filtering. |
+| Offerings | `course_offerings.csv` | Fall/spring/summer scheduling history. Currently disabled — all courses treated as offered every term. |
 
 ## Runtime Build
 1. Load `courses.csv` as the base catalog.
@@ -24,7 +24,7 @@ Status: `current behavior (parent/child + split prereq model)`
    - `prereq_soft`
    - `prereq_notes`
    - raw `soft_prereq_*` detail columns
-5. Overlay `course_offerings.csv` onto the catalog.
+5. ~~Overlay `course_offerings.csv` onto the catalog.~~ Disabled — all courses default to offered every term with high confidence.
 6. Synthesize dynamic elective mappings from `courses.elective_pool_tag` only for elective-like `credits_pool` child buckets. Current dynamic tag: `biz_elective`.
 7. Convert the loaded data into runtime bucket and course maps used by allocation, eligibility, and ranking.
 8. Resolve request-scoped restriction context from the selected programs. Track selections are expanded with their parent and required major IDs before restriction checks run.
@@ -138,7 +138,6 @@ The engine does not recommend courses when any of these is true:
 These courses still count toward progress if they are already completed or in progress.
 
 ## Summer Special Cases
-- Summer excludes low-confidence courses.
 - Summer caps recommendations at 4.
 
 ## Standing Recovery

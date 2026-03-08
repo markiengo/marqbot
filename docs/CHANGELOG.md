@@ -20,6 +20,11 @@ Format per release:
 - Added `NightlyFailureCollector` for report aggregation and CI artifact upload.
 - Updated `test_structure.md` with new counts and simplified layout.
 - Dynamic warning suppression: `standing_requirement` soft tag is now suppressed when the student's current standing meets or exceeds the course's `min_standing`. A sophomore no longer sees "sophomore standing required" on courses they're already eligible for. `major_restriction` and `college_restriction` were already dynamically cleared.
+- Disabled course offering filtering: all courses now treated as offered every term (Fall, Spring, Summer) with high confidence. `course_offerings.csv` is still loaded but ignored. `not_frequently_offered` tag injection removed. `low_confidence` warnings no longer fire.
+- Added REAL 4061 = REAL 4100 equivalency (catalog "or" alternative).
+- xfail'd REAL REAP track dead-end tests (`combo-REAL+REAP/mid`, `combo-REAL+REAP/late`) — the 4210→4220→4230 sequential chain requires summer terms which the test cases exclude.
+- Updated about page: moved course equivalencies off the roadmap (shipped), added "Semester offering awareness" as a future feature.
+- Updated `data_model.md` and `algorithm.md` to reflect disabled offerings.
 
 ### Design Decisions
 
@@ -28,6 +33,7 @@ Format per release:
 - `course_3` column handles triples (21 groups have 3 members); empty for pairs.
 - `parent_bucket` replaces `scope_program_id` for clarity — it names which parent bucket the equivalency applies to.
 - Nightly test redesign targets triple combos (major + track + minor) which better reflect real student declarations than pairwise. Randomized profiles add variety without manual curation.
+- Offering filtering was causing false dead-ends (REAP track) and adding complexity without reliable data. Disabling it removes a source of incorrect recommendations while the offering data is curated. The infrastructure remains in place for re-enablement.
 
 ---
 

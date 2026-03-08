@@ -2292,6 +2292,7 @@ def can_take_endpoint():
         effective_data["prereq_map"],
         selected_program_ids=(selection or {}).get("restriction_program_ids"),
         runtime_indexes=effective_data.get("runtime_indexes"),
+        equiv_map=effective_data.get("equiv_prereq_map"),
     )
 
     response_payload = {
