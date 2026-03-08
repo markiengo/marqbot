@@ -17,8 +17,10 @@ If anything below conflicts with this section, trust this section.
 - Frontend default test command is `cd frontend && npm test`; backend default test command is `python -m pytest -q`.
 - Current Vitest config excludes `tests/frontend/*.dom.test.ts` from the default run.
 - User preference from this session: do not run local tests unless explicitly asked. Let GitHub / nightly handle verification.
-- `.claude/` and `docs/docs_local/` stay local-only. Do not push them.
+- `docs/` is pushable now; do not assume any docs subtree is local-only.
+- `.claude/` stays local-only. Do not push it.
 - Prefer `local` for normal work, never push `local`, and be explicit before pushing if `main` is already ahead of `origin/main`.
+- Release preference from this session: do not create a new release by default; replace the most recent release notes with the new notes unless the user explicitly asks for a new release.
 
 # Overview
 MarqBot is a deterministic degree-planning assistant for Marquette business students and advisors, generating recommendations, requirement progress, and can-take checks from workbook-driven rules.
@@ -80,7 +82,7 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - `requires_primary_major` in `parent_buckets.csv`: when `True`, a major (e.g., AIM_MAJOR, BUAN_MAJOR) cannot be declared alone — it must be paired with a primary (non-requiring) major like FIN_MAJOR or ACCO_MAJOR. Tests involving these majors must always include a primary major in `declared_majors`.
 - V2 parent/child bucket model: when a track is selected alongside its parent major, both the base major's child buckets AND the track's child buckets appear in progress. They coexist (no deduplication/replacement).
 - No-double-count behavior is now driven by `course_equivalencies.csv` groups with `type=no_double_count`.
-- Data model documentation lives at `docs/data_model.md` (Mermaid ER diagram).
+- Data model documentation lives at `data/data_model.md` (Mermaid ER diagram).
 
 # Backend Module Structure
 - `server.py`: Flask app, route handlers, data loading, validation logic.
