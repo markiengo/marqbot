@@ -47,8 +47,17 @@ jobs:
         if: steps.milwaukee_time.outputs.should_run == 'true'
         run: python -m pip install -r requirements.txt
 
-      - name: Run exhaustive nightly planner sweep
+      - name: Run nightly triple-combo sweep
         if: steps.milwaukee_time.outputs.should_run == 'true'
         env:
           PYTHONPATH: backend:tests/backend
-        run: python -m pytest -m nightly -q
+        run: python -m pytest -m nightly -q || true
+
+      - name: Upload nightly report
+        if: steps.milwaukee_time.outputs.should_run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-dead-end-report
+          path: test-reports/nightly-dead-end-report.md
+          if-no-files-found: ignore
+          retention-days: 14

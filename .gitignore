@@ -36,6 +36,7 @@ frontend/nul
 .vscode/
 .pytest-tmp/
 docs_local/
+test-reports/
 
 # Docs policy: keep selected docs trackable
 docs/*

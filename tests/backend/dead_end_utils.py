@@ -420,6 +420,70 @@ def format_failure(check: DeadEndCheck, debug_sem: dict | None = None) -> str:
 # ── Seed-based state generation helpers ─────────────────────────────────────
 
 
+# ── Nightly report aggregation ─────────────────────────────────────────────
+
+
+class NightlyFailureCollector:
+    """Collects dead-end failures across nightly tests and produces an aggregated report."""
+
+    THRESHOLD = 5  # minimum occurrences to flag a pattern
+
+    def __init__(self):
+        self.failures: list[dict] = []
+        self.total_tests = 0
+        self.seed: int | None = None
+
+    def record_failure(self, label: str, check: "DeadEndCheck", standing: str = ""):
+        self.failures.append({
+            "label": label,
+            "failure_kind": check.failure_kind,
+            "unsatisfied_buckets": check.unsatisfied_buckets,
+            "standing": standing,
+            "programs": "+".join(check.reproduction_case.declared_majors + check.reproduction_case.track_ids),
+        })
+
+    def generate_report(self) -> str | None:
+        """Generate markdown report. Returns None if no patterns exceed threshold."""
+        if not self.failures:
+            return None
+
+        # Group by (failure_kind, unsatisfied buckets, standing)
+        from collections import Counter
+        patterns: dict[tuple, list[str]] = {}
+        for f in self.failures:
+            for bucket in f["unsatisfied_buckets"]:
+                key = (bucket, f["failure_kind"], f["standing"])
+                if key not in patterns:
+                    patterns[key] = []
+                patterns[key].append(f["programs"])
+
+        # Filter to patterns above threshold
+        flagged = {k: v for k, v in patterns.items() if len(v) >= self.THRESHOLD}
+        if not flagged:
+            return None
+
+        passed = self.total_tests - len(self.failures)
+        lines = [
+            f"# Nightly Report — seed: {self.seed or 'unknown'}",
+            f"## Status: {len(flagged)} flagged patterns (threshold: {self.THRESHOLD}+ occurrences)",
+            "",
+            "| Pattern | Kind | Occurrences | Standing | Programs affected (sample) |",
+            "|---------|------|------------:|----------|---------------------------|",
+        ]
+        for (bucket, kind, standing), programs in sorted(flagged.items(), key=lambda x: -len(x[1])):
+            sample = ", ".join(sorted(set(programs))[:3])
+            if len(set(programs)) > 3:
+                sample += ", ..."
+            lines.append(f"| {bucket} | {kind} | {len(programs)} | {standing} | {sample} |")
+
+        lines.extend([
+            "",
+            f"## Summary: {passed} / {self.total_tests} passed, {len(self.failures)} failures",
+        ])
+
+        return "\n".join(lines)
+
+
 def seed_from_simulation(case: PlanCase, num_semesters_to_take: int) -> list[str]:
     """
     Simulate from empty and take the first N semesters of recommendations

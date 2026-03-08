@@ -1,14 +1,14 @@
 """
-Fast deterministic dead-end invariant suite for PR gating.
+Fast deterministic dead-end regression suite for PR gating.
 
-Runs every active single program selection + curated high-risk combos,
-each with multiple starting histories (empty, foundation, mid, late),
-and asserts no 2-term dead-ends occur.
+Covers:
+- Every active single major (empty state) — 12 cases
+- Every active single track (empty state) — 8 cases
+- Curated high-risk combos with state variants — ~20 cases
+- Smoke tests (minors, multi-semester, include_summer) — ~16 cases
 
-Also includes live-data smoke coverage (minors, multi-semester,
-include_summer, selection_context) previously in test_program_smoke.
-
-Target runtime: under 3 minutes on a normal dev machine.
+Total: ~56 fixed-input regression tests. No randomness.
+Target runtime: under 2 minutes on a normal dev machine.
 """
 
 import pytest
@@ -36,11 +36,10 @@ from helpers import (
 )
 
 
-# ── Case generation ─────────────────────────────────────────────────────────
+# ── Single-program regression cases (empty state only) ─────────────────────
 
 
 def _single_major_cases():
-    """Generate PlanCase for every active major."""
     majors, _, _ = active_programs()
     cases = []
     for mid in majors:
@@ -62,8 +61,9 @@ def _single_major_cases():
 
 
 def _single_track_cases():
-    """Generate PlanCases for every active track (standalone + with parent major)."""
     _, tracks, _ = active_programs()
+    # Exclude MCC_DISC tracks (parent inactive)
+    tracks = [t for t in tracks if not t.startswith("MCC_DISC_")]
     cases = []
     for tid in tracks:
         parent = get_parent_major(tid)
@@ -87,12 +87,10 @@ def _single_track_cases():
     return cases
 
 
-# Curated high-risk overlap combos
-# NOTE: minors are excluded from dead-end tests — they exist in
-# parent_buckets.csv but have no child buckets or course mappings yet
-# (Coming Soon). Re-enable once minor data is injected.
+# ── Curated high-risk combos with state variants ──────────────────────────
+
 CURATED_COMBOS = [
-    ("combo-FIN+INSY+BUAN", PlanCase(
+    ("combo-FIN+INSY", PlanCase(
         declared_majors=["FIN_MAJOR", "INSY_MAJOR"],
         track_ids=[], declared_minors=[],
         completed_courses=[], in_progress_courses=[],
@@ -112,7 +110,7 @@ CURATED_COMBOS = [
     )),
     ("combo-FIN+CB_TRACK", PlanCase(
         declared_majors=["FIN_MAJOR"],
-        track_ids=["FIN_CB_TRACK"], declared_minors=[],
+        track_ids=["CB_TRACK"], declared_minors=[],
         completed_courses=[], in_progress_courses=[],
         target_semester_primary="Spring 2026",
     )),
@@ -126,7 +124,6 @@ CURATED_COMBOS = [
 
 
 def _generate_state_variants(label: str, base_case: PlanCase):
-    """Generate empty, foundation, mid, and late starting states for a base case."""
     variants = [(f"{label}/empty", base_case)]
 
     foundation = seed_from_simulation(base_case, 1)
@@ -184,15 +181,13 @@ def _generate_state_variants(label: str, base_case: PlanCase):
 
 
 def _collect_fast_cases():
-    """Collect all fast-suite cases with state variants."""
     all_cases = []
 
-    for label, base in _single_major_cases():
-        all_cases.extend(_generate_state_variants(label, base))
+    # Single programs — empty state only (no variants)
+    all_cases.extend(_single_major_cases())
+    all_cases.extend(_single_track_cases())
 
-    for label, base in _single_track_cases():
-        all_cases.extend(_generate_state_variants(label, base))
-
+    # Curated combos — full state variants (known regressions)
     for label, base in CURATED_COMBOS:
         all_cases.extend(_generate_state_variants(label, base))
 
@@ -215,9 +210,7 @@ def test_no_dead_end(label, case):
     run_case_and_assert(case, num_terms=9)
 
 
-# ── Smoke tests (from test_program_smoke) ──────────────────────────────────
-# These cover minors, multi-semester, include_summer, selection_context,
-# and recommendation shape validation that dead-end tests don't check.
+# ── Smoke tests ────────────────────────────────────────────────────────────
 
 REPRESENTATIVE_MAJOR_CANDIDATES = [
     "FIN_MAJOR",

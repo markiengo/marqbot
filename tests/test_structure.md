@@ -14,11 +14,11 @@
 
 | Profile | Count | How it runs | Notes |
 |---|---:|---|---|
-| Backend standard suite | 629 | `python -m pytest -q` | Comes from `pytest.ini`; runs `tests/backend` and excludes `nightly` |
-| Backend nightly sweep | 14,382 | `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | Large pairwise dead-end simulation; not a normal end-of-session run |
+| Backend standard suite | ~570 | `python -m pytest -q` | Comes from `pytest.ini`; runs `tests/backend` and excludes `nightly` |
+| Backend nightly sweep | ~9,040 | `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | Triple-combo dead-end simulation with randomized student profiles; date-seeded for daily variety |
 | Frontend checked-in tests | 64 | Files under `tests/frontend` | Includes DOM specs that are checked in but not in the default Vitest include set |
 | Frontend default Vitest run | 58 | `cd frontend && npm run test` | Current config excludes `../tests/frontend/**/*.dom.test.ts` |
-| All checked-in repo tests | 15,075 | Backend + frontend + nightly | Full footprint, not the normal validation target |
+| All checked-in repo tests | ~9,700 | Backend + frontend + nightly | Full footprint, not the normal validation target |
 
 ## Group summary
 
@@ -31,14 +31,14 @@
 | Recommendation ranking and quality invariants | 69 | Checks ranking tiers, bucket caps, bridge-course selection, same-semester concurrent picks, monotonic progress, and no-repeat planner rules. | `26` semester recommender heuristic tests; `6` tier invariant tests; `37` live-data recommendation-quality invariants |
 | Track-aware planning | 68 | Ensures multi-program planning respects track context, aliases, merged progress, projections, and catalog metadata. | `5` track allocation-isolation tests; `4` track eligibility-filter tests; `5` role-lookup tests; `50` live `/recommend` track, program, projection, and catalog audits; `4` synthetic-track smoke tests |
 | Live profile regressions and advisor alignment | 53 | Replays realistic student scenarios and gold advisor profiles to keep outputs aligned with expected recommendations. | `10` finance-major lifecycle regressions; `11` other-major smoke and regression tests; `7` track smoke regressions; `11` special regressions for BUAN, HURE, INSY, BECO, BADM, and debug payloads; `14` advisor-gold overlap tests |
-| Dead-end prevention, standard suite | 102 | Prevents 2-term planner dead ends with synthetic classifier cases and fast live-data sweeps. | `9` archetype classifier tests; `78` fast no-dead-end cases across majors, tracks, and curated combos; `7` minor smoke tests; `4` three-semester major smokes; `3` three-semester track smokes; `1` include-summer smoke |
+| Dead-end prevention, standard suite | ~56 | Prevents 2-term planner dead ends with single-program empty-state checks, curated combo regressions, and smoke tests. | `12` single-major empty-state tests; `8` single-track empty-state tests; `~20` curated combo state-variant tests; `7` minor smoke tests; `4` three-semester major smokes; `3` three-semester track smokes; `1` include-summer smoke |
 | Frontend state and UX helpers | 64 | Protects planner UI state restore, onboarding flows, content helpers, rendering helpers, quips, and saved-plan behavior. | `5` reducer tests; `3` can-take query-match tests; `6` DOM and onboarding interaction tests; `17` quip tests; `10` rendering and credit-metric tests; `12` saved-plan storage and presentation tests; `11` about and utility helper tests |
 
 ## Nightly-only group
 
 | Nightly group | Count | What it does | Count breakdown |
 |---|---:|---|---|
-| Dead-end nightly sweep | 14,382 | Exhaustive pairwise dead-end simulation, excluded from default `pytest` by the `nightly` marker. | `6,678` BFS reachable-state cases plus `7,704` deterministic adversarial-state cases across `300` pairwise program combinations and `3` start terms (`Fall 2026`, `Spring 2026`, `Summer 2026`) |
+| Dead-end nightly sweep | ~9,040 | Triple-combo dead-end simulation with randomized student profiles, excluded from default `pytest` by the `nightly` marker. | `1,130` valid triple program combinations x `8` random student profiles (`2` freshman, `2` sophomore, `2` junior, `2` senior). Date-based seed (`YYYYMMDD`) for daily reproducibility; override via `NIGHTLY_SEED` env var. Failures aggregated — patterns with 5+ occurrences flagged in report artifact. |
 
 ## Backend file inventory
 
@@ -48,9 +48,10 @@
 | `tests/backend/test_allocator.py` | 26 | Allocation routing, min-level checks, and double-count policy behavior |
 | `tests/backend/test_data_integrity.py` | 34 | CSV schema, referential integrity, runtime bucket integrity, and prereq graph sanity |
 | `tests/backend/test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
-| `tests/backend/test_dead_end_fast.py` | 93 | Standard dead-end prevention sweep plus smoke coverage |
-| `tests/backend/test_dead_end_nightly.py` | 14,382 | Nightly pairwise dead-end sweep |
+| `tests/backend/test_dead_end_fast.py` | ~56 | Regression dead-end checks (single programs + curated combos) plus smoke coverage |
+| `tests/backend/test_dead_end_nightly.py` | ~9,040 | Nightly triple-combo dead-end sweep with randomized profiles |
 | `tests/backend/test_eligibility.py` | 42 | Recommendation eligibility, major and college restriction filtering, hard and soft concurrent handling, bridge courses, helper can-take logic, and term parsing |
+| `tests/backend/test_equivalencies.py` | 25 | Course equivalency system: map builders, prereq satisfaction with equiv_map, bucket expansion by relation type, NDC credit blocking, schema integrity, backward compatibility |
 | `tests/backend/test_input_validation.py` | 36 | Prereq contradiction detection and inferred prereq expansion |
 | `tests/backend/test_normalizer.py` | 20 | Course-code and input normalization |
 | `tests/backend/test_prereq_parser.py` | 33 | Prereq parsing, satisfaction rules, and human-readable check strings |

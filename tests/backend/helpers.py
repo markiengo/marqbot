@@ -248,3 +248,112 @@ def active_representatives(kind: str, candidates: list[str], limit: int) -> list
             if len(chosen) == limit:
                 break
     return chosen[:limit]
+
+
+# ── Triple combo + random profile helpers (nightly v2) ─────────────────────
+
+
+def _get_required_major(track_id: str) -> str | None:
+    """Get required_major for a track (e.g. AIM_CFA requires FIN)."""
+    rows = program_rows()
+    row = rows.get(track_id, {})
+    val = str(row.get("required_major", "") or "").strip()
+    return val if val else None
+
+
+def build_triple_cases() -> list[tuple[str, list[str], list[str], list[str]]]:
+    """Generate all valid triple program combinations.
+
+    Returns list of (label, declared_majors, track_ids, declared_minors).
+    Pool: active majors + active tracks (minors and MCC_DISC tracks excluded).
+    Validity: at least 1 primary major in effective declared_majors.
+    """
+    from itertools import combinations
+
+    majors, tracks, _minors = active_programs()
+    # Exclude MCC_DISC tracks (parent inactive)
+    tracks = [t for t in tracks if not t.startswith("MCC_DISC_")]
+
+    all_programs = (
+        [("major", m) for m in majors]
+        + [("track", t) for t in tracks]
+    )
+
+    cases = []
+    for combo in combinations(all_programs, 3):
+        declared_majors = []
+        track_ids = []
+
+        for ptype, pid in combo:
+            if ptype == "major":
+                declared_majors.append(pid)
+            elif ptype == "track":
+                track_ids.append(pid)
+                parent = get_parent_major(pid)
+                if parent and parent not in declared_majors:
+                    declared_majors.append(parent)
+                # AIM_CFA requires FIN_MAJOR
+                req = _get_required_major(pid)
+                if req and req not in declared_majors:
+                    declared_majors.append(req)
+
+        # Check requires_primary satisfaction
+        needs_primary = any(requires_primary(m) for m in declared_majors)
+        has_primary = any(not requires_primary(m) for m in declared_majors)
+
+        if needs_primary and not has_primary:
+            # No valid primary major — skip
+            continue
+
+        declared_majors = list(dict.fromkeys(declared_majors))
+
+        ids_sorted = sorted([pid for _, pid in combo])
+        label = f"triple-{'+'.join(ids_sorted)}"
+        cases.append((label, declared_majors, track_ids, []))
+
+    return cases
+
+
+def generate_random_profiles(
+    declared_majors: list[str],
+    track_ids: list[str],
+    declared_minors: list[str],
+    rng: "random.Random",
+    course_universe: list[str],
+    start_term: str = "Fall 2026",
+) -> list[tuple[str, "PlanCase"]]:
+    """Generate 8 random student profiles (2 per standing level).
+
+    Returns list of (standing_label, PlanCase).
+    """
+    from dead_end_utils import PlanCase
+
+    STANDING_CONFIGS = [
+        ("freshman", 0, 10),
+        ("sophomore", 10, 20),
+        ("junior", 15, 30),
+        ("senior", 25, 40),
+    ]
+
+    profiles = []
+    for standing_label, min_courses, max_courses in STANDING_CONFIGS:
+        for i in range(2):
+            effective_max = min(max_courses, len(course_universe))
+            effective_min = min(min_courses, effective_max)
+            if effective_max <= 0:
+                completed = []
+            else:
+                n = rng.randint(effective_min, effective_max)
+                completed = rng.sample(course_universe, n) if n > 0 else []
+
+            case = PlanCase(
+                declared_majors=declared_majors,
+                track_ids=track_ids,
+                declared_minors=declared_minors,
+                completed_courses=completed,
+                in_progress_courses=[],
+                target_semester_primary=start_term,
+            )
+            profiles.append((f"{standing_label}-{i}", case))
+
+    return profiles
