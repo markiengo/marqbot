@@ -6,6 +6,7 @@ Frontend tests protect:
 - reducer and state logic
 - rendering helpers and presentation formatting
 - saved-plan utilities
+- feedback payload building
 - component behavior and onboarding flows
 
 ## Main Test Groups
@@ -16,6 +17,9 @@ Frontend tests protect:
 - Content tests
   Example: `aboutContent.test.ts`
 
+- Feedback/helper tests
+  Example: `feedback.test.ts`
+
 - Component/DOM tests
   Examples: `coursesStep.dom.test.*`, `multiSelect.dom.test.*`, `onboardingPage.dom.test.*`
 
@@ -25,16 +29,16 @@ Run from `frontend/`:
 
 `npm test`
 
-This is the frontend lane used by the normal regression workflow.
+This is the default frontend lane used by the normal regression workflow.
 
 ## Important Note
 
-The DOM-focused tests are meant to cover jsdom/component behavior.
+The DOM-focused tests are checked in, but the current Vitest config excludes `tests/frontend/*.dom.test.ts` from the default run.
 
-If you add or rename `.dom.test.*` files, make sure the Vitest config still includes them. A test file that exists but is not picked up by `npm test` gives false confidence.
+If you add or rename `.dom.test.*` files, make sure the Vitest config and the intended command still match. A DOM test file that exists but is not part of the default run gives false confidence.
 
 ## Practical Rule
 
 When changing frontend code:
 - run `npm test`
-- if the change is UI-flow heavy, confirm the relevant DOM/component tests are actually included by the test runner
+- if the change is UI-flow heavy, confirm whether the relevant DOM/component tests are in the default run or need a focused command

@@ -1,8 +1,9 @@
 # MarqBot Data Model
 
-All checked-in runtime inputs live in `data/` as UTF-8-BOM CSVs. The loader builds two runtime structures:
-- a course catalog overlay (`courses.csv` + prereqs)
+All checked-in runtime inputs live in `data/` as UTF-8-BOM CSVs. The loader builds three runtime layers:
+- a course catalog overlay (`courses.csv` + split prereqs + offerings metadata)
 - a parent/child requirement graph (`parent_buckets.csv` + `child_buckets.csv` + `master_bucket_courses.csv`)
+- an equivalency overlay (`course_equivalencies.csv`) used for prereq satisfaction, bucket expansion, and no-double-credit blocking
 
 ## Runtime Assembly
 
@@ -110,7 +111,8 @@ erDiagram
 | `master_bucket_courses.csv` | Explicit course membership for child buckets. |
 | `course_hard_prereqs.csv` | Hard eligibility gates only. |
 | `course_soft_prereqs.csv` | Soft warnings, raw prerequisite text, and audit detail columns. |
-| `course_offerings.csv` | Seasonal offering history. Currently disabled — all courses treated as offered every term. |
+| `course_offerings.csv` | Seasonal offering history. Currently disabled - all courses treated as offered every term. |
+| `course_equivalencies.csv` | Equivalency groups used for honors/grad alternatives, cross-listing, and no-double-count logic. |
 
 ## Parent/Child Program Model
 
@@ -196,6 +198,23 @@ Those clauses remain in `catalog_prereq_raw`, `notes`, or soft detail columns.
 ## Dynamic Elective Synthesis
 
 At load time, courses tagged with `courses.elective_pool_tag = biz_elective` are added dynamically to qualifying elective-like `credits_pool` buckets. This is runtime-only supplementation; `master_bucket_courses.csv` remains the checked-in source of explicit mappings.
+
+## Course Equivalencies
+
+`course_equivalencies.csv` is stored in a wide format with one row per equivalency group.
+
+| Column | Meaning |
+|--------|---------|
+| `id` | Group identifier. |
+| `course_1`, `course_2`, `course_3` | Member course codes for the group. |
+| `type` | Equivalency relationship: `equivalent`, `honors`, `grad`, `cross_listed`, or `no_double_count`. |
+| `parent_bucket` | Optional parent-bucket scope for bucket expansion rules. |
+| `child_bucket` | Optional child-bucket scope for bucket expansion rules. |
+
+Runtime behavior:
+- `equivalent`, `honors`, and `grad` groups expand prereq satisfaction and bucket mappings.
+- `cross_listed` expands bucket mappings without implying no-double-credit blocking.
+- `no_double_count` blocks multiple members of the same group from filling credit twice.
 
 ## Runtime Compatibility Note
 

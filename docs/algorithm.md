@@ -11,6 +11,7 @@ Status: `current behavior (parent/child + split prereq model)`
 | Catalog | `courses.csv` | Base course catalog, credits, level, description, and `elective_pool_tag`. |
 | Program graph | `parent_buckets.csv`, `child_buckets.csv`, `master_bucket_courses.csv` | Defines majors, tracks, minors, universal requirements, child buckets, explicit course membership, and overlap governance. |
 | Prereqs | `course_hard_prereqs.csv`, `course_soft_prereqs.csv` | Splits eligibility gates from warning-only or manual-review metadata. |
+| Equivalencies | `course_equivalencies.csv` | Honors, grad, equivalent, cross-listed, and no-double-count relationships used by allocation and eligibility. |
 | Offerings | `course_offerings.csv` | Fall/spring/summer scheduling history. Currently disabled — all courses treated as offered every term. |
 
 ## Runtime Build
@@ -25,9 +26,10 @@ Status: `current behavior (parent/child + split prereq model)`
    - `prereq_notes`
    - raw `soft_prereq_*` detail columns
 5. ~~Overlay `course_offerings.csv` onto the catalog.~~ Disabled — all courses default to offered every term with high confidence.
-6. Synthesize dynamic elective mappings from `courses.elective_pool_tag` only for elective-like `credits_pool` child buckets. Current dynamic tag: `biz_elective`.
-7. Convert the loaded data into runtime bucket and course maps used by allocation, eligibility, and ranking.
-8. Resolve request-scoped restriction context from the selected programs. Track selections are expanded with their parent and required major IDs before restriction checks run.
+6. Load `course_equivalencies.csv` and build runtime maps for prereq expansion, bucket expansion, cross-list handling, and no-double-count blocking.
+7. Synthesize dynamic elective mappings from `courses.elective_pool_tag` only for elective-like `credits_pool` child buckets. Current dynamic tag: `biz_elective`.
+8. Convert the loaded data into runtime bucket and course maps used by allocation, eligibility, and ranking.
+9. Resolve request-scoped restriction context from the selected programs. Track selections are expanded with their parent and required major IDs before restriction checks run.
 
 ## Parent-Child Bucket Mapping
 - A `parent_bucket` is the program envelope: major, track, minor, or universal requirement group.
@@ -127,7 +129,7 @@ A bridge course is a candidate that does not directly fill any unmet bucket but 
 ## Currently Excluded From Recommendations
 The engine does not recommend courses when any of these is true:
 - course code contains `4986` (work-period grading courses)
-- course code ends with `H` after a number (honors sections, e.g. `THEO 1001H`) — excluded until an honors student toggle is implemented
+- course code ends with `H` after a number for non-honors students. When `is_honors_student=true`, honors sections are allowed and base courses are deduplicated when the H variant is also eligible.
 - course credits include any non-integer numeric values (for example, `1.5` or `1.5-3`)
 - course name contains one of:
   - `internship`

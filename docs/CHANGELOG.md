@@ -8,6 +8,24 @@ Format per release:
 
 ---
 
+## [Unreleased] - 2026-03-08
+
+### Changes
+
+- Added an in-app feedback form to the Planner. Students can now rate the app, report bugs, or leave ideas without leaving MarqBot.
+- Feedback submissions now go through a backend API and can be stored in a JSONL file, which is ready for a Render persistent disk setup.
+- Honors students can now receive honors-section equivalents without duplicate base-course clutter in recommendation results.
+- Updated the About page so students are told where to send feedback: use the planner feedback button first, or contact Markie directly.
+- Added focused backend and frontend feedback test files to cover the new feedback payload and API behavior.
+- Updated project docs and technical readmes to match the current stack: split prereq CSVs, equivalencies, saved plans, honors-aware recommendations, and feedback storage.
+
+### Design Decisions
+
+- Feedback is app-level, not card-level. One modal keeps the UI clean and gives students one obvious place to report problems.
+- Feedback storage is append-only JSONL so it is easy to inspect, export, and host on Render without adding a database yet.
+
+---
+
 ## [v2.3.1] - 2026-03-07
 
 ### Changes

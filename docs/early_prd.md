@@ -1,19 +1,25 @@
 # MarqBot - Product Overview
 
-MarqBot is a degree-planning tool for Marquette University business students. It tells you what courses to take next, tracks your progress toward graduation, and checks whether you're eligible for a specific course.
+MarqBot is a degree-planning tool for Marquette University business students. It tells you what courses to take next, tracks your progress toward graduation, checks whether you're eligible for a specific course, lets you save plan snapshots, and gives you a built-in way to send feedback or bug reports.
 
 ---
 
 ## What it does
 
 ### Course Recommendations
-You tell MarqBot your major, track, and what you've already taken. It recommends the best courses for your next 1-4 semesters based on your remaining requirements, what's offered that term, and what you're eligible for.
+You tell MarqBot your major, track, and what you've already taken. It recommends the best courses for your next 1-4 semesters based on your remaining requirements and what you're eligible for. For now, course offerings are treated as always available while the offering data is being cleaned up.
 
 ### Progress Tracking
 A visual dashboard shows how far along you are in each requirement area: your major, your track (if any), the Business Core (BCC), and the Marquette Core (MCC).
 
 ### Eligibility Check
-Pick any course and MarqBot tells you if you can take it. If not, it says why (missing prereqs, not offered that semester, etc.).
+Pick any course and MarqBot tells you if you can take it. If not, it says why (missing prereqs, standing, program restriction, etc.).
+
+### Saved Plans
+Students can save recommendation runs in the browser, reopen them later, and compare alternatives without re-entering all of their course history.
+
+### Feedback
+Students can send a rating plus open-text feedback from inside the planner. The same form handles bug reports, confusing copy, and feature ideas.
 
 ---
 
@@ -38,6 +44,7 @@ College of Business students at Marquette, starting with a small pilot of financ
 - Not a registration system. It suggests courses; you still enroll through Marquette's official process.
 - Not a replacement for your advisor. It complements advising by showing what's possible next.
 - No AI guessing. Every recommendation follows explicit rules from Marquette's published requirements. Same inputs always produce the same output.
+- Not an official source of semester availability right now. Offering awareness is temporarily disabled until that data is reliable enough to trust.
 
 ---
 
@@ -46,3 +53,4 @@ College of Business students at Marquette, starting with a small pilot of financ
 - **Data-driven.** All degree requirements live in data tables maintained by advisors, not in code. Adding a new major or track means adding rows, not rewriting logic.
 - **Deterministic.** No randomness, no AI hallucination. If two students have the same profile, they get the same recommendations.
 - **Transparent.** A debug mode explains exactly why each course was ranked where it was, so advisors can verify the logic.
+- **Feedback-ready.** Students can report bugs and ideas from inside the planner, with their current planner context attached for debugging.

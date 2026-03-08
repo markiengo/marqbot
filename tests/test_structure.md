@@ -1,15 +1,15 @@
 # Test Structure
 
-Last updated: 2026-03-07
+Last updated: 2026-03-08
 
 ## Quick Reference
 
 | What to run | Command | Tests |
 |---|---|---:|
-| **Standard suite** | `python -m pytest -q` | ~624 |
+| **Standard suite** | `python -m pytest -q` | ~633 |
 | **Fast dead-end check** | `python -m pytest tests/backend/test_dead_end_fast.py -q` | 55 |
 | **Nightly sweep** | `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | ~8,248 |
-| **Frontend** | `cd frontend && npm run test` | 58 |
+| **Frontend** | `cd frontend && npm run test` | 60 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
 
@@ -36,6 +36,7 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 | `test_dead_end_nightly.py` | ~8,248 | Triple-combo sweep with randomized profiles (nightly only) |
 | `test_eligibility.py` | 42 | Eligibility filters, restrictions, bridge courses, can-take helpers |
 | `test_equivalencies.py` | 25 | Equivalency maps, prereq satisfaction, NDC blocking, schema checks |
+| `test_feedback_api.py` | 9 | `/api/feedback` contract, JSONL persistence, validation, rate limiting |
 | `test_input_validation.py` | 36 | Prereq contradiction detection, inferred prereq expansion |
 | `test_normalizer.py` | 20 | Course-code normalization |
 | `test_prereq_parser.py` | 33 | Prereq parsing, satisfaction rules, human-readable strings |
@@ -63,6 +64,7 @@ Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 | `appReducer.test.ts` | 5 | Yes | Bootstrap errors, snapshot restore |
 | `canTake.test.ts` | 3 | Yes | Can-take query matching |
 | `coursesStep.dom.test.ts` | 1 | No | Prereq inconsistency warnings (DOM) |
+| `feedback.test.ts` | 2 | Yes | Feedback payload building and message validation |
 | `multiSelect.dom.test.ts` | 2 | No | Picker filtering, keyboard (DOM) |
 | `onboardingPage.dom.test.ts` | 3 | No | Onboarding flow, route launch (DOM) |
 | `quips.test.ts` | 17 | Yes | Progress and semester quips |

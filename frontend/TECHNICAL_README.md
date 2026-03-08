@@ -2,64 +2,57 @@
 
 ## What this folder is
 
-This is the part of the app students can see.
+This is the student-facing app.
 
-It controls the pages, buttons, forms, cards, and planner screens.
+It owns the pages, planner shell, onboarding flow, saved-plan UI, about page, and the in-app feedback modal.
 
 ## What it does
 
-- shows the website pages
-- lets students enter majors and courses
-- asks the backend for recommendations
-- shows the results in a clear way
+- renders the marketing and planner pages
+- lets students declare majors, tracks, minors, and courses
+- stores session state and saved plans in browser localStorage
+- calls backend APIs for recommendations, can-take checks, prereq validation, and feedback
+- shows results with shared planner cards and modal views
 
 ## Main parts
 
 - `src/app`
-  The pages of the site.
+  Route entrypoints for landing, onboarding, planner, saved, courses, AI advisor, and about.
 
 - `src/components`
-  Reusable pieces like buttons, modals, and planner panels.
+  Shared UI plus planner, saved-plan, landing, and about-page components.
 
 - `src/hooks`
-  Behind-the-scenes loading logic.
+  Data loading and mutation hooks (`useRecommendations`, `useSavedPlans`, `useSession`, etc.).
 
 - `src/context`
-  Shared app memory.
+  Shared app state and reducer logic.
 
 - `src/lib`
-  Helper files and API calls.
+  Shared types, API helpers, rendering helpers, feedback payload builders, and saved-plan utilities.
 
 - `public`
-  Images and static files.
+  Static images and exported assets.
 
 ## Good places to start
 
-- `src/app/page.tsx`
-  Landing page.
-
-- `src/app/onboarding/page.tsx`
-  Student setup flow.
-
 - `src/app/planner/page.tsx`
-  Main planner page.
+  Main planner route.
+
+- `src/components/planner/PlannerLayout.tsx`
+  Planner shell and modal orchestration.
+
+- `src/components/planner/FeedbackModal.tsx`
+  In-app feedback entrypoint.
 
 - `src/lib/api.ts`
-  Frontend to backend connection.
+  Frontend-to-backend API connection layer.
 
 ## Simple mental model
 
-The frontend is the part you touch.
+The frontend collects student inputs, keeps the current planner state in the browser, and renders whatever the backend decides.
 
-It mostly asks the backend for answers, then shows them to the student.
+## Notes
 
-## Common commands
-
-- `npm run dev`
-  Start the frontend.
-
-- `npm run build`
-  Build the frontend.
-
-- `npm run test`
-  Run frontend tests.
+- Production uses static export compatibility, so do not assume a custom Next server.
+- Saved plans are browser-local only right now.

@@ -12,6 +12,8 @@ Built by a Marquette student who got tired of guessing through CheckMarq.
 - A quick yes/no on class eligibility (prereqs, standing, offerings)
 - Progress by requirement bucket
 - Multi-semester planning
+- Saved plan snapshots in your browser
+- An in-app feedback form for bugs and ideas
 
 Same inputs = same outputs. No randomness.
 
@@ -44,8 +46,18 @@ cd ..
 
 - Backend only: `.\.venv\Scripts\python.exe backend/server.py`
 - Frontend dev: `cd frontend && npm run dev`
-- Backend tests: `pytest tests/backend -q`
-- Frontend checks: `cd frontend && npm run test && npm run lint && npm run build`
+- Backend tests: `.\.venv\Scripts\python.exe -m pytest -q`
+- Frontend checks: `cd frontend && npm test && npm run lint && npm run build`
+- Track validation: `.\.venv\Scripts\python.exe scripts/validate_track.py --all`
+
+## Environment
+
+- `DATA_PATH`: optional CSV-directory or workbook override
+- `FLASK_DEBUG`: optional local backend debug toggle
+- `FEEDBACK_PATH`: optional JSONL file path for feedback submissions; set this to a Render persistent disk path in production
+- `PORT`, `WEB_CONCURRENCY`, `GUNICORN_TIMEOUT`, `GUNICORN_GRACEFUL_TIMEOUT`: deploy/runtime overrides
+- `REQUEST_CACHE_SIZE`, `SLOW_REQUEST_LOG_MS`: backend cache/log tuning
+- `NEXT_PUBLIC_API_BASE`: optional absolute frontend API base
 
 ## Project Directory
 
@@ -59,6 +71,14 @@ cd ..
 ## How It Works
 
 MarqBot uses a deterministic recommendation engine that ranks courses by requirement priority, prerequisite chain depth, and bucket coverage. No randomness, no AI — same inputs always produce the same plan.
+
+The planner is currently saved-plan aware and feedback aware:
+- saved plans live in browser localStorage
+- feedback submissions go to the backend and can be stored as JSONL via `FEEDBACK_PATH`
+
+Current recommendation behavior notes:
+- honors students can receive honors-section equivalents without duplicate base-course clutter
+- seasonal offering data is loaded, but recommendations currently treat courses as available every term while offering cleanup continues
 
 For full details, see [docs/algorithm.md](docs/algorithm.md).
 
