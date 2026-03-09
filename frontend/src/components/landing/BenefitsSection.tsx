@@ -8,13 +8,13 @@ const benefits = [
   {
     kicker: "Take now",
     title: "See what you can actually take.",
-    body: "Stop building a perfect semester around a class you cannot actually register for yet.",
+    body: "Stop building a perfect semester around a class CheckMarq will not let you touch yet.",
     accent: "gold",
   },
   {
     kicker: "Catch early",
     title: "Spot bottlenecks before they spiral.",
-    body: "Some courses quietly block half your future. MarqBot surfaces those early so they do not run your timeline.",
+    body: "Some courses quietly block half your future in O'Brien. MarqBot surfaces those early so they do not run your timeline.",
     accent: "blue",
   },
   {
@@ -68,7 +68,7 @@ export function BenefitsSection() {
             transition={{ duration: 0.4, delay: 0.16 }}
             className="mt-4 text-[1.1rem] leading-relaxed text-slate-400 sm:text-[1.25rem]"
           >
-            Pick cleaner next moves faster. Skip the five-tab bulletin dig.
+            Pick cleaner next moves faster. Skip the five-tab bulletin dig and the late-night Raynor spreadsheet.
           </motion.p>
         </div>
 

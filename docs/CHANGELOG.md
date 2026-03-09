@@ -16,6 +16,7 @@ Format per release:
 - Refined planner, semester, and saved-plan modals so course details and progress review are easier to scan.
 - Rewrote the frontend copy across landing, onboarding, planner, saved plans, About, and placeholder pages to match the updated voice guide: clearer first, drier humor second, and more Marquette-specific without sounding sloppy.
 - Tightened planner-facing microcopy: recommendation explainer, feedback modal, can-take panel, saved-plan states, and profile/settings surfaces now explain tradeoffs more directly.
+- Audited the planner quip system against the new voice guide so progress and semester quips sound more like Marquette students and less like internet bits.
 - Moved local feedback storage from `docs_local/` to ignored `docs/feedbacks/feedback.jsonl` so feedback logs stay inside the docs area without becoming pushable repo history.
 - Added a frontend language audit memo and refreshed the branding guide so future copy work has explicit humor limits, tone rules, and surface-by-surface guidance.
 - Redesigned the nightly dead-end sweep into a focused sampled harness with prereq-hardened seeded histories, semester-8 completion checks, and student-first completeness reporting.

@@ -180,7 +180,7 @@ export function MajorStep() {
         <div className="relative z-10 flex min-h-0 flex-col overflow-visible rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
           <SectionLabel title="Major(s)" sub={`up to ${MAX_MAJORS}`} />
           <p className="mb-2 text-[0.92rem] leading-relaxed text-ink-muted">
-            Pick the program you are actually in. No bonus lore required.
+            Pick the program you are actually in. No extra backstory required.
           </p>
           <div className="mb-2.5 flex min-h-[2.35rem] flex-wrap gap-1.5">
             <AnimatePresence mode="popLayout">

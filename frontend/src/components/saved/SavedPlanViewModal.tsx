@@ -265,7 +265,7 @@ export function SavedPlanViewModal({
 
               {/* Year grid */}
               {!plan.recommendationData ? (
-                <p className="text-sm text-ink-faint italic">No saved recommendations attached.</p>
+                <p className="text-sm text-ink-faint italic">No saved planner snapshot attached.</p>
               ) : (
                 <div>
                   {rows.map((row, yearIdx) => (

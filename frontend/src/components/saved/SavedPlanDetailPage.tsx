@@ -284,7 +284,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
                     <p className="section-kicker">Plan Details</p>
                     <h3 className="max-w-[22ch] text-[10px] font-semibold leading-[1.2] text-ink-primary">Plan name and notes</h3>
                     <p className="text-sm text-ink-faint">
-                      Update the title and notes without changing the saved recommendation snapshot.
+                      Update the title and notes without changing the saved planner snapshot.
                     </p>
                   </div>
                   {!isEditingMeta ? (

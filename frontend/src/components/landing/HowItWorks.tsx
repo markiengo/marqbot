@@ -116,7 +116,7 @@ export function HowItWorks() {
               What gets ranked highest
             </p>
             <h3 className="mt-4 text-[2rem] font-bold leading-tight text-white">
-              Clear logic. Dry delivery. No vibes.
+              Clear logic. Dry delivery. No guesswork.
             </h3>
             <div className="mt-6 space-y-3">
               {rankingRules.map((rule) => (

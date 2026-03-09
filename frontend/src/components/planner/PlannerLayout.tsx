@@ -46,47 +46,47 @@ const rankingExplainerItems = [
   {
     id: "1",
     title: "Can you take it now?",
-    detail: "If a class is locked, MarqBot skips it.",
+    detail: "If a class is locked, it drops out of the list.",
   },
   {
     id: "2",
     title: "Is it an important class?",
-    detail: "Must-do school and major classes go before extra classes.",
+    detail: "Core and major requirements go before extra coverage.",
   },
   {
     id: "3",
     title: "Does it help right away?",
-    detail: "A class that checks a box now beats one that only helps later.",
+    detail: "A class that counts now beats one that only helps later.",
   },
   {
     id: "4",
     title: "Does it open more doors?",
-    detail: "If one class unlocks lots of later classes, it moves up.",
+    detail: "If one class unlocks several later classes, it moves up.",
   },
   {
     id: "5",
     title: "Does it check two boxes?",
-    detail: "One class that helps more than one requirement is extra useful.",
+    detail: "A class that helps more than one requirement gets a boost.",
   },
   {
     id: "6",
     title: "Is it too hard too soon?",
-    detail: "Early students get simpler building-block classes first.",
+    detail: "Earlier students get more foundation classes first.",
   },
   {
     id: "7",
     title: "Does it need a partner?",
-    detail: "If two classes should go together, MarqBot tries to keep them together.",
+    detail: "If two classes work better together, MarqBot tries to keep them together.",
   },
   {
     id: "8",
     title: "Requirement diversity",
-    detail: "It tries not to fill your whole plan with just one kind of requirement.",
+    detail: "It tries not to fill your whole plan with one kind of requirement.",
   },
   {
     id: "9",
     title: "Does it fit your main path?",
-    detail: "It tries to keep enough picks aimed at the major or track you chose.",
+    detail: "It keeps enough picks aimed at the major or track you chose.",
   },
 ] as const;
 
@@ -546,7 +546,7 @@ export function PlannerLayout() {
           <div className="h-full min-h-0 flex flex-col">
             <div className="mb-2">
               <p className="section-kicker">
-                Ranked by eligibility, requirement value, and what each course unlocks.
+                Ranked by eligibility, requirement value, and what each course opens next.
               </p>
               <div className="flex items-center justify-between gap-2 mt-2">
                 <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
@@ -557,7 +557,7 @@ export function PlannerLayout() {
                   onClick={() => setExplainerOpen(true)}
                   className="shrink-0 text-[11px] text-gold bg-gold/8 border border-gold/20 rounded-full px-3 py-1 hover:bg-gold/15 hover:border-gold/35 transition-all"
                 >
-                  How MarqBot ranks courses
+                  How ranking works
                 </button>
               </div>
             </div>
@@ -702,7 +702,7 @@ export function PlannerLayout() {
               Fast Read
             </p>
             <p className="mt-1 text-[0.98rem] leading-relaxed text-ink-primary sm:text-[1.02rem]">
-              First, MarqBot throws out classes you cannot take yet. Then it sorts what is left.
+              First, MarqBot removes classes you cannot take yet. Then it sorts what is left by requirement value and unlock potential.
             </p>
           </div>
           <ol className="grid list-none grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -732,7 +732,7 @@ export function PlannerLayout() {
               MarqBot assumes you pass the classes in your plan. If your classes change, run it again.
             </p>
             <p className="mt-2 text-[0.92rem] leading-relaxed text-ink-muted">
-              This is rule-based, not guessing. Some catalog rows are still messy, so when the data looks weird, MarqBot plays it safe. Full picture{" "}
+              This is rule-based, not guesswork. Some catalog rows are still messy, so when the data is unclear, MarqBot plays it safe. Full picture{" "}
               <a
                 href="https://github.com/markiengo/marqbot/blob/main/docs/algorithm.md"
                 target="_blank"

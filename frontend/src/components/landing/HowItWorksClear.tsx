@@ -139,7 +139,7 @@ export function HowItWorksClear() {
               ))}
             </div>
             <p className="mt-6 text-sm leading-relaxed text-slate-400">
-              If a class is a bad move, it falls out of the list. Clean and rude.
+              If a class is a bad move, it drops out of the list. Simple.
             </p>
           </motion.div>
         </div>
