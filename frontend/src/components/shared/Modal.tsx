@@ -21,11 +21,32 @@ const sizeClasses = {
   xl: "w-full max-w-[1056px] max-h-[94vh]",
 };
 
+const openModalStack: string[] = [];
+
+function addModalToStack(modalId: string): number {
+  if (!openModalStack.includes(modalId)) {
+    openModalStack.push(modalId);
+  }
+  return openModalStack.indexOf(modalId);
+}
+
+function removeModalFromStack(modalId: string) {
+  const index = openModalStack.indexOf(modalId);
+  if (index >= 0) {
+    openModalStack.splice(index, 1);
+  }
+}
+
+function isTopmostModal(modalId: string): boolean {
+  return openModalStack[openModalStack.length - 1] === modalId;
+}
+
 export function Modal({ open, onClose, title, titleClassName, titleExtra, size = "default", children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const [mounted, setMounted] = useState(false);
   const titleId = useId();
+  const modalId = useId();
   const handleClose = useEffectEvent(() => {
     onClose();
   });
@@ -43,9 +64,10 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
 
     // Remember what had focus before opening
     triggerRef.current = document.activeElement as HTMLElement;
+    addModalToStack(modalId);
 
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
+      if (e.key === "Escape" && isTopmostModal(modalId)) handleClose();
     };
     document.addEventListener("keydown", handleKey);
 
@@ -69,9 +91,10 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
 
     return () => {
       document.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = "";
+      removeModalFromStack(modalId);
+      document.body.style.overflow = openModalStack.length > 0 ? "hidden" : "";
     };
-  }, [open]);
+  }, [open, modalId]);
 
   if (!mounted) return null;
 

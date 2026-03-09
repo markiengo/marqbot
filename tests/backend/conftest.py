@@ -17,7 +17,7 @@ def get_nightly_collector():
     """Get the session-scoped nightly failure collector (created on first access)."""
     global _nightly_collector
     if _nightly_collector is None:
-        from dead_end_utils import NightlyFailureCollector
+        from nightly_support import NightlyFailureCollector
         _nightly_collector = NightlyFailureCollector()
     return _nightly_collector
 

@@ -1,4 +1,10 @@
-import type { BucketProgress, Course, CreditKpiMetrics, SelectionContext } from "./types";
+import type {
+  BucketProgress,
+  Course,
+  CreditKpiMetrics,
+  RecommendedCourse,
+  SelectionContext,
+} from "./types";
 import { bucketLabel } from "./utils";
 
 export const MIN_GRAD_CREDITS = 124;
@@ -88,6 +94,46 @@ export function normalizeWarningTextMessages(warningText: string): string[] {
     .split(/[;|]/)
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+const RECOMMENDATION_WHY_BOILERPLATE =
+  /^This course advances your declared degree path and counts toward \d+ unmet requirement bucket\(s\)\.?$/i;
+
+export function sanitizeRecommendationWhy(why: string | null | undefined): string | null {
+  const raw = String(why || "").trim();
+  if (!raw) return null;
+  if (RECOMMENDATION_WHY_BOILERPLATE.test(raw)) return null;
+  return raw;
+}
+
+export function buildRecommendationWarnings(
+  course:
+    | Pick<RecommendedCourse, "warning_text" | "soft_tags" | "low_confidence" | "min_standing">
+    | null
+    | undefined,
+): string[] {
+  const warningMessages: string[] = [];
+
+  if (course?.warning_text) {
+    warningMessages.push(...normalizeWarningTextMessages(course.warning_text));
+  }
+
+  if (Array.isArray(course?.soft_tags) && course.soft_tags.length) {
+    const normalized = [
+      ...new Set(
+        course.soft_tags
+          .map((tag) => humanizeSoftWarningTag(tag, course))
+          .filter(Boolean),
+      ),
+    ];
+    warningMessages.push(...normalized);
+  }
+
+  if (course?.low_confidence) {
+    warningMessages.push("offering schedule may vary; confirm with registrar");
+  }
+
+  return [...new Set(warningMessages.filter(Boolean))];
 }
 
 function localBucketId(bucketId: string): string {

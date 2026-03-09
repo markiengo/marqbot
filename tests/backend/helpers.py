@@ -7,7 +7,9 @@ test_recommendation_quality, test_dead_end_fast, and test_dead_end_nightly.
 
 from __future__ import annotations
 
+import random
 import re
+from dataclasses import dataclass
 from functools import lru_cache
 
 import server
@@ -253,6 +255,34 @@ def active_representatives(kind: str, candidates: list[str], limit: int) -> list
 # ── Triple combo + random profile helpers (nightly v2) ─────────────────────
 
 
+NIGHTLY_SAMPLE_SIZE = 30
+NIGHTLY_SELECTION_VARIANTS = 5
+NIGHTLY_CASE_BUDGET = 750
+
+
+@dataclass(frozen=True)
+class NightlyScenario:
+    label: str
+    declared_majors: tuple[str, ...]
+    track_ids: tuple[str, ...]
+    declared_minors: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class NightlyProfile:
+    label: str
+    seeded_semesters: int
+
+
+NIGHTLY_PROFILES: tuple[NightlyProfile, ...] = (
+    NightlyProfile("foundation", 1),
+    NightlyProfile("early", 2),
+    NightlyProfile("mid", 3),
+    NightlyProfile("late", 4),
+    NightlyProfile("capstone", 5),
+)
+
+
 def _get_required_major(track_id: str) -> str | None:
     """Get required_major for a track (e.g. AIM_CFA requires FIN)."""
     rows = program_rows()
@@ -261,6 +291,7 @@ def _get_required_major(track_id: str) -> str | None:
     return val if val else None
 
 
+@lru_cache(maxsize=1)
 def build_triple_cases() -> list[tuple[str, list[str], list[str], list[str]]]:
     """Generate all valid triple program combinations.
 
@@ -314,46 +345,36 @@ def build_triple_cases() -> list[tuple[str, list[str], list[str], list[str]]]:
     return cases
 
 
-def generate_random_profiles(
-    declared_majors: list[str],
-    track_ids: list[str],
-    declared_minors: list[str],
-    rng: "random.Random",
-    course_universe: list[str],
-    start_term: str = "Fall 2026",
-) -> list[tuple[str, "PlanCase"]]:
-    """Generate 12 random student profiles (3 per standing level).
-
-    Returns list of (standing_label, PlanCase).
-    """
-    from dead_end_utils import PlanCase
-
-    STANDING_CONFIGS = [
-        ("freshman", 0, 10),
-        ("sophomore", 10, 20),
-        ("junior", 15, 30),
-        ("senior", 25, 40),
+@lru_cache(maxsize=1)
+def build_nightly_scenario_pool() -> list[NightlyScenario]:
+    """Return the full valid nightly scenario pool derived from triple combos."""
+    scenarios = [
+        NightlyScenario(
+            label=label,
+            declared_majors=tuple(declared_majors),
+            track_ids=tuple(track_ids),
+            declared_minors=tuple(declared_minors),
+        )
+        for label, declared_majors, track_ids, declared_minors in build_triple_cases()
     ]
+    return sorted(scenarios, key=lambda scenario: scenario.label)
 
-    profiles = []
-    for standing_label, min_courses, max_courses in STANDING_CONFIGS:
-        for i in range(3):
-            effective_max = min(max_courses, len(course_universe))
-            effective_min = min(min_courses, effective_max)
-            if effective_max <= 0:
-                completed = []
-            else:
-                n = rng.randint(effective_min, effective_max)
-                completed = rng.sample(course_universe, n) if n > 0 else []
 
-            case = PlanCase(
-                declared_majors=declared_majors,
-                track_ids=track_ids,
-                declared_minors=declared_minors,
-                completed_courses=completed,
-                in_progress_courses=[],
-                target_semester_primary=start_term,
-            )
-            profiles.append((f"{standing_label}-{i}", case))
+def sample_nightly_scenarios(seed: int, sample_size: int = NIGHTLY_SAMPLE_SIZE) -> list[NightlyScenario]:
+    """Pick a deterministic-random nightly slice from the full scenario pool."""
+    pool = build_nightly_scenario_pool()
+    if sample_size >= len(pool):
+        return pool
 
-    return profiles
+    rng = random.Random(seed)
+    sampled = rng.sample(pool, sample_size)
+    return sorted(sampled, key=lambda scenario: scenario.label)
+
+
+def expected_nightly_case_count(
+    scenario_count: int,
+    profile_count: int = len(NIGHTLY_PROFILES),
+    selection_variants: int = NIGHTLY_SELECTION_VARIANTS,
+) -> int:
+    """Return the expected case count for the current nightly configuration."""
+    return scenario_count * profile_count * selection_variants

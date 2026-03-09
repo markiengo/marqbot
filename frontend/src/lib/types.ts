@@ -67,6 +67,16 @@ export interface BucketProgress {
   recommendation_tier?: number;
 }
 
+export type BucketDetailMode = "current" | "projected";
+
+export interface BucketDetailState {
+  bucketId: string;
+  bucketLabel: string;
+  mode: BucketDetailMode;
+  completedCodes: string[];
+  inProgressCodes: string[];
+}
+
 export interface SelectionContext {
   selected_program_ids?: string[];
   selected_program_labels?: string[];

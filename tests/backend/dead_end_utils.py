@@ -647,3 +647,43 @@ def run_case_and_assert(case: PlanCase, num_terms: int = 9):
     debug_sem = rerun_case_with_debug(case, check.semester_index)
     msg = format_failure(check, debug_sem)
     raise AssertionError(msg)
+
+
+def assert_graduates_by(case: PlanCase, max_semesters: int = 8):
+    """
+    Simulate max_semesters terms and assert all buckets are satisfied
+    by the final semester. Raises AssertionError with detail on failure.
+    """
+    try:
+        semesters = simulate_terms(case, num_terms=max_semesters)
+    except ValueError as exc:
+        raise AssertionError(f"Program selection failed: {exc}")
+
+    if not semesters:
+        raise AssertionError("No semesters returned")
+
+    last = semesters[-1]
+    progress = last.get("progress", {})
+    unsat = unsatisfied_active_buckets(progress)
+    if not unsat:
+        return
+
+    total_recs = sum(len(s.get("recommendations", [])) for s in semesters)
+    per_sem = [
+        f"  Sem {i+1}: {len(s.get('recommendations', []))} recs"
+        for i, s in enumerate(semesters)
+    ]
+    lines = [
+        f"NOT GRADUATED after {max_semesters} semesters ({total_recs} total courses)",
+        f"  declared_majors: {case.declared_majors}",
+        f"  track_ids: {case.track_ids}",
+        f"  declared_minors: {case.declared_minors}",
+        f"  Unsatisfied buckets ({len(unsat)}):",
+    ]
+    for bid in unsat:
+        info = progress[bid]
+        lines.append(
+            f"    {bid}: {info.get('completed', 0)}/{info.get('required_courses', 0)} courses"
+        )
+    lines.extend(per_sem)
+    raise AssertionError("\n".join(lines))

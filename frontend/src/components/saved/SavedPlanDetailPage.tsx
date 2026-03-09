@@ -14,6 +14,7 @@ import {
   getSavedPlanFreshnessCopy,
   resolveProgramLabels,
 } from "@/lib/savedPlanPresentation";
+import { buildRecommendationWarnings, sanitizeRecommendationWhy } from "@/lib/rendering";
 import { RecommendationsPanel } from "@/components/planner/RecommendationsPanel";
 import { SemesterModal } from "@/components/planner/SemesterModal";
 import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
@@ -443,8 +444,10 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
         index={semesterModalIdx ?? 0}
         totalCount={recommendationData?.semesters?.length ?? 0}
         requestedCount={Number(plan.inputs.maxRecs) || 3}
+        courses={courses}
         declaredMajors={plan?.inputs.declaredMajors}
         programLabelMap={programLabelMap}
+        bucketLabelMap={bucketLabelMap}
         programOrder={programOrder}
         onCourseClick={setCourseDetailCode}
       />
@@ -462,6 +465,9 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
             description={courseDetailCode ? descriptionMap.get(courseDetailCode) ?? null : null}
             prereqRaw={courseDetailCode ? courses.find(c => c.course_code === courseDetailCode)?.catalog_prereq_raw : null}
             buckets={hit?.fills_buckets}
+            plannerReason={sanitizeRecommendationWhy(hit?.why)}
+            plannerNotes={hit?.notes}
+            plannerWarnings={buildRecommendationWarnings(hit)}
             programLabelMap={programLabelMap}
             bucketLabelMap={bucketLabelMap}
           />

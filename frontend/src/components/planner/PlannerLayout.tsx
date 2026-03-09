@@ -20,7 +20,18 @@ import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
 import { postRecommend } from "@/lib/api";
-import { getProgramLabelMap } from "@/lib/rendering";
+import {
+  getPlannerFeedbackCooldownUntil,
+  PLANNER_FEEDBACK_DISMISS_COOLDOWN_MS,
+  PLANNER_FEEDBACK_IDLE_DELAY_MS,
+  PLANNER_FEEDBACK_INITIAL_DELAY_MS,
+  PLANNER_FEEDBACK_REPEAT_DELAY_MS,
+  PLANNER_FEEDBACK_SUBMIT_COOLDOWN_MS,
+  readPlannerFeedbackNudgeRecord,
+  writePlannerFeedbackNudgeRecord,
+} from "@/lib/plannerFeedbackNudge";
+import { buildRecommendationWarnings, getProgramLabelMap, sanitizeRecommendationWhy } from "@/lib/rendering";
+import { getCurrentCourseLists } from "@/lib/progressSources";
 import { buildSavedPlanInputsFromAppState } from "@/lib/savedPlans";
 import type { RecommendedCourse, RecommendationResponse, SemesterData } from "@/lib/types";
 
@@ -30,6 +41,54 @@ function formatPlanDate(date: Date): string {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+const rankingExplainerItems = [
+  {
+    id: "1",
+    title: "Can you take it now?",
+    detail: "If a class is locked, MarqBot skips it.",
+  },
+  {
+    id: "2",
+    title: "Is it an important class?",
+    detail: "Must-do school and major classes go before extra classes.",
+  },
+  {
+    id: "3",
+    title: "Does it help right away?",
+    detail: "A class that checks a box now beats one that only helps later.",
+  },
+  {
+    id: "4",
+    title: "Does it open more doors?",
+    detail: "If one class unlocks lots of later classes, it moves up.",
+  },
+  {
+    id: "5",
+    title: "Does it check two boxes?",
+    detail: "One class that helps more than one requirement is extra useful.",
+  },
+  {
+    id: "6",
+    title: "Is it too hard too soon?",
+    detail: "Early students get simpler building-block classes first.",
+  },
+  {
+    id: "7",
+    title: "Does it need a partner?",
+    detail: "If two classes should go together, MarqBot tries to keep them together.",
+  },
+  {
+    id: "8",
+    title: "Requirement diversity",
+    detail: "It tries not to fill your whole plan with just one kind of requirement.",
+  },
+  {
+    id: "9",
+    title: "Does it fit your main path?",
+    detail: "It tries to keep enough picks aimed at the major or track you chose.",
+  },
+] as const;
 
 export function PlannerLayout() {
   const { state, dispatch } = useAppContext();
@@ -45,6 +104,8 @@ export function PlannerLayout() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccessName, setSaveSuccessName] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [feedbackCtaExpanded, setFeedbackCtaExpanded] = useState(false);
+  const [canTakeFeedbackEligible, setCanTakeFeedbackEligible] = useState(false);
   const [semEditCandidates, setSemEditCandidates] = useState<RecommendedCourse[] | null>(null);
   const [semEditLoading, setSemEditLoading] = useState(false);
   const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
@@ -52,7 +113,12 @@ export function PlannerLayout() {
   const closeExplainer = useCallback(() => setExplainerOpen(false), []);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
+  const plannerMountedAtRef = useRef(Date.now());
+  const feedbackLastActiveAtRef = useRef(Date.now());
+  const feedbackLastNudgedAtRef = useRef<number | null>(null);
+  const feedbackNudgeRecordRef = useRef(readPlannerFeedbackNudgeRecord());
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
+  const hasMeaningfulPlannerUse = Boolean(state.lastRecommendationData) || canTakeFeedbackEligible;
 
   // Description lookup map from loaded courses
   const descriptionMap = useMemo(() => {
@@ -64,6 +130,10 @@ export function PlannerLayout() {
   }, [state.courses]);
 
   // Auto-fetch once when arriving fresh from onboarding with no existing recs
+  useEffect(() => {
+    feedbackNudgeRecordRef.current = readPlannerFeedbackNudgeRecord();
+  }, []);
+
   useEffect(() => {
     if (
       didAutoFetch.current ||
@@ -77,6 +147,80 @@ export function PlannerLayout() {
     fetchRecommendations();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.onboardingComplete, state.lastRecommendationData, hasProgram, state.courses.length]);
+
+  useEffect(() => {
+    const markActivity = () => {
+      feedbackLastActiveAtRef.current = Date.now();
+      setFeedbackCtaExpanded(false);
+    };
+
+    window.addEventListener("keydown", markActivity, true);
+    window.addEventListener("pointerdown", markActivity, true);
+    window.addEventListener("touchstart", markActivity, true);
+    window.addEventListener("scroll", markActivity, true);
+
+    return () => {
+      window.removeEventListener("keydown", markActivity, true);
+      window.removeEventListener("pointerdown", markActivity, true);
+      window.removeEventListener("touchstart", markActivity, true);
+      window.removeEventListener("scroll", markActivity, true);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasMeaningfulPlannerUse) return;
+
+    const maybeOpenFeedbackNudge = () => {
+      if (feedbackModalOpen) return;
+      if (document.visibilityState !== "visible") return;
+
+      const now = Date.now();
+      const cooldownUntil = getPlannerFeedbackCooldownUntil(feedbackNudgeRecordRef.current);
+      if (cooldownUntil > now) return;
+
+      if (now - feedbackLastActiveAtRef.current < PLANNER_FEEDBACK_IDLE_DELAY_MS) return;
+
+      const lastNudgedAt = feedbackLastNudgedAtRef.current;
+      const nextEligibleAt = lastNudgedAt === null
+        ? plannerMountedAtRef.current + PLANNER_FEEDBACK_INITIAL_DELAY_MS
+        : lastNudgedAt + PLANNER_FEEDBACK_REPEAT_DELAY_MS;
+      if (now < nextEligibleAt) return;
+
+      feedbackLastNudgedAtRef.current = now;
+      setFeedbackCtaExpanded(true);
+    };
+
+    maybeOpenFeedbackNudge();
+    const timer = window.setInterval(maybeOpenFeedbackNudge, 1000);
+    return () => window.clearInterval(timer);
+  }, [feedbackModalOpen, hasMeaningfulPlannerUse]);
+
+  const openFeedbackModal = useCallback(() => {
+    setFeedbackSuccess(false);
+    setFeedbackCtaExpanded(false);
+    setFeedbackModalOpen(true);
+  }, []);
+
+  const dismissFeedbackNudge = useCallback(() => {
+    const nextRecord = {
+      ...feedbackNudgeRecordRef.current,
+      dismissedUntil: Date.now() + PLANNER_FEEDBACK_DISMISS_COOLDOWN_MS,
+    };
+    feedbackNudgeRecordRef.current = nextRecord;
+    writePlannerFeedbackNudgeRecord(nextRecord);
+    setFeedbackCtaExpanded(false);
+  }, []);
+
+  const handleFeedbackSubmitted = useCallback(() => {
+    const nextRecord = {
+      ...feedbackNudgeRecordRef.current,
+      submittedUntil: Date.now() + PLANNER_FEEDBACK_SUBMIT_COOLDOWN_MS,
+    };
+    feedbackNudgeRecordRef.current = nextRecord;
+    writePlannerFeedbackNudgeRecord(nextRecord);
+    setFeedbackSuccess(true);
+    setFeedbackCtaExpanded(false);
+  }, []);
 
   const programLabelMap = data?.selection_context
     ? getProgramLabelMap(data.selection_context)
@@ -93,6 +237,18 @@ export function PlannerLayout() {
   }, [state.programs.bucket_labels]);
 
   const programOrder = data?.selection_context?.selected_program_ids ?? undefined;
+  const currentCourseLists = useMemo(
+    () => getCurrentCourseLists(data, state.completed, state.inProgress),
+    [data, state.completed, state.inProgress],
+  );
+  const completedCourseCodes = useMemo(
+    () => new Set(currentCourseLists.completed),
+    [currentCourseLists.completed],
+  );
+  const inProgressCourseCodes = useMemo(
+    () => new Set(currentCourseLists.inProgress),
+    [currentCourseLists.inProgress],
+  );
 
   // Reverse map: course_code -> bucket IDs from current_progress allocations
   const courseBucketMap = useMemo(() => {
@@ -307,17 +463,6 @@ export function PlannerLayout() {
               variant="secondary"
               size="sm"
               onClick={() => {
-                setFeedbackSuccess(false);
-                setFeedbackModalOpen(true);
-              }}
-              className="shrink-0"
-            >
-              Feedback
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
                 setSaveError(null);
                 setSaveModalOpen(true);
               }}
@@ -347,25 +492,13 @@ export function PlannerLayout() {
       ) : (
         <div className="px-4 py-2 mb-2 rounded-xl surface-depth-2 flex items-center justify-between gap-3">
           <span className="text-sm text-ink-faint">No program loaded</span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setFeedbackSuccess(false);
-                setFeedbackModalOpen(true);
-              }}
-            >
-              Feedback
-            </Button>
-            <button
-              type="button"
-              onClick={() => setProfileModalOpen(true)}
-              className="text-xs font-semibold text-gold hover:text-gold-light transition-colors cursor-pointer"
-            >
-              Add profile
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setProfileModalOpen(true)}
+            className="text-xs font-semibold text-gold hover:text-gold-light transition-colors cursor-pointer"
+          >
+            Add profile
+          </button>
         </div>
       )}
 
@@ -398,7 +531,12 @@ export function PlannerLayout() {
             </div>
 
             <div className="lg:flex-[2] lg:min-h-0">
-              <CanTakeSection />
+              <CanTakeSection
+                feedbackExpanded={feedbackCtaExpanded}
+                onFeedbackOpen={openFeedbackModal}
+                onFeedbackDismiss={dismissFeedbackNudge}
+                onFeedbackNudgeEligibilityChange={setCanTakeFeedbackEligible}
+              />
             </div>
           </div>
         </div>
@@ -515,9 +653,11 @@ export function PlannerLayout() {
         metrics={metrics}
         currentProgress={data?.current_progress}
         assumptionNotes={data?.current_assumption_notes}
+        courses={state.courses}
         programLabelMap={programLabelMap}
         programOrder={programOrder}
         declaredMajors={[...state.selectedMajors]}
+        onCourseClick={setCourseDetailCode}
       />
       <SemesterModal
         open={semesterModalIdx !== null && modalSemester !== null}
@@ -526,6 +666,7 @@ export function PlannerLayout() {
         index={semesterModalIdx ?? 0}
         totalCount={data?.semesters?.length ?? 0}
         requestedCount={requestedCount}
+        courses={state.courses}
         declaredMajors={[...state.selectedMajors]}
         onNext={() => setSemesterModalIdx(i => i !== null && i < (data?.semesters?.length ?? 0) - 1 ? i + 1 : i)}
         onBack={() => setSemesterModalIdx(i => i !== null && i > 0 ? i - 1 : i)}
@@ -552,78 +693,57 @@ export function PlannerLayout() {
         open={explainerOpen}
         onClose={closeExplainer}
         title="How MarqBot Ranks Courses"
-        titleClassName="!text-[clamp(1.95rem,3.9vw,2.73rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
+        titleClassName="!text-[clamp(1.55rem,3.2vw,2.2rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
         size="planner-detail"
       >
-        <div className="space-y-6 text-base text-ink-secondary">
-          <p className="text-ink-faint text-[1.05rem]">
-            Short version: MarqBot removes anything you cannot take, then sorts what is left by requirement value and what it unlocks.
-          </p>
-          <ol className="space-y-5 list-none">
-            <li className="flex gap-4">
-              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">1</span>
-              <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Can you actually take it?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If a class is blocked by prereqs, standing, program restrictions, or term availability, it stays off the list. Locked means locked.</p>
-              </div>
-            </li>
-            <li className="flex gap-4">
-              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">2</span>
-              <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">What does it count toward?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">MarqBot prioritizes MCC foundation and BCC first, then major work, then track or minor requirements, then later MCC and Discovery. Core work beats detours.</p>
-              </div>
-            </li>
-            <li className="flex gap-4">
-              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">3</span>
-              <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it helping now, or just setting up later?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Classes that fill something now beat bridge classes. Bridge picks stay when they unlock important MCC, BCC, or major work.</p>
-              </div>
-            </li>
-            <li className="flex gap-4">
-              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">4</span>
-              <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it a gatekeeper?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class unlocks a longer chain, it gets a bump. Better to handle that now than let it bully future-you later.</p>
-              </div>
-            </li>
-            <li className="flex gap-4">
-              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">5</span>
-              <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Does it knock out more than one open requirement?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class helps more than one open bucket, that usually moves it up. Efficient classes get rewarded.</p>
-              </div>
-            </li>
-            <li className="flex gap-4">
-              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">6</span>
-              <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it too advanced for right now?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">For early students, MarqBot holds back 3000 and 4000-level backfill while lower-level options still exist. Senior energy can wait.</p>
-              </div>
-            </li>
-            <li className="flex gap-4">
-              <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">7</span>
-              <div>
-                <p className="font-semibold text-white text-[1.1rem] leading-snug">Can it ride with a same-semester companion?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If a class can be taken concurrently, it can be recommended once its partner course is already in the term plan. No orphan labs.</p>
-              </div>
-            </li>
+        <div className="space-y-4 text-base text-ink-secondary">
+          <div className="rounded-2xl border border-gold/20 bg-[linear-gradient(135deg,rgba(255,204,0,0.12),rgba(255,204,0,0.03))] px-4 py-3 sm:px-5">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-gold/90">
+              Fast Read
+            </p>
+            <p className="mt-1 text-[0.98rem] leading-relaxed text-ink-primary sm:text-[1.02rem]">
+              First, MarqBot throws out classes you cannot take yet. Then it sorts what is left.
+            </p>
+          </div>
+          <ol className="grid list-none grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {rankingExplainerItems.map((item, idx) => (
+              <li
+                key={item.id}
+                className="rounded-2xl border border-border-card bg-[linear-gradient(180deg,rgba(11,31,77,0.72),rgba(8,16,36,0.72))] px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.16)]"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/18 text-xs font-bold text-gold shadow-[0_0_12px_rgba(255,204,0,0.14)]">
+                    {idx + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-white text-[1rem] leading-snug">
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-[0.92rem] leading-relaxed text-ink-faint">
+                      {item.detail}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            ))}
           </ol>
-          <div className="divider-fade" />
-          <p className="text-ink-faint text-[1.05rem] pt-3">
-            MarqBot assumes you pass the classes in your plan. If your courses change, rerun it. Same inputs, same output.
-          </p>
-          <p className="text-ink-muted text-[1.05rem]">
-            This is deterministic course logic, not guesswork. Some catalog rows are still messy, so when the data is strange, MarqBot stays cautious. Full picture{" "}
-            <a
-              href="/about"
-              className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"
-            >
-              here
-            </a>
-            .
-          </p>
+          <div className="rounded-2xl border border-border-subtle/60 bg-surface-card/45 px-4 py-3 sm:px-5">
+            <p className="text-[0.92rem] leading-relaxed text-ink-faint">
+              MarqBot assumes you pass the classes in your plan. If your classes change, run it again.
+            </p>
+            <p className="mt-2 text-[0.92rem] leading-relaxed text-ink-muted">
+              This is rule-based, not guessing. Some catalog rows are still messy, so when the data looks weird, MarqBot plays it safe. Full picture{" "}
+              <a
+                href="https://github.com/markiengo/marqbot/blob/main/docs/algorithm.md"
+                target="_blank"
+                rel="noreferrer"
+                className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"
+              >
+                here
+              </a>
+              .
+            </p>
+          </div>
         </div>
       </Modal>
       {(() => {
@@ -641,6 +761,9 @@ export function PlannerLayout() {
             description={descriptionMap.get(courseDetailCode ?? "")}
             prereqRaw={fallbackCourse?.catalog_prereq_raw}
             buckets={detailBuckets}
+            plannerReason={sanitizeRecommendationWhy(detailCourse?.why)}
+            plannerNotes={detailCourse?.notes}
+            plannerWarnings={buildRecommendationWarnings(detailCourse)}
             programLabelMap={programLabelMap}
             bucketLabelMap={bucketLabelMap}
           />
@@ -650,8 +773,13 @@ export function PlannerLayout() {
         open={courseListModal !== null}
         onClose={() => setCourseListModal(null)}
         title={courseListModal === "completed" ? "Credits Completed" : "Credits In Progress"}
-        courseCodes={courseListModal === "completed" ? state.completed : state.inProgress}
+        courseCodes={courseListModal === "completed" ? completedCourseCodes : inProgressCourseCodes}
         courses={state.courses}
+        assumptionNotes={
+          courseListModal === "completed" && currentCourseLists.inputsMatchState
+            ? data?.current_assumption_notes
+            : undefined
+        }
         onCourseClick={(code) => { setCourseListModal(null); setCourseDetailCode(code); }}
       />
       <SavePlanModal
@@ -665,7 +793,7 @@ export function PlannerLayout() {
       <FeedbackModal
         open={feedbackModalOpen}
         onClose={() => setFeedbackModalOpen(false)}
-        onSubmitted={() => setFeedbackSuccess(true)}
+        onSubmitted={handleFeedbackSubmitted}
       />
     </div>
   );
