@@ -1,15 +1,17 @@
 # Test Structure
 
-Last updated: 2026-03-08
+Last updated: 2026-03-09
+
+Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
 ## Quick Reference
 
 | What to run | Command | Tests |
 |---|---|---:|
-| **Standard suite** | `python -m pytest -q` | ~633 |
-| **Fast dead-end check** | `python -m pytest tests/backend/test_dead_end_fast.py -q` | 55 |
-| **Nightly sweep** | `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | ~12,372 |
-| **Frontend** | `cd frontend && npm run test` | 60 |
+| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | ~633 |
+| **Fast dead-end check** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q` | 55 |
+| **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | ~12,372 |
+| **Frontend** | `cd frontend; npm run test` | 71 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
 
@@ -18,11 +20,11 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 | Change type | Run these |
 |---|---|
 | Narrow backend fix | Closest test file |
-| Broad backend change | Focused file + `python -m pytest -q` |
+| Broad backend change | Focused file + `.\.venv\Scripts\python.exe -m pytest -q` |
 | Planner / recommendation logic | Focused file + `test_dead_end_fast.py` |
 | Release confidence | Nightly sweep (separately) |
 | Frontend helper | Closest test file |
-| Frontend broad / pre-push | `npm run test && npm run lint && npm run build` |
+| Frontend broad / pre-push | `cd frontend; npm run test; npm run lint; npm run build` |
 
 ## Backend Test Files
 
@@ -72,8 +74,16 @@ Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 | `savedPlanPresentation.test.ts` | 3 | Yes | Saved-plan display strings |
 | `savedPlans.test.ts` | 9 | Yes | Plan persistence, freshness |
 | `utils.test.ts` | 9 | Yes | Bucket labels, note formatting |
+| `frontend/tests/coursesStep.dom.test.ts` | 1 | Yes | Planner DOM warning flow |
+| `frontend/tests/multiSelect.dom.test.ts` | 2 | Yes | Picker DOM interactions |
+| `frontend/tests/onboardingPage.dom.test.ts` | 3 | Yes | Onboarding DOM flow |
+| `frontend/tests/profileModal.dom.test.ts` | 2 | Yes | Profile modal submit/error flow |
+| `frontend/tests/savedPlanDetailPage.dom.test.ts` | 1 | Yes | Saved-plan detail delete confirmation |
+| `frontend/tests/savedPlanViewModal.dom.test.ts` | 1 | Yes | Saved-plan modal delete confirmation |
+| `frontend/tests/semesterModal.dom.test.ts` | 1 | Yes | Semester modal interactions |
 
-DOM specs (`*.dom.test.ts`) are checked in but excluded from the default Vitest config.
+`tests/frontend/*.dom.test.ts` is excluded from the default Vitest run.
+`frontend/tests/*.dom.test.ts` is included in the default Vitest run.
 
 ## CI Workflow
 
@@ -87,26 +97,28 @@ One unified workflow: `.github/workflows/nightly-sweep.yml`
 
 ## Running Tests Locally
 
-All tests run fully offline — no internet needed. Everything reads from the CSVs in `data/`.
+All tests run fully offline once dependencies already exist locally. Make sure `.venv/` and `frontend/node_modules/` are present before you lose internet. Everything reads from the CSVs in `data/`.
 
-```bash
+```powershell
 # Standard suite (~1 min)
-python -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -q
 
 # Fast dead-end only (~30s)
-python -m pytest tests/backend/test_dead_end_fast.py -q
+.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q
 
 # Nightly sweep (~45 min, ~12k tests)
-python -m pytest -m nightly -q
+.\.venv\Scripts\python.exe -m pytest -m nightly -q
 
-# Nightly with a specific seed (replay a past day's profiles)
-NIGHTLY_SEED=20260308 python -m pytest -m nightly -q
+# Nightly with a specific seed in PowerShell (replay a past day's profiles)
+$env:NIGHTLY_SEED='20260308'
+.\.venv\Scripts\python.exe -m pytest -m nightly -q
 
 # Run one specific combo
-python -m pytest -m nightly -k "FIN_MAJOR+AIM_CFA_TRACK" -q
+.\.venv\Scripts\python.exe -m pytest -m nightly -k "FIN_MAJOR+AIM_CFA_TRACK" -q
 
 # Frontend
-cd frontend && npm test
+cd frontend
+npm run test
 ```
 
 The nightly sweep generates a report at `tests/nightly_reports/YYYY-MM-DD.md` after finishing.
@@ -118,5 +130,5 @@ The nightly sweep tests every valid triple combination of programs (major + trac
 - **Seed**: date-based (`YYYYMMDD`) for daily reproducibility; override with `NIGHTLY_SEED` env var
 - **Report**: uploaded as artifact `nightly-sweep-report` (14-day retention); includes what broke, analysis, and next steps
 - **Fallback**: if pytest crashes during collection, a fallback report captures the error output
-- **Where to find results**: [GitHub Actions → Nightly Sweep](../../actions/workflows/nightly-sweep.yml) → click a run → scroll to Artifacts at the bottom → download `nightly-sweep-report`
+- **Where to find results**: [GitHub Actions -> Nightly Sweep](../../actions/workflows/nightly-sweep.yml) -> click a run -> scroll to Artifacts at the bottom -> download `nightly-sweep-report`
 - **Local runs** generate the report at `tests/nightly_reports/YYYY-MM-DD.md`

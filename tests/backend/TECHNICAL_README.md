@@ -29,25 +29,25 @@ Backend tests protect:
 
 ### Default backend regression
 
-`python -m pytest -q`
+`.\.venv\Scripts\python.exe -m pytest -q`
 
 Use this for normal development and PR checks.
 
 ### Fast planner guardrail
 
-`python -m pytest tests/backend/test_dead_end_fast.py -q`
+`.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q`
 
 Run this when touching planner selection, eligibility, or recommendation ordering.
 
 ### Nightly-only planner sweep
 
-`python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q`
+`.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q`
 
 This is the large exhaustive planner pass. Do not treat it as a normal local command.
 
 ### Full backend suite
 
-`python -m pytest tests/backend -q -m "nightly or not nightly"`
+`.\.venv\Scripts\python.exe -m pytest tests/backend -q -m "nightly or not nightly"`
 
 Use only when you explicitly want to override the default `pytest.ini` nightly exclusion.
 

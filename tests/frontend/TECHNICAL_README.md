@@ -33,7 +33,9 @@ This is the default frontend lane used by the normal regression workflow.
 
 ## Important Note
 
-The DOM-focused tests are checked in, but the current Vitest config excludes `tests/frontend/*.dom.test.ts` from the default run.
+The current Vitest config has two DOM-test buckets:
+- `tests/frontend/*.dom.test.ts` is excluded from the default run.
+- `frontend/tests/*.dom.test.ts` is included in the default run.
 
 If you add or rename `.dom.test.*` files, make sure the Vitest config and the intended command still match. A DOM test file that exists but is not part of the default run gives false confidence.
 

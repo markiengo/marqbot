@@ -49,27 +49,28 @@ Session-end rule:
 - Narrow backend fix:
   - Run the closest backend test file.
 - Broad backend change or pre-push confidence:
-  - Run the closest focused file plus `python -m pytest -q`
+  - Run the closest focused file plus `.\.venv\Scripts\python.exe -m pytest -q`
 - If planner or recommendation logic changed:
-  - Run `python -m pytest tests/backend/test_dead_end_fast.py -q`
+  - Run `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q`
   - Also run the closest focused backend file.
 - Do not run:
-  - `python -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q`
+  - `.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q`
 
 ### Frontend changes
 - Frontend helper or narrow UI change:
   - Run the closest frontend test file.
 - Broad frontend change or pre-push:
-  - `cd frontend && npm run test`
-  - `cd frontend && npm run lint`
-  - `cd frontend && npm run build`
+  - `cd frontend; npm run test`
+  - `cd frontend; npm run lint`
+  - `cd frontend; npm run build`
 - Remember:
-  - DOM specs are checked in but excluded from the default Vitest run.
+  - `tests/frontend/*.dom.test.ts` is excluded from the default Vitest run.
+  - `frontend/tests/*.dom.test.ts` is included in the default Vitest run.
 
 ### Data changes
 - Run the closest backend coverage for the changed area.
 - If recommendation behavior changed, run the fast dead-end check too.
-- If the data change is broad, add `python -m pytest -q`.
+- If the data change is broad, add `.\.venv\Scripts\python.exe -m pytest -q`.
 
 ### Workflow changes
 - Read the workflow file carefully for obvious mistakes.

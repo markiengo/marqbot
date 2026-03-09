@@ -14,8 +14,8 @@ If anything below conflicts with this section, trust this section.
 - Feedback submissions are stored through `FEEDBACK_PATH`; on Render this should point at a persistent disk file.
 - Honors students can receive honors-section variants, and honors/base equivalents are deduplicated in recommendations.
 - Important env vars now include `REQUEST_CACHE_SIZE`, `SLOW_REQUEST_LOG_MS`, and `FEEDBACK_PATH`.
-- Frontend default test command is `cd frontend && npm test`; backend default test command is `python -m pytest -q`.
-- Current Vitest config excludes `tests/frontend/*.dom.test.ts` from the default run.
+- Frontend default test command is `cd frontend; npm test`; backend default test command is `.\.venv\Scripts\python.exe -m pytest -q`.
+- Current Vitest config excludes `tests/frontend/*.dom.test.ts` from the default run, but includes `frontend/tests/*.dom.test.ts`.
 - User preference from this session: do not run local tests unless explicitly asked. Let GitHub / nightly handle verification.
 - `docs/` is pushable now; do not assume any docs subtree is local-only.
 - `.claude/` stays local-only. Do not push it.
@@ -35,16 +35,16 @@ MarqBot is a deterministic degree-planning assistant for Marquette business stud
 - `marquette_courses_full.xlsx`: legacy Excel source; still present but no longer the default. Override with `DATA_PATH=marquette_courses_full.xlsx` to use it.
 
 # Commands
-- **Setup**: `python -m venv .venv && .\.venv\Scripts\python.exe -m pip install -r requirements.txt && cd frontend && npm ci`
+- **Setup**: `python -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r requirements.txt; cd frontend; npm ci`
 - **Full stack**: `.\.venv\Scripts\python.exe scripts/run_local.py`
 - **Backend only**: `.\.venv\Scripts\python.exe backend/server.py`
-- **Frontend dev**: `cd frontend && npm run dev` | **Build**: `npm run build`
+- **Frontend dev**: `cd frontend; npm run dev` | **Build**: `npm run build`
 - **Backend tests (focused, use first)**: closest relevant file in `tests/backend/`
 - **Backend tests (standard suite)**: `.\.venv\Scripts\python.exe -m pytest -q`
 - **Backend planner sweep**: `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q`
 - **Backend nightly sweep**: `.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` (only when explicitly requested or release-grade confidence is needed)
-- **Frontend tests (default config)**: `cd frontend && npm test`
-- **Frontend pushable checks**: `cd frontend && npm test && npm run lint && npm run build`
+- **Frontend tests (default config)**: `cd frontend; npm test`
+- **Frontend pushable checks**: `cd frontend; npm test; npm run lint; npm run build`
 - **Validate tracks**: `.\.venv\Scripts\python.exe scripts/validate_track.py --all`
 - **Docker**: `docker build -f infra/docker/Dockerfile -t marqbot:local .` → `docker run --rm -p 5000:5000 -e PORT=5000 -e WEB_CONCURRENCY=1 marqbot:local`
 
@@ -122,7 +122,7 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - **Never push the `local` branch to remote.**
 - `.github/workflows/nightly-sweep.yml` is the single CI workflow. PR gate jobs (backend regression, planner fast, frontend) run on pull requests; nightly exhaustive sweep runs on schedule at `2:39 AM` Milwaukee time (two UTC cron entries + hour-based `America/Chicago` gate).
 - Backend standard pytest run is `.\.venv\Scripts\python.exe -m pytest -q`; it excludes `nightly` via `pytest.ini`.
-- Frontend default Vitest run does not include `tests/frontend/*.dom.test.ts`; those DOM specs are checked in but outside the current default include set.
+- Frontend default Vitest run excludes `tests/frontend/*.dom.test.ts` but includes `frontend/tests/*.dom.test.ts`.
 
 # Action rules
 - Never switch production away from static Next export without redesigning backend static serving.

@@ -161,12 +161,12 @@ Use `tests/test_structure.md` as the source of truth.
 - narrow frontend change:
   - run the closest focused frontend test file
 - broad frontend change:
-  - `cd frontend && npm run test`
-  - `cd frontend && npm run build`
+  - `cd frontend; npm run test`
+  - `cd frontend; npm run build`
 
 ### Quip change
 - `.\.venv\Scripts\python.exe scripts/compile_quips.py`
-- `cd frontend && npm test -- --run ../tests/frontend/quips.test.ts`
+- `cd frontend; npm test -- --run ../tests/frontend/quips.test.ts`
 
 ### Data-model change
 - backend tests
