@@ -16,19 +16,12 @@ Format per release:
 - Tightened planner-facing microcopy: recommendation explainer, feedback modal, can-take panel, saved-plan states, and profile/settings surfaces now explain tradeoffs more directly.
 - Moved local feedback storage from `docs_local/` to ignored `docs/feedbacks/feedback.jsonl` so feedback logs stay inside the docs area without becoming pushable repo history.
 - Added a frontend language audit memo and refreshed the branding guide so future copy work has explicit humor limits, tone rules, and surface-by-surface guidance.
-- Added an in-app feedback form to the Planner. Students can now rate the app, report bugs, or leave ideas without leaving MarqBot.
-- Feedback submissions now go through a backend API and can be stored in a JSONL file, which is ready for a Render persistent disk setup.
-- Honors students can now receive honors-section equivalents without duplicate base-course clutter in recommendation results.
-- Updated the About page so students are told where to send feedback: use the planner feedback button first, or contact Markie directly.
-- Added focused backend and frontend feedback test files to cover the new feedback payload and API behavior.
-- Updated project docs and technical readmes to match the current stack: split prereq CSVs, equivalencies, saved plans, honors-aware recommendations, and feedback storage.
 
 ### Design Decisions
 
 - Humor should target system friction, not the student. The product can be funny without sounding unserious about degree rules.
+- Voice should stay clearer than it is quirky. If a joke makes an instruction weaker, the joke loses.
 - Local feedback logs now live under `docs/feedbacks/` but stay git-ignored so docs can be pushable without leaking student submissions.
-- Feedback is app-level, not card-level. One modal keeps the UI clean and gives students one obvious place to report problems.
-- Feedback storage is append-only JSONL so it is easy to inspect, export, and host on Render without adding a database yet.
 
 ---
 
