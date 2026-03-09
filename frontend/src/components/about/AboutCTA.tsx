@@ -90,14 +90,14 @@ export function AboutCTA() {
               {...viewAnim(10, 0.22)}
               className="mx-auto mt-4 max-w-[34rem] text-[0.98rem] leading-relaxed text-ink-muted sm:text-[1.05rem]"
             >
-              Bug reports, feature requests, wrong requirements, or copy that sounded too pleased with itself all belong here.
+              Bug reports, requirement fixes, or copy that drifted out of bounds all belong here.
             </motion.p>
 
             <motion.p
               {...viewAnim(10, 0.25)}
               className="mx-auto mt-3 max-w-[34rem] text-sm leading-relaxed text-ink-secondary"
             >
-              Fastest route: use the Feedback button inside the planner. If you would rather reach out directly, email or DM me here.
+              Fastest route: use the Feedback button inside the planner. If CheckMarq and MarqBot disagree, send it. Email or DM works too.
             </motion.p>
 
             <motion.div
@@ -143,7 +143,7 @@ export function AboutCTA() {
             </div>
 
             <p className="mt-8 text-sm leading-relaxed text-ink-muted">
-              If you are already in the app, use Feedback. If not, send the course code, what you clicked, and what looked wrong.
+              If you are already in the app, use Feedback. If not, send the course code, what you clicked, and what you expected to happen.
             </p>
 
             <AnchorLine variant="fade" className="mt-8" />

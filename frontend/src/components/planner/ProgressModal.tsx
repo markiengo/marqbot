@@ -145,7 +145,7 @@ export function ProgressModal({
                 ))
               ) : (
                 <p className="relative z-[1] text-[0.96rem] text-ink-faint">
-                  No assumptions applied. Clean slate.
+                  No assumptions applied.
                 </p>
               )}
             </div>

@@ -1,72 +1,72 @@
 pool_type,pool_id,slot,target,weight,text
-dimension,standing,freshman,progress,2,Freshman standing. The tutorial zone has Wi-Fi and a meal plan.
-dimension,standing,freshman,progress,2,Year one. Your transcript is a blank canvas with Raynor Library vibes.
+dimension,standing,freshman,progress,2,Freshman standing. The first-year zone has Wi-Fi and a meal plan.
+dimension,standing,freshman,progress,2,Year one. Your transcript is a blank canvas and Raynor already has opinions.
 dimension,standing,freshman,progress,2,Freshman era. D2L just loaded and your professor already posted 47 things.
-dimension,standing,freshman,progress,1,Brand new to the lore. The O'Brien hallways all look the same.
+dimension,standing,freshman,progress,1,Brand new here. The O'Brien hallways still all look the same.
 dimension,standing,freshman,progress,2,Freshman standing. The campus map is doing more heavy lifting than you.
-dimension,standing,freshman,progress,2,First-year energy. CheckMarq is still a mystery wrapped in a portal.
-dimension,standing,freshman,progress,1,Day one vibes. The Raynor printer already has an opinion about you.
-dimension,standing,freshman,progress,2,Freshman arc. Every hallway in O'Brien still looks the same.
+dimension,standing,freshman,progress,2,First year. CheckMarq is still a mystery wrapped in a portal.
+dimension,standing,freshman,progress,1,Day one. The Raynor printer already has an opinion about you.
+dimension,standing,freshman,progress,2,Freshman standing. Every hallway in O'Brien still looks the same.
 dimension,standing,freshman,progress,0.5,Year one and the vending machine in Zilber is already your therapist.
 dimension,standing,freshman,progress,2,Freshman standing. Your backpack weighs more than your GPA decisions.
-dimension,standing,freshman,progress,1,New student energy. The AMU Starbucks line already knows your order.
+dimension,standing,freshman,progress,1,New student status. The AMU Starbucks line already knows your order.
 dimension,standing,freshman,progress,2,Freshman era. Your CheckMarq password is doing more work than you.
 dimension,standing,freshman,progress,1,The Raynor fourth floor has not met you yet. It will.
 dimension,standing,freshman,progress,2,Year one. The degree is still in its packaging somewhere in O'Brien.
 dimension,standing,freshman,progress,0.5,Freshman standing. You still think the AMU food court moves fast.
 dimension,standing,freshman,progress,2,Freshman status. The AMU food court is still exciting. Cherish that.
 dimension,standing,freshman,progress,1,Year one. Wisconsin Ave feels longer when you are carrying textbooks.
-dimension,standing,sophomore,progress,2,Sophomore standing. Tutorial is over. The D2L notifications hit back now.
+dimension,standing,sophomore,progress,2,Sophomore standing. The warm-up is over. The D2L notifications hit back now.
 dimension,standing,sophomore,progress,2,Year two. You have opinions about which Raynor floor is best.
 dimension,standing,sophomore,progress,1,Sophomore standing. Enough experience to be dangerous on CheckMarq.
-dimension,standing,sophomore,progress,2,Second-year era. The O'Brien elevators are part of your daily lore.
+dimension,standing,sophomore,progress,2,Second year. The O'Brien elevators are part of your daily routine.
 dimension,standing,sophomore,progress,2,You survived year one. The reward is harder classes in Zilber.
-dimension,standing,sophomore,progress,1,Sophomore energy. You walk through O'Brien like you own the hallway.
+dimension,standing,sophomore,progress,1,Sophomore standing. You walk through O'Brien like you know the hallway.
 dimension,standing,sophomore,progress,2,Second year. The Raynor study rooms are your second home now.
 dimension,standing,sophomore,progress,1,You know CheckMarq now. CheckMarq has started testing you back.
-dimension,standing,sophomore,progress,2,Sophomore standing. Lowkey the most underrated era of the whole degree.
+dimension,standing,sophomore,progress,2,Sophomore standing. Quietly one of the best parts of the whole degree.
 dimension,standing,sophomore,progress,0.5,This is where planning stops being optional and D2L starts being real.
 dimension,standing,sophomore,progress,2,Year two. The Zilber elevator small talk hits different now.
-dimension,standing,sophomore,progress,1,Sophomore arc. Your D2L dashboard is starting to look lived-in.
+dimension,standing,sophomore,progress,1,Sophomore standing. Your D2L dashboard is starting to look lived-in.
 dimension,standing,sophomore,progress,2,Second year. You have a favorite Raynor spot and strong feelings about it.
 dimension,standing,sophomore,progress,0.5,Sophomore standing. The Brew knows your name and your order.
 dimension,standing,sophomore,progress,2,Year two and the AMU food court knows your order by heart.
 dimension,standing,junior,progress,2,Junior standing. The major said enough warm-up. O'Brien wants receipts.
-dimension,standing,junior,progress,2,Upper-division era. The D2L syllabus has entered its villain arc.
-dimension,standing,junior,progress,1,Junior standing. The lore is academically binding now. No cap.
+dimension,standing,junior,progress,2,Upper-division stretch. The D2L syllabus is not easing up.
+dimension,standing,junior,progress,1,Junior standing. The catalog details matter now.
 dimension,standing,junior,progress,2,Year three. The Zilber hallways feel like a second home. Concerning.
 dimension,standing,junior,progress,2,You are deep enough that Raynor staff recognize your study corner.
-dimension,standing,junior,progress,1,"Junior energy. Running on iced coffee, determination, and Raynor Wi-Fi."
+dimension,standing,junior,progress,1,"Junior standing. Running on iced coffee, determination, and Raynor Wi-Fi."
 dimension,standing,junior,progress,2,Upper-level courses. Same you but the O'Brien grading rubric got personal.
 dimension,standing,junior,progress,1,Junior standing. The easy electives have left the O'Brien building.
 dimension,standing,junior,progress,2,This is the stretch where good planning pays dividends at CheckMarq.
 dimension,standing,junior,progress,0.5,Year three. The 300-level courses in Zilber just smiled at you.
-dimension,standing,junior,progress,2,Junior arc. The requirements are negotiating from a position of strength.
+dimension,standing,junior,progress,2,Junior standing. The requirements are negotiating from a position of strength.
 dimension,standing,junior,progress,1,You made it to the serious part. The Brew cannot save you now.
 dimension,standing,junior,progress,2,Year three. O'Brien hallways feel like a second home. Concerning.
 dimension,standing,junior,progress,0.5,Junior standing. Your D2L notifications have their own D2L notifications.
-dimension,standing,junior,progress,2,Upper-division arc. The group project found you in Zilber anyway.
-dimension,standing,senior,progress,2,Senior standing. Final season. The diploma is rendering in real time.
+dimension,standing,junior,progress,2,Upper-division semester. The group project found you in Zilber anyway.
+dimension,standing,senior,progress,2,Senior standing. Final stretch. The diploma is rendering in real time.
 dimension,standing,senior,progress,2,Senior era. The Raynor exit is about to become a graduation walk.
 dimension,standing,senior,progress,1,Senior standing. This is not the moment for a random CheckMarq adventure.
 dimension,standing,senior,progress,2,The transcript has receipts and the O'Brien hallway knows it.
-dimension,standing,senior,progress,0.5,Final-year plot. Keep it clean or CheckMarq will personally humble you.
+dimension,standing,senior,progress,0.5,Final year. Keep it clean or CheckMarq will personally humble you.
 dimension,standing,senior,progress,1,"Senior standing. Calm face, chaotic D2L calendar."
-dimension,standing,senior,progress,2,You are in the last arc now. The Raynor plot armor is expiring.
+dimension,standing,senior,progress,2,You are in the last stretch now. The Raynor grace period is over.
 dimension,standing,senior,progress,1,Senior era. Handshake is open in one tab and D2L in the other.
 dimension,standing,senior,progress,2,The finish line is real. Wisconsin Ave is about to become nostalgia.
 dimension,standing,senior,progress,2,Senior standing. The degree is almost fully rendered. No CheckMarq crashes.
-dimension,standing,senior,progress,1,This is the part where strategy beats vibes and Handshake beats panic.
+dimension,standing,senior,progress,1,This is the part where strategy beats panic and Handshake matters more.
 dimension,standing,senior,progress,2,Final-year status. One wrong elective and the Zilber timeline gets emotional.
-dimension,standing,senior,progress,0.5,Senior arc. Even the Raynor security guard is rooting for you.
+dimension,standing,senior,progress,0.5,Senior year. Even the Raynor security guard is rooting for you.
 dimension,standing,senior,progress,2,Senior standing. O'Brien Suite 111 would high-five you if they knew.
 dimension,standing,senior,progress,1,Year four. The cap and gown is loading in the CheckMarq background.
-dimension,standing,senior,progress,2,Senior standing. Every remaining course feels like a Zilber plot twist.
+dimension,standing,senior,progress,2,Senior standing. Every remaining course feels like a Zilber surprise.
 dimension,standing,senior,progress,1,Year four. The AMU food court hits nostalgic now.
 dimension,progress,early,progress,2,Early progress. The loading bar just appeared on your CheckMarq screen.
-dimension,progress,early,progress,2,The plan is still in its origin story. No Raynor montage yet.
+dimension,progress,early,progress,2,The plan is still getting started. No Raynor montage yet.
 dimension,progress,early,progress,0.5,Under 16% done. The opening D2L cutscene is still playing.
-dimension,progress,early,progress,2,This is the foundation arc. It looks boring but it is load-bearing.
+dimension,progress,early,progress,2,This is the foundation stretch. It looks boring but it is load-bearing.
 dimension,progress,early,progress,2,"Low progress, high potential. Classic O'Brien underdog opening."
 dimension,progress,early,progress,1,You just started. The degree is mostly theoretical at this point.
 dimension,progress,early,progress,2,This is the boring setup that saves future-you from a CheckMarq breakdown.
@@ -74,20 +74,20 @@ dimension,progress,early,progress,1,The degree is still mostly blueprint and AMU
 dimension,progress,early,progress,2,Early days. The Zilber map looks big because nobody lied to you.
 dimension,progress,early,progress,1,Nothing is snowballing yet. Perfect time to be annoyingly strategic.
 dimension,progress,early,progress,0.5,The progress bar barely moved but the D2L assignments already did.
-dimension,progress,early,progress,1,Chapter one energy. The Raynor protagonist does not know the plot yet.
+dimension,progress,early,progress,1,Early days. The Raynor protagonist does not know the plan yet.
 dimension,progress,early,progress,2,Early progress. The degree grind is buffering on CheckMarq.
 dimension,progress,early,progress,2,Single-digit progress. The O'Brien spreadsheet is judging you gently.
-dimension,progress,early,progress,2,Early progress. The D2L dashboard just finished its cold open.
+dimension,progress,early,progress,2,Early progress. The D2L dashboard just woke up.
 dimension,progress,building,progress,2,Building progress. Credits are stacking like Raynor reserves.
 dimension,progress,building,progress,2,This degree is beating the fake-major allegations one CheckMarq credit at a time.
-dimension,progress,building,progress,1,You are out of the O'Brien tutorial and into real momentum.
+dimension,progress,building,progress,1,You are out of the O'Brien warm-up and into real momentum.
 dimension,progress,building,progress,2,The progress bar escaped the danger zone. Zilber respects that.
 dimension,progress,building,progress,0.5,This is the phase where one locked-in semester changes everything.
 dimension,progress,building,progress,1,"Not done, not stuck. Cruising altitude over Wisconsin Ave."
-dimension,progress,building,progress,2,Momentum era. The transcript is starting to look intentional.
-dimension,progress,building,progress,1,The Raynor transcript has entered its character development arc.
+dimension,progress,building,progress,2,Momentum phase. The transcript is starting to look intentional.
+dimension,progress,building,progress,1,The Raynor transcript is starting to look like it knows where it is going.
 dimension,progress,building,progress,2,This is what forward motion looks like on CheckMarq without the drama.
-dimension,progress,building,progress,0.5,Building phase. The vibes are construction site but make it O'Brien.
+dimension,progress,building,progress,0.5,Building phase. It looks messy, but the progress is real.
 dimension,progress,building,progress,2,You are getting traction. The algorithm clocked it before D2L did.
 dimension,progress,building,progress,1,Credits are piling up like unread D2L notifications but productive.
 dimension,progress,building,progress,2,Building progress. The degree is leaving its Raynor larval stage.
@@ -116,22 +116,22 @@ dimension,progress,homestretch,progress,2,Homestretch era. Clean moves only. No 
 dimension,progress,homestretch,progress,0.5,The remaining credits are countable on your hands. Wild.
 dimension,progress,homestretch,progress,2,This is the part where discipline becomes your whole Zilber personality.
 dimension,progress,homestretch,progress,1,Almost there. The CheckMarq degree audit is starting to look friendly.
-dimension,progress,homestretch,progress,2,The endgame is here. Please stop freestyling and follow the Raynor plan.
+dimension,progress,homestretch,progress,2,The endgame is here. Please stop improvising and follow the Raynor plan.
 dimension,progress,homestretch,progress,1,Close enough to taste graduation but far enough to still mess it up.
 dimension,progress,homestretch,progress,2,Homestretch. The O'Brien hallway walk is about to become nostalgia.
 dimension,progress,homestretch,progress,0.5,You did the hard part. Now do the careful part. They are different.
 dimension,progress,homestretch,progress,2,The degree is 66% baked. The D2L oven is not the time to get creative.
-dimension,progress,homestretch,progress,1,Homestretch progress. The Zilber vibe is cautiously aggressive.
+dimension,progress,homestretch,progress,1,Homestretch progress. The Zilber mood is cautious and serious.
 dimension,progress,homestretch,progress,2,Homestretch progress. Wisconsin Ave sunsets hit different when you are close.
 dimension,progress,nearDone,both,2,Near done. Single-digit requirements left on CheckMarq. Do not fumble.
-dimension,progress,nearDone,both,2,This degree is in the end credits but the D2L bloopers still bite.
+dimension,progress,nearDone,both,2,This degree is almost done but D2L mistakes still bite.
 dimension,progress,nearDone,both,1,You are so close that every remaining Zilber choice has consequences.
 dimension,progress,nearDone,both,2,A handful of boxes left. Creativity is not your friend right now.
 dimension,progress,nearDone,both,2,Almost complete. The CheckMarq margin for error has been laid off.
-dimension,progress,nearDone,both,0.5,This is not the time to test your Raynor side-quest instincts.
-dimension,progress,nearDone,both,2,Near-finish energy. Surgical precision only in O'Brien.
+dimension,progress,nearDone,both,0.5,This is not the time to get creative at Raynor.
+dimension,progress,nearDone,both,2,Near finish. Surgical precision only in O'Brien.
 dimension,progress,nearDone,both,1,You can count what is left without opening CheckMarq. Rare state.
-dimension,progress,nearDone,both,2,A few requirements remain and each one thinks it is the D2L main event.
+dimension,progress,nearDone,both,2,A few requirements remain and each one thinks it deserves special treatment.
 dimension,progress,nearDone,both,0.5,This close to done? Keep the plan so boring it puts Zilber to sleep.
 dimension,progress,nearDone,both,2,The end is right there. Zero room for academic improv.
 dimension,progress,nearDone,both,0.5,Almost complete. The only note left is finish and leave Raynor.
@@ -144,8 +144,8 @@ dimension,progress,done,both,1,Everything is complete. The Raynor algorithm can 
 dimension,progress,done,both,2,Degree finished. The D2L prereqs lost and they know it.
 dimension,progress,done,both,2,Zero remaining. That is elite CheckMarq transcript management.
 dimension,progress,done,both,0.5,The plan actually worked from orientation to Zilber completion.
-dimension,progress,done,both,2,Nothing left to fill. Go outside. Touch non-Raynor grass.
-dimension,progress,done,both,1,Complete across the board. Flawless victory screen energy.
+dimension,progress,done,both,2,Nothing left to fill. Go outside for a minute.
+dimension,progress,done,both,1,Complete across the board. Very clean work.
 dimension,progress,done,both,2,This degree is fully assembled. No missing D2L screws. No extra parts.
 dimension,progress,done,both,0.5,All boxes checked. Even the weird CheckMarq ones.
 dimension,progress,done,both,1,Finished. Actually finished. This is not a D2L glitch.
@@ -157,20 +157,20 @@ dimension,remaining,mountain,progress,2,A mountain of credits remains. The view 
 dimension,remaining,mountain,progress,2,This number is large but CheckMarq is showing you the truth.
 dimension,remaining,mountain,progress,1,Long road ahead. Better to see it clearly than spiral in D2L.
 dimension,remaining,mountain,progress,0.5,The number is loud. That is exactly why this Zilber planner exists.
-dimension,remaining,mountain,progress,2,A full degree sits in front of you. Classic O'Brien opening-act energy.
+dimension,remaining,mountain,progress,2,A full degree sits in front of you. Classic O'Brien opening move.
 dimension,remaining,mountain,progress,1,"Lots left, which is completely normal. Even Raynor was built floor by floor."
 dimension,remaining,mountain,progress,2,"This total requires snacks, strategy, and one friend who gets CheckMarq."
 dimension,remaining,mountain,progress,1,The mountain is real. The route up it starts at Zilber. Pick one.
 dimension,remaining,mountain,progress,2,"Big number, real number, manageable one D2L semester at a time."
 dimension,remaining,mountain,progress,1,You are looking at the whole climb instead of pretending it is flat.
-dimension,remaining,mountain,progress,2,A lot remains. Lowkey the most useful CheckMarq screen right now.
+dimension,remaining,mountain,progress,2,A lot remains. Honestly one of the most useful CheckMarq screens right now.
 dimension,remaining,mountain,progress,1,This is not a red flag. It is just the full Raynor picture.
 dimension,remaining,mountain,progress,2,The credit mountain has base camps. You are at the O'Brien first one.
 dimension,remaining,mountain,progress,0.5,Triple-digit credits left. The degree is not bluffing.
 dimension,remaining,mountain,progress,2,Mountain of credits ahead. The Wisconsin Ave trailhead starts here.
 dimension,remaining,chunk,progress,2,A solid chunk remains. Serious but the D2L alerts are not screaming.
 dimension,remaining,chunk,progress,2,There is still real work left but CheckMarq gave it a shape now.
-dimension,remaining,chunk,progress,1,This is a semester stack not a crisis. Different Zilber energy.
+dimension,remaining,chunk,progress,1,This is a semester stack not a crisis. Zilber can work with that.
 dimension,remaining,chunk,progress,2,Enough remaining to matter. Not enough to spiral at Raynor about.
 dimension,remaining,chunk,progress,2,The number is shrinking on CheckMarq and behaving itself.
 dimension,remaining,chunk,progress,1,A meaningful chunk is left. Stay locked in at O'Brien.
@@ -194,9 +194,9 @@ dimension,remaining,manageable,progress,1,Manageable left. Do not make it unmana
 dimension,remaining,manageable,progress,2,The workload is compact enough to optimize like a CheckMarq speedrun.
 dimension,remaining,manageable,progress,1,This is the kind of count that rewards clean O'Brien decisions.
 dimension,remaining,manageable,progress,2,"Enough left to matter, not enough to dominate your Raynor personality."
-dimension,remaining,manageable,progress,1,You can finish this without it becoming your entire Zilber lore.
+dimension,remaining,manageable,progress,1,You can finish this without it taking over your whole Zilber life.
 dimension,remaining,manageable,progress,2,The remaining credits are politely waiting in the D2L queue.
-dimension,remaining,manageable,progress,0.5,This count is giving wrap-it-up energy. CheckMarq respects it.
+dimension,remaining,manageable,progress,0.5,This count says wrap it up. CheckMarq respects that.
 dimension,remaining,manageable,progress,2,Manageable credits left. The O'Brien math finally feels friendly.
 dimension,remaining,handful,progress,2,A handful of credits remain. Tiny but emotionally loaded on CheckMarq.
 dimension,remaining,handful,progress,2,This is the last little cluster before academic freedom on Wisconsin Ave.
@@ -210,10 +210,10 @@ dimension,remaining,handful,progress,2,This is where one smart CheckMarq semeste
 dimension,remaining,handful,progress,0.5,A handful remains and every single one thinks it is the Raynor finale.
 dimension,remaining,handful,progress,2,The degree is down to its final O'Brien receipts. Check them twice.
 dimension,remaining,handful,progress,1,Almost nothing left. That is both comforting and mildly terrifying.
-dimension,remaining,handful,progress,2,Single-digit credits remaining on CheckMarq. This is the boss fight.
+dimension,remaining,handful,progress,2,Single-digit credits remaining on CheckMarq. This is the hard part.
 dimension,remaining,handful,progress,1,So few left that the Zilber planner is basically a sticky note.
 dimension,remaining,handful,progress,2,Handful remaining. Each credit is worth its weight in Raynor gold.
-dimension,remaining,zero,both,2,Zero credits remain. That is the entire CheckMarq tweet.
+dimension,remaining,zero,both,2,Zero credits remain. That is the whole CheckMarq sentence.
 dimension,remaining,zero,both,2,Nothing left. Clean sweep. Immaculate O'Brien spreadsheet behavior.
 dimension,remaining,zero,both,1,Remaining credits: zero. Genuinely beautiful Raynor statistic.
 dimension,remaining,zero,both,2,The CheckMarq counter hit zero and it is staying there.
@@ -255,7 +255,7 @@ dimension,inProgress,moderate,progress,2,Moderate load. The D2L semester is runn
 dimension,inProgress,heavy,progress,2,Heavy in-progress load on D2L. You are already carrying a lot.
 dimension,inProgress,heavy,progress,2,A lot is in flight on CheckMarq right now. The juggling is real.
 dimension,inProgress,heavy,progress,0.5,Heavy current load. Your Raynor calendar looks like abstract art.
-dimension,inProgress,heavy,progress,2,This much in progress is giving full plate Zilber overtime energy.
+dimension,inProgress,heavy,progress,2,This much in progress means full-plate Zilber overtime.
 dimension,inProgress,heavy,progress,1,A stacked in-progress D2L total. The notifications are relentless.
 dimension,inProgress,heavy,progress,2,Heavy load. The Raynor study rooms have your face memorized.
 dimension,inProgress,heavy,progress,0.5,So many credits in progress that your O'Brien backpack filed a complaint.
@@ -263,7 +263,7 @@ dimension,inProgress,heavy,progress,2,Heavy in-progress load. The CheckMarq seme
 dimension,bucketHealth,allSatisfied,both,2,Every requirement bucket is satisfied. Legendary O'Brien scenes.
 dimension,bucketHealth,allSatisfied,both,2,All buckets done. The CheckMarq degree audit has nothing left to say.
 dimension,bucketHealth,allSatisfied,both,1,Requirement coverage is perfect. Zero Raynor crumbs anywhere.
-dimension,bucketHealth,allSatisfied,both,0.5,Every bucket is handled. Clean sweep Zilber energy at its finest.
+dimension,bucketHealth,allSatisfied,both,0.5,Every bucket is handled. Clean-sweep Zilber work.
 dimension,bucketHealth,allSatisfied,both,1,All satisfied. The D2L checklist has been defeated with grace.
 dimension,bucketHealth,allSatisfied,both,2,Full bucket coverage. The O'Brien system was politely dismantled.
 dimension,bucketHealth,allSatisfied,both,2,Every single bucket filled. The CheckMarq algorithm has no feedback.
@@ -282,7 +282,7 @@ dimension,bucketHealth,halfDone,both,2,About half the buckets are satisfied on C
 dimension,bucketHealth,halfDone,both,2,Half the requirement grid is already handled in D2L. Real traction.
 dimension,bucketHealth,halfDone,both,1,You are halfway across the O'Brien bucket battlefield. Keep pushing.
 dimension,bucketHealth,halfDone,both,2,A lot is done and a lot remains. Zilber balance of power is shifting.
-dimension,bucketHealth,halfDone,both,1,Half satisfied. That is real measurable Raynor progress not just vibes.
+dimension,bucketHealth,halfDone,both,1,Half satisfied. That is real measurable Raynor progress.
 dimension,bucketHealth,halfDone,both,2,The bucket health is mid in the most respectable CheckMarq way possible.
 dimension,bucketHealth,halfDone,both,0.5,Half green half waiting. The D2L grid is a work in progress.
 dimension,bucketHealth,halfDone,both,2,The requirement grid is looking competitive. Good O'Brien trajectory.
@@ -297,30 +297,30 @@ dimension,bucketHealth,earlyDays,both,2,Early bucket coverage. The D2L grid is l
 dimension,bucketHealth,earlyDays,both,1,Most buckets are unsatisfied. That is normal O'Brien not failure.
 dimension,bucketHealth,earlyDays,both,2,Early bucket days. The CheckMarq grid will fill. Give it time.
 dimension,season,fall,semester,2,Fall semester. New notebooks and immediate D2L chaos. Classic.
-dimension,season,fall,semester,2,Fall term. Fresh start energy with Raynor week-two deadlines.
+dimension,season,fall,semester,2,Fall term. Fresh start, Raynor week-two deadlines.
 dimension,season,fall,semester,1,This plan lands in fall when everyone in O'Brien swears they are organized.
 dimension,season,fall,semester,2,Fall semester. The Wisconsin Ave academic year always opens dramatically.
 dimension,season,fall,semester,1,"Crisp air, crowded Raynor floors, strategic course choices."
 dimension,season,fall,semester,2,Fall term. Big reset button on CheckMarq with no actual reset underneath.
-dimension,season,fall,semester,1,This is fall energy: locked in until the first Zilber group project.
-dimension,season,fall,semester,2,Fall semester. The vibes say fresh start. The D2L syllabus says prove it.
+dimension,season,fall,semester,1,This is fall: locked in until the first Zilber group project.
+dimension,season,fall,semester,2,Fall semester. It looks like a fresh start. The D2L syllabus says prove it.
 dimension,season,fall,semester,1,A fall plan always looks so clean before Raynor week three happens.
 dimension,season,fall,semester,2,Fall term. Prime time for locked-in behavior and AMU pumpkin lattes.
 dimension,season,fall,semester,1,Fall semester. O'Brien hallways smell like ambition and dry-erase markers.
 dimension,season,fall,semester,2,Fall term. The campus is alive and CheckMarq is already testing you.
 dimension,season,fall,semester,0.5,Fall semester. The Wisconsin Ave wind builds character and urgency.
-dimension,season,fall,semester,2,Fall. The D2L academic franchise just dropped a new season.
+dimension,season,fall,semester,2,Fall. The D2L semester just restarted.
 dimension,season,fall,semester,1,Fall term. The Raynor study rooms are booked until further notice.
 dimension,season,fall,semester,2,Fall semester. Campus is alive on Wisconsin Ave and so is your course load.
-dimension,season,spring,semester,2,Spring semester. New CheckMarq calendar same side quests trying to spawn.
+dimension,season,spring,semester,2,Spring semester. New CheckMarq calendar, same distractions showing up.
 dimension,season,spring,semester,2,Spring term. Fresh start with significantly less D2L pretending.
 dimension,season,spring,semester,1,This plan hits spring when the O'Brien year starts getting very real.
 dimension,season,spring,semester,2,Spring semester. Quiet Raynor grind with a strong payoff at the end.
 dimension,season,spring,semester,1,"Spring term. Less hype, more actual Zilber execution."
-dimension,season,spring,semester,2,Spring energy: fewer orientation speeches more surviving the D2L group chat.
+dimension,season,spring,semester,2,Spring term: fewer orientation speeches, more surviving the D2L group chat.
 dimension,season,spring,semester,1,Spring semester. The academic sequel usually goes way harder at O'Brien.
 dimension,season,spring,semester,2,"Spring term. Good weather on Wisconsin Ave eventually, deadlines immediately."
-dimension,season,spring,semester,1,A spring plan is lowkey one of the cleanest CheckMarq semester arcs.
+dimension,season,spring,semester,1,A spring plan is often one of the cleanest CheckMarq semesters.
 dimension,season,spring,semester,2,Spring semester. Time to turn winter intentions into actual Raynor credits.
 dimension,season,spring,semester,1,Spring term. The campus thaws and the D2L workload does not.
 dimension,season,spring,semester,2,Spring. The sun comes back but so does everything you deferred on CheckMarq.
@@ -331,13 +331,13 @@ dimension,season,summer,semester,2,"Summer term. Smaller window on CheckMarq, ze
 dimension,season,summer,semester,2,"Summer semester. Quiet Raynor campus, loud efficiency."
 dimension,season,summer,semester,1,"This is summer planning: less ceremony, more D2L credit stacking."
 dimension,season,summer,semester,2,"Summer term. Short, fast, and genuinely Zilber ruthless."
-dimension,season,summer,semester,2,Summer semester. The side quest can still count on CheckMarq.
+dimension,season,summer,semester,2,Summer semester. The extra term can still count on CheckMarq.
 dimension,season,summer,semester,0.5,Summer term. Blink and the O'Brien add/drop deadline already passed.
 dimension,season,summer,semester,2,This plan hits summer where every Raynor credit feels concentrated.
 dimension,season,summer,semester,1,"Summer semester. Compact CheckMarq schedule, oversized leverage."
-dimension,season,summer,semester,2,Summer term. The D2L academic speedrun arc is live.
+dimension,season,summer,semester,2,Summer term. The D2L academic speedrun is live.
 dimension,season,summer,semester,1,Summer semester. Fewer classes on CheckMarq and zero room for drifting.
-dimension,season,summer,semester,2,Summer energy: Wisconsin Ave sunlight and aggressively efficient scheduling.
+dimension,season,summer,semester,2,Summer term: Wisconsin Ave sunlight and aggressively efficient scheduling.
 dimension,season,summer,semester,0.5,Summer term. The degree grind does not take AMU vacation days.
 dimension,season,summer,semester,2,Summer. Raynor campus is empty but the credit counter keeps moving.
 dimension,season,summer,semester,1,Summer semester. The Brew is quiet. Your D2L workload is not.
@@ -351,7 +351,7 @@ dimension,semesterIndex,first,semester,2,"Start strong at Zilber, not chaotic. T
 dimension,semesterIndex,first,semester,1,First semester recs. Foundational and deliberately not D2L flashy.
 dimension,semesterIndex,first,semester,2,This is where the O'Brien academic dominoes start their chain reaction.
 dimension,semesterIndex,first,semester,1,Opening term. Future semesters on CheckMarq are already watching.
-dimension,semesterIndex,first,semester,2,The first semester should solve problems not create new Raynor lore.
+dimension,semesterIndex,first,semester,2,The first semester should solve problems not create new Raynor complications.
 dimension,semesterIndex,first,semester,1,This is the launch sequence for the whole Zilber degree operation.
 dimension,semesterIndex,first,semester,2,"Semester one. Clean CheckMarq start, clean slate, clean decisions."
 dimension,semesterIndex,first,semester,0.5,First planned term. The D2L butterfly effect is very real from here.
@@ -366,25 +366,25 @@ dimension,semesterIndex,middle,semester,2,These semesters are the load-bearing w
 dimension,semesterIndex,middle,semester,1,Midway through the CheckMarq plan. Autopilot is not an option here.
 dimension,semesterIndex,middle,semester,2,The middle terms are doing the boring but essential Raynor heavy lifting.
 dimension,semesterIndex,middle,semester,1,This part of the O'Brien timeline quietly decides the ending.
-dimension,semesterIndex,middle,semester,2,"Middle-semester energy on CheckMarq. Efficient, direct, mildly intense."
+dimension,semesterIndex,middle,semester,2,"Middle semester on CheckMarq. Efficient, direct, mildly intense."
 dimension,semesterIndex,middle,semester,1,These are the working semesters. No Zilber opening act and no curtain call.
-dimension,semesterIndex,middle,semester,2,The middle stretch is where good D2L plans prove they are not just vibes.
+dimension,semesterIndex,middle,semester,2,The middle stretch is where good D2L plans prove they are real.
 dimension,semesterIndex,middle,semester,0.5,Mid-timeline. The boring Raynor semesters are secretly most important.
 dimension,semesterIndex,middle,semester,2,Middle of the plan. Peak O'Brien execution zone.
-dimension,semesterIndex,middle,semester,2,Middle semester. Where the real CheckMarq character development happens.
+dimension,semesterIndex,middle,semester,2,Middle semester. Where the real CheckMarq progress happens.
 dimension,semesterIndex,deep,semester,2,Deep timeline. You are planning on CheckMarq with dangerously good foresight.
-dimension,semesterIndex,deep,semester,2,"Several semesters out. Bold, strategic, maybe a little Raynor cinematic."
-dimension,semesterIndex,deep,semester,1,This far ahead is either genius or D2L fan fiction. We will find out.
+dimension,semesterIndex,deep,semester,2,"Several semesters out. Bold, strategic, and very Raynor."
+dimension,semesterIndex,deep,semester,1,This far ahead is either genius or very ambitious. We will find out.
 dimension,semesterIndex,deep,semester,2,Deep planning mode. You saw the O'Brien post-credit scene before act two.
 dimension,semesterIndex,deep,semester,0.5,You are looking far enough out to surprise your Zilber future advisor.
 dimension,semesterIndex,deep,semester,2,This CheckMarq timeline goes so far it practically needs spoiler warnings.
 dimension,semesterIndex,deep,semester,1,Deep-semester view. Respect the Raynor long game.
-dimension,semesterIndex,deep,semester,2,Planning this far out on D2L is giving 4D chess with a degree audit open.
+dimension,semesterIndex,deep,semester,2,Planning this far out on D2L feels like advanced chess with a degree audit open.
 dimension,semesterIndex,deep,semester,1,These are future-you problems being solved aggressively early at O'Brien.
 dimension,semesterIndex,deep,semester,2,You are far down the CheckMarq timeline and weirdly calm about it.
-dimension,semesterIndex,deep,semester,1,Deep plan territory. The Zilber lore gets fuzzy but the strategy is sharp.
-dimension,semesterIndex,deep,semester,2,This many semesters ahead on CheckMarq? Lowkey terrifying. Highkey impressive.
-dimension,semesterIndex,deep,semester,0.5,Deep timeline vibes. Your future self at Raynor just sent a thank-you note.
+dimension,semesterIndex,deep,semester,1,Deep plan territory. The Zilber details get fuzzy but the strategy is sharp.
+dimension,semesterIndex,deep,semester,2,This many semesters ahead on CheckMarq? A little terrifying. Very impressive.
+dimension,semesterIndex,deep,semester,0.5,Deep timeline. Your future self at Raynor just sent a thank-you note.
 dimension,semesterIndex,deep,semester,2,So far ahead the D2L calendar app needs therapy.
 dimension,semesterIndex,deep,semester,2,Deep timeline. You are playing the long game and winning on CheckMarq.
 dimension,recCount,empty,semester,2,No recommendations this term. The CheckMarq algorithm sat this one out.
@@ -406,7 +406,7 @@ dimension,recCount,light,semester,2,Light semester set on CheckMarq. Minimal but
 dimension,recCount,light,semester,2,Just a few recs here. Clean and focused like a Raynor surgical strike.
 dimension,recCount,light,semester,1,Small O'Brien course set. Tight not thin. Quality lineup.
 dimension,recCount,light,semester,2,This term keeps it light on D2L without sacrificing momentum.
-dimension,recCount,light,semester,1,A lighter Zilber lineup can still move the plot forward significantly.
+dimension,recCount,light,semester,1,A lighter Zilber lineup can still move the plan forward significantly.
 dimension,recCount,light,semester,2,"Few recommendations on CheckMarq, extremely strong signal."
 dimension,recCount,light,semester,1,Not many picks but the ones here are doing real O'Brien work.
 dimension,recCount,light,semester,2,"This semester is low volume on D2L, high relevance."
@@ -419,27 +419,27 @@ dimension,recCount,light,semester,2,Few recs but they all hit on CheckMarq. Prec
 dimension,recCount,light,semester,2,Light set. Lean Raynor lineup with maximum intent.
 dimension,recCount,normal,semester,2,Normal recommendation count on CheckMarq. Balanced and boring in the best way.
 dimension,recCount,normal,semester,2,A standard D2L lineup. Very healthy very stable behavior.
-dimension,recCount,normal,semester,1,This term has a normal number of Raynor picks. Love a stable arc.
+dimension,recCount,normal,semester,1,This term has a normal number of Raynor picks. Love a stable term.
 dimension,recCount,normal,semester,2,"Solid course count at O'Brien. Enough to move, not enough to combust."
 dimension,recCount,normal,semester,1,The CheckMarq rec list is balanced and doing its job without drama.
 dimension,recCount,normal,semester,2,"Normal Zilber load, normal plan, uncommon peace of mind."
 dimension,recCount,normal,semester,1,This is the sweet spot for a clean productive D2L semester.
 dimension,recCount,normal,semester,2,A well-sized set of recs on CheckMarq. No circus no filler.
 dimension,recCount,normal,semester,1,Normal count. The Raynor planner is cooking at a reasonable temperature.
-dimension,recCount,normal,semester,2,This lineup looks responsibly ambitious. O'Brien advisor approved energy.
+dimension,recCount,normal,semester,2,This lineup looks responsibly ambitious. O'Brien would approve.
 dimension,recCount,normal,semester,1,A balanced semester list on CheckMarq with genuinely good bones.
 dimension,recCount,normal,semester,2,Nothing flashy here just quietly elite D2L degree planning.
 dimension,recCount,normal,semester,0.5,Normal rec count. The Zilber algorithm is in a healthy relationship with this.
 dimension,recCount,normal,semester,2,Standard count. The CheckMarq plan is cruising through O'Brien.
 dimension,recCount,normal,semester,2,Normal count. The D2L planner is in its comfort zone.
-dimension,recCount,heavy,semester,2,Heavy recommendation count on CheckMarq. This term is giving final boss.
+dimension,recCount,heavy,semester,2,Heavy recommendation count on CheckMarq. This term is serious business.
 dimension,recCount,heavy,semester,2,This D2L term is stacked. Read the fine print before committing.
 dimension,recCount,heavy,semester,1,A lot of recs made the cut. The O'Brien planner was feeling ambitious.
-dimension,recCount,heavy,semester,2,Heavy Raynor lineup. The semester has main-plot energy and overtime hours.
+dimension,recCount,heavy,semester,2,Heavy Raynor lineup. The semester has real pressure and overtime hours.
 dimension,recCount,heavy,semester,0.5,This CheckMarq list is packed and it knows it.
-dimension,recCount,heavy,semester,2,A dense set of recs on D2L. Manage the vibes accordingly.
+dimension,recCount,heavy,semester,2,A dense set of recs on D2L. Manage the load accordingly.
 dimension,recCount,heavy,semester,1,"Heavy Zilber course count. Not impossible, just extremely serious."
-dimension,recCount,heavy,semester,2,This semester is giving full CheckMarq cart zero peace three group projects.
+dimension,recCount,heavy,semester,2,This semester looks full on CheckMarq: zero peace, three group projects.
 dimension,recCount,heavy,semester,0.5,A stacked term. Great for progress. Complicated for your AMU social life.
 dimension,recCount,heavy,semester,1,Lots of options here. Your Raynor free time may have opinions.
 dimension,recCount,heavy,semester,2,Heavy rec count on D2L. The algorithm said lock in and visit The Brew.
@@ -494,16 +494,16 @@ compound,easter_egg_complete,,both,0.1,You finished the whole thing. The D2L spr
 compound,easter_egg_complete,,both,0.1,Every CheckMarq box is checked. Historic Raynor behavior honestly.
 compound,easter_egg_complete,,both,0.1,Full completion. The O'Brien system has been thoroughly defeated.
 compound,easter_egg_complete,,progress,0.1,Progress hit 100% on CheckMarq and kept the receipts for the ceremony.
-compound,easter_egg_complete,,progress,0.1,The degree is fully assembled. No missing D2L parts. No DLC needed.
+compound,easter_egg_complete,,progress,0.1,The degree is fully assembled. No missing D2L parts. No extra pieces needed.
 compound,easter_egg_complete,,progress,0.1,All progress bars are full at Raynor. Screenshot this immediately.
 compound,easter_egg_complete,,progress,0.1,This is what done looks like when the CheckMarq planning was real.
 compound,easter_egg_complete,,both,0.1,Complete. The Raynor printer will miss you. CheckMarq will not.
-compound,easter_egg_full_plan,,semester,0.1,You planned the whole CheckMarq timeline. Weaponized organization.
+compound,easter_egg_full_plan,,semester,0.1,You planned the whole CheckMarq timeline. Serious organization.
 compound,easter_egg_full_plan,,semester,0.1,Entire degree mapped on D2L. Future-you owes current-you a gift card.
-compound,easter_egg_full_plan,,semester,0.1,All the way to the end? That is serious O'Brien 4D chess energy.
-compound,easter_egg_full_plan,,semester,0.1,This is the full cinematic universe of your Raynor transcript.
-compound,easter_egg_full_plan,,semester,0.1,Full-timeline CheckMarq planning is lowkey overpowered and you know it.
-compound,easter_egg_full_plan,,semester,0.1,You mapped the entire arc from orientation to Wisconsin Ave graduation.
+compound,easter_egg_full_plan,,semester,0.1,All the way to the end? That is serious O'Brien long-range planning.
+compound,easter_egg_full_plan,,semester,0.1,This is the full roadmap of your Raynor transcript.
+compound,easter_egg_full_plan,,semester,0.1,Full-timeline CheckMarq planning is quietly overpowered and you know it.
+compound,easter_egg_full_plan,,semester,0.1,You mapped the entire route from orientation to Wisconsin Ave graduation.
 compound,easter_egg_full_plan,,semester,0.1,Full-plan behavior. O'Brien Suite 111 would frame this schedule.
 compound,easter_egg_full_plan,,semester,0.1,The whole roadmap is here. O'Brien Suite 111 levels of organized.
 compound,easter_egg_full_plan,,semester,0.1,You really said show me the entire CheckMarq saga in spreadsheet form.
@@ -513,17 +513,17 @@ compound,freshman_mountain,,progress,1,Freshman with the full mountain visible o
 compound,freshman_mountain,,progress,1,Year one at O'Brien and already staring down the whole degree. Respect.
 compound,freshman_mountain,,progress,0.5,Freshman standing plus triple-digit credits on CheckMarq: classic opening.
 compound,freshman_mountain,,progress,1,This is the true first-year Raynor experience but with actual data.
-compound,freshman_mountain,,progress,0.5,You are at the Zilber start with the whole map open. Lowkey powerful.
-compound,freshman_mountain,,progress,1,Freshman mountain arc on D2L. Big number. Zero delusion.
+compound,freshman_mountain,,progress,0.5,You are at the Zilber start with the whole map open. Quietly powerful.
+compound,freshman_mountain,,progress,1,Freshman mountain on D2L. Big number. Zero delusion.
 compound,freshman_mountain,,progress,1,Everything is ahead of you on CheckMarq which is terrifying and useful.
 compound,freshman_mountain,,progress,0.5,New student at O'Brien full workload horizon zero illusions. Strong start.
 compound,freshman_mountain,,progress,0.5,This is the part where Raynor planning beats pure optimism hard.
-compound,freshman_mountain,,progress,1,Freshman energy with full-picture CheckMarq awareness. Extremely rare.
+compound,freshman_mountain,,progress,1,Freshman standing with full-picture CheckMarq awareness. Extremely rare.
 compound,freshman_mountain,,progress,1,The whole degree just introduced itself on D2L. It was not short.
-compound,senior_homestretch,,both,1,Senior and close to done on CheckMarq. Land the plane. No barrel rolls.
-compound,senior_homestretch,,both,1,Final-year O'Brien homestretch. No side quests and no dramatic speeches.
-compound,senior_homestretch,,both,0.5,Senior Raynor arc near finish. Just land the plane quietly.
-compound,senior_homestretch,,both,0.5,You are basically at the D2L credits. No director's cut needed.
+compound,senior_homestretch,,both,1,Senior and close to done on CheckMarq. Land the plane. No unnecessary drama.
+compound,senior_homestretch,,both,1,Final-year O'Brien homestretch. No detours and no dramatic speeches.
+compound,senior_homestretch,,both,0.5,Senior Raynor finish. Just land the plane quietly.
+compound,senior_homestretch,,both,0.5,You are basically at the D2L finish line. No extra version needed.
 compound,senior_homestretch,,both,1,Senior standing with a short CheckMarq runway left. Lock in.
 compound,senior_homestretch,,both,1,This is the clean-up phase of the final Zilber season.
 compound,senior_homestretch,,both,0.5,Almost done and officially too close to get experimental on CheckMarq.
@@ -533,12 +533,12 @@ compound,senior_homestretch,,both,1,You made it to the last Raynor lap. Respect 
 compound,senior_homestretch,,both,1,Senior homestretch. Every remaining CheckMarq credit is a finale credit.
 compound,senior_done,,both,1,Senior and done on CheckMarq. Diploma pending. Raynor aura restored.
 compound,senior_done,,both,0.5,Final-year status with zero requirements on D2L. Beautiful combo.
-compound,senior_done,,both,0.5,Senior O'Brien arc complete. Roll credits and play the music.
+compound,senior_done,,both,0.5,Senior O'Brien plan complete. Roll credits and play the music.
 compound,senior_done,,both,1,You finished before the CheckMarq degree could cause any more drama.
 compound,senior_done,,both,0.5,Senior standing. No remaining D2L requirements. No notes needed.
 compound,senior_done,,both,1,This is what a clean senior finish looks like on Raynor in real time.
 compound,senior_done,,both,0.5,Final Zilber season ended with a sweep. Standing ovation.
-compound,senior_done,,both,0.5,Senior done-state unlocked on CheckMarq. W achievement send the screenshot.
+compound,senior_done,,both,0.5,Senior done-state unlocked on CheckMarq. Take the screenshot.
 compound,senior_done,,both,1,You understood the O'Brien assignment and then deleted the assignment.
 compound,senior_done,,both,1,Degree complete in senior year as the D2L timeline intended.
 compound,senior_done,,both,0.5,Done. The Wisconsin Ave cap and gown can stop being hypothetical.
@@ -557,15 +557,15 @@ compound,summer_grind,,semester,1,Summer recs on CheckMarq are live. Quiet campu
 compound,summer_grind,,semester,1,You saw summer and said what if I locked in at Raynor and got ahead.
 compound,summer_grind,,semester,1,Summer grind mode at Zilber. Sun out syllabus out.
 compound,summer_grind,,semester,1,These summer D2L picks are pure progress behavior. No wasted time.
-compound,summer_grind,,semester,1,Summer semester with actual CheckMarq recs. Peak locked-in energy.
+compound,summer_grind,,semester,1,Summer semester with actual CheckMarq recs. Very locked in.
 compound,summer_grind,,semester,1,You did not let summer on Wisconsin Ave become decorative. Respect.
 compound,summer_grind,,semester,0.5,"Short term, sharp CheckMarq choices, strong credit value."
 compound,summer_grind,,semester,1,Summer planning that moves the Raynor needle. Smart and strategic.
 compound,summer_grind,,semester,1,The O'Brien campus chills. The degree grind does not.
-compound,summer_grind,,semester,1,Summer recs loaded on D2L. Academic speedrun energy activated.
+compound,summer_grind,,semester,1,Summer recs loaded on D2L. Academic speedrun activated.
 compound,summer_grind,,semester,0.5,Summer session on CheckMarq but make it strategic. The algorithm approves.
 compound,summer_empty,,semester,1,No summer recs on CheckMarq. The planner said go enjoy Wisconsin Ave.
-compound,summer_empty,,semester,1,This summer is giving Raynor recovery arc and that is valid.
+compound,summer_empty,,semester,1,This summer is a Raynor recovery term and that is valid.
 compound,summer_empty,,semester,1,Empty summer term on D2L. Sometimes rest is the most efficient move.
 compound,summer_empty,,semester,1,No picks for summer on CheckMarq. The planner is allowing peace.
 compound,summer_empty,,semester,1,Summer came back blank on D2L which is not automatically bad news.
@@ -578,14 +578,14 @@ compound,summer_empty,,semester,0.5,Empty summer. Even the CheckMarq planner nee
 compound,sophomore_building,,progress,1,Sophomore and building on CheckMarq. Quietly beating the no-plan allegations.
 compound,sophomore_building,,progress,1,Year two at O'Brien with real momentum. That is how you do it.
 compound,sophomore_building,,progress,1,Sophomore standing plus steady D2L progress is a genuinely good look.
-compound,sophomore_building,,progress,1,This is the post-tutorial Raynor build phase executed correctly.
+compound,sophomore_building,,progress,1,This is the post-warm-up Raynor build phase executed correctly.
 compound,sophomore_building,,progress,0.5,"Sophomore sweet spot at Zilber: enough experience, lots of runway."
 compound,sophomore_building,,progress,1,Second-year CheckMarq momentum is underrated and extremely powerful.
 compound,sophomore_building,,progress,1,Sophomore build season at O'Brien. Very healthy pacing and trajectory.
 compound,sophomore_building,,progress,1,Year two is stacking D2L credits and minding its own business.
 compound,sophomore_building,,progress,1,This is where the Raynor foundation starts acting like a real structure.
 compound,sophomore_building,,progress,1,Sophomore CheckMarq progress with visible momentum. Clean execution.
-compound,sophomore_building,,progress,0.5,Sophomore building phase at Zilber. The plot is thickening productively.
+compound,sophomore_building,,progress,0.5,Sophomore building phase at Zilber. The plan is getting real.
 compound,junior_midway,,progress,1,Junior and halfway on CheckMarq. O'Brien Suite 111 would nod approvingly.
 compound,junior_midway,,progress,1,Midway through as a junior at Zilber is clean professional positioning.
 compound,junior_midway,,progress,1,This is the exact point where the D2L degree starts looking inevitable.
@@ -594,25 +594,25 @@ compound,junior_midway,,progress,1,Half done in year three at Raynor. No complai
 compound,junior_midway,,progress,1,This is a very normal and very useful kind of on-track at O'Brien.
 compound,junior_midway,,progress,1,Junior standing with midpoint CheckMarq progress. Excellent bones.
 compound,junior_midway,,progress,1,You are in the middle and the D2L timeline still makes complete sense.
-compound,junior_midway,,progress,1,Mid-junior arc at Zilber. Enough progress to feel genuinely real.
+compound,junior_midway,,progress,1,Mid-junior at Zilber. Enough progress to feel genuinely real.
 compound,junior_midway,,progress,1,Halfway through and already in the upper-division Raynor storyline.
 compound,junior_midway,,progress,0.5,Junior midway on CheckMarq. The plan is holding up under real pressure.
-compound,first_semester_heavy,,semester,0.5,First semester and you immediately chose hard mode on CheckMarq. Bold.
+compound,first_semester_heavy,,semester,0.5,First semester and you immediately chose the hard version on CheckMarq. Bold.
 compound,first_semester_heavy,,semester,1,Opening term with a heavy D2L load. Ambitious Raynor launch sequence.
-compound,first_semester_heavy,,semester,1,This first semester at Zilber is stacked like you clicked skip tutorial.
+compound,first_semester_heavy,,semester,1,This first semester at Zilber is stacked like you skipped the easing-in phase.
 compound,first_semester_heavy,,semester,0.5,Heavy opening CheckMarq lineup. Ambition and AMU caffeine detected.
-compound,first_semester_heavy,,semester,1,You really opened the O'Brien degree with the uncut extended edition.
+compound,first_semester_heavy,,semester,1,You really opened the O'Brien degree with the full extended version.
 compound,first_semester_heavy,,semester,0.5,First-term heavy plan on D2L. Not chill but strategic if you carry it.
 compound,first_semester_heavy,,semester,1,Starting strong at Raynor is one thing. Starting this strong is another.
-compound,first_semester_heavy,,semester,1,This launch semester on CheckMarq has absolutely no easing-in energy.
+compound,first_semester_heavy,,semester,1,This launch semester on CheckMarq has absolutely no easing-in room.
 compound,first_semester_heavy,,semester,1,A packed first O'Brien term means the calendar speaks first and loudest.
-compound,first_semester_heavy,,semester,0.5,First semester heavy D2L recs. Instant academic Zilber lore.
+compound,first_semester_heavy,,semester,0.5,First semester heavy D2L recs. Instant academic Zilber pressure.
 compound,first_semester_heavy,,semester,1,Opening with a heavy CheckMarq load. The planner respects the aggression.
 compound,heavy_warned,,semester,1,Heavy semester with CheckMarq warnings. Not a skim-and-hope situation.
-compound,heavy_warned,,semester,0.5,Big D2L course load plus O'Brien caveats. Not the week to freestyle.
+compound,heavy_warned,,semester,0.5,Big D2L course load plus O'Brien caveats. Not the week to guess.
 compound,heavy_warned,,semester,1,This Raynor term is packed and the fine print is very loud.
 compound,heavy_warned,,semester,1,A stacked CheckMarq schedule with warnings is not casual business.
-compound,heavy_warned,,semester,0.5,Heavy and warned on D2L. Strategy only. No vibes-based decisions.
+compound,heavy_warned,,semester,0.5,Heavy and warned on D2L. Strategy only. No guesswork.
 compound,heavy_warned,,semester,1,There is a lot here and some of it has strong Zilber conditions.
 compound,heavy_warned,,semester,0.5,This lineup wants discipline more than confidence. Read the O'Brien flags.
 compound,heavy_warned,,semester,1,A full CheckMarq plate with yellow flags. Respect every single flag.
@@ -624,10 +624,10 @@ compound,deep_planning,,semester,0.5,You are several D2L semesters ahead of the 
 compound,deep_planning,,semester,1,This is long-game O'Brien behavior. Plain and simple and impressive.
 compound,deep_planning,,semester,0.5,Planning this far out on CheckMarq is giving grandmaster chess brain.
 compound,deep_planning,,semester,0.5,The Zilber timeline is deep and surprisingly coherent.
-compound,deep_planning,,semester,1,You are solving future D2L problems before they become real Raynor lore.
-compound,deep_planning,,semester,0.5,Deep plan arc on CheckMarq. Calm and weirdly powerful at the same time.
+compound,deep_planning,,semester,1,You are solving future D2L problems before they become real Raynor problems.
+compound,deep_planning,,semester,0.5,Deep plan on CheckMarq. Calm and weirdly powerful at the same time.
 compound,deep_planning,,semester,1,Not everyone looks this far ahead on D2L. They probably should.
-compound,deep_planning,,semester,1,You are planning in 4D while CheckMarq registration is still in 2D.
+compound,deep_planning,,semester,1,You are planning three semesters ahead while CheckMarq registration is still one tab at a time.
 compound,deep_planning,,semester,0.5,This much O'Brien foresight is mildly terrifying in the best way.
 compound,deep_planning,,semester,1,Deep planning on D2L. The kind of foresight Raynor advisors wish was standard.
 compound,multibucket_stacking,,semester,1,This lineup is stacking CheckMarq buckets like degree planning is ranked.
@@ -639,25 +639,25 @@ compound,multibucket_stacking,,semester,1,Several D2L picks are double-dipping i
 compound,multibucket_stacking,,semester,0.5,The Raynor efficiency here is almost disrespectful. In a good way.
 compound,multibucket_stacking,,semester,1,This lineup squeezes CheckMarq value out of every seat in every classroom.
 compound,multibucket_stacking,,semester,1,Multi-bucket stacking is live on D2L and absolutely thriving.
-compound,multibucket_stacking,,semester,0.5,"One O'Brien class, multiple buckets, minimal waste. Chefs kiss."
+compound,multibucket_stacking,,semester,0.5,"One O'Brien class, multiple buckets, minimal waste. Clean work."
 compound,multibucket_stacking,,semester,1,The CheckMarq overlap game is strong. The planner found some real deals.
 compound,finance_major,,both,2,Finance major. Bloomberg terminal dreams and Zilber DCF nightmares.
-compound,finance_major,,both,2,Finance arc at O'Brien. Spreadsheets will love you or you will love them.
-compound,finance_major,,both,1,"FIN major energy at Zilber. Interest rates, valuations, strong opinions."
+compound,finance_major,,both,2,Finance major at O'Brien. Spreadsheets will love you or you will love them.
+compound,finance_major,,both,1,"FIN major at Zilber. Interest rates, valuations, strong opinions."
 compound,finance_major,,both,2,Finance major. The stock market is irrational but so is your D2L sleep.
 compound,finance_major,,both,1,Finance degree loading. The Zilber trading room awaits your arrival.
 compound,finance_major,,both,2,"Finance major at O'Brien. You chose numbers, pressure, and a nice suit."
 compound,finance_major,,both,0.5,FIN major. Your Raynor Excel skills are about to become a personality.
 compound,finance_major,,both,2,Finance track on CheckMarq. The ROI on this degree depends entirely on you.
 compound,finance_major,,both,1,Finance major. The Zilber trading room is a mindset before a zip code.
-compound,finance_major,,both,2,FIN major energy. The only thing compounding faster than interest is D2L stress.
+compound,finance_major,,both,2,FIN major. The only thing compounding faster than interest is D2L stress.
 compound,finance_major,,both,0.5,"Finance at O'Brien. Where time value of money is real, including yours."
 compound,finance_major,,both,2,"Finance major on CheckMarq. Markets are volatile, your plan should not be."
 compound,accounting_major,,both,2,Accounting major. Debits on the left credits on the right. O'Brien forever.
 compound,accounting_major,,both,2,ACCO major at Zilber. The Big Four are watching. Or at least recruiting.
-compound,accounting_major,,both,1,Accounting arc in O'Brien. The answer is always it depends.
+compound,accounting_major,,both,1,Accounting major in O'Brien. The answer is always it depends.
 compound,accounting_major,,both,2,Accounting major. Your Raynor spreadsheet game is about to go pro.
-compound,accounting_major,,both,1,ACCO energy on D2L. The books do not lie but your sleep schedule does.
+compound,accounting_major,,both,1,ACCO major on D2L. The books do not lie but your sleep schedule does.
 compound,accounting_major,,both,2,Accounting degree at Zilber. You will reconcile everything except free time.
 compound,accounting_major,,both,0.5,Accounting major. GAAP is not just an O'Brien acronym it is a lifestyle.
 compound,accounting_major,,both,2,ACCO track on CheckMarq. Audit season will be your personality in three years.
@@ -667,9 +667,9 @@ compound,accounting_major,,both,0.5,Accounting. Where Zilber journal entries are
 compound,accounting_major,,both,2,ACCO major on CheckMarq. The CPA exam is already sending you signals.
 compound,marketing_major,,both,2,Marketing major at O'Brien. You can brand anything except your sleep schedule.
 compound,marketing_major,,both,2,MARK major at Zilber. Consumer behavior class hits different after going viral.
-compound,marketing_major,,both,1,Marketing arc on D2L. Content strategy starts with your own degree plan.
+compound,marketing_major,,both,1,Marketing major on D2L. Content strategy starts with your own degree plan.
 compound,marketing_major,,both,2,Marketing major. You think in campaigns and that is Raynor valid.
-compound,marketing_major,,both,1,MARK energy on CheckMarq. You cannot A/B test your degree but you tried.
+compound,marketing_major,,both,1,MARK major on CheckMarq. You cannot A/B test your degree but you tried.
 compound,marketing_major,,both,2,"Marketing degree at O'Brien. Storytelling, analytics, and AMU strong coffee."
 compound,marketing_major,,both,0.5,Marketing major. Your personal brand started in MARK 2100 at Zilber.
 compound,marketing_major,,both,2,MARK track on CheckMarq. The target audience for this plan is literally you.
@@ -678,9 +678,9 @@ compound,marketing_major,,both,2,MARK major. You see conversion funnels in every
 compound,marketing_major,,both,0.5,Marketing at Zilber. Where the four Ps meet the four years of your life.
 compound,marketing_major,,both,2,Marketing major on CheckMarq. Brand awareness starts with degree awareness.
 compound,insy_major,,both,2,INSY major at O'Brien. Have you tried turning your degree plan off and on.
-compound,insy_major,,both,2,Information Systems arc at Zilber. Code and business logic in one brain.
+compound,insy_major,,both,2,Information Systems at Zilber. Code and business logic in one brain.
 compound,insy_major,,both,1,INSY major. Raynor SQL queries and career security in one package.
-compound,insy_major,,both,2,INSY energy on D2L. Your debugging skills will transfer to your schedule.
+compound,insy_major,,both,2,INSY major on D2L. Your debugging skills will transfer to your schedule.
 compound,insy_major,,both,1,Information Systems major. The O'Brien IT help desk was just the prequel.
 compound,insy_major,,both,2,INSY degree on CheckMarq. You speak both business and Python fluently.
 compound,insy_major,,both,0.5,INSY major. Your Raynor IDE has more tabs open than your Chrome browser.
@@ -690,10 +690,10 @@ compound,insy_major,,both,2,INSY track on CheckMarq. You automate everything exc
 compound,insy_major,,both,0.5,INSY major at O'Brien. Your classmates will ask you to fix their laptops.
 compound,insy_major,,both,2,Information Systems. Where SELECT * FROM degree gives actual Raynor results.
 compound,buan_major,,both,2,BUAN major at Zilber. The data says lock in. Literally. We ran the model.
-compound,buan_major,,both,2,Business Analytics arc at O'Brien. Your Python skills have applications.
+compound,buan_major,,both,2,Business Analytics at O'Brien. Your Python skills have applications.
 compound,buan_major,,both,1,BUAN major. You turned Raynor data into a career path and a personality.
-compound,buan_major,,both,2,BUAN energy on D2L. Dashboards and regression models are your language.
-compound,buan_major,,both,1,Business Analytics at Zilber. Where p-values matter more than vibes.
+compound,buan_major,,both,2,BUAN major on D2L. Dashboards and regression models are your language.
+compound,buan_major,,both,1,Business Analytics at Zilber. Where p-values matter more than guessing.
 compound,buan_major,,both,2,BUAN degree on CheckMarq. You see patterns in everything including schedule.
 compound,buan_major,,both,0.5,BUAN major. Your Raynor Jupyter notebook has better notes than your diary.
 compound,buan_major,,both,2,Analytics major at O'Brien. The data does not care about your feelings.
@@ -702,21 +702,21 @@ compound,buan_major,,both,2,BUAN major at Zilber. You visualize degree progress 
 compound,buan_major,,both,0.5,Business Analytics on CheckMarq. Where the confidence interval is never 100%.
 compound,buan_major,,both,2,BUAN major. Your Raynor sklearn imports are getting career-ready.
 compound,aim_major,,both,2,AIM major at Zilber. Bloomberg terminal and a portfolio before graduation.
-compound,aim_major,,both,2,AIM arc at O'Brien. Accelerating ingenuity in markets and transcripts.
+compound,aim_major,,both,2,AIM at O'Brien. Accelerating ingenuity in markets and transcripts.
 compound,aim_major,,both,1,AIM major. Your Zilber portfolio has better quarterly reports than most firms.
-compound,aim_major,,both,2,AIM energy on CheckMarq. Trading floor mentality meets degree grid.
+compound,aim_major,,both,2,AIM on CheckMarq. Trading floor mentality meets degree grid.
 compound,aim_major,,both,1,AIM degree on D2L. The CFA prep started before you realized it.
 compound,aim_major,,both,2,AIM major at O'Brien. You analyze markets before breakfast and courses after.
 compound,aim_major,,both,0.5,AIM track. Your Zilber investment thesis is more polished than your room.
 compound,aim_major,,both,2,AIM major. The Zilber trading room is basically your second home.
 compound,aim_major,,both,1,AIM at O'Brien. Where the sharpe ratio of your degree plan actually matters.
 compound,aim_major,,both,2,AIM major on CheckMarq. Alpha generation starts with credit generation.
-compound,aim_major,,both,0.5,AIM at Zilber. Your classmates already have three-piece-suit energy.
+compound,aim_major,,both,0.5,AIM at Zilber. Your classmates already dress like internship season.
 compound,aim_major,,both,2,AIM major. Portfolio theory on D2L applies to your course selection too.
 compound,hure_major,,both,2,HURE major at O'Brien. You manage careers before managing your own CheckMarq.
-compound,hure_major,,both,2,Human Resources arc at Zilber. The talent you are acquiring is a degree.
-compound,hure_major,,both,1,HURE major. Organizational behavior at O'Brien is your origin story.
-compound,hure_major,,both,2,HURE energy on D2L. You see team dynamics everywhere including group work.
+compound,hure_major,,both,2,Human Resources at Zilber. The talent you are acquiring is a degree.
+compound,hure_major,,both,1,HURE major. Organizational behavior at O'Brien is your starting point.
+compound,hure_major,,both,2,HURE on D2L. You see team dynamics everywhere including group work.
 compound,hure_major,,both,1,HR major at Zilber. Conflict resolution starts with schedule conflicts.
 compound,hure_major,,both,2,HURE degree on CheckMarq. Employee development starts with student dev.
 compound,hure_major,,both,0.5,HURE major. Your O'Brien soft skills are technically a hard requirement.
@@ -726,9 +726,9 @@ compound,hure_major,,both,2,HURE major on CheckMarq. Performance reviews start w
 compound,hure_major,,both,0.5,HR major at O'Brien. Onboarding yourself into upper-division courses.
 compound,hure_major,,both,2,HURE major at Zilber. Retention strategy applies to keeping your credits.
 compound,oscm_major,,both,2,OSCM major at O'Brien. Your semester logistics need Zilber optimization.
-compound,oscm_major,,both,2,Supply chain arc on CheckMarq. The pipeline is your degree. Manage it.
+compound,oscm_major,,both,2,Supply chain on CheckMarq. The pipeline is your degree. Manage it.
 compound,oscm_major,,both,1,OSCM major at Zilber. Lead time applies to prereqs not just procurement.
-compound,oscm_major,,both,2,OSCM energy on D2L. Bottleneck analysis but the bottleneck is CheckMarq.
+compound,oscm_major,,both,2,OSCM on D2L. Bottleneck analysis but the bottleneck is CheckMarq.
 compound,oscm_major,,both,1,Supply chain degree at O'Brien. Just-in-time course selection is risky.
 compound,oscm_major,,both,2,OSCM major. You think in Raynor flowcharts and that is extremely valid.
 compound,oscm_major,,both,0.5,OSCM track on CheckMarq. Your course sequence is literally a supply chain.
@@ -739,8 +739,8 @@ compound,oscm_major,,both,0.5,Supply chain major. The Raynor bullwhip effect app
 compound,oscm_major,,both,2,OSCM major on CheckMarq. Optimize the process. The process is your degree.
 compound,real_major,,both,2,Real Estate major at Zilber. Location location location applies to seats.
 compound,real_major,,both,2,REAL major at O'Brien. Property valuation starts with valuing your time.
-compound,real_major,,both,1,Real Estate arc on CheckMarq. Your degree is an appreciating asset.
-compound,real_major,,both,2,REAL energy at Zilber. Cap rates and credit hours in the same brain.
+compound,real_major,,both,1,Real Estate on CheckMarq. Your degree is an appreciating asset.
+compound,real_major,,both,2,REAL major at Zilber. Cap rates and credit hours in the same brain.
 compound,real_major,,both,1,Real Estate major at O'Brien. Market analysis on properties and schedule.
 compound,real_major,,both,2,REAL degree on D2L. You are developing your human capital portfolio.
 compound,real_major,,both,0.5,Real Estate major. Raynor due diligence applies to course selection too.
@@ -750,9 +750,9 @@ compound,real_major,,both,2,"REAL major at O'Brien. Commercial, residential, and
 compound,real_major,,both,0.5,Real Estate at Zilber. The only major where square footage is a class topic.
 compound,real_major,,both,2,REAL major on CheckMarq. Your degree is prime resume real estate.
 compound,beco_major,,both,2,BECO major at O'Brien. Supply and demand but the supply of free time is zero.
-compound,beco_major,,both,2,Business Economics arc at Zilber. Marginal utility of each credit is real.
+compound,beco_major,,both,2,Business Economics at Zilber. Marginal utility of each credit is real.
 compound,beco_major,,both,1,BECO major on CheckMarq. Opportunity cost applies to every course you pick.
-compound,beco_major,,both,2,BECO energy on D2L. You think in incentives and that explains your GPA.
+compound,beco_major,,both,2,BECO on D2L. You think in incentives and that explains your GPA.
 compound,beco_major,,both,1,Economics degree at O'Brien. The invisible hand is pushing you to graduate.
 compound,beco_major,,both,2,BECO major at Zilber. Your production possibilities frontier is this degree.
 compound,beco_major,,both,0.5,Business Econ on CheckMarq. Sunk cost fallacy does not apply. Too far in.
@@ -762,9 +762,9 @@ compound,beco_major,,both,2,BECO at Zilber. Where market analysis meets degree-a
 compound,beco_major,,both,0.5,Business Economics on D2L. Your utility function includes graduating.
 compound,beco_major,,both,2,BECO major on CheckMarq. Diminishing returns do not apply to credits.
 compound,badm_major,,both,2,BADM major at O'Brien. Jack of all business trades. Master of graduating.
-compound,badm_major,,both,2,Business Administration arc at Zilber. The broadest path with wide options.
+compound,badm_major,,both,2,Business Administration at Zilber. The broadest path with wide options.
 compound,badm_major,,both,1,BADM major. Strategy class at O'Brien is just life skills with a textbook.
-compound,badm_major,,both,2,BADM energy on CheckMarq. You are getting the full business toolkit.
+compound,badm_major,,both,2,BADM on CheckMarq. You are getting the full business toolkit.
 compound,badm_major,,both,1,Business Admin at Zilber. General management is not generic management.
 compound,badm_major,,both,2,BADM major at O'Brien. The Swiss Army knife of Raynor business degrees.
 compound,badm_major,,both,0.5,BADM track on D2L. Versatility is the strategy and it is a good one.
@@ -774,9 +774,9 @@ compound,badm_major,,both,2,BADM at O'Brien. Where knowing a little about everyt
 compound,badm_major,,both,0.5,Business Administration on D2L. The degree that keeps its options open.
 compound,badm_major,,both,2,BADM major at Zilber. Your CheckMarq degree plan has range. Literally.
 compound,inbu_major,,both,2,INBU major at O'Brien. Your transcript has more stamps than your passport.
-compound,inbu_major,,both,2,International Business arc at Zilber. Global markets and D2L deadlines.
+compound,inbu_major,,both,2,International Business at Zilber. Global markets and D2L deadlines.
 compound,inbu_major,,both,1,INBU major on CheckMarq. Cross-border strategy starts with campus walking.
-compound,inbu_major,,both,2,INBU energy at O'Brien. Thinking globally and scheduling locally.
+compound,inbu_major,,both,2,INBU at O'Brien. Thinking globally and scheduling locally.
 compound,inbu_major,,both,1,International Business at Zilber. The world is your market literally.
 compound,inbu_major,,both,2,INBU major on CheckMarq. Exchange rates and credit hours in one conversation.
 compound,inbu_major,,both,0.5,INBU track. Your study abroad dreams are funding your Raynor motivation.
@@ -786,14 +786,14 @@ compound,inbu_major,,both,2,INBU at O'Brien. Your competitive advantage is think
 compound,inbu_major,,both,0.5,International Business on CheckMarq. Passport ready. Raynor degree plan ready.
 compound,inbu_major,,both,2,INBU major. Your D2L network will eventually span time zones.
 compound,multi_major,,both,2,Multiple majors on CheckMarq. You chose violence against your free time.
-compound,multi_major,,both,2,Double major energy at O'Brien. Twice the requirements. Twice the strategy.
-compound,multi_major,,both,1,"Multi-major arc at Zilber. Two paths, one planner, zero room for error."
+compound,multi_major,,both,2,Double major at O'Brien. Twice the requirements. Twice the strategy.
+compound,multi_major,,both,1,"Multi-major at Zilber. Two paths, one planner, zero room for error."
 compound,multi_major,,both,2,Two majors active on CheckMarq. Your schedule is a work of architecture.
 compound,multi_major,,both,1,Double major at O'Brien. The overlap game is not optional it is survival.
 compound,multi_major,,both,2,Multi-major status. O'Brien Suite 111 sees you coming and clears an hour.
 compound,multi_major,,both,0.5,Two majors on D2L. Course selection is a puzzle wrapped in a Venn diagram.
-compound,multi_major,,both,2,Double major energy at Raynor. The planner is working overtime for you.
+compound,multi_major,,both,2,Double major at Raynor. The planner is working overtime for you.
 compound,multi_major,,both,1,Multi-major on CheckMarq. The bucket list is literally two lists stacked.
-compound,multi_major,,both,2,Two degrees one Zilber transcript zero chill. Respectable chaos.
+compound,multi_major,,both,2,Two degrees, one Zilber transcript, very little slack. Respectable chaos.
 compound,multi_major,,both,0.5,Double major on D2L. Every double-counted course is a personal victory.
 compound,multi_major,,both,2,Multi-major plan on CheckMarq. This is not a hobby. This is a commitment.

@@ -221,13 +221,13 @@ export function SavedPlansLibraryPage() {
               {...anim(10, 0.08)}
               className="text-[clamp(1.35rem,1.9vw,1.7rem)] font-semibold leading-[1.06] text-ink-primary font-[family-name:var(--font-sora)]"
             >
-              Saved plans, properly labeled.
+              Saved plans, without the tab sprawl.
             </motion.h3>
             <motion.p
               {...anim(8, 0.12)}
               className="max-w-md text-[12px] text-ink-faint md:text-[13px]"
             >
-              Browse versions, compare freshness, and reopen any plan.
+              Browse versions, compare freshness, and reopen the one you actually want.
             </motion.p>
           </div>
 

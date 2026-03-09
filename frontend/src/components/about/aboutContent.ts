@@ -14,7 +14,7 @@ export type AboutContactLink = {
 export const ABOUT_HERO_COPY = {
   eyebrow: "About",
   headline: "The student behind MarqBot.",
-  body: "I am Markie. I built this because degree planning should not feel like document forensics.",
+  body: "I am Markie. I built this because degree planning should not feel like decoding CheckMarq, the bulletin, and one advisor email thread.",
 } as const;
 
 export const ABOUT_INTRO_LABELS = [
@@ -27,10 +27,10 @@ export const ABOUT_INTRO_LABELS = [
 export const ABOUT_INTRO_COPY = {
   title: "Hey, I'm Markie.",
   paragraphOne:
-    "I'm a freshman studying Information Systems at Marquette. I started MarqBot after spending an entire Sunday cross-referencing the bulletin, a spreadsheet, and advisor emails just to answer one course question. That system needed fewer tabs and more honesty.",
+    "I'm a freshman studying Information Systems at Marquette. I started MarqBot after spending an entire Sunday cross-checking the bulletin, CheckMarq, and advisor emails just to answer one course question. That felt unnecessary.",
   paragraphTwo:
-    "So I built the tool I wanted to use myself. MarqBot is still growing, but the goal is stable: real rules, clear tradeoffs, and less time arguing with CheckMarq at 11:48 p.m.",
-  note: "This was supposed to be a small side project. That was inaccurate.",
+    "So I built the tool I wanted in Raynor the week before registration: real rules, clear tradeoffs, and less time arguing with CheckMarq at 11:48 p.m.",
+  note: "This was supposed to stay small. Then the edge cases showed up.",
 } as const;
 
 export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
@@ -38,13 +38,13 @@ export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
     eyebrow: "Building now",
     title: "Full policy documentation",
     body:
-      "Documenting the edge-case policies the school actually enforces. The goal is fewer surprise blockers and fewer advisor-email archaeology sessions.",
+      "Documenting the edge-case policies Marquette actually enforces. The goal is fewer surprise blockers and fewer advisor-email archaeology sessions.",
   },
   {
     eyebrow: "Next up",
     title: "Semester offering awareness",
     body:
-      "Right now MarqBot does not fully know when every course is offered. Soon it will stop pretending that your ideal section exists every semester.",
+      "Right now MarqBot does not fully know when every course is offered. Soon it will stop acting like your ideal section exists every semester.",
   },
   {
     eyebrow: "Planned",

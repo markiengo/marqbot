@@ -62,7 +62,7 @@ export function LandingFinalCTA() {
               transition={{ duration: 0.45, delay: 0.22 }}
               className="mx-auto mt-5 mb-10 max-w-[42rem] text-[1.15rem] leading-relaxed text-slate-300 sm:text-[1.35rem]"
             >
-              Map out the rest of your semesters in a couple minutes. Then close the tab before it starts freelancing again.
+              Map out the rest of your semesters in a couple minutes. Then close the extra tabs and move on.
             </motion.p>
 
             <motion.div

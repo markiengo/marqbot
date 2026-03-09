@@ -76,7 +76,7 @@ export function PlaceholderPage({ title, description, coverImage }: PlaceholderP
           </Link>
           <Link href="/about">
             <Button variant="secondary" size="lg" className="border-white/10 bg-white/5 text-ink-primary hover:bg-white/8">
-              Ask Markie
+              Contact Markie
             </Button>
           </Link>
         </motion.div>

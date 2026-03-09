@@ -10,7 +10,7 @@ import { AnchorLine } from "@/components/shared/AnchorLine";
 const proofCards = [
   {
     title: "Deterministic engine",
-    body: "Same inputs = same outputs. No randomness. No vibes-based ranking.",
+    body: "Same inputs = same outputs. No randomness. No guesswork in the ranking.",
   },
   {
     title: "Actual degree logic",
@@ -57,7 +57,7 @@ export function TrustSection() {
           transition={{ duration: 0.4, delay: 0.16 }}
           className="mt-4 max-w-[44rem] text-[1.1rem] leading-relaxed text-slate-400"
         >
-          The product is funny when it earns it. The planning logic stays strict.
+          The tone can be dry. The planning logic stays strict.
         </motion.p>
 
         <AnchorLine variant="gold" className="mt-12 mb-12 mx-0" />

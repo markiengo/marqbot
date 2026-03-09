@@ -76,7 +76,7 @@ export function LandingHeroSimple() {
             >
               Know <span className="text-gold">exactly what</span> to take next.
               <br />
-              <span className="text-emphasis-blue">Before registration starts freelancing.</span>
+              <span className="text-emphasis-blue">Before registration week gets messy.</span>
             </motion.h1>
 
             <motion.p
@@ -86,7 +86,7 @@ export function LandingHeroSimple() {
               className="mt-7 max-w-[44rem] text-[1.2rem] sm:text-[1.38rem] leading-relaxed text-slate-300 mx-auto lg:mx-0"
             >
               Pick your major. Add your classes. MarqBot maps out your next semesters
-              using real degree rules. No spreadsheet archaeology. No guessing.
+              using real degree rules. No Raynor-night spreadsheet archaeology. No guessing.
               No &ldquo;wait, can I even take that?&rdquo;
             </motion.p>
 

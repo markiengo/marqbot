@@ -190,7 +190,7 @@ export function CanTakeSection({
               href="/about"
               className="inline-flex min-h-[3rem] flex-1 items-center justify-center rounded-[22px] border border-border-medium bg-surface-card/70 px-4 py-3 text-sm font-medium text-ink-primary transition-colors hover:border-gold/25 hover:bg-surface-hover"
             >
-              Contact me
+              Contact Markie
             </Link>
             <motion.button
               type="button"
