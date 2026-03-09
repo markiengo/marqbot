@@ -1,141 +1,87 @@
 """
-Nightly triple-combo dead-end sweep with randomized student profiles.
+Nightly sampled dead-end sweep with prereq-hardened seeded student histories.
 
-Covers all valid triple program combinations (majors + tracks) with
-5 random student profiles per combo (2 freshman, 1 each soph/junior/senior).
+Covers:
+- 30 deterministic-random sampled multi-program combos by default
+- 5 seeded student profiles per combo
+- 5 prereq-valid course-selection variants per profile
 
 Seed is date-based for daily reproducibility:
-- Same day = same profiles = reproducible failures
-- Next day = new seed = fresh coverage
-- Override with NIGHTLY_SEED env var to replay a specific day
+- Same day = same sampled combos and seeded histories
+- Next day = fresh nightly slice
+- Override with NIGHTLY_SEED to replay a specific day
 
 Run with: pytest -m nightly
 """
 
 import os
-import random
 from datetime import date
 
 import pytest
 
-from dead_end_utils import (
-    PlanCase,
-    classify_dead_end,
-    format_failure,
-    rerun_case_with_debug,
-    simulate_terms,
-)
-from helpers import build_triple_cases, generate_random_profiles
 from conftest import get_nightly_collector
+from dead_end_utils import classify_dead_end, simulate_terms
+from helpers import NIGHTLY_CASE_BUDGET, NIGHTLY_SAMPLE_SIZE, NIGHTLY_SELECTION_VARIANTS
+from nightly_support import build_nightly_suite, classify_graduation, format_nightly_failure
 
 pytestmark = pytest.mark.nightly
 
-# Date-based seed: reproducible within a day, fresh daily
 SEED = int(os.environ.get("NIGHTLY_SEED", date.today().strftime("%Y%m%d")))
+SAMPLE_SIZE = int(os.environ.get("NIGHTLY_SAMPLE_SIZE", NIGHTLY_SAMPLE_SIZE))
+SELECTION_VARIANTS = int(
+    os.environ.get("NIGHTLY_SELECTION_VARIANTS", NIGHTLY_SELECTION_VARIANTS)
+)
+CASE_BUDGET = int(os.environ.get("NIGHTLY_CASE_BUDGET", NIGHTLY_CASE_BUDGET))
 
-
-# ── Course universe cache ──────────────────────────────────────────────────
-
-
-def _get_course_universe(case: PlanCase) -> list[str]:
-    """Get the course universe for a program selection."""
-    try:
-        from dead_end_utils import resolve_effective_plan
-        effective_data, _, _, _, _, _ = resolve_effective_plan(case)
-        course_map = effective_data.get("course_bucket_map_df")
-        if course_map is not None and not course_map.empty:
-            mapped = set(course_map["course_code"].astype(str).tolist())
-        else:
-            mapped = set()
-
-        prereq_map = effective_data.get("prereq_map", {})
-        extended = set(mapped)
-        for cc in mapped:
-            info = prereq_map.get(cc, {})
-            for clause in info.get("clauses", []):
-                if isinstance(clause, str):
-                    extended.add(clause)
-                elif isinstance(clause, list):
-                    extended.update(clause)
-
-        return sorted(extended)
-    except (ValueError, Exception):
-        return []
-
-
-# ── Collect all nightly cases ──────────────────────────────────────────────
-
-
-def _collect_nightly_cases():
-    triples = build_triple_cases()
-    rng = random.Random(SEED)
-    all_cases = []
-
-    for label, declared_majors, track_ids, declared_minors in triples:
-        base = PlanCase(
-            declared_majors=declared_majors,
-            track_ids=track_ids,
-            declared_minors=declared_minors,
-            completed_courses=[],
-            in_progress_courses=[],
-            target_semester_primary="Fall 2026",
-        )
-
-        universe = _get_course_universe(base)
-        profiles = generate_random_profiles(
-            declared_majors, track_ids, declared_minors,
-            rng, universe, start_term="Fall 2026",
-        )
-
-        for standing_label, case in profiles:
-            all_cases.append((f"{label}/{standing_label}", case, standing_label.split("-")[0]))
-
-    return all_cases
-
-
-_NIGHTLY_CASES = None
-
-
-def _get_nightly_cases():
-    global _NIGHTLY_CASES
-    if _NIGHTLY_CASES is None:
-        _NIGHTLY_CASES = _collect_nightly_cases()
-    return _NIGHTLY_CASES
-
-
-def _case_ids():
-    return [label for label, _, _ in _get_nightly_cases()]
-
-
-def _case_params():
-    return [(label, case, standing) for label, case, standing in _get_nightly_cases()]
-
-
-# ── Tests ──────────────────────────────────────────────────────────────────
+_NIGHTLY_SUITE = build_nightly_suite(
+    SEED,
+    sample_size=SAMPLE_SIZE,
+    selection_variants=SELECTION_VARIANTS,
+    case_budget=CASE_BUDGET,
+)
+get_nightly_collector().configure_suite(_NIGHTLY_SUITE, seed=SEED)
 
 
 @pytest.mark.parametrize(
-    "label,case,standing",
-    _case_params(),
-    ids=_case_ids(),
+    "spec",
+    list(_NIGHTLY_SUITE.cases),
+    ids=[spec.label for spec in _NIGHTLY_SUITE.cases],
 )
-def test_nightly_no_dead_end(label, case, standing):
-    """Assert no 2-term dead-end for this triple combo + random profile."""
+def test_nightly_no_dead_end(spec):
+    """Assert sampled nightly students avoid dead-ends and still finish by semester 8."""
     collector = get_nightly_collector()
     collector.total_tests += 1
-    collector.seed = SEED
+
+    if spec.invalid_reason:
+        collector.record_case_issue(spec, invalid_reason=spec.invalid_reason)
+        raise AssertionError(format_nightly_failure(invalid_reason=spec.invalid_reason))
 
     try:
-        semesters = simulate_terms(case, num_terms=9)
-    except ValueError:
+        semesters = simulate_terms(spec.case, num_terms=9)
+    except ValueError as exc:
+        reason = f"Program selection failed during simulation: {exc}"
+        collector.record_case_issue(spec, invalid_reason=reason)
+        raise AssertionError(format_nightly_failure(invalid_reason=reason))
+
+    dead_end = classify_dead_end(semesters, spec.case)
+    graduation = classify_graduation(
+        semesters,
+        spec.case,
+        max_semesters=8,
+        seeded_semesters=spec.seeded_semesters,
+    )
+
+    if not dead_end.failed and not graduation.failed:
         return
 
-    check = classify_dead_end(semesters, case)
-    if not check.failed:
-        return
-
-    collector.record_failure(label, check, standing=standing)
-
-    debug_sem = rerun_case_with_debug(case, check.semester_index)
-    msg = format_failure(check, debug_sem)
-    raise AssertionError(msg)
+    collector.record_case_issue(
+        spec,
+        dead_end=dead_end if dead_end.failed else None,
+        graduation=graduation if graduation.failed else None,
+    )
+    raise AssertionError(
+        format_nightly_failure(
+            dead_end=dead_end if dead_end.failed else None,
+            graduation=graduation if graduation.failed else None,
+        )
+    )

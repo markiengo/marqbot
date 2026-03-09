@@ -8,20 +8,26 @@ Format per release:
 
 ---
 
-## [Unreleased] - 2026-03-09
+## [v2.3.2] - 2026-03-09
 
 ### Changes
 
+- Added planner bucket drill-ins so progress cards can open the courses and source details behind each requirement bucket.
+- Refined planner, semester, and saved-plan modals so course details and progress review are easier to scan.
 - Rewrote the frontend copy across landing, onboarding, planner, saved plans, About, and placeholder pages to match the updated voice guide: clearer first, drier humor second, and more Marquette-specific without sounding sloppy.
 - Tightened planner-facing microcopy: recommendation explainer, feedback modal, can-take panel, saved-plan states, and profile/settings surfaces now explain tradeoffs more directly.
 - Moved local feedback storage from `docs_local/` to ignored `docs/feedbacks/feedback.jsonl` so feedback logs stay inside the docs area without becoming pushable repo history.
 - Added a frontend language audit memo and refreshed the branding guide so future copy work has explicit humor limits, tone rules, and surface-by-surface guidance.
+- Redesigned the nightly dead-end sweep into a focused sampled harness with prereq-hardened seeded histories, semester-8 completion checks, and student-first completeness reporting.
+- Renamed the nightly Actions job to `Nightly Focused Sweep` and refreshed test docs with the new nightly defaults and reduced smoke commands.
 
 ### Design Decisions
 
+- Progress drill-ins should explain why a bucket is incomplete without making users decode raw requirement data by hand.
 - Humor should target system friction, not the student. The product can be funny without sounding unserious about degree rules.
 - Voice should stay clearer than it is quirky. If a joke makes an instruction weaker, the joke loses.
 - Local feedback logs now live under `docs/feedbacks/` but stay git-ignored so docs can be pushable without leaking student submissions.
+- Nightly confidence should come from realistic seeded student histories, not brute-force random course sampling.
 
 ---
 

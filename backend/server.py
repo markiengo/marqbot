@@ -338,7 +338,7 @@ def _add_security_headers(response):
 def health_endpoint():
     return jsonify({
         "status": "ok",
-        "version": "2.3.0",
+        "version": "2.3.2",
         "frontend_ready": _frontend_ready(),
     })
 
