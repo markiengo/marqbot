@@ -35,7 +35,7 @@ export default function PlannerPage() {
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-ink-muted">Loading course data...</p>
+          <p className="text-sm text-ink-muted">Loading planner data...</p>
         </div>
       </div>
     );
@@ -50,7 +50,7 @@ export default function PlannerPage() {
               Couldn&apos;t load planner data
             </h1>
             <p className="text-sm text-ink-muted">
-              Marqbot needs the course catalog and program list before it can build your plan.
+              MarqBot needs the course catalog and program list before the planner can run.
             </p>
             <p className="text-sm text-bad">{bootstrapError}</p>
           </div>

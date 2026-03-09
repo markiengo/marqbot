@@ -27,11 +27,11 @@ export function PreferencesPanel({
   return (
     <div className="space-y-5">
       <p className="section-kicker">
-        Adjust your preferences to cater the recommendations.
+        Tune the planner inputs, then rerun.
       </p>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-ink-muted uppercase tracking-wider">
+        <label className="text-sm font-medium uppercase tracking-wider text-ink-muted">
           Target Semester
         </label>
         <select
@@ -39,7 +39,7 @@ export function PreferencesPanel({
           onChange={(e) =>
             dispatch({ type: "SET_TARGET_SEMESTER", payload: e.target.value })
           }
-          className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40 hover:border-gold/40 transition-colors"
+          className="w-full rounded-lg border border-border-medium bg-surface-input px-2 py-1.5 text-sm text-ink-primary transition-colors hover:border-gold/40 focus:outline-none focus:ring-1 focus:ring-gold/40"
         >
           {SEMESTER_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -59,7 +59,7 @@ export function PreferencesPanel({
             onChange={(e) =>
               dispatch({ type: "SET_SEMESTER_COUNT", payload: e.target.value })
             }
-            className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40 hover:border-gold/40 transition-colors"
+            className="w-full rounded-lg border border-border-medium bg-surface-input px-2 py-1.5 text-sm text-ink-primary transition-colors hover:border-gold/40 focus:outline-none focus:ring-1 focus:ring-gold/40"
           >
             {SEMESTER_COUNT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -77,7 +77,7 @@ export function PreferencesPanel({
             onChange={(e) =>
               dispatch({ type: "SET_MAX_RECS", payload: e.target.value })
             }
-            className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40 hover:border-gold/40 transition-colors"
+            className="w-full rounded-lg border border-border-medium bg-surface-input px-2 py-1.5 text-sm text-ink-primary transition-colors hover:border-gold/40 focus:outline-none focus:ring-1 focus:ring-gold/40"
           >
             {MAX_RECS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -88,11 +88,10 @@ export function PreferencesPanel({
         </div>
       </div>
 
-      {/* Summer toggle */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-ink-secondary leading-tight">Include Summer Semesters</p>
-          <p className="text-sm text-ink-faint leading-tight mt-0.5">Max 4 courses · Summer-only offerings</p>
+          <p className="text-sm font-medium leading-tight text-ink-secondary">Include Summer Semesters</p>
+          <p className="mt-0.5 text-sm leading-tight text-ink-faint">Up to 4 courses. Summer-only offerings apply.</p>
         </div>
         <button
           type="button"
@@ -100,24 +99,23 @@ export function PreferencesPanel({
           aria-checked={state.includeSummer}
           onClick={() => dispatch({ type: "SET_INCLUDE_SUMMER", payload: !state.includeSummer })}
           className={[
-            "relative flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gold/40",
+            "relative flex h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gold/40",
             state.includeSummer ? "bg-gold" : "bg-white/20",
           ].join(" ")}
         >
           <span
             className={[
-              "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
+              "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200",
               state.includeSummer ? "translate-x-4" : "translate-x-0",
             ].join(" ")}
           />
         </button>
       </div>
 
-      {/* Honors student toggle */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-ink-secondary leading-tight">Honors Student</p>
-          <p className="text-sm text-ink-faint leading-tight mt-0.5">Include honors sections in plan</p>
+          <p className="text-sm font-medium leading-tight text-ink-secondary">Honors Student</p>
+          <p className="mt-0.5 text-sm leading-tight text-ink-faint">Include honors-only options when relevant.</p>
         </div>
         <button
           type="button"
@@ -125,13 +123,13 @@ export function PreferencesPanel({
           aria-checked={state.isHonorsStudent}
           onClick={() => dispatch({ type: "SET_HONORS_STUDENT", payload: !state.isHonorsStudent })}
           className={[
-            "relative flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gold/40",
+            "relative flex h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gold/40",
             state.isHonorsStudent ? "bg-gold" : "bg-white/20",
           ].join(" ")}
         >
           <span
             className={[
-              "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
+              "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200",
               state.isHonorsStudent ? "translate-x-4" : "translate-x-0",
             ].join(" ")}
           />
@@ -154,16 +152,16 @@ export function PreferencesPanel({
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-navy border-t-transparent rounded-full animate-spin" />
-                Loading...
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-navy border-t-transparent" />
+                Running...
               </span>
             ) : (
               submitLabel
             )}
           </Button>
           {!hasProgram && (
-            <p className="text-sm text-ink-faint text-center mt-2">
-              Select a major or track above to get started
+            <p className="mt-2 text-center text-sm text-ink-faint">
+              Add a major or track above to get started.
             </p>
           )}
         </div>

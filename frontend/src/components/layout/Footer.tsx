@@ -19,7 +19,7 @@ export function Footer() {
             </span>
           </div>
           <p className="text-sm text-center md:text-right">
-            FOR MARQUETTE BUSINESS STUDENTS
+            BUILT FOR MARQUETTE BUSINESS STUDENTS
             <br className="hidden sm:block" />
             Not an official Marquette University product.
           </p>

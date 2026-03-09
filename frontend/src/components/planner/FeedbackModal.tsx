@@ -72,8 +72,7 @@ export function FeedbackModal({ open, onClose, onSubmitted }: FeedbackModalProps
         <div className="relative space-y-2">
           <p className="section-kicker">Straight from the planner</p>
           <p className="text-sm leading-relaxed text-ink-secondary">
-            Rate the app and tell me what happened. Bugs, confusing copy, missing features, weird edge
-            cases, all of it goes here.
+            Rate the app and tell me what happened. Bugs, confusing copy, missing features, and ugly edge cases all belong here.
           </p>
         </div>
 
@@ -102,7 +101,7 @@ export function FeedbackModal({ open, onClose, onSubmitted }: FeedbackModalProps
             })}
           </div>
           {rating === null && (
-            <p className="text-xs text-ink-faint">Pick a rating so I can sort signal from noise later.</p>
+            <p className="text-xs text-ink-faint">Pick a rating so I can sort signal from venting.</p>
           )}
         </div>
 

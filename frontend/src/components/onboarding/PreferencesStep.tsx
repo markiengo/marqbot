@@ -25,7 +25,7 @@ export function PreferencesStep() {
             <span className="whitespace-nowrap">you want.</span>
           </>
         }
-        description="Pick the semester, how far ahead you want to look, and how heavy you want each term to be. Then MarqBot builds the plan."
+        description="Pick the next term, how far ahead to look, and how heavy each semester should feel."
       />
 
       <div className="grid min-h-0 flex-1 items-stretch gap-4 lg:grid-cols-2 2xl:grid-cols-3">
@@ -35,7 +35,7 @@ export function PreferencesStep() {
               What&apos;s your next semester?
             </label>
             <p className="mt-0.5 text-xs text-ink-faint">
-              The semester you are planning for next. Not the one you are in right now.
+              The term you are planning for next. Not the one you are in right now.
             </p>
           </div>
           <div className="mt-auto pt-3">
@@ -61,7 +61,7 @@ export function PreferencesStep() {
               How far ahead do you want to plan?
             </label>
             <p className="mt-0.5 text-xs text-ink-faint">
-              Pick 1 for next semester only, or go bigger if you want the long game.
+              Pick 1 for next term only, or go bigger if you want the long game.
             </p>
           </div>
           <div className="mt-auto pt-3">
@@ -87,7 +87,7 @@ export function PreferencesStep() {
               How many classes do you want each semester?
             </label>
             <p className="mt-0.5 text-xs text-ink-faint">
-              Most students pick 4 or 5. Six is brave. MarqBot will use this number in each term.
+              Most students pick 4 or 5. Six is a fully informed choice.
             </p>
           </div>
           <div className="mt-auto pt-3">
@@ -114,7 +114,7 @@ export function PreferencesStep() {
         transition={{ duration: 0.35, delay: 0.2 }}
         className="rounded-[1.5rem] border border-gold/18 bg-gold/[0.07] px-4 py-3.5 text-[0.92rem] leading-relaxed text-ink-secondary"
       >
-        MarqBot will rank classes that count, unlock more classes, and fit the plan you just picked.
+        MarqBot will rank classes that count now, unlock later work, and fit the pace you picked.
       </motion.div>
     </div>
   );

@@ -6,7 +6,7 @@ export default function CoursesPage() {
   return (
     <PlaceholderPage
       title="Course Explorer"
-      description="I might turn the school's website into something more useful."
+      description="A cleaner course browser is coming. The school site has carried enough of this burden already."
       coverImage="/assets/covers/screen_courses_cover.jpg"
     />
   );

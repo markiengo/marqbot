@@ -90,7 +90,7 @@ export function CourseDetailModal({
           </p>
         ) : (
           <p className="text-[1.05rem] text-ink-faint italic">
-            No description available for this course.
+            No description is loaded for this course yet.
           </p>
         )}
       </div>

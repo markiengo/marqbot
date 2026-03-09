@@ -63,8 +63,8 @@ export function CanTakeSection({
       <div className="shrink-0 relative z-[1]">
         <span className="section-kicker" style={{ fontSize: "0.816rem" }}>
           {state.canTakeQuery
-            ? `Can I take ${state.canTakeQuery} next semester?`
-            : "Can I take... next semester?"}
+            ? `Can I take ${state.canTakeQuery} next term?`
+            : "Can I take... next term?"}
         </span>
       </div>
 
@@ -79,7 +79,7 @@ export function CanTakeSection({
               clearCanTake();
             }}
             onSelect={handleSelect}
-            placeholder="Search a course..."
+            placeholder="Search a course"
           />
         </div>
         {loading && (
@@ -102,9 +102,9 @@ export function CanTakeSection({
             >
               {data.can_take === true
                 ? "Yes"
-                : data.can_take === false
-                  ? "Not yet"
-                  : "Review"}
+                  : data.can_take === false
+                    ? "Not yet"
+                    : "Check"}
             </motion.span>
           )}
         </AnimatePresence>
@@ -135,7 +135,7 @@ export function CanTakeSection({
               ? `Yes, you can take ${esc(data.requested_course)}`
               : data.can_take === false
                 ? `Not yet: ${esc(data.requested_course)}`
-                : `Manual review: ${esc(data.requested_course)}`}
+                : `Check manually: ${esc(data.requested_course)}`}
           </span>
           {data.why_not && (
             <span className="ml-1 opacity-80">&mdash; {esc(data.why_not)}</span>
@@ -151,7 +151,7 @@ export function CanTakeSection({
       <div className="relative z-[1] flex flex-1 flex-col gap-3 pt-3">
         <div className="flex items-start justify-between gap-3">
           <span className="section-kicker" style={{ fontSize: "0.816rem" }}>
-            Got feedback on this plan?
+            Have feedback on this plan?
           </span>
           <AnimatePresence initial={false}>
             {feedbackExpanded && (

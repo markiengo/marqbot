@@ -1,15 +1,15 @@
 # MarqBot
 
-Pick your major. Add your classes. Get your next classes.
+Pick your program. Add completed classes. Get a ranked next-term plan.
 
-MarqBot is a student-built planning tool for Marquette Business students. It helps you avoid prereq mistakes and build a clean path to graduation.
+MarqBot is a student-built planning tool for Marquette Business students. It helps you avoid prereq mistakes, see what counts, and build a cleaner path to graduation.
 
 Built by a Marquette student who got tired of guessing through CheckMarq.
 
 ## What You Get
 
 - A ranked list of what to take next
-- A quick yes/no on class eligibility (prereqs, standing, offerings)
+- A quick yes/no on class eligibility
 - Progress by requirement bucket
 - Multi-semester planning
 - Saved plan snapshots in your browser
@@ -54,7 +54,7 @@ cd ..
 
 - `DATA_PATH`: optional CSV-directory or workbook override
 - `FLASK_DEBUG`: optional local backend debug toggle
-- `FEEDBACK_PATH`: optional JSONL file path for feedback submissions; set this to a Render persistent disk path in production
+- `FEEDBACK_PATH`: optional JSONL file path for feedback submissions; for local dev this can point to an ignored file like `docs/feedbacks/feedback.jsonl`, and for production it should point to a Render persistent disk path
 - `PORT`, `WEB_CONCURRENCY`, `GUNICORN_TIMEOUT`, `GUNICORN_GRACEFUL_TIMEOUT`: deploy/runtime overrides
 - `REQUEST_CACHE_SIZE`, `SLOW_REQUEST_LOG_MS`: backend cache/log tuning
 - `NEXT_PUBLIC_API_BASE`: optional absolute frontend API base
@@ -70,7 +70,7 @@ cd ..
 
 ## How It Works
 
-MarqBot uses a deterministic recommendation engine that ranks courses by requirement priority, prerequisite chain depth, and bucket coverage. No randomness, no AI — same inputs always produce the same plan.
+MarqBot uses a deterministic recommendation engine that ranks courses by requirement priority, prerequisite chain depth, and bucket coverage. No randomness, no AI, same inputs always produce the same plan.
 
 The planner is currently saved-plan aware and feedback aware:
 - saved plans live in browser localStorage

@@ -53,9 +53,9 @@ describe("OnboardingPage component flow", () => {
 
     renderWithApp(createElement(OnboardingPage), state);
 
-    expect(screen.getByText(/getting your setup ready/i)).toBeInTheDocument();
+    expect(screen.getByText(/getting your planner ready/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/pulling courses and programs so your plan starts with real data/i),
+      screen.getByText(/pulling course and program data so the setup starts with real rules/i),
     ).toBeInTheDocument();
   });
 

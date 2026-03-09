@@ -5,12 +5,12 @@ import { motion } from "motion/react";
 import { Button } from "@/components/shared/Button";
 import { AnchorLine } from "@/components/shared/AnchorLine";
 
-const pills = ["5,300+ courses tracked", "32 programs", "1,500+ requirement links"];
+const pills = ["5,300+ courses mapped", "32 programs", "1,500+ requirement links"];
 
 const checks = [
-  "Are you eligible to take it right now?",
-  "Does it unlock future classes?",
-  "Does it count toward your actual requirements?",
+  "Can you take it right now?",
+  "Does it unlock later classes?",
+  "Does it count toward a real requirement?",
 ];
 
 const stats = [
@@ -76,7 +76,7 @@ export function LandingHeroSimple() {
             >
               Know <span className="text-gold">exactly what</span> to take next.
               <br />
-              <span className="text-emphasis-blue">Before registration gets weird.</span>
+              <span className="text-emphasis-blue">Before registration starts freelancing.</span>
             </motion.h1>
 
             <motion.p
@@ -85,8 +85,8 @@ export function LandingHeroSimple() {
               transition={{ duration: 0.5, delay: 0.18 }}
               className="mt-7 max-w-[44rem] text-[1.2rem] sm:text-[1.38rem] leading-relaxed text-slate-300 mx-auto lg:mx-0"
             >
-              Pick your major. Add your classes. MarqBot maps out your
-              next semesters using real degree rules. No spreadsheets. No guessing.
+              Pick your major. Add your classes. MarqBot maps out your next semesters
+              using real degree rules. No spreadsheet archaeology. No guessing.
               No &ldquo;wait, can I even take that?&rdquo;
             </motion.p>
 
@@ -124,7 +124,7 @@ export function LandingHeroSimple() {
               transition={{ delay: 0.4, duration: 0.35 }}
               className="mt-5 text-sm sm:text-base text-slate-400"
             >
-              Built by a Marquette student. <span className="text-gold">Rules, not vibes.</span>
+              Built by a Marquette student. <span className="text-gold">Real rules. Dry humor.</span>
             </motion.p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -207,7 +207,7 @@ export function LandingHeroSimple() {
                     Coverage
                   </p>
                   <p className="mt-3 text-lg font-semibold text-white">
-                    Core, major, track, MCC, and minors — all in one place.
+                    Core, major, track, MCC, and minors. One place.
                   </p>
                 </div>
                 <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4">

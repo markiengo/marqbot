@@ -51,7 +51,7 @@ function PlanCard({ plan, freshness, programs, onDelete, index }: PlanCardProps 
 
         <div className="grid gap-3 sm:grid-cols-[1.3fr_.7fr]">
           <div className="space-y-2">
-            <p className="text-sm text-ink-secondary">{programLine || "No program summary"}</p>
+            <p className="text-sm text-ink-secondary">{programLine || "Program summary unavailable"}</p>
             <p className="line-clamp-2 min-h-10 text-sm text-ink-faint">
               {plan.notes || freshnessCopy.reason}
             </p>
@@ -150,7 +150,7 @@ export function SavedPlansLibraryPage() {
               Couldn&apos;t load saved-plan data
             </h1>
             <p className="text-sm text-ink-muted">
-              Marqbot needs the course catalog and program list before it can render the library.
+              MarqBot needs the course catalog and program list before it can render the library.
             </p>
             <p className="text-sm text-bad">{bootstrapError}</p>
           </div>
@@ -178,7 +178,7 @@ export function SavedPlansLibraryPage() {
               No saved plans yet
             </h1>
             <p className="text-sm text-ink-secondary">
-              Generate recommendations in Planner, then save one to start building a comparison library.
+              Generate recommendations in Planner, then save one to start building a local comparison library.
             </p>
           </div>
           {storageError && (
@@ -221,13 +221,13 @@ export function SavedPlansLibraryPage() {
               {...anim(10, 0.08)}
               className="text-[clamp(1.35rem,1.9vw,1.7rem)] font-semibold leading-[1.06] text-ink-primary font-[family-name:var(--font-sora)]"
             >
-              Saved delusions, organized.
+              Saved plans, properly labeled.
             </motion.h3>
             <motion.p
               {...anim(8, 0.12)}
               className="max-w-md text-[12px] text-ink-faint md:text-[13px]"
             >
-              Browse, compare freshness, and resume any plan.
+              Browse versions, compare freshness, and reopen any plan.
             </motion.p>
           </div>
 

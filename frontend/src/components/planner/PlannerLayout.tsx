@@ -376,7 +376,7 @@ export function PlannerLayout() {
       {hasProgram ? (
         <div className="px-3 sm:px-4 py-2 mb-2 rounded-xl surface-depth-2 shine-sweep flex flex-wrap items-center justify-between gap-2 accent-top-gradient">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <span className="text-xs sm:text-sm text-ink-faint shrink-0">Planning for: </span>
+            <span className="text-xs sm:text-sm text-ink-faint shrink-0">Planning for:</span>
             <span className="text-xs sm:text-sm font-semibold font-[family-name:var(--font-sora)] text-gold truncate">
               {primaryProgramLabel}
             </span>
@@ -430,20 +430,20 @@ export function PlannerLayout() {
         </div>
       ) : (
         <div className="px-4 py-2 mb-2 rounded-xl surface-depth-2 flex items-center justify-between gap-3">
-          <span className="text-sm text-ink-faint">No program selected</span>
+          <span className="text-sm text-ink-faint">No program loaded</span>
           <button
             type="button"
             onClick={() => setProfileModalOpen(true)}
             className="text-xs font-semibold text-gold hover:text-gold-light transition-colors cursor-pointer"
           >
-            Edit Profile
+            Add profile
           </button>
         </div>
       )}
 
       {saveSuccessName && (
         <div className="mb-3 rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok flex flex-wrap items-center justify-between gap-3">
-          <span>Saved &ldquo;{saveSuccessName}&rdquo; to this browser.</span>
+          <span>Saved &ldquo;{saveSuccessName}&rdquo; in this browser.</span>
           <Link href="/saved" className="font-semibold underline underline-offset-2">
             View saved plans
           </Link>
@@ -452,7 +452,7 @@ export function PlannerLayout() {
 
       {feedbackSuccess && (
         <div className="mb-3 rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok">
-          Feedback sent. If that was a bug report, your current planner snapshot went with it.
+          Feedback sent. Your current planner snapshot went with it.
         </div>
       )}
 
@@ -485,7 +485,7 @@ export function PlannerLayout() {
           <div className="h-full min-h-0 flex flex-col">
             <div className="mb-2">
               <p className="section-kicker">
-                Ranked by actual degree logic. Expand each semester for details.
+                Ranked by eligibility, requirement value, and what each course unlocks.
               </p>
               <div className="flex items-center justify-between gap-2 mt-2">
                 <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
@@ -496,7 +496,7 @@ export function PlannerLayout() {
                   onClick={() => setExplainerOpen(true)}
                   className="shrink-0 text-[11px] text-gold bg-gold/8 border border-gold/20 rounded-full px-3 py-1 hover:bg-gold/15 hover:border-gold/35 transition-all"
                 >
-                  How Marqbot recommends
+                  How MarqBot ranks courses
                 </button>
               </div>
             </div>
@@ -526,11 +526,10 @@ export function PlannerLayout() {
                 </div>
                 <div>
                   <h2 className="text-[0.88rem] font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                    Fill in your details to get started.
+                    Add your profile to get recommendations.
                   </h2>
                   <p className="text-sm text-ink-faint mt-1 max-w-sm mx-auto">
-                    Hit the edit icon above, pick your major, add your completed courses, then
-                    hit &ldquo;Get My Plan.&rdquo; We&apos;ll handle the rest.
+                    Open the profile panel, pick your program, add completed courses, then run the planner.
                   </p>
                 </div>
               </motion.div>
@@ -555,10 +554,10 @@ export function PlannerLayout() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                    Ready when you are.
+                    Planner is ready.
                   </h2>
                   <p className="text-sm text-ink-faint mt-1">
-                    Hit &ldquo;Get My Plan&rdquo; and let&apos;s build your plan.
+                    Hit &ldquo;Get My Plan&rdquo; when you want a ranked next-term view.
                   </p>
                 </div>
               </motion.div>
@@ -629,71 +628,71 @@ export function PlannerLayout() {
       <Modal
         open={explainerOpen}
         onClose={closeExplainer}
-        title="How Marqbot Recommends Courses"
+        title="How MarqBot Ranks Courses"
         titleClassName="!text-[clamp(1.95rem,3.9vw,2.73rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
         size="planner-detail"
       >
         <div className="space-y-6 text-base text-ink-secondary">
           <p className="text-ink-faint text-[1.05rem]">
-            Short version: I filter out the nonsense first, then rank what is actually worth taking next.
+            Short version: MarqBot removes anything you cannot take, then sorts what is left by requirement value and what it unlocks.
           </p>
           <ol className="space-y-5 list-none">
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">1</span>
               <div>
                 <p className="font-semibold text-white text-[1.1rem] leading-snug">Can you actually take it?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If a class is blocked by prereqs, standing, a clear major or college restriction, or term availability, it stays off the list. Oopsie. Locked means locked.</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If a class is blocked by prereqs, standing, program restrictions, or term availability, it stays off the list. Locked means locked.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">2</span>
               <div>
                 <p className="font-semibold text-white text-[1.1rem] leading-snug">What does it count toward?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">I rank requirement types in order: MCC foundation and BCC first, then major, then track or minor, then later MCC and Discovery. Core stuff beats side quests.</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">MarqBot prioritizes MCC foundation and BCC first, then major work, then track or minor requirements, then later MCC and Discovery. Core work beats detours.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">3</span>
               <div>
                 <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it helping now, or just setting up later?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Classes that fill something now beat bridge classes. Bridge picks only stick around when they unlock important MCC, BCC, or major work. No random detours for the plot.</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">Classes that fill something now beat bridge classes. Bridge picks stay when they unlock important MCC, BCC, or major work.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">4</span>
               <div>
                 <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it a gatekeeper?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class unlocks a longer chain, it gets a bump. Gatekeeper energy. Better to handle that now than let it bully future-you later.</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class unlocks a longer chain, it gets a bump. Better to handle that now than let it bully future-you later.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">5</span>
               <div>
                 <p className="font-semibold text-white text-[1.1rem] leading-snug">Does it knock out more than one open requirement?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class helps more than one open bucket, that is a two-for-one. Those usually move up. We love efficiency.</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If one class helps more than one open bucket, that usually moves it up. Efficient classes get rewarded.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">6</span>
               <div>
                 <p className="font-semibold text-white text-[1.1rem] leading-snug">Is it too advanced for right now?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">For early students, I hold back 3000 and 4000-level backfill while lower-level options still exist. Respectfully: senior energy can wait.</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">For early students, MarqBot holds back 3000 and 4000-level backfill while lower-level options still exist. Senior energy can wait.</p>
               </div>
             </li>
             <li className="flex gap-4">
               <span className="flex-shrink-0 w-9 h-9 rounded-full bg-gold/20 text-gold text-sm font-bold flex items-center justify-center shadow-[0_0_12px_rgba(255,204,0,0.15)]">7</span>
               <div>
                 <p className="font-semibold text-white text-[1.1rem] leading-snug">Can it ride with a same-semester companion?</p>
-                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If a class can be taken concurrently, I can recommend it once its partner course is already in the semester plan. No orphan labs. No mystery tagalongs.</p>
+                <p className="text-ink-faint text-[1.05rem] mt-1.5 leading-relaxed">If a class can be taken concurrently, it can be recommended once its partner course is already in the term plan. No orphan labs.</p>
               </div>
             </li>
           </ol>
           <div className="divider-fade" />
           <p className="text-ink-faint text-[1.05rem] pt-3">
-            I assume you pass the classes in your plan. If your courses change, rerun the plan. Same inputs, same output. I am rules-based, not psychic.
+            MarqBot assumes you pass the classes in your plan. If your courses change, rerun it. Same inputs, same output.
           </p>
           <p className="text-ink-muted text-[1.05rem]">
-            This is deterministic course logic, not guesswork. Some catalog rows are still messy, so when the data is weird, I stay cautious. Full picture{" "}
+            This is deterministic course logic, not guesswork. Some catalog rows are still messy, so when the data is strange, MarqBot stays cautious. Full picture{" "}
             <a
               href="/about"
               className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"

@@ -35,14 +35,15 @@ frontend/nul
 .claude/
 .vscode/
 .pytest-tmp/
-/docs_local/
 test-reports/
 tests/nightly_reports/
+tests/nightly-reports/
 
 # Keep markdown local by default, but allow the full docs/ tree
 *.md
 !docs/
 !docs/**
+docs/feedbacks/
 !**/README.md
 !**/readme.md
 !**/CHANGELOG.md

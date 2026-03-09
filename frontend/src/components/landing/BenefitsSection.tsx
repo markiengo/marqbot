@@ -8,19 +8,19 @@ const benefits = [
   {
     kicker: "Take now",
     title: "See what you can actually take.",
-    body: "No more building a perfect plan around a class you can't even register for yet.",
+    body: "Stop building a perfect semester around a class you cannot actually register for yet.",
     accent: "gold",
   },
   {
     kicker: "Catch early",
     title: "Spot bottlenecks before they spiral.",
-    body: "Some classes block a bunch of others. MarqBot flags those early so they don't ruin your timeline.",
+    body: "Some courses quietly block half your future. MarqBot surfaces those early so they do not run your timeline.",
     accent: "blue",
   },
   {
     kicker: "Track it all",
     title: "Core, major, track, MCC, minors.",
-    body: "See every requirement bucket, what's done, what's in progress, and what's left. One place.",
+    body: "See every requirement bucket, what is done, what is in progress, and what is left. One place.",
     accent: "gold",
   },
 ];
@@ -30,7 +30,7 @@ export function BenefitsSection() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-24 overflow-hidden band-blue band-fade-top">
+    <section ref={ref} className="relative overflow-hidden py-24 band-blue band-fade-top">
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div
           className="absolute top-12 left-[10%] h-[20rem] w-[20rem] rounded-full blur-[110px]"
@@ -42,8 +42,8 @@ export function BenefitsSection() {
         />
       </div>
 
-      <div className="max-w-[96rem] mx-auto px-5 sm:px-7 lg:px-10">
-        <div className="max-w-[48rem] text-center mx-auto">
+      <div className="mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
+        <div className="mx-auto max-w-[48rem] text-center">
           <motion.p
             initial={{ opacity: 0, y: 8 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -56,7 +56,7 @@ export function BenefitsSection() {
             initial={{ opacity: 0, y: 14 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.45, delay: 0.08 }}
-            className="mt-4 text-[2.8rem] sm:text-[3.7rem] font-bold leading-tight text-white"
+            className="mt-4 text-[2.8rem] font-bold leading-tight text-white sm:text-[3.7rem]"
           >
             Less guessing.
             <br />
@@ -66,9 +66,9 @@ export function BenefitsSection() {
             initial={{ opacity: 0, y: 10 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.4, delay: 0.16 }}
-            className="mt-4 text-[1.1rem] sm:text-[1.25rem] leading-relaxed text-slate-400"
+            className="mt-4 text-[1.1rem] leading-relaxed text-slate-400 sm:text-[1.25rem]"
           >
-            Pick better classes faster. Skip the five-tab scavenger hunt.
+            Pick cleaner next moves faster. Skip the five-tab bulletin dig.
           </motion.p>
         </div>
 

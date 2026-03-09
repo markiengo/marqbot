@@ -20,18 +20,18 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "MarqBot",
-  description: "MarqBot",
+  description: "Student-built degree planning for Marquette Business students. Real rules. Clear next moves.",
   applicationName: "MarqBot",
   openGraph: {
     title: "MarqBot",
-    description: "MarqBot",
+    description: "Student-built degree planning for Marquette Business students. Real rules. Clear next moves.",
     siteName: "MarqBot",
     type: "website",
   },
   twitter: {
     card: "summary",
     title: "MarqBot",
-    description: "MarqBot",
+    description: "Student-built degree planning for Marquette Business students. Real rules. Clear next moves.",
   },
 };
 

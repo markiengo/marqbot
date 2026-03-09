@@ -169,7 +169,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
         <div className="max-w-md text-center space-y-4 rounded-3xl glass-card p-6">
-          <h1 className="text-2xl font-semibold text-ink-primary">Could not load plan detail</h1>
+          <h1 className="text-2xl font-semibold text-ink-primary">Could not load this saved plan</h1>
           <p className="text-sm text-ink-muted">{bootstrapError}</p>
           <Button variant="gold" onClick={handleRetry}>Try Again</Button>
         </div>
@@ -184,7 +184,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
           <p className="section-kicker justify-center">Saved / Detail</p>
           <h1 className="text-3xl font-semibold text-ink-primary">Plan not found</h1>
           <p className="text-sm text-ink-secondary">
-            This local saved-plan record is missing. It may have been deleted in another tab.
+            This local saved-plan record is missing. It may have been deleted in another tab or browser session.
           </p>
           <Link href="/saved" className="inline-flex">
             <Button variant="gold">Back to Library</Button>
@@ -283,7 +283,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
                     <p className="section-kicker">Plan Details</p>
                     <h3 className="max-w-[22ch] text-[10px] font-semibold leading-[1.2] text-ink-primary">Plan name and notes</h3>
                     <p className="text-sm text-ink-faint">
-                      Update the title and context for this saved plan without changing the saved recommendation snapshot.
+                      Update the title and notes without changing the saved recommendation snapshot.
                     </p>
                   </div>
                   {!isEditingMeta ? (
@@ -390,7 +390,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
             <div className="relative h-full min-h-0 flex flex-col">
               <div className="mb-2">
                 <p className="section-kicker">
-                  Saved snapshot. Same planner layout, frozen in time.
+                  Saved snapshot. Same planner view, frozen at save time.
                 </p>
                 <div className="flex items-center justify-between gap-2 mt-2">
                   <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">

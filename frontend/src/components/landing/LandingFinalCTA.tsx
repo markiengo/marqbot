@@ -12,14 +12,15 @@ export function LandingFinalCTA() {
 
   return (
     <section ref={ref} className="py-24 band-blue-gold band-fade-top">
-      <div className="max-w-[96rem] mx-auto px-5 sm:px-7 lg:px-10">
+      <div className="mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.55 }}
           className="relative overflow-hidden rounded-3xl border px-10 py-[4.5rem] text-center md:px-[4.5rem]"
           style={{
-            background: "linear-gradient(135deg, rgba(15,35,70,0.92) 0%, rgba(10,24,50,0.80) 50%, rgba(14,28,58,0.88) 100%)",
+            background:
+              "linear-gradient(135deg, rgba(15,35,70,0.92) 0%, rgba(10,24,50,0.80) 50%, rgba(14,28,58,0.88) 100%)",
             borderColor: "rgba(255,255,255,0.09)",
             boxShadow: "0 8px 40px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.05)",
           }}
@@ -50,19 +51,18 @@ export function LandingFinalCTA() {
               transition={{ duration: 0.5, delay: 0.12 }}
               className="mx-auto max-w-[16ch] text-[2.8rem] font-bold leading-tight text-white md:text-[4rem]"
             >
-              Your registration tab has
+              Your registration tab has asked
               <br />
-              <span className="text-gold">done enough.</span>
+              <span className="text-gold">enough of you.</span>
             </motion.h2>
 
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.45, delay: 0.22 }}
-              className="mx-auto mb-10 mt-5 max-w-[42rem] text-[1.15rem] leading-relaxed text-slate-300 sm:text-[1.35rem]"
+              className="mx-auto mt-5 mb-10 max-w-[42rem] text-[1.15rem] leading-relaxed text-slate-300 sm:text-[1.35rem]"
             >
-              Map out your remaining semesters in a couple minutes. Then go
-              do literally anything else.
+              Map out the rest of your semesters in a couple minutes. Then close the tab before it starts freelancing again.
             </motion.p>
 
             <motion.div
