@@ -93,17 +93,17 @@ Use `tests/test_structure.md` as the source of truth.
 - narrow cleanup around one backend area:
   - run the closest focused backend test file
 - broader backend-adjacent cleanup:
-  - `python -m pytest -q`
+  - `.\.venv\Scripts\python.exe -m pytest -q`
 
 ### Frontend-related cleanup
 - narrow frontend cleanup:
   - run the closest focused frontend test file
 - broader frontend cleanup:
-  - `cd frontend && npm run test`
-  - `cd frontend && npm run build`
+  - `cd frontend; npm run test`
+  - `cd frontend; npm run build`
 
 ### Quip cleanup
-- `python scripts/compile_quips.py`
+- `.\.venv\Scripts\python.exe scripts/compile_quips.py`
 
 ### Workflow cleanup
 - read the workflow file carefully

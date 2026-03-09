@@ -45,9 +45,9 @@ cd ..
 ## Common Commands
 
 - Backend only: `.\.venv\Scripts\python.exe backend/server.py`
-- Frontend dev: `cd frontend && npm run dev`
+- Frontend dev: `cd frontend; npm run dev`
 - Backend tests: `.\.venv\Scripts\python.exe -m pytest -q`
-- Frontend checks: `cd frontend && npm test && npm run lint && npm run build`
+- Frontend checks: `cd frontend; npm run test; npm run lint; npm run build`
 - Track validation: `.\.venv\Scripts\python.exe scripts/validate_track.py --all`
 
 ## Environment
