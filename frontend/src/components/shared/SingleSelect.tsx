@@ -103,7 +103,7 @@ export function SingleSelect({
   };
 
   return (
-    <div className={isOpen ? "relative z-40" : "relative"}>
+    <div className={isOpen ? "relative z-50" : "relative"}>
       <input
         ref={inputRef}
         type="text"
@@ -125,7 +125,7 @@ export function SingleSelect({
       />
 
       {isOpen && matches.length > 0 && (
-        <div className="absolute z-40 w-full mt-1 bg-surface-card border border-border-medium rounded-xl shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-surface-card border border-border-medium rounded-xl shadow-lg max-h-48 overflow-y-auto">
           {matches.map((c, idx) => (
             <div
               key={c.course_code}

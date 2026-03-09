@@ -1,17 +1,31 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { isCanTakeResultForQuery, useCanTake } from "@/hooks/useCanTake";
 import { SingleSelect } from "@/components/shared/SingleSelect";
 import { esc } from "@/lib/utils";
 
-export function CanTakeSection() {
+interface CanTakeSectionProps {
+  feedbackExpanded: boolean;
+  onFeedbackOpen: () => void;
+  onFeedbackDismiss: () => void;
+  onFeedbackNudgeEligibilityChange: (eligible: boolean) => void;
+}
+
+export function CanTakeSection({
+  feedbackExpanded,
+  onFeedbackOpen,
+  onFeedbackDismiss,
+  onFeedbackNudgeEligibilityChange,
+}: CanTakeSectionProps) {
   const { state, dispatch } = useAppContext();
   const { data, loading, error, checkCanTake, clearCanTake } = useCanTake();
   const didAutoFetch = useRef(false);
   const hasVisibleResult = isCanTakeResultForQuery(state.canTakeQuery, data);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (state.canTakeQuery.trim()) return;
@@ -27,6 +41,11 @@ export function CanTakeSection() {
     void checkCanTake(state.canTakeQuery);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.canTakeQuery, hasVisibleResult]);
+
+  useEffect(() => {
+    onFeedbackNudgeEligibilityChange(hasVisibleResult);
+    return () => onFeedbackNudgeEligibilityChange(false);
+  }, [hasVisibleResult, onFeedbackNudgeEligibilityChange]);
 
   const handleSelect = (course: { course_code: string }) => {
     dispatch({ type: "SET_CAN_TAKE_QUERY", payload: course.course_code });
@@ -50,7 +69,7 @@ export function CanTakeSection() {
       </div>
 
       {/* Search row */}
-      <div className="flex items-center gap-2 shrink-0 relative z-[1]">
+      <div className="flex items-center gap-2 shrink-0 relative z-[6]">
         <div className="flex-1 min-w-0">
           <SingleSelect
             courses={state.courses}
@@ -128,6 +147,67 @@ export function CanTakeSection() {
           )}
         </motion.div>
       )}
+
+      <div className="relative z-[1] flex flex-1 flex-col gap-3 pt-3">
+        <div className="flex items-start justify-between gap-3">
+          <span className="section-kicker" style={{ fontSize: "0.816rem" }}>
+            Got feedback on this plan?
+          </span>
+          <AnimatePresence initial={false}>
+            {feedbackExpanded && (
+              <motion.button
+                key="feedback-dismiss"
+                type="button"
+                onClick={onFeedbackDismiss}
+                aria-label="Dismiss feedback nudge"
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+                animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.16 }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border-medium bg-surface-input/70 text-ink-faint transition-colors hover:border-gold/30 hover:text-ink-primary cursor-pointer"
+              >
+                <span aria-hidden="true">x</span>
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <motion.div
+          animate={
+            feedbackExpanded && !reduceMotion
+              ? { scale: [1, 1.008, 1] }
+              : { scale: 1 }
+          }
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          className={`rounded-[28px] border p-2 sm:p-2.5 ${
+            feedbackExpanded
+              ? "border-gold/38 bg-[linear-gradient(135deg,rgba(255,204,0,0.08),rgba(0,114,206,0.10))] shadow-[0_0_28px_rgba(255,204,0,0.12),0_0_42px_rgba(0,114,206,0.08)]"
+              : "border-border-medium bg-surface-input/70"
+          }`}
+        >
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link
+              href="/about"
+              className="inline-flex min-h-[3rem] flex-1 items-center justify-center rounded-[22px] border border-border-medium bg-surface-card/70 px-4 py-3 text-sm font-medium text-ink-primary transition-colors hover:border-gold/25 hover:bg-surface-hover"
+            >
+              Contact me
+            </Link>
+            <motion.button
+              type="button"
+              onClick={onFeedbackOpen}
+              aria-label="Feedback form"
+              whileHover={reduceMotion ? undefined : { y: -1 }}
+              className={`inline-flex min-h-[3rem] flex-1 items-center justify-center rounded-[22px] border px-4 py-3 text-sm font-semibold transition-all cursor-pointer ${
+                feedbackExpanded
+                  ? "border-gold/45 bg-gold/16 text-gold shadow-[0_0_20px_rgba(255,204,0,0.14)]"
+                  : "border-border-medium bg-surface-card/70 text-ink-primary hover:border-gold/25 hover:bg-surface-hover"
+              }`}
+            >
+              Feedback form
+            </motion.button>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }

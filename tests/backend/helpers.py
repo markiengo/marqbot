@@ -322,22 +322,22 @@ def generate_random_profiles(
     course_universe: list[str],
     start_term: str = "Fall 2026",
 ) -> list[tuple[str, "PlanCase"]]:
-    """Generate 12 random student profiles (3 per standing level).
+    """Generate 5 random student profiles (2 freshman, 1 each soph/junior/senior).
 
     Returns list of (standing_label, PlanCase).
     """
     from dead_end_utils import PlanCase
 
     STANDING_CONFIGS = [
-        ("freshman", 0, 10),
-        ("sophomore", 10, 20),
-        ("junior", 15, 30),
-        ("senior", 25, 40),
+        ("freshman", 0, 10, 2),
+        ("sophomore", 10, 20, 1),
+        ("junior", 15, 30, 1),
+        ("senior", 25, 40, 1),
     ]
 
     profiles = []
-    for standing_label, min_courses, max_courses in STANDING_CONFIGS:
-        for i in range(3):
+    for standing_label, min_courses, max_courses, count in STANDING_CONFIGS:
+        for i in range(count):
             effective_max = min(max_courses, len(course_universe))
             effective_min = min(min_courses, effective_max)
             if effective_max <= 0:

@@ -17,6 +17,7 @@ from server import app
 from dead_end_utils import (
     PlanCase,
     run_case_and_assert,
+    assert_graduates_by,
     seed_from_simulation,
 )
 from helpers import (
@@ -312,3 +313,44 @@ def test_include_summer_smoke_preserves_summer_term_when_enabled(client):
     assert labels == ["Spring 2026", "Summer 2026", "Fall 2026"]
     assert_recommendation_shape(data["semesters"][0].get("recommendations", []))
     assert_selection_context(data, [primary_major_id()])
+
+
+# ── Graduation-by-8 tests ─────────────────────────────────────────────────
+# Every standalone major must graduate a fresh student within 8 semesters
+# at 6 courses/semester. Catches data bugs (false restrictions, missing
+# mappings) that silently block degree completion.
+
+
+def _graduation_cases():
+    """Build one PlanCase per active major (empty student, 8 semesters)."""
+    majors, _, _ = active_programs()
+    cases = []
+    for mid in majors:
+        declared = [mid]
+        if requires_primary(mid):
+            declared = [CANONICAL_PRIMARY, mid]
+        cases.append((
+            f"grad-{mid}",
+            PlanCase(
+                declared_majors=declared,
+                track_ids=[],
+                declared_minors=[],
+                completed_courses=[],
+                in_progress_courses=[],
+                target_semester_primary="Fall 2024",
+            ),
+        ))
+    return cases
+
+
+_GRAD_CASES = _graduation_cases()
+
+
+@pytest.mark.parametrize(
+    "label,case",
+    _GRAD_CASES,
+    ids=[label for label, _ in _GRAD_CASES],
+)
+def test_graduates_by_semester_8(label, case):
+    """A fresh student in this major must satisfy all buckets within 8 semesters."""
+    assert_graduates_by(case, max_semesters=8)

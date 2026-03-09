@@ -2,7 +2,7 @@
 Nightly triple-combo dead-end sweep with randomized student profiles.
 
 Covers all valid triple program combinations (majors + tracks) with
-8 random student profiles per combo (2 per standing level).
+5 random student profiles per combo (2 freshman, 1 each soph/junior/senior).
 
 Seed is date-based for daily reproducibility:
 - Same day = same profiles = reproducible failures

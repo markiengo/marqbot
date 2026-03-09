@@ -9,8 +9,8 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 | What to run | Command | Tests |
 |---|---|---:|
 | **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | ~633 |
-| **Fast dead-end check** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q` | 55 |
-| **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | ~12,372 |
+| **Fast dead-end check** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q` | ~67 |
+| **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | ~5,155 |
 | **Frontend** | `cd frontend; npm run test` | 71 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
@@ -34,8 +34,8 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 | `test_allocator.py` | 26 | Allocation routing, min-level, double-count policy |
 | `test_data_integrity.py` | 34 | CSV schema, FK integrity, prereq graph sanity |
 | `test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
-| `test_dead_end_fast.py` | 55 | Single-program empty-state, curated combos, smoke tests |
-| `test_dead_end_nightly.py` | ~12,372 | Triple-combo sweep with randomized profiles (nightly only) |
+| `test_dead_end_fast.py` | ~67 | Single-program empty-state, curated combos, smoke tests, graduation-by-8 |
+| `test_dead_end_nightly.py` | ~5,155 | Triple-combo sweep with randomized profiles (nightly only) |
 | `test_eligibility.py` | 42 | Eligibility filters, restrictions, bridge courses, can-take helpers |
 | `test_equivalencies.py` | 25 | Equivalency maps, prereq satisfaction, NDC blocking, schema checks |
 | `test_feedback_api.py` | 9 | `/api/feedback` contract, JSONL persistence, validation, rate limiting |
@@ -106,7 +106,7 @@ All tests run fully offline once dependencies already exist locally. Make sure `
 # Fast dead-end only (~30s)
 .\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q
 
-# Nightly sweep (~45 min, ~12k tests)
+# Nightly sweep (~60 min, ~5k tests)
 .\.venv\Scripts\python.exe -m pytest -m nightly -q
 
 # Nightly with a specific seed in PowerShell (replay a past day's profiles)
@@ -125,7 +125,7 @@ The nightly sweep generates a report at `tests/nightly_reports/YYYY-MM-DD.md` af
 
 ## Nightly Sweep Details
 
-The nightly sweep tests every valid triple combination of programs (major + track + minor) against 12 randomized student profiles (3 per class level: freshman, sophomore, junior, senior).
+The nightly sweep tests every valid triple combination of programs (major + track + minor) against 5 randomized student profiles (2 freshman, 1 each sophomore/junior/senior).
 
 - **Seed**: date-based (`YYYYMMDD`) for daily reproducibility; override with `NIGHTLY_SEED` env var
 - **Report**: uploaded as artifact `nightly-sweep-report` (14-day retention); includes what broke, analysis, and next steps

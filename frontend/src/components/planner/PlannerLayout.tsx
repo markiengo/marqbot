@@ -20,6 +20,16 @@ import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
 import { postRecommend } from "@/lib/api";
+import {
+  getPlannerFeedbackCooldownUntil,
+  PLANNER_FEEDBACK_DISMISS_COOLDOWN_MS,
+  PLANNER_FEEDBACK_IDLE_DELAY_MS,
+  PLANNER_FEEDBACK_INITIAL_DELAY_MS,
+  PLANNER_FEEDBACK_REPEAT_DELAY_MS,
+  PLANNER_FEEDBACK_SUBMIT_COOLDOWN_MS,
+  readPlannerFeedbackNudgeRecord,
+  writePlannerFeedbackNudgeRecord,
+} from "@/lib/plannerFeedbackNudge";
 import { getProgramLabelMap } from "@/lib/rendering";
 import { buildSavedPlanInputsFromAppState } from "@/lib/savedPlans";
 import type { RecommendedCourse, RecommendationResponse, SemesterData } from "@/lib/types";
@@ -45,6 +55,8 @@ export function PlannerLayout() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccessName, setSaveSuccessName] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [feedbackCtaExpanded, setFeedbackCtaExpanded] = useState(false);
+  const [canTakeFeedbackEligible, setCanTakeFeedbackEligible] = useState(false);
   const [semEditCandidates, setSemEditCandidates] = useState<RecommendedCourse[] | null>(null);
   const [semEditLoading, setSemEditLoading] = useState(false);
   const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
@@ -52,7 +64,12 @@ export function PlannerLayout() {
   const closeExplainer = useCallback(() => setExplainerOpen(false), []);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
+  const plannerMountedAtRef = useRef(Date.now());
+  const feedbackLastActiveAtRef = useRef(Date.now());
+  const feedbackLastNudgedAtRef = useRef<number | null>(null);
+  const feedbackNudgeRecordRef = useRef(readPlannerFeedbackNudgeRecord());
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
+  const hasMeaningfulPlannerUse = Boolean(state.lastRecommendationData) || canTakeFeedbackEligible;
 
   // Description lookup map from loaded courses
   const descriptionMap = useMemo(() => {
@@ -64,6 +81,10 @@ export function PlannerLayout() {
   }, [state.courses]);
 
   // Auto-fetch once when arriving fresh from onboarding with no existing recs
+  useEffect(() => {
+    feedbackNudgeRecordRef.current = readPlannerFeedbackNudgeRecord();
+  }, []);
+
   useEffect(() => {
     if (
       didAutoFetch.current ||
@@ -77,6 +98,80 @@ export function PlannerLayout() {
     fetchRecommendations();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.onboardingComplete, state.lastRecommendationData, hasProgram, state.courses.length]);
+
+  useEffect(() => {
+    const markActivity = () => {
+      feedbackLastActiveAtRef.current = Date.now();
+      setFeedbackCtaExpanded(false);
+    };
+
+    window.addEventListener("keydown", markActivity, true);
+    window.addEventListener("pointerdown", markActivity, true);
+    window.addEventListener("touchstart", markActivity, true);
+    window.addEventListener("scroll", markActivity, true);
+
+    return () => {
+      window.removeEventListener("keydown", markActivity, true);
+      window.removeEventListener("pointerdown", markActivity, true);
+      window.removeEventListener("touchstart", markActivity, true);
+      window.removeEventListener("scroll", markActivity, true);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasMeaningfulPlannerUse) return;
+
+    const maybeOpenFeedbackNudge = () => {
+      if (feedbackModalOpen) return;
+      if (document.visibilityState !== "visible") return;
+
+      const now = Date.now();
+      const cooldownUntil = getPlannerFeedbackCooldownUntil(feedbackNudgeRecordRef.current);
+      if (cooldownUntil > now) return;
+
+      if (now - feedbackLastActiveAtRef.current < PLANNER_FEEDBACK_IDLE_DELAY_MS) return;
+
+      const lastNudgedAt = feedbackLastNudgedAtRef.current;
+      const nextEligibleAt = lastNudgedAt === null
+        ? plannerMountedAtRef.current + PLANNER_FEEDBACK_INITIAL_DELAY_MS
+        : lastNudgedAt + PLANNER_FEEDBACK_REPEAT_DELAY_MS;
+      if (now < nextEligibleAt) return;
+
+      feedbackLastNudgedAtRef.current = now;
+      setFeedbackCtaExpanded(true);
+    };
+
+    maybeOpenFeedbackNudge();
+    const timer = window.setInterval(maybeOpenFeedbackNudge, 1000);
+    return () => window.clearInterval(timer);
+  }, [feedbackModalOpen, hasMeaningfulPlannerUse]);
+
+  const openFeedbackModal = useCallback(() => {
+    setFeedbackSuccess(false);
+    setFeedbackCtaExpanded(false);
+    setFeedbackModalOpen(true);
+  }, []);
+
+  const dismissFeedbackNudge = useCallback(() => {
+    const nextRecord = {
+      ...feedbackNudgeRecordRef.current,
+      dismissedUntil: Date.now() + PLANNER_FEEDBACK_DISMISS_COOLDOWN_MS,
+    };
+    feedbackNudgeRecordRef.current = nextRecord;
+    writePlannerFeedbackNudgeRecord(nextRecord);
+    setFeedbackCtaExpanded(false);
+  }, []);
+
+  const handleFeedbackSubmitted = useCallback(() => {
+    const nextRecord = {
+      ...feedbackNudgeRecordRef.current,
+      submittedUntil: Date.now() + PLANNER_FEEDBACK_SUBMIT_COOLDOWN_MS,
+    };
+    feedbackNudgeRecordRef.current = nextRecord;
+    writePlannerFeedbackNudgeRecord(nextRecord);
+    setFeedbackSuccess(true);
+    setFeedbackCtaExpanded(false);
+  }, []);
 
   const programLabelMap = data?.selection_context
     ? getProgramLabelMap(data.selection_context)
@@ -307,17 +402,6 @@ export function PlannerLayout() {
               variant="secondary"
               size="sm"
               onClick={() => {
-                setFeedbackSuccess(false);
-                setFeedbackModalOpen(true);
-              }}
-              className="shrink-0"
-            >
-              Feedback
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
                 setSaveError(null);
                 setSaveModalOpen(true);
               }}
@@ -347,25 +431,13 @@ export function PlannerLayout() {
       ) : (
         <div className="px-4 py-2 mb-2 rounded-xl surface-depth-2 flex items-center justify-between gap-3">
           <span className="text-sm text-ink-faint">No program selected</span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setFeedbackSuccess(false);
-                setFeedbackModalOpen(true);
-              }}
-            >
-              Feedback
-            </Button>
-            <button
-              type="button"
-              onClick={() => setProfileModalOpen(true)}
-              className="text-xs font-semibold text-gold hover:text-gold-light transition-colors cursor-pointer"
-            >
-              Edit Profile
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setProfileModalOpen(true)}
+            className="text-xs font-semibold text-gold hover:text-gold-light transition-colors cursor-pointer"
+          >
+            Edit Profile
+          </button>
         </div>
       )}
 
@@ -398,7 +470,12 @@ export function PlannerLayout() {
             </div>
 
             <div className="lg:flex-[2] lg:min-h-0">
-              <CanTakeSection />
+              <CanTakeSection
+                feedbackExpanded={feedbackCtaExpanded}
+                onFeedbackOpen={openFeedbackModal}
+                onFeedbackDismiss={dismissFeedbackNudge}
+                onFeedbackNudgeEligibilityChange={setCanTakeFeedbackEligible}
+              />
             </div>
           </div>
         </div>
@@ -666,7 +743,7 @@ export function PlannerLayout() {
       <FeedbackModal
         open={feedbackModalOpen}
         onClose={() => setFeedbackModalOpen(false)}
-        onSubmitted={() => setFeedbackSuccess(true)}
+        onSubmitted={handleFeedbackSubmitted}
       />
     </div>
   );
