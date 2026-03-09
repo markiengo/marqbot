@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion } from "motion/react";
-import type { SemesterData, RecommendedCourse } from "@/lib/types";
+import type { BucketDetailState, Course, RecommendedCourse, SemesterData } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { Button } from "@/components/shared/Button";
 import { CourseCard } from "./CourseCard";
@@ -10,6 +10,7 @@ import { Tag } from "@/components/shared/Tag";
 import { groupProgressByTierWithMajors, sortBucketsByTier } from "@/lib/rendering";
 import { getSemesterQuip } from "@/lib/quips";
 import { BucketProgressGrid } from "./BucketProgressGrid";
+import { BucketCourseModal } from "./BucketCourseModal";
 import { bucketLabel, esc } from "@/lib/utils";
 
 interface SemesterModalProps {
@@ -19,6 +20,7 @@ interface SemesterModalProps {
   index: number;
   totalCount: number;
   requestedCount: number;
+  courses: Course[];
   programLabelMap?: Map<string, string>;
   bucketLabelMap?: Map<string, string>;
   programOrder?: string[];
@@ -41,6 +43,7 @@ export function SemesterModal({
   index,
   totalCount,
   requestedCount,
+  courses,
   declaredMajors,
   programLabelMap,
   bucketLabelMap,
@@ -57,6 +60,8 @@ export function SemesterModal({
   const [editCourses, setEditCourses] = useState<RecommendedCourse[]>([]);
   const [applyLoading, setApplyLoading] = useState(false);
   const [editApplied, setEditApplied] = useState(false);
+  const [bucketDetail, setBucketDetail] = useState<BucketDetailState | null>(null);
+  const bucketTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -65,6 +70,7 @@ export function SemesterModal({
       setEditCourses([]);
       setApplyLoading(false);
       setEditApplied(false);
+      setBucketDetail(null);
     }
   }, [open]);
 
@@ -103,20 +109,49 @@ export function SemesterModal({
     }
   };
 
+  const closeBucketDetail = () => {
+    setBucketDetail(null);
+    window.setTimeout(() => {
+      bucketTriggerRef.current?.focus();
+    }, 0);
+  };
+
+  const openBucketDetail = (bucket: {
+    bucketId: string;
+    bucketLabel: string;
+    progress: { completed_applied?: string[]; in_progress_applied?: string[] };
+    triggerEl: HTMLButtonElement;
+  }) => {
+    bucketTriggerRef.current = bucket.triggerEl;
+    setBucketDetail({
+      bucketId: bucket.bucketId,
+      bucketLabel: bucket.bucketLabel,
+      mode: "projected",
+      completedCodes: bucket.progress.completed_applied ?? [],
+      inProgressCodes: bucket.progress.in_progress_applied ?? [],
+    });
+  };
+
+  const handleBucketCourseClick = (courseCode: string) => {
+    setBucketDetail(null);
+    onCourseClick?.(courseCode);
+  };
+
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      size="planner-detail"
-      title={`Semester ${index + 1}${semester.target_semester ? ` \u2014 ${semester.target_semester}` : ""}`}
-      titleClassName="text-[1.7rem] font-semibold font-[family-name:var(--font-sora)] text-ink-primary"
-      titleExtra={semester.standing_label ? (
-        <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-gold/15 text-gold border border-gold/30 shadow-[0_0_10px_rgba(255,204,0,0.12)] pulse-gold-soft whitespace-nowrap">
-          {semester.standing_label} Standing
-        </span>
-      ) : undefined}
-    >
-      <div className="space-y-8">
+    <>
+      <Modal
+        open={open}
+        onClose={onClose}
+        size="planner-detail"
+        title={`Semester ${index + 1}${semester.target_semester ? ` \u2014 ${semester.target_semester}` : ""}`}
+        titleClassName="text-[1.7rem] font-semibold font-[family-name:var(--font-sora)] text-ink-primary"
+        titleExtra={semester.standing_label ? (
+          <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-gold/15 text-gold border border-gold/30 shadow-[0_0_10px_rgba(255,204,0,0.12)] pulse-gold-soft whitespace-nowrap">
+            {semester.standing_label} Standing
+          </span>
+        ) : undefined}
+      >
+        <div className="space-y-6">
         {/* Quip + navigation + edit button row */}
         {!editMode ? (
           <>
@@ -127,7 +162,7 @@ export function SemesterModal({
                     Updated
                   </span>
                 )}
-                <p className="text-[1.05rem] text-ink-muted italic truncate">
+                <p className="text-[0.98rem] text-ink-muted italic truncate">
                   {getSemesterQuip({ semester, index, requestedCount, declaredMajors })}
                 </p>
               </div>
@@ -206,28 +241,29 @@ export function SemesterModal({
             onApply={handleApply}
             onCancel={() => setEditMode(false)}
             applyLoading={applyLoading}
-            onCourseClick={onCourseClick}
           />
         ) : (
           <>
             {/* ── View mode: course cards ───────────────────────── */}
-            {recs.length > 0 ? (
-              <div className="space-y-4">
-                {recs.map((c, idx) => (
-                  <motion.div
-                    key={c.course_code}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: idx * 0.06, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <CourseCard
-                      course={c}
-                      programLabelMap={programLabelMap}
-                      bucketLabelMap={bucketLabelMap}
-                      onClick={onCourseClick ? () => onCourseClick(c.course_code) : undefined}
-                    />
-                  </motion.div>
-                ))}
+              {recs.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  {recs.map((c, idx) => (
+                    <motion.div
+                      key={c.course_code}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: idx * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                      className="h-full"
+                    >
+                      <CourseCard
+                        course={c}
+                        programLabelMap={programLabelMap}
+                        bucketLabelMap={bucketLabelMap}
+                        variant="compact"
+                        onClick={onCourseClick ? () => onCourseClick(c.course_code) : undefined}
+                      />
+                    </motion.div>
+                  ))}
               </div>
             ) : null}
 
@@ -249,32 +285,43 @@ export function SemesterModal({
             {semesterProgress && Object.keys(semesterProgress).length > 0 && (
               <>
               <div className="divider-fade" />
-              <div className="space-y-5">
-                <h3 className="text-[1.05rem] font-semibold text-gold uppercase tracking-wider hash-mark">
+              <div className="space-y-4">
+                <h3 className="text-[0.98rem] font-semibold text-gold uppercase tracking-wider hash-mark">
                   Projected Progress
                 </h3>
                 {semester.projection_note && (
-                  <p className="text-[1.05rem] text-ink-faint">{esc(semester.projection_note)}</p>
+                  <p className="text-[0.92rem] text-ink-faint">{esc(semester.projection_note)}</p>
                 )}
-                <div className="space-y-7">
+                <div className="space-y-5">
                   {groupProgressByTierWithMajors(semesterProgress, programLabelMap, programOrder).map((section) => (
-                    <div key={section.sectionKey} className="space-y-4">
-                      <h4 className="text-[1.05rem] font-bold text-mu-blue uppercase tracking-wider border-b border-border-subtle/30 pb-1.5">
+                    <div key={section.sectionKey} className="space-y-3">
+                      <h4 className="text-[0.98rem] font-bold text-mu-blue uppercase tracking-wider border-b border-border-subtle/30 pb-1">
                         {section.label}
                       </h4>
                       {section.subGroups ? (
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                           {section.subGroups.map((group) => (
-                            <div key={group.parentId} className="space-y-3">
-                              <p className="text-sm font-semibold text-ink-secondary uppercase tracking-wider pl-1">
+                            <div key={group.parentId} className="space-y-2.5">
+                              <p className="text-[0.8rem] font-semibold text-ink-secondary uppercase tracking-wider pl-1">
                                 {group.label}
                               </p>
-                              <BucketProgressGrid entries={group.entries} programLabelMap={programLabelMap} animate={false} stripParentPrefix />
+                              <BucketProgressGrid
+                                entries={group.entries}
+                                programLabelMap={programLabelMap}
+                                animate={false}
+                                stripParentPrefix
+                                onBucketClick={openBucketDetail}
+                              />
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <BucketProgressGrid entries={section.entries} programLabelMap={programLabelMap} animate={false} />
+                        <BucketProgressGrid
+                          entries={section.entries}
+                          programLabelMap={programLabelMap}
+                          animate={false}
+                          onBucketClick={openBucketDetail}
+                        />
                       )}
                     </div>
                   ))}
@@ -299,8 +346,21 @@ export function SemesterModal({
             )}
           </>
         )}
-      </div>
-    </Modal>
+        </div>
+      </Modal>
+      {bucketDetail && (
+        <BucketCourseModal
+          open={bucketDetail !== null}
+          onClose={closeBucketDetail}
+          bucketLabel={bucketDetail.bucketLabel}
+          mode={bucketDetail.mode}
+          completedCodes={bucketDetail.completedCodes}
+          inProgressCodes={bucketDetail.inProgressCodes}
+          courses={courses}
+          onCourseClick={handleBucketCourseClick}
+        />
+      )}
+    </>
   );
 }
 
@@ -317,7 +377,6 @@ function EditModeContent({
   onApply,
   onCancel,
   applyLoading,
-  onCourseClick,
 }: {
   editCourses: RecommendedCourse[];
   candidatePool?: RecommendedCourse[];
@@ -329,7 +388,6 @@ function EditModeContent({
   onApply(): void;
   onCancel(): void;
   applyLoading: boolean;
-  onCourseClick?: (courseCode: string) => void;
 }) {
   const editCodes = useMemo(
     () => new Set(editCourses.map((c) => c.course_code)),

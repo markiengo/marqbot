@@ -14,6 +14,9 @@ interface CourseDetailModalProps {
   description?: string | null;
   prereqRaw?: string | null;
   buckets?: string[];
+  plannerReason?: string | null;
+  plannerNotes?: string | null;
+  plannerWarnings?: string[];
   programLabelMap?: Map<string, string>;
   bucketLabelMap?: Map<string, string>;
 }
@@ -27,9 +30,14 @@ export function CourseDetailModal({
   description,
   prereqRaw,
   buckets,
+  plannerReason,
+  plannerNotes,
+  plannerWarnings,
   programLabelMap,
   bucketLabelMap,
 }: CourseDetailModalProps) {
+  const warnings = (plannerWarnings ?? []).filter(Boolean);
+
   return (
     <Modal open={open} onClose={onClose} size="default">
       <div className="space-y-6">
@@ -70,6 +78,31 @@ export function CourseDetailModal({
                 </Tag>
               );
             })}
+          </div>
+        )}
+
+        {(plannerReason || plannerNotes || warnings.length > 0) && (
+          <div className="rounded-2xl border border-border-card bg-[linear-gradient(165deg,rgba(10,27,66,0.72),rgba(8,16,36,0.72))] px-4 py-4 shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
+            <div className="space-y-3">
+              {plannerReason && (
+                <div>
+                  <p className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-1">Why this showed up</p>
+                  <p className="text-sm text-ink-secondary leading-relaxed">{esc(plannerReason)}</p>
+                </div>
+              )}
+              {plannerNotes && (
+                <div>
+                  <p className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-1">Planner note</p>
+                  <p className="text-sm text-ink-secondary leading-relaxed">{esc(plannerNotes)}</p>
+                </div>
+              )}
+              {warnings.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-1">Heads up</p>
+                  <p className="text-sm text-bad leading-relaxed">{warnings.map((warning) => esc(warning)).join("; ")}</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

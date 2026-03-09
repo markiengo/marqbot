@@ -7,9 +7,11 @@ import { Modal } from "@/components/shared/Modal";
 import { useAppContext } from "@/context/AppContext";
 import { buildSessionSnapshotFromSavedPlan } from "@/lib/savedPlans";
 import {
+  buildRecommendationWarnings,
   buildCourseCreditMap,
   compactKpiBucketLabel,
   computeCreditKpiMetrics,
+  sanitizeRecommendationWhy,
   sumCreditsForCourseCodes,
 } from "@/lib/rendering";
 import { formatSavedPlanDate, resolveProgramLabels } from "@/lib/savedPlanPresentation";
@@ -318,6 +320,9 @@ export function SavedPlanViewModal({
             description={courseDetailCode ? descriptionMap.get(courseDetailCode) ?? null : null}
             prereqRaw={courseDetailCode ? courses.find(c => c.course_code === courseDetailCode)?.catalog_prereq_raw : null}
             buckets={hit?.fills_buckets}
+            plannerReason={sanitizeRecommendationWhy(hit?.why)}
+            plannerNotes={hit?.notes}
+            plannerWarnings={buildRecommendationWarnings(hit)}
             programLabelMap={programLabelMap}
             bucketLabelMap={bucketLabelMap}
           />

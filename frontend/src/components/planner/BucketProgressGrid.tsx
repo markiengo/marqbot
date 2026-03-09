@@ -12,6 +12,12 @@ interface BucketProgressGridProps {
   animate?: boolean;
   /** Strip "Parent: " prefix from labels (used inside sub-groups where header shows parent) */
   stripParentPrefix?: boolean;
+  onBucketClick?: (bucket: {
+    bucketId: string;
+    bucketLabel: string;
+    progress: BucketProgress;
+    triggerEl: HTMLButtonElement;
+  }) => void;
 }
 
 /**
@@ -23,9 +29,10 @@ export function BucketProgressGrid({
   programLabelMap,
   animate = true,
   stripParentPrefix = false,
+  onBucketClick,
 }: BucketProgressGridProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
       {entries.map(([bid, prog], idx) => {
         const { done, inProg, needed, unit } = getBucketDisplay(prog);
         const ipCodes = prog.in_progress_applied || [];
@@ -49,14 +56,22 @@ export function BucketProgressGrid({
           prog.satisfied || (neededValue > 0 && doneValue + inProgValue >= neededValue);
 
         const card = (
-          <div
-            className={`rounded-xl glass-card card-glow-hover p-5 h-full flex flex-col gap-2 stat-card-decor ${satisfied ? "opacity-60" : ""}`}
+          <button
+            type="button"
+            onClick={(event) => onBucketClick?.({
+              bucketId: bid,
+              bucketLabel: label,
+              progress: prog,
+              triggerEl: event.currentTarget,
+            })}
+            aria-label={`${label}: ${done}${inProg > 0 ? ` plus ${inProg} in progress` : ""} of ${needed} ${unit}`}
+            className={`w-full rounded-xl border border-border-card glass-card card-glow-hover px-4 py-3.5 text-left transition-colors hover:border-gold/30 focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2 h-full flex flex-col gap-2 stat-card-decor ${satisfied ? "opacity-70" : ""}`}
           >
             <div className="flex justify-between items-baseline gap-2">
-              <span className="text-[1.05rem] font-medium text-ink-primary leading-snug">
+              <span className="text-[0.98rem] font-medium text-ink-primary leading-snug">
                 {label}
               </span>
-              <span className="text-sm text-ink-faint shrink-0 tabular-nums">
+              <span className="text-[0.82rem] text-ink-faint shrink-0 tabular-nums">
                 {done}
                 {inProg > 0 && <span className="text-gold">+{inProg}</span>}
                 /{needed} {unit}
@@ -65,7 +80,7 @@ export function BucketProgressGrid({
             </div>
 
             {/* Dual-segment progress bar with glow */}
-            <div className="h-3.5 bg-surface-hover rounded-full overflow-hidden">
+            <div className="h-3 bg-surface-hover rounded-full overflow-hidden">
               <div className="h-full flex motion-reduce:transition-none">
                 {pct > 0 && (
                   <div
@@ -89,11 +104,11 @@ export function BucketProgressGrid({
             </div>
 
             {ipCodes.length > 0 && (
-              <p className="text-sm text-gold/70 leading-snug">
+              <p className="text-xs text-gold/70 leading-snug">
                 In progress: {ipCodes.join(", ")}
               </p>
             )}
-          </div>
+          </button>
         );
 
         if (!animate) return <div key={bid}>{card}</div>;
