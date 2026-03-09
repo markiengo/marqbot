@@ -36,7 +36,7 @@ export function CourseListModal({
   return (
     <Modal open={open} onClose={onClose} size="default" title={`${title} (${courseCodes.size})`}>
       {sorted.length === 0 ? (
-        <p className="text-[1.05rem] text-ink-faint italic">No courses.</p>
+        <p className="text-[1.05rem] text-ink-faint italic">No courses in this list yet.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {sorted.map((code, idx) => {

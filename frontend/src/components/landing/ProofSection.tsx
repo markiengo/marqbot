@@ -11,11 +11,11 @@ const cards = [
   },
   {
     title: "Made for Business students",
-    body: "12 majors, 13 tracks, and 7 minors — 32 programs built in and ready to plan.",
+    body: "12 majors, 13 tracks, and 7 minors are built in and ready to plan.",
   },
   {
     title: "Same inputs, same plan",
-    body: "The ranking is rules-based. No randomness. No vibes. No fake confidence.",
+    body: "The ranking is rules-based. No randomness. No freestyling. No fake confidence.",
   },
 ];
 
@@ -32,12 +32,12 @@ export function ProofSection() {
 
   return (
     <section ref={ref} className="relative py-24 band-gold band-fade-top band-fade-bottom">
-      <div className="max-w-[96rem] mx-auto px-5 sm:px-7 lg:px-10">
+      <div className="mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
         <motion.p
           initial={{ opacity: 0, y: 8 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.4 }}
-          className="text-sm uppercase tracking-widest font-semibold text-gold"
+          className="text-sm font-semibold uppercase tracking-widest text-gold"
         >
           Why you can trust it
         </motion.p>
@@ -47,8 +47,8 @@ export function ProofSection() {
           transition={{ duration: 0.45, delay: 0.08 }}
           className="mt-4 max-w-[42rem] text-[2.7rem] font-bold leading-tight text-white sm:text-[3.6rem]"
         >
-          It is not just
-          <span className="text-gold"> giving you ideas.</span>
+          It is using
+          <span className="text-gold"> the actual rules.</span>
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 10 }}
@@ -56,11 +56,10 @@ export function ProofSection() {
           transition={{ duration: 0.4, delay: 0.16 }}
           className="mt-4 max-w-[42rem] text-[1.08rem] leading-relaxed text-slate-400"
         >
-          It checks real course data, real prereqs, and real requirement mappings —
-          then gives you a cleaner path forward.
+          It checks course data, prereqs, and requirement mappings before it suggests anything.
         </motion.p>
 
-        <AnchorLine variant="gold" className="mt-12 mb-12 mx-0" />
+        <AnchorLine variant="gold" className="mx-0 mt-12 mb-12" />
 
         <div className="grid gap-6 md:grid-cols-3">
           {cards.map((card, index) => (
@@ -108,13 +107,13 @@ export function ProofSection() {
 
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
             <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-300">
-              <span className="text-gold font-semibold">Planning tool.</span> Not official advising.
+              <span className="font-semibold text-gold">Planning tool.</span> Not official advising.
             </div>
             <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-300">
-              <span className="text-gold font-semibold">Double-check with your advisor</span> before you enroll.
+              <span className="font-semibold text-gold">Double-check with your advisor</span> before registration gets ideas.
             </div>
             <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-300">
-              <span className="text-gold font-semibold">Built by a Marquette student.</span> So yes, it knows the pain.
+              <span className="font-semibold text-gold">Built by a Marquette student.</span> The campus-specific nonsense is familiar.
             </div>
           </div>
         </motion.div>

@@ -8,17 +8,17 @@ const steps = [
   {
     number: "01",
     title: "Pick your programs.",
-    body: "Majors, tracks, minors — add everything you've declared.",
+    body: "Add the major, track, and extras you have actually declared.",
   },
   {
     number: "02",
     title: "Add your classes.",
-    body: "Tell MarqBot what you've taken and what's in progress.",
+    body: "Mark what is done and what is still in progress.",
   },
   {
     number: "03",
     title: "Get your full plan.",
-    body: "See your next semesters mapped out, ranked by real degree logic.",
+    body: "See your next semesters ranked by real requirement logic.",
   },
 ];
 
@@ -36,7 +36,7 @@ export function HowItWorksClear() {
     <section
       id="how-it-works"
       ref={ref}
-      className="relative overflow-hidden band-deep py-24"
+      className="relative overflow-hidden py-24 band-deep"
     >
       <div
         className="absolute inset-0 -z-10 opacity-60"
@@ -46,7 +46,7 @@ export function HowItWorksClear() {
         }}
       />
 
-      <div className="max-w-[96rem] mx-auto px-5 sm:px-7 lg:px-10">
+      <div className="mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
         <div className="max-w-[50rem]">
           <motion.p
             initial={{ opacity: 0, y: 8 }}
@@ -64,7 +64,7 @@ export function HowItWorksClear() {
           >
             Three steps.
             <br />
-            <span className="text-emphasis-blue">No academic scavenger hunt.</span>
+            <span className="text-emphasis-blue">No bulletin archaeology.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -72,11 +72,11 @@ export function HowItWorksClear() {
             transition={{ duration: 0.4, delay: 0.16 }}
             className="mt-4 max-w-[44rem] text-[1.08rem] leading-relaxed text-slate-400 sm:text-[1.22rem]"
           >
-            It should feel easy. The engine handles the hard part underneath.
+            The setup is short. The sorting logic is not.
           </motion.p>
         </div>
 
-        <AnchorLine variant="blue" className="mt-12 mb-12 mx-0" />
+        <AnchorLine variant="blue" className="mx-0 mt-12 mb-12" />
 
         <div className="grid gap-6 xl:grid-cols-[1.18fr_0.82fr]">
           <div className="grid gap-6 md:grid-cols-3">
@@ -121,9 +121,9 @@ export function HowItWorksClear() {
               What MarqBot checks
             </p>
             <h3 className="mt-4 text-[2rem] font-bold leading-tight text-white">
-              Clear rules.
+              Rules first.
               <br />
-              <span className="text-gold">A little attitude.</span>
+              <span className="text-gold">Jokes second.</span>
             </h3>
             <div className="mt-6 space-y-3">
               {checks.map((check, index) => (
@@ -139,7 +139,7 @@ export function HowItWorksClear() {
               ))}
             </div>
             <p className="mt-6 text-sm leading-relaxed text-slate-400">
-              If a class is a bad move, it drops. Simple.
+              If a class is a bad move, it falls out of the list. Clean and rude.
             </p>
           </motion.div>
         </div>

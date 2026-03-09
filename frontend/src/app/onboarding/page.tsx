@@ -71,15 +71,15 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 band-blue">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 band-blue">
         <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(18,33,63,0.92),rgba(10,24,50,0.85))] p-8 text-center shadow-[0_24px_60px_rgba(0,0,0,0.24)]">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-gold/25 bg-gold/10 pulse-gold-soft">
-            <div className="h-8 w-8 rounded-full border-2 border-gold border-t-transparent animate-spin" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
           </div>
           <div className="mt-5 space-y-2">
-            <h1 className="text-2xl font-semibold text-ink-primary">Getting your setup ready.</h1>
+            <h1 className="text-2xl font-semibold text-ink-primary">Getting your planner ready.</h1>
             <p className="text-sm leading-relaxed text-ink-muted">
-              Pulling courses and programs so your plan starts with real data.
+              Pulling course and program data so the setup starts with real rules.
             </p>
           </div>
         </div>
@@ -89,14 +89,14 @@ export default function OnboardingPage() {
 
   if (bootstrapError) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
-        <div className="max-w-md text-center space-y-4 rounded-2xl border border-border-subtle bg-surface-card/70 p-6">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+        <div className="max-w-md space-y-4 rounded-2xl border border-border-subtle bg-surface-card/70 p-6 text-center">
           <div className="space-y-2">
-            <h1 className="text-xl font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
+            <h1 className="font-[family-name:var(--font-sora)] text-xl font-semibold text-ink-primary">
               Couldn&apos;t start setup
             </h1>
             <p className="text-sm text-ink-muted">
-              MarqBot needs the course list and program list before it can build your plan.
+              MarqBot needs the course and program lists before it can build anything useful.
             </p>
             <p className="text-sm text-bad">{bootstrapError}</p>
           </div>
@@ -132,7 +132,7 @@ export default function OnboardingPage() {
         <div className="mt-4 space-y-3 border-t border-border-subtle/90 pt-4">
           {currentStep === "majors" && onlySecondary() && (
             <div className="rounded-[1.45rem] border border-warn/20 bg-warn-light p-4 text-sm leading-relaxed text-warn">
-              That program cannot stand alone. Add a primary major like Finance or Marketing so MarqBot can build the right plan.
+              That program cannot stand alone. Add a primary major like Finance or Marketing so the planner has the right spine.
             </div>
           )}
 

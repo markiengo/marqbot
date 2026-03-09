@@ -6,7 +6,7 @@ export default function AiAdvisorPage() {
   return (
     <PlaceholderPage
       title="AI Advisor"
-      description="Ask MarqBot your degree-plan chaos in plain English. It knows the curriculum, so you can stop decoding CheckMarq like ancient scripture."
+      description="Ask degree-plan questions in plain English. The goal is fewer portal riddles and fewer copy-pasted requirements."
       coverImage="/assets/covers/screen_aiadvisor_cover.jpg"
     />
   );

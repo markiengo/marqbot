@@ -58,7 +58,7 @@ export function AboutCTA() {
       <div className="mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
         <motion.div
           {...viewAnim(24)}
-          className="relative overflow-hidden rounded-3xl glass-card px-8 py-12 text-center md:px-12 shadow-[0_8px_40px_rgba(0,0,0,0.28),0_0_60px_rgba(255,204,0,0.04)]"
+          className="relative overflow-hidden rounded-3xl glass-card px-8 py-12 text-center shadow-[0_8px_40px_rgba(0,0,0,0.28),0_0_60px_rgba(255,204,0,0.04)] md:px-12"
         >
           <div
             className={`${styles.sectionGlow} -left-10 -top-12 h-52 w-52`}
@@ -83,22 +83,21 @@ export function AboutCTA() {
               {...viewAnim(12, 0.14)}
               className="mx-auto mt-4 max-w-[36rem] font-[family-name:var(--font-sora)] text-[2rem] font-bold leading-tight text-white sm:text-[2.6rem]"
             >
-              Want to talk? I&apos;m probably awake.
+              Want to send a note? I will read it.
             </motion.h2>
 
             <motion.p
               {...viewAnim(10, 0.22)}
               className="mx-auto mt-4 max-w-[34rem] text-[0.98rem] leading-relaxed text-ink-muted sm:text-[1.05rem]"
             >
-              Bug reports, feature ideas, compliments, complaints, unsolicited life advice — I&apos;ll take it all.
+              Bug reports, feature requests, wrong requirements, or copy that sounded too pleased with itself all belong here.
             </motion.p>
 
             <motion.p
               {...viewAnim(10, 0.25)}
               className="mx-auto mt-3 max-w-[34rem] text-sm leading-relaxed text-ink-secondary"
             >
-              Fastest route: use the Feedback button inside the planner. If you&apos;d rather just reach out,
-              email or DM me here.
+              Fastest route: use the Feedback button inside the planner. If you would rather reach out directly, email or DM me here.
             </motion.p>
 
             <motion.div
@@ -129,7 +128,7 @@ export function AboutCTA() {
                     target={external ? "_blank" : undefined}
                     rel={external ? "noopener noreferrer" : undefined}
                     {...viewAnim(18, 0.34 + 0.06 * index)}
-                    className="glass-card card-glow-hover rounded-2xl px-4 py-4 text-left flex items-center gap-3"
+                    className="glass-card card-glow-hover flex items-center gap-3 rounded-2xl px-4 py-4 text-left"
                   >
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-gold/80">
                       <ContactIcon icon={link.icon} />
@@ -144,7 +143,7 @@ export function AboutCTA() {
             </div>
 
             <p className="mt-8 text-sm leading-relaxed text-ink-muted">
-              If you&apos;re already in the app, use Feedback. If not, send me the course code, what you clicked, and what felt wrong.
+              If you are already in the app, use Feedback. If not, send the course code, what you clicked, and what looked wrong.
             </p>
 
             <AnchorLine variant="fade" className="mt-8" />

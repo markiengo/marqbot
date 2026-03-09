@@ -14,23 +14,23 @@ const stepMeta = {
   majors: {
     eyebrow: "Step 1 of 3",
     title: "Set up your program.",
-    body: "Pick your major, add a track if you have one, and MarqBot will know what should count.",
+    body: "Pick your major first. Add a track only if you actually have one.",
   },
   courses: {
     eyebrow: "Step 2 of 3",
     title: "Tell us what you have done.",
-    body: "Add finished and in-progress classes so the plan does not recommend something weird.",
+    body: "Add finished and in-progress classes so the plan does not invent nonsense.",
   },
   preferences: {
     eyebrow: "Step 3 of 3",
     title: "Choose the kind of plan you want.",
-    body: "Pick your semester, your pace, and MarqBot will build the next move fast.",
+    body: "Pick the next term, your pace, and how far ahead you want to look.",
   },
 } as const;
 
 const quickHits = [
   { value: "2 min", label: "setup" },
-  { value: "Edit later", label: "no pressure" },
+  { value: "Edit later", label: "no lock-in" },
   { value: "Real rules", label: "not guesswork" },
 ];
 
@@ -43,7 +43,7 @@ export function WizardLayout({
   const meta = stepMeta[stepKey];
 
   return (
-    <div className="relative flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] overflow-hidden band-blue px-[clamp(0.7rem,1.6vw,1.15rem)] py-[clamp(0.7rem,1.4vh,1rem)]">
+    <div className="relative flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] overflow-hidden px-[clamp(0.7rem,1.6vw,1.15rem)] py-[clamp(0.7rem,1.4vh,1rem)] band-blue">
       <div className="pointer-events-none absolute inset-0">
         <motion.div
           animate={{ x: [0, 32, 0], y: [0, -20, 0] }}

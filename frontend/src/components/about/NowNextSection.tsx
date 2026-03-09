@@ -21,7 +21,7 @@ export function NowNextSection() {
         };
 
   return (
-    <section className="relative py-24 overflow-hidden band-blue band-fade-top">
+    <section className="relative overflow-hidden py-24 band-blue band-fade-top">
       <div
         className={`${styles.sectionGlow} left-[12%] top-[24%] h-[16rem] w-[16rem]`}
         style={{ background: "rgba(255,204,0,0.05)" }}
@@ -32,7 +32,7 @@ export function NowNextSection() {
       />
 
       <div className="relative z-10 mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
-        <div className="text-center mb-14 space-y-3">
+        <div className="mb-14 space-y-3 text-center">
           <motion.p
             {...viewAnim(8)}
             className="section-kicker justify-center"
@@ -41,7 +41,7 @@ export function NowNextSection() {
           </motion.p>
           <motion.h2
             {...viewAnim(14, 0.08)}
-            className="font-[family-name:var(--font-sora)] text-[2rem] md:text-[2.8rem] font-bold text-white leading-tight"
+            className="font-[family-name:var(--font-sora)] text-[2rem] font-bold leading-tight text-white md:text-[2.8rem]"
           >
             The stuff I&apos;m working on now.
           </motion.h2>
@@ -49,7 +49,7 @@ export function NowNextSection() {
             {...viewAnim(10, 0.16)}
             className="mx-auto max-w-[38rem] text-[0.98rem] leading-relaxed text-ink-muted sm:text-[1.05rem]"
           >
-            I have a Notion board with 47 items on it. These are the four I&apos;m not ignoring.
+            There is a longer backlog. These are the four items currently winning.
           </motion.p>
         </div>
 
@@ -61,18 +61,20 @@ export function NowNextSection() {
               key={card.title}
               {...viewAnim(22, 0.12 * index)}
               whileHover={reduce ? undefined : { y: -6, scale: 1.018 }}
-              className="glass-card card-glow-hover rounded-[1.75rem] p-7 relative overflow-hidden"
+              className="glass-card card-glow-hover relative overflow-hidden rounded-[1.75rem] p-7"
             >
               <div className="absolute top-0 left-1/2 h-[2px] w-12 -translate-x-1/2 rounded-full bg-gold/70" />
-              {/* Radial glow on hover (CSS handles this) */}
-              <div className="absolute inset-0 rounded-[1.75rem] pointer-events-none opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{
-                background: "radial-gradient(ellipse at 50% 0%, rgba(255, 204, 0, 0.06) 0%, transparent 70%)"
-              }} />
-              <p className="section-kicker !text-[11px] relative z-[1]">{card.eyebrow}</p>
-              <h3 className="mt-5 font-[family-name:var(--font-sora)] text-[1.28rem] font-semibold text-white relative z-[1]">
+              <div
+                className="absolute inset-0 rounded-[1.75rem] pointer-events-none opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                style={{
+                  background: "radial-gradient(ellipse at 50% 0%, rgba(255, 204, 0, 0.06) 0%, transparent 70%)",
+                }}
+              />
+              <p className="section-kicker relative z-[1] !text-[11px]">{card.eyebrow}</p>
+              <h3 className="relative z-[1] mt-5 font-[family-name:var(--font-sora)] text-[1.28rem] font-semibold text-white">
                 {card.title}
               </h3>
-              <p className="mt-3 text-[1rem] leading-relaxed text-ink-muted relative z-[1]">{card.body}</p>
+              <p className="relative z-[1] mt-3 text-[1rem] leading-relaxed text-ink-muted">{card.body}</p>
             </motion.article>
           ))}
         </div>

@@ -263,7 +263,7 @@ export function SavedPlanViewModal({
 
               {/* Year grid */}
               {!plan.recommendationData ? (
-                <p className="text-sm text-ink-faint italic">No saved recommendations.</p>
+                <p className="text-sm text-ink-faint italic">No saved recommendations attached.</p>
               ) : (
                 <div>
                   {rows.map((row, yearIdx) => (
@@ -293,7 +293,7 @@ export function SavedPlanViewModal({
                   Delete
                 </Button>
                 <Button variant="gold" size="sm" onClick={handleLoadIntoPlanner} className="shadow-[0_0_24px_rgba(255,204,0,0.22)] pulse-gold-soft">
-                  Edit in Planner
+                  Open in Planner
                 </Button>
               </div>
             </>

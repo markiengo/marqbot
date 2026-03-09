@@ -142,7 +142,7 @@ export function SavedPlansPage() {
               Couldn&apos;t load saved-plan data
             </h1>
             <p className="text-sm text-ink-muted">
-              Marqbot needs the course catalog and program list before it can open saved plans.
+              MarqBot needs the course catalog and program list before it can open saved plans.
             </p>
             <p className="text-sm text-bad">{bootstrapError}</p>
           </div>

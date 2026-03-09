@@ -25,16 +25,16 @@ export function RecommendationsPanel({
 
   if (data.mode === "error") {
     return (
-      <div className="bg-bad-light rounded-2xl p-5 border border-bad/20">
-        <h3 className="font-semibold text-bad mb-2">Error</h3>
+      <div className="rounded-2xl border border-bad/20 bg-bad-light p-5">
+        <h3 className="mb-2 font-semibold text-bad">Could not build recommendations</h3>
         <p className="text-sm text-bad/80">{esc(data.message || "Unknown error")}</p>
         {data.invalid_courses && data.invalid_courses.length > 0 && (
-          <p className="text-xs text-bad/60 mt-1">
+          <p className="mt-1 text-xs text-bad/60">
             Invalid: {data.invalid_courses.map(esc).join(", ")}
           </p>
         )}
         {data.not_in_catalog && data.not_in_catalog.length > 0 && (
-          <p className="text-xs text-bad/60 mt-1">
+          <p className="mt-1 text-xs text-bad/60">
             Not in catalog: {data.not_in_catalog.map(esc).join(", ")}
           </p>
         )}
@@ -44,8 +44,8 @@ export function RecommendationsPanel({
 
   if (semesters.length === 0) {
     return (
-      <div className="text-center py-10 text-ink-faint">
-        <p>No recommendations available. Try submitting your courses.</p>
+      <div className="py-10 text-center text-ink-faint">
+        <p>No recommendations available yet. Run the planner again after updating your inputs.</p>
       </div>
     );
   }
@@ -59,13 +59,13 @@ export function RecommendationsPanel({
 
   if (allSatisfied) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 rounded-xl border border-gold/30 surface-depth-2 p-8 text-center">
-        <div className="text-5xl">🎓</div>
-        <h2 className="text-2xl font-bold font-[family-name:var(--font-sora)] text-gold">
-          You did it. We love to see it.
+      <div className="flex h-full flex-col items-center justify-center gap-4 rounded-xl border border-gold/30 p-8 text-center surface-depth-2">
+        <div className="text-5xl" aria-hidden="true">🎓</div>
+        <h2 className="font-[family-name:var(--font-sora)] text-2xl font-bold text-gold">
+          Requirements cleared.
         </h2>
-        <p className="text-ink-secondary text-sm max-w-xs">
-          All tracked degree requirements are satisfied. Senior energy. Confirmed.
+        <p className="max-w-xs text-sm text-ink-secondary">
+          All tracked degree requirements are satisfied. Confirm it with your advisor, then enjoy the rare peace.
         </p>
       </div>
     );
@@ -80,15 +80,18 @@ export function RecommendationsPanel({
     courseCount >= 6 ? "px-1.5 py-1.5" : courseCount >= 5 ? "px-2 py-1.5" : "px-2 py-2";
 
   return (
-    <div className="h-full min-h-0 rounded-xl glass-card p-2 relative overflow-hidden">
-      {/* Atmospheric overlay */}
-      <div className="absolute inset-0 rounded-xl pointer-events-none" style={{
-        background: "radial-gradient(ellipse 55% 45% at 92% 8%, rgba(255, 204, 0, 0.05), transparent), radial-gradient(ellipse 50% 40% at 8% 90%, rgba(0, 114, 206, 0.04), transparent)"
-      }} />
+    <div className="relative h-full min-h-0 overflow-hidden rounded-xl glass-card p-2">
+      <div
+        className="absolute inset-0 rounded-xl pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 55% 45% at 92% 8%, rgba(255, 204, 0, 0.05), transparent), radial-gradient(ellipse 50% 40% at 8% 90%, rgba(0, 114, 206, 0.04), transparent)",
+        }}
+      />
 
-      <div className="relative z-[1] h-full min-h-0 flex flex-col lg:flex-row gap-3 lg:gap-4">
+      <div className="relative z-[1] flex h-full min-h-0 flex-col gap-3 lg:flex-row lg:gap-4">
         {semesters.length > 1 && (
-          <div className="shrink-0 lg:w-[210px] lg:h-full lg:min-h-0">
+          <div className="shrink-0 lg:h-full lg:min-h-0 lg:w-[210px]">
             <SemesterSelector
               semesters={semesters}
               selectedIndex={selectedIdx}
@@ -98,9 +101,9 @@ export function RecommendationsPanel({
           </div>
         )}
 
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg glass-card flex flex-col overflow-hidden">
-          <div className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-gold/15">
-            <h4 className="text-[11px] md:text-[13px] font-bold font-[family-name:var(--font-sora)] text-gold leading-[1.25] tracking-[0.01em] hash-mark">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg glass-card">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gold/15 px-3 py-2">
+            <h4 className="hash-mark font-[family-name:var(--font-sora)] text-[11px] font-bold leading-[1.25] tracking-[0.01em] text-gold md:text-[13px]">
               Semester {selectedIdx + 1}
               {activeSemester.target_semester && ` - ${activeSemester.target_semester}`}
             </h4>
@@ -108,10 +111,10 @@ export function RecommendationsPanel({
               <button
                 type="button"
                 onClick={() => onExpandSemester(selectedIdx)}
-                className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-gold/25 text-gold/70 hover:text-gold hover:border-gold/50 hover:bg-gold/8 cursor-pointer transition-all"
+                className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gold/25 text-gold/70 transition-all hover:border-gold/50 hover:bg-gold/8 hover:text-gold"
                 aria-label={`Expand semester ${selectedIdx + 1} details`}
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -131,17 +134,22 @@ export function RecommendationsPanel({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -8 }}
                 transition={{ duration: 0.14 }}
-                className={`h-full min-h-0 flex flex-col ${listGapClass} overflow-hidden`}
+                className={`flex h-full min-h-0 flex-col overflow-hidden ${listGapClass}`}
               >
                 {activeRecs.length > 0 ? (
                   activeRecs.map((c, idx) => (
-                    <CourseRow key={c.course_code} course={c} courseCount={courseCount} index={idx} onClick={onCourseClick ? () => onCourseClick(c.course_code) : undefined} />
+                    <CourseRow
+                      key={c.course_code}
+                      course={c}
+                      courseCount={courseCount}
+                      index={idx}
+                      onClick={onCourseClick ? () => onCourseClick(c.course_code) : undefined}
+                    />
                   ))
                 ) : (() => {
                   const pp = activeSemester.projected_progress;
                   const isBucketSatisfied = (b: BucketProgress): boolean => {
                     if (b.satisfied) return true;
-                    // Client-side OR logic: course-count OR credit threshold
                     const nc = b.needed_count ?? 0;
                     if (nc > 0) {
                       const total = (b.completed_courses ?? 0) + (b.in_progress_courses ?? 0);
@@ -161,18 +169,17 @@ export function RecommendationsPanel({
                       .every(isBucketSatisfied);
                   return projectedGrad ? (
                     <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
-                      <div className="text-5xl">🎓</div>
+                      <div className="text-5xl" aria-hidden="true">🎓</div>
                       <p className="text-xl font-semibold text-gold">
-                        Clean path. You&apos;re done here.
+                        Clean path. Nothing left to add.
                       </p>
-                      <p className="text-sm text-ink-faint max-w-xs leading-relaxed">
-                        All tracked requirements will be satisfied by this point.
-                        Almost there. Don&apos;t fumble now.
+                      <p className="max-w-xs text-sm leading-relaxed text-ink-faint">
+                        All tracked requirements will be satisfied by this point. Keep the ending boring.
                       </p>
                     </div>
                   ) : (
-                    <p className="text-[14px] text-ink-faint italic py-4 text-center leading-[1.3]">
-                      No eligible courses this semester. Nothing to see here.
+                    <p className="py-4 text-center text-[14px] italic leading-[1.3] text-ink-faint">
+                      No eligible courses this term. Either you are done or the next move lives elsewhere.
                     </p>
                   );
                 })()}
@@ -181,7 +188,6 @@ export function RecommendationsPanel({
           </div>
         </div>
       </div>
-
     </div>
   );
 }

@@ -83,7 +83,7 @@ export function ProgressDashboard({ onViewDetails, onCompletedClick, onInProgres
 
       <div className="relative z-[1] flex flex-col gap-1.5 flex-1 min-h-0">
         <p className="section-kicker">
-          Always double-check with your advisor and Checkmarq.
+          Planning tool. Not official advising. Check with your advisor and CheckMarq.
         </p>
 
         <div className="flex items-center justify-between gap-3">
@@ -96,7 +96,7 @@ export function ProgressDashboard({ onViewDetails, onCompletedClick, onInProgres
               onClick={onViewDetails}
               className="text-xs font-semibold text-gold bg-gold/8 border border-gold/20 rounded-lg px-2.5 py-1 hover:bg-gold/15 hover:border-gold/35 transition-all cursor-pointer"
             >
-              View Full Progress
+                  View details
             </button>
           )}
         </div>

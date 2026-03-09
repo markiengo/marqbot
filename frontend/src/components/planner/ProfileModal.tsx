@@ -26,12 +26,12 @@ export function ProfileModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} size="planner-detail" title="Your Profile & Preferences">
+    <Modal open={open} onClose={onClose} size="planner-detail" title="Profile and Planner Settings">
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left: Profile */}
         <div className="flex-1 min-w-0">
           <p className="section-kicker mb-3">
-            Edit your current profile or explore what-if scenarios with different majors.
+            Edit your current profile or test a different program mix without leaving the planner.
           </p>
           <InputSidebar hideHeader />
         </div>

@@ -173,14 +173,14 @@ export function MajorStep() {
             Start with your <span className="text-emphasis-gold">major</span>.
           </>
         }
-        description="This is how MarqBot knows what should count. Keep it simple: major first, track if you have one, then move on."
+        description="Major first. Track if you have one. That is enough to start the logic."
       />
 
       <div className="grid min-h-0 flex-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(18rem,0.92fr)]">
         <div className="relative z-10 flex min-h-0 flex-col overflow-visible rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
           <SectionLabel title="Major(s)" sub={`up to ${MAX_MAJORS}`} />
           <p className="mb-2 text-[0.92rem] leading-relaxed text-ink-muted">
-            Pick the program you are actually in. That is enough to get started.
+            Pick the program you are actually in. No bonus lore required.
           </p>
           <div className="mb-2.5 flex min-h-[2.35rem] flex-wrap gap-1.5">
             <AnimatePresence mode="popLayout">
@@ -197,7 +197,7 @@ export function MajorStep() {
 
           {allRequirePrimary && (
             <div className="mb-3 rounded-lg bg-warn-light px-2.5 py-1.5 text-xs text-warn">
-              This program needs a primary major too. Add one more major to keep going.
+              This program needs a primary major too. Add one more before you continue.
             </div>
           )}
 
@@ -238,7 +238,7 @@ export function MajorStep() {
                     setIsOpen(false);
                   }
                 }}
-                placeholder="Search majors..."
+                placeholder="Search majors"
                 className={inputCls}
                 role="combobox"
                 aria-expanded={isOpen}
@@ -272,7 +272,7 @@ export function MajorStep() {
 
               {isOpen && query && filtered.length === 0 && (
                 <div className="absolute left-0 top-full z-[60] mt-1 w-full rounded-xl border border-border-medium bg-surface-card px-3 py-2.5 text-xs text-ink-faint shadow-lg">
-                  No majors match &ldquo;{query}&rdquo;
+                  No majors found for &ldquo;{query}&rdquo;
                 </div>
               )}
             </div>
@@ -283,7 +283,7 @@ export function MajorStep() {
           <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
             <SectionLabel title="Track / Concentration" sub="optional" />
             <p className="mb-2.5 text-[0.92rem] leading-relaxed text-ink-muted">
-              Only add this if your major has one.
+              Only add this if it is officially part of your program.
             </p>
 
             <div className="mb-2.5 flex min-h-[2.35rem] flex-wrap gap-1.5">
@@ -308,7 +308,7 @@ export function MajorStep() {
               defaultValue=""
               className={inputCls}
             >
-              <option value="">Add track or concentration...</option>
+              <option value="">Add track or concentration</option>
               {availableProgramTracks.map((track) => (
                 <option key={track.id} value={track.id}>
                   {track.label}
@@ -327,10 +327,10 @@ export function MajorStep() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.16 }}
-            className="flex items-center rounded-[1.6rem] border border-mu-blue/18 bg-mu-blue/10 px-4 py-3.5 text-[0.92rem] leading-relaxed text-ink-secondary"
-          >
-            MarqBot only needs the basics here. You can fine-tune the rest later.
-          </motion.div>
+          className="flex items-center rounded-[1.6rem] border border-mu-blue/18 bg-mu-blue/10 px-4 py-3.5 text-[0.92rem] leading-relaxed text-ink-secondary"
+        >
+          Basics now. Fine-tuning later.
+        </motion.div>
         </div>
       </div>
 
@@ -343,7 +343,7 @@ export function MajorStep() {
         >
           <SectionLabel title="Discovery Theme" sub="optional" />
           <p className="mb-2.5 text-[0.92rem] leading-relaxed text-ink-muted">
-            Pick a theme if you know yours. You can always change it later.
+            Pick this only if you already know it. You can change it later.
           </p>
           <select
             value={state.discoveryTheme || ""}

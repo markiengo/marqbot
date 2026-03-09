@@ -144,7 +144,7 @@ export function SemesterModal({
                 )}
                 {canEdit && !editApplied && (
                   <Button variant="secondary" size="sm" onClick={handleEnterEdit}>
-                    Edit
+                    Swap courses
                   </Button>
                 )}
               </div>
@@ -158,7 +158,7 @@ export function SemesterModal({
           <>
             {semester.not_in_catalog_warning && semester.not_in_catalog_warning.length > 0 && (
               <div className="bg-bad-light rounded-xl p-4 text-[1.05rem] text-bad">
-                Warning: Some courses not found in catalog:{" "}
+                Some courses were not found in the catalog:{" "}
                 {semester.not_in_catalog_warning.map(esc).join(", ")}
               </div>
             )}
@@ -166,8 +166,7 @@ export function SemesterModal({
             {(semester.eligible_count || 0) < requestedCount && recs.length > 0 &&
               !semester.target_semester?.toLowerCase().includes("summer") && (
               <div className="bg-bad-light rounded-xl p-4 text-[1.05rem] text-bad">
-                Warning: You requested {requestedCount}, but only {semester.eligible_count}{" "}
-                eligible course(s) match for this term.
+                You asked for {requestedCount}, but only {semester.eligible_count} eligible course(s) fit this term.
               </div>
             )}
 
@@ -176,17 +175,17 @@ export function SemesterModal({
               <div className="flex flex-wrap gap-2">
                 {!semester.balance_policy.declared_min_relaxed && (semester.balance_policy.declared_min_achieved ?? 0) > 0 && (
                   <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-ok/10 text-ok border border-ok/20">
-                    Major/track progress prioritized
+                    Major or track progress prioritized
                   </span>
                 )}
                 {semester.balance_policy.declared_min_relaxed && (
                   <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/20">
-                    Limited major/track courses eligible this term
+                    Limited major or track options this term
                   </span>
                 )}
                 {semester.balance_policy.family_cap_relaxed && (
                   <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/20">
-                    Family balance relaxed (few eligible families)
+                    Family balance relaxed because the pool was thin
                   </span>
                 )}
               </div>
@@ -346,7 +345,7 @@ function EditModeContent({
           Selected Courses ({editCourses.length})
         </h3>
         {editCourses.length === 0 ? (
-          <p className="text-[1.05rem] text-ink-faint italic">No courses selected.</p>
+          <p className="text-[1.05rem] text-ink-faint italic">No courses selected yet.</p>
         ) : (
           <div className="space-y-4">
             {editCourses.map((c) => (
@@ -366,7 +365,7 @@ function EditModeContent({
       {/* Available alternatives */}
       <div className="space-y-4">
         <h3 className="text-[1.05rem] font-semibold text-gold uppercase tracking-wider hash-mark">
-          Add a Course
+          Eligible swaps
         </h3>
         {candidatePoolLoading ? (
           <div className="flex items-center gap-3 px-2 py-5">
@@ -374,7 +373,7 @@ function EditModeContent({
             <span className="text-[1.05rem] text-ink-faint">Loading eligible courses...</span>
           </div>
         ) : available.length === 0 ? (
-          <p className="text-[1.05rem] text-ink-faint italic">No additional eligible courses.</p>
+          <p className="text-[1.05rem] text-ink-faint italic">No additional eligible courses right now.</p>
         ) : (
           <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
             {available.map((c) => (
@@ -404,7 +403,7 @@ function EditModeContent({
               Re-running...
             </span>
           ) : (
-            "Apply Changes"
+            "Apply swaps"
           )}
         </Button>
       </div>

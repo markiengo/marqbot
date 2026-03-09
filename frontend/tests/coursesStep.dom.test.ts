@@ -41,7 +41,7 @@ describe("CoursesStep prereq validation", () => {
 
     renderWithApp(createElement(CoursesStep, { onWarningChange }), state);
 
-    const warning = await screen.findByText(/something looks off/i);
+    const warning = await screen.findByText(/prereq mismatch/i);
     const warningCard = warning.closest("div");
 
     expect(warning).toBeInTheDocument();

@@ -57,17 +57,17 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
             Add what you&apos;ve <span className="text-emphasis-blue">already finished</span>.
           </>
         }
-        description="This is what keeps your plan realistic. Add passed classes, then anything you are taking right now."
+        description="Add completed classes first, then the ones you are taking now. This is what keeps the plan honest."
       />
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
         <div className="flex flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
           <div className="space-y-1">
             <label className="text-base font-semibold text-ink-secondary md:text-lg">
-              Classes you&apos;ve already passed
+              Classes you&apos;ve already finished
             </label>
             <p className="mt-0.5 text-xs text-ink-faint">
-              Finished classes, AP, IB, and transfer credit all count here.
+              Finished classes, AP, IB, and transfer credit all belong here.
             </p>
           </div>
           <div className="mt-3">
@@ -77,7 +77,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               otherSet={state.inProgress}
               onAdd={(code) => dispatch({ type: "ADD_COMPLETED", payload: code })}
               onRemove={(code) => dispatch({ type: "REMOVE_COMPLETED", payload: code })}
-              placeholder="Search completed courses..."
+              placeholder="Search completed courses"
               resolveLabel={(code) => code}
               chipViewportClassName="min-h-[2.75rem]"
               dynamicChipViewport
@@ -91,7 +91,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               Classes you&apos;re taking right now
             </label>
             <p className="mt-0.5 text-xs text-ink-faint">
-              Current semester only. If you are enrolled but not done yet, put it here.
+              Current term only. If you are enrolled but not done yet, put it here.
             </p>
           </div>
           <div className="mt-3">
@@ -101,7 +101,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               otherSet={state.completed}
               onAdd={(code) => dispatch({ type: "ADD_IN_PROGRESS", payload: code })}
               onRemove={(code) => dispatch({ type: "REMOVE_IN_PROGRESS", payload: code })}
-              placeholder="Search in-progress courses..."
+              placeholder="Search in-progress courses"
               resolveLabel={(code) => code}
               chipViewportClassName="min-h-[2.75rem]"
               dynamicChipViewport
@@ -117,7 +117,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
           transition={{ duration: 0.25 }}
           className="rounded-[1.45rem] border border-bad/20 bg-bad-light px-4 py-3.5 text-[0.9rem] text-bad"
         >
-          <p className="mb-1 font-semibold">Something looks off:</p>
+          <p className="mb-1 font-semibold">Prereq mismatch:</p>
           <ul className="list-disc list-inside space-y-0.5">
             {inconsistencies.map((issue) => (
               <li key={issue.course_code}>
@@ -127,7 +127,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
             ))}
           </ul>
           <p className="mt-2 text-xs opacity-80">
-            Move the prereq into completed if you already passed it, or remove the class that depends on it.
+            Move the prereq to completed if you already passed it, or remove the class that depends on it.
           </p>
         </motion.div>
       )}

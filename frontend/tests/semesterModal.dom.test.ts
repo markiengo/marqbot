@@ -37,8 +37,8 @@ describe("SemesterModal balance policy notes", () => {
       }),
     );
 
-    expect(screen.getByText("Major/track progress prioritized")).toBeInTheDocument();
-    expect(screen.getByText("Family balance relaxed (few eligible families)")).toBeInTheDocument();
-    expect(screen.queryByText("Limited major/track courses eligible this term")).not.toBeInTheDocument();
+    expect(screen.getByText("Major or track progress prioritized")).toBeInTheDocument();
+    expect(screen.getByText("Family balance relaxed because the pool was thin")).toBeInTheDocument();
+    expect(screen.queryByText("Limited major or track options this term")).not.toBeInTheDocument();
   });
 });

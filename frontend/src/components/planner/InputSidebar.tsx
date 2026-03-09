@@ -157,10 +157,10 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
       {!hideHeader && (
         <div>
           <p className="text-xs font-semibold text-gold leading-tight">
-            Fill in exactly as your transcript for the most accurate results.
+            Match your transcript as closely as you can for cleaner results.
           </p>
           <h3 className="text-base md:text-lg font-bold font-[family-name:var(--font-sora)] text-white mt-2 leading-tight">
-            Your Profile
+            Your profile
           </h3>
         </div>
       )}
@@ -187,7 +187,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
         </div>
         {allRequirePrimary && (
           <div className="rounded-lg bg-warn-light px-2 py-1.5 text-sm text-warn">
-            All selected majors require a primary major. Add a standalone major (e.g., Finance, Marketing) to complete your program.
+            All selected majors require a primary major. Add a standalone major like Finance or Marketing to complete the setup.
           </div>
         )}
         {selectedMajorIds.length < MAX_MAJORS && (
@@ -201,7 +201,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
             defaultValue=""
             className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
           >
-            <option value="">Add major...</option>
+            <option value="">Add major</option>
             {majors
               .filter((m) => !state.selectedMajors.has(m.id))
               .map((m) => (
@@ -239,7 +239,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
           defaultValue=""
           className="w-full px-2 py-1.5 bg-surface-input border border-border-medium rounded-lg text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-gold/40"
         >
-          <option value="">Add track or concentration...</option>
+          <option value="">Add track or concentration</option>
           {availableProgramTracks.map((track) => (
             <option key={track.id} value={track.id}>
               {track.label}
@@ -388,7 +388,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
           otherSet={state.inProgress}
           onAdd={(code) => dispatch({ type: "ADD_COMPLETED", payload: code })}
           onRemove={(code) => dispatch({ type: "REMOVE_COMPLETED", payload: code })}
-          placeholder="Add completed..."
+          placeholder="Add completed courses"
           resolveLabel={(code) => code}
         />
       </div>
@@ -404,7 +404,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
           otherSet={state.completed}
           onAdd={(code) => dispatch({ type: "ADD_IN_PROGRESS", payload: code })}
           onRemove={(code) => dispatch({ type: "REMOVE_IN_PROGRESS", payload: code })}
-          placeholder="Add in-progress..."
+          placeholder="Add in-progress courses"
           resolveLabel={(code) => code}
         />
       </div>

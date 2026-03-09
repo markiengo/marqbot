@@ -14,7 +14,7 @@ export type AboutContactLink = {
 export const ABOUT_HERO_COPY = {
   eyebrow: "About",
   headline: "The student behind MarqBot.",
-  body: "I'm Markie. I built this.",
+  body: "I am Markie. I built this because degree planning should not feel like document forensics.",
 } as const;
 
 export const ABOUT_INTRO_LABELS = [
@@ -27,10 +27,10 @@ export const ABOUT_INTRO_LABELS = [
 export const ABOUT_INTRO_COPY = {
   title: "Hey, I'm Markie.",
   paragraphOne:
-    "I'm a freshman studying Information Systems at Marquette. I started MarqBot because I spent an entire Sunday cross-referencing the bulletin, a spreadsheet, and two advisor emails just to figure out if I could take one class. That felt like it should be easier.",
+    "I'm a freshman studying Information Systems at Marquette. I started MarqBot after spending an entire Sunday cross-referencing the bulletin, a spreadsheet, and advisor emails just to answer one course question. That system needed fewer tabs and more honesty.",
   paragraphTwo:
-    "So I did what any reasonable person would do: I vibe-coded and built a whole degree planner instead of doing my actual homework. MarqBot is still growing. If you find a bug, that's honestly expected — I'm one person running on The Brew's coffee and the Marquette wifi that cuts out every 40 minutes.",
-  note: "This started as a 'quick side project.' I have since learned that those don't exist.",
+    "So I built the tool I wanted to use myself. MarqBot is still growing, but the goal is stable: real rules, clear tradeoffs, and less time arguing with CheckMarq at 11:48 p.m.",
+  note: "This was supposed to be a small side project. That was inaccurate.",
 } as const;
 
 export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
@@ -38,25 +38,25 @@ export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
     eyebrow: "Building now",
     title: "Full policy documentation",
     body:
-      "Diving into the weird rules and edge-case policies the school actually enforces. The ones nobody reads until they get denied a course. MarqBot will know them so you don't have to.",
+      "Documenting the edge-case policies the school actually enforces. The goal is fewer surprise blockers and fewer advisor-email archaeology sessions.",
   },
   {
     eyebrow: "Next up",
     title: "Semester offering awareness",
     body:
-      "Right now MarqBot assumes every course is available every semester, which is adorably optimistic. Soon it'll actually know that your dream 8 AM is only offered in fall. Surprise.",
+      "Right now MarqBot does not fully know when every course is offered. Soon it will stop pretending that your ideal section exists every semester.",
   },
   {
     eyebrow: "Planned",
     title: "AI Advisor chatbot",
     body:
-      "A chat feature where you can ask MarqBot questions about your degree plan in plain English. It knows your courses, your major, and your progress — no copy-pasting required.",
+      "A chat layer where you can ask degree-plan questions in plain English with your courses, major, and progress already loaded.",
   },
   {
     eyebrow: "From you",
     title: "Bug reports and ideas",
     body:
-      "Some of the best fixes came from students breaking things I was sure were unbreakable. If something's weird, use the in-app Feedback button or message me directly. You're doing QA and I can't afford to pay you.",
+      "Some of the best fixes have come from students finding the exact edge case I missed. If something feels off, use Feedback or message me directly. That signal is useful fast.",
   },
 ];
 
