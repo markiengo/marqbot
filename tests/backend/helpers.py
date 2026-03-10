@@ -150,6 +150,7 @@ def recommend_payload(
     max_recommendations: int = 6,
     include_summer: bool = False,
     debug: bool = False,
+    student_stage: str | None = None,
 ) -> dict:
     """Build a /recommend request payload."""
     payload = {
@@ -167,6 +168,8 @@ def recommend_payload(
     if debug:
         payload["debug"] = True
         payload["debug_limit"] = 12
+    if student_stage:
+        payload["student_stage"] = student_stage
     return payload
 
 
@@ -180,6 +183,7 @@ def payload_for_major(
     max_recommendations: int = 6,
     include_summer: bool = False,
     debug: bool = False,
+    student_stage: str | None = None,
 ) -> dict:
     """Build a /recommend payload for a single major."""
     return recommend_payload(
@@ -191,6 +195,7 @@ def payload_for_major(
         max_recommendations=max_recommendations,
         include_summer=include_summer,
         debug=debug,
+        student_stage=student_stage,
     )
 
 

@@ -42,6 +42,7 @@ class PlanCase:
     target_semester_primary: str
     include_summer: bool = False
     max_recommendations: int = 6
+    student_stage: str | None = None
 
 
 @dataclass
@@ -185,6 +186,7 @@ def simulate_terms(case: PlanCase, num_terms: int = 9) -> list[dict]:
                 debug=False,
                 current_standing=current_standing,
                 chain_depths=chain_depths,
+                student_stage=case.student_stage,
             )
         else:
             sem = run_recommendation_semester(
@@ -198,6 +200,7 @@ def simulate_terms(case: PlanCase, num_terms: int = 9) -> list[dict]:
                 debug=False,
                 current_standing=current_standing,
                 chain_depths=chain_depths,
+                student_stage=case.student_stage,
             )
 
         semesters.append(sem)
@@ -353,6 +356,7 @@ def rerun_case_with_debug(case: PlanCase, failing_semester_index: int) -> dict |
                 effective_data, case.max_recommendations, reverse_map,
                 track_id=effective_track_id, debug=is_debug, debug_limit=30,
                 current_standing=current_standing, chain_depths=chain_depths,
+                student_stage=case.student_stage,
             )
         else:
             sem = run_recommendation_semester(
@@ -360,6 +364,7 @@ def rerun_case_with_debug(case: PlanCase, failing_semester_index: int) -> dict |
                 effective_data, case.max_recommendations, reverse_map,
                 track_id=effective_track_id, debug=is_debug, debug_limit=30,
                 current_standing=current_standing, chain_depths=chain_depths,
+                student_stage=case.student_stage,
             )
 
         if is_debug:
@@ -614,6 +619,7 @@ def seed_from_simulation(case: PlanCase, num_semesters_to_take: int) -> list[str
         target_semester_primary=case.target_semester_primary,
         include_summer=case.include_summer,
         max_recommendations=case.max_recommendations,
+        student_stage=case.student_stage,
     )
     try:
         semesters = simulate_terms(empty_case, num_terms=num_semesters_to_take + 1)

@@ -195,7 +195,7 @@ describe("Planner feedback nudge", () => {
     renderPlanner();
 
     expect(screen.queryByRole("button", { name: /^feedback$/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /contact me/i })).toHaveAttribute("href", "/about");
+    expect(screen.getByRole("link", { name: /contact markie/i })).toHaveAttribute("href", "/about");
     expect(screen.getByRole("button", { name: /feedback form/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /feedback form/i }));
