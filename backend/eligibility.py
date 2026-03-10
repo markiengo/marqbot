@@ -751,17 +751,28 @@ def get_eligible_courses(
             aliases = cross_listed_map.get(code, set())
             if aliases & (completed_set | in_progress_set):
                 continue
-        # Skip equivalent aliases of already completed/in-progress courses.
+        # Skip equivalent aliases of already completed/in-progress courses,
+        # but only when the course isn't explicitly required in an unmet bucket.
+        # Example: REAL 4061 and REAL 4100 may be listed as equivalents but are
+        # both distinct required entries in REAL-REQ-CORE; skipping REAL 4100
+        # because REAL 4061 is completed would leave the bucket permanently short.
         if equiv_map:
             equiv_aliases = equiv_map.get(code, set())
             if equiv_aliases & (completed_set | in_progress_set):
-                continue
+                if code not in unmet_remaining_courses:
+                    continue
         if _is_non_recommendable_course(
             code,
             row.get("course_name"),
             row.get("credits"),
             is_honors_student=is_honors_student,
         ):
+            continue
+        # Courses at 6000+ level are graduate-only and are never auto-recommended
+        # for undergrad students. The intended gate is min_standing >= 5.0 in the data;
+        # this is a safety net for any grad course whose data omits that gate.
+        # (5000-level courses may be legitimate advanced-undergrad requirements.)
+        if course_level is not None and course_level >= 6000:
             continue
         if student_stage and not stage_allows_course_level(student_stage, course_level):
             continue
@@ -1007,7 +1018,7 @@ def get_eligible_courses(
             "multi_bucket_score": multi_bucket_score,
             "bridge_target_buckets": [bucket["bucket_id"] for bucket in bridge_target_buckets],
             "unlocks_unmet_courses": direct_unmet_unlocks,
-            "is_bridge_course": bool(bridge_target_buckets) and not bool(eligible_buckets),
+            "is_bridge_course": bool(bridge_target_buckets) and not bool(unmet_buckets),
             "same_semester_prereqs": same_semester_prereqs,
             "prereq_check": prereq_check,
             "has_soft_requirement": has_soft_requirement,

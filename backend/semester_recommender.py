@@ -414,6 +414,11 @@ def _selection_bucket_ids(candidate: dict) -> list[str]:
 
 
 def _is_bridge_candidate(candidate: dict) -> bool:
+    # A course is a bridge candidate when it has bridge target buckets but no
+    # unmet direct buckets — either because it has no direct bucket at all, or
+    # because all its direct buckets are already at capacity.
+    if candidate.get("is_bridge_course"):
+        return True
     return not _selection_bucket_ids(candidate) and bool(candidate.get("bridge_target_buckets"))
 
 
@@ -1312,6 +1317,7 @@ def run_recommendation_semester(
             bucket_parent_map,
         )
         tagged["current_unmet_buckets"] = current_unmet_buckets
+        tagged["is_core_prereq_blocker"] = tagged.get("course_code", "") in core_prereq_blockers_sem
         tagged["is_discovery_driven"] = is_discovery_driven
         tagged["soft_prereq_penalty"] = _soft_prereq_demote_penalty(tagged)
         if is_discovery_driven:
@@ -1328,6 +1334,7 @@ def run_recommendation_semester(
         scored_non_manual_sem,
         key=lambda c: (
             c.get("ranking_tier", 99),
+            0 if c.get("is_core_prereq_blocker") else 1,
             _bcc_priority_rank(c, bucket_parent_map),
             _bridge_sort_penalty(c, bucket_parent_map),
             -_chain.get(c["course_code"], 0),
@@ -1387,6 +1394,11 @@ def run_recommendation_semester(
         )
 
     def _should_defer_bridge_for_direct_fill(candidate: dict) -> bool:
+        # Never defer a bridge course that directly unblocks a required core course:
+        # treating it as "critical" ensures the prereq is taken as soon as possible
+        # instead of waiting until all direct-fill candidates are exhausted.
+        if candidate.get("is_core_prereq_blocker"):
+            return False
         return not _is_critical_bridge_candidate(candidate, bucket_parent_map)
 
     def _has_available_direct_fill_candidate(
