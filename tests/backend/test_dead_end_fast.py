@@ -140,6 +140,7 @@ def _generate_state_variants(label: str, base_case: PlanCase):
                 target_semester_primary=base_case.target_semester_primary,
                 include_summer=base_case.include_summer,
                 max_recommendations=base_case.max_recommendations,
+                student_stage=base_case.student_stage,
             ),
         ))
 
@@ -156,6 +157,7 @@ def _generate_state_variants(label: str, base_case: PlanCase):
                 target_semester_primary=base_case.target_semester_primary,
                 include_summer=base_case.include_summer,
                 max_recommendations=base_case.max_recommendations,
+                student_stage=base_case.student_stage,
             ),
         ))
 
@@ -172,6 +174,7 @@ def _generate_state_variants(label: str, base_case: PlanCase):
                 target_semester_primary=base_case.target_semester_primary,
                 include_summer=base_case.include_summer,
                 max_recommendations=base_case.max_recommendations,
+                student_stage=base_case.student_stage,
             ),
         ))
 

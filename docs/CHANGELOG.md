@@ -8,6 +8,28 @@ Format per release:
 
 ---
 
+## [v2.4.0] - 2026-03-10
+
+### Changes
+
+- Added student stage selector (undergraduate, graduate, doctoral) to the planner profile, onboarding, and profile edit flows.
+- Recommendations and can-take checks now enforce a hard course-level gate based on the selected stage: undergrad gets 1000-4000, graduate gets 5000-7999, doctoral gets 8000+.
+- Stage is inferred automatically from course history when not explicitly set; defaults to undergraduate for new students.
+- Course search and transcript entry remain full-catalog so users can still record unusual history.
+- A warning banner appears when the selected stage conflicts with recorded course history.
+- Bumped CI timeout caps from 30 minutes to 360 minutes for backend regression and nightly sweep jobs.
+- Adapted all backend test helpers (`PlanCase`, `recommend_payload`, `payload_for_major`) to accept and pass through the `student_stage` parameter.
+- Fixed frontend feedback nudge test to match updated "Contact Markie" link text.
+
+### Design Decisions
+
+- Stage is a hard gate on future recommendations, not a validator on past history. Students with unusual transcripts should still be able to record what they took.
+- Level bands (1000-4000, 5000-7999, 8000+) match the current Marquette catalog better than mapping 7000+ directly to doctoral.
+- Server-side inference mirrors the frontend default so older clients without the field still get correct filtering.
+- CI timeouts were removed as a practical constraint — GitHub's 6-hour job limit is the only real cap needed.
+
+---
+
 ## [v2.3.2] - 2026-03-09
 
 ### Changes

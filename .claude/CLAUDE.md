@@ -18,6 +18,7 @@ If anything below conflicts with this section, trust this section.
 - Current Vitest config excludes `tests/frontend/*.dom.test.ts` from the default run, but includes `frontend/tests/*.dom.test.ts`.
 - User preference from this session: do not run local tests unless explicitly asked. Let GitHub / nightly handle verification.
 - `docs/` is pushable now; do not assume any docs subtree is local-only.
+- `docs/feedbacks/` is local-only even though `docs/` is pushable. Do not commit feedback logs.
 - `.claude/` stays local-only. Do not push it.
 - Prefer `local` for normal work, never push `local`, and be explicit before pushing if `main` is already ahead of `origin/main`.
 - Release preference from this session: do not create a new release by default; replace the most recent release notes with the new notes unless the user explicitly asks for a new release.
@@ -88,7 +89,8 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - `server.py`: Flask app, route handlers, data loading, validation logic.
 - `allocator.py`: Greedy course allocation to buckets. Exports `allocate_courses`, `_safe_int`, `_infer_requirement_mode`.
 - `semester_recommender.py`: Multi-semester recommendation engine. Imports shared helpers from `allocator`.
-- `eligibility.py`: Course eligibility filtering (prereqs, standing gates, offering checks). `_is_non_recommendable_course()` excludes internships, work periods, independent studies, and topics courses from recommendations (they still count toward progress when completed).
+- `eligibility.py`: Course eligibility filtering (prereqs, standing gates, offering checks, student stage gate). `_is_non_recommendable_course()` excludes internships, work periods, independent studies, and topics courses from recommendations (they still count toward progress when completed).
+- `student_stage.py`: Student stage inference and validation. Exports `normalize_student_stage`, `infer_student_stage_from_courses`, `stage_allows_course_level`, `build_student_stage_block_message`. Valid stages: `undergrad` (1000-4000), `graduate` (5000-7999), `doctoral` (8000+).
 - `requirements.py`: Bucket/role lookups, constants (`DEFAULT_TRACK_ID`, `SOFT_WARNING_TAGS`).
 - `unlocks.py`: Reverse prereq graph, `compute_chain_depths()` for transitive prereq chain scoring, `get_direct_unlocks()` for 1-level unlock counts, `get_blocking_warnings()` for core blocker alerts.
 - `validators.py`: Prereq chain expansion, input validation.
@@ -106,6 +108,7 @@ gunicorn --chdir backend server:app --bind 0.0.0.0:${PORT:-5000} --workers ${WEB
 - `hard_prereq_complex` tag should only exist on courses with genuinely unparseable prerequisites. All courses with parseable prereqs (type = single, and, or, none) must NOT have this tag.
 - Non-recommendable course groups (filtered by `_is_non_recommendable_course` in `eligibility.py`): **internships**, **work periods**, **independent studies**, and **"Topics in..." courses**. These still count toward bucket progress when completed/in-progress.
 - Standing-recovery fallback: if unmet requirements remain but the remaining path is blocked only by `min_standing`, recommend eligible filler courses that build credits toward the blocked standing requirement instead of returning an empty semester.
+- Student stage hard gate: `/recommend` and `/can-take` accept optional `student_stage` (`undergrad`, `graduate`, `doctoral`). When set, courses outside the stage's level band are excluded from recommendations and blocked in can-take. When missing, stage is inferred from the highest course level in completed/in-progress history (default: `undergrad`). The gate filters future recommendations only — completed/in-progress history is never restricted. Frontend stage state lives in `studentStage.ts`; backend logic in `student_stage.py` and `eligibility.py`.
 
 # Performance Rules
 - Workbook parsing is expensive: load once at startup and refresh via controlled reload path only.

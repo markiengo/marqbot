@@ -1,6 +1,6 @@
 # Test Structure
 
-Last updated: 2026-03-09
+Last updated: 2026-03-10
 
 Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
@@ -11,7 +11,7 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 | **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | ~637 |
 | **Fast dead-end check** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q` | ~67 |
 | **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | 750 default |
-| **Frontend** | `cd frontend; npm run test` | 71 |
+| **Frontend** | `cd frontend; npm run test` | 84 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
 
@@ -59,6 +59,10 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 
 Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`, `nightly_support.py`
 
+### Student Stage Support
+
+`PlanCase` (in `dead_end_utils.py`) and payload builders (`recommend_payload`, `payload_for_major` in `helpers.py`) accept an optional `student_stage` parameter (`"undergrad"`, `"graduate"`, `"doctoral"`, or `None`). When `None` (the default), the stage hard gate is skipped and all course levels are eligible. All existing tests omit this field to preserve backward-compatible behavior. Dedicated student-stage filtering tests live in `test_eligibility.py`, `test_recommend_api_contract.py`, and `test_server_can_take.py`.
+
 ## Frontend Test Files
 
 | File | Tests | Default run | What it covers |
@@ -74,11 +78,15 @@ Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 | `rendering.test.ts` | 10 | Yes | Progress grouping, credit metrics |
 | `savedPlanPresentation.test.ts` | 3 | Yes | Saved-plan display strings |
 | `savedPlans.test.ts` | 9 | Yes | Plan persistence, freshness |
+| `studentStage.test.ts` | 3 | Yes | Stage inference, explicit vs inferred, history conflict flags |
 | `utils.test.ts` | 9 | Yes | Bucket labels, note formatting |
 | `frontend/tests/coursesStep.dom.test.ts` | 1 | Yes | Planner DOM warning flow |
 | `frontend/tests/multiSelect.dom.test.ts` | 2 | Yes | Picker DOM interactions |
 | `frontend/tests/onboardingPage.dom.test.ts` | 3 | Yes | Onboarding DOM flow |
 | `frontend/tests/profileModal.dom.test.ts` | 2 | Yes | Profile modal submit/error flow |
+| `frontend/tests/plannerCourseList.dom.test.ts` | 3 | Yes | Course list stage-conflict warning, filtering |
+| `frontend/tests/plannerFeedbackNudge.dom.test.ts` | 3 | Yes | Feedback lane, nudge timing, dismissal |
+| `frontend/tests/progressBucketDrillIn.test.ts` | 4 | Yes | Bucket drill-in detail rendering |
 | `frontend/tests/savedPlanDetailPage.dom.test.ts` | 1 | Yes | Saved-plan detail delete confirmation |
 | `frontend/tests/savedPlanViewModal.dom.test.ts` | 1 | Yes | Saved-plan modal delete confirmation |
 | `frontend/tests/semesterModal.dom.test.ts` | 1 | Yes | Semester modal interactions |
