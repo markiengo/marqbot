@@ -137,6 +137,107 @@ class TestGetEligibleCourses:
         codes = [c["course_code"] for c in eligible]
         assert "FINA 3987" not in codes
 
+    def test_student_stage_filters_out_of_band_courses(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([
+                {
+                    "course_code": "FINA 6001",
+                    "course_name": "Graduate Finance",
+                    "credits": 3,
+                    "level": 6000,
+                    "offered_fall": True,
+                    "offered_spring": True,
+                    "offered_summer": False,
+                    "prereq_hard": "none",
+                    "prereq_soft": "",
+                    "offering_confidence": "high",
+                    "notes": None,
+                },
+                {
+                    "course_code": "FINA 8001",
+                    "course_name": "Doctoral Finance Research",
+                    "credits": 3,
+                    "level": 8000,
+                    "offered_fall": True,
+                    "offered_spring": True,
+                    "offered_summer": False,
+                    "prereq_hard": "none",
+                    "prereq_soft": "",
+                    "offering_confidence": "high",
+                    "notes": None,
+                },
+            ]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["FINA 6001"] = parse_prereqs("none")
+        augmented_prereq_map["FINA 8001"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([
+                {
+                    "track_id": "FIN_MAJOR",
+                    "bucket_id": "FIN_CHOOSE_2",
+                    "course_code": "FINA 6001",
+                    "is_required": False,
+                    "can_double_count": True,
+                    "constraints": None,
+                },
+                {
+                    "track_id": "FIN_MAJOR",
+                    "bucket_id": "FIN_CHOOSE_2",
+                    "course_code": "FINA 8001",
+                    "is_required": False,
+                    "can_double_count": True,
+                    "constraints": None,
+                },
+            ]),
+        ], ignore_index=True)
+
+        undergrad = get_eligible_courses(
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            allocator_remaining,
+            augmented_map,
+            buckets_df,
+            student_stage="undergrad",
+        )
+        graduate = get_eligible_courses(
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            allocator_remaining,
+            augmented_map,
+            buckets_df,
+            student_stage="graduate",
+        )
+        doctoral = get_eligible_courses(
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            allocator_remaining,
+            augmented_map,
+            buckets_df,
+            student_stage="doctoral",
+        )
+
+        assert "FINA 6001" not in [c["course_code"] for c in undergrad]
+        assert "FINA 8001" not in [c["course_code"] for c in undergrad]
+        assert "FINA 3001" not in [c["course_code"] for c in graduate]
+        assert "FINA 6001" in [c["course_code"] for c in graduate]
+        assert "FINA 8001" not in [c["course_code"] for c in graduate]
+        assert "FINA 8001" in [c["course_code"] for c in doctoral]
+        assert "FINA 3001" not in [c["course_code"] for c in doctoral]
+
     def test_excludes_independent_study_courses(
         self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
     ):
@@ -1128,6 +1229,39 @@ class TestCheckCanTake:
             prereq_map,
         )
         assert result["can_take"] is True
+
+    def test_student_stage_blocks_out_of_band_can_take(self, courses_df, prereq_map):
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "FINA 6001",
+                "course_name": "Graduate Finance",
+                "credits": 3,
+                "level": 6000,
+                "offered_fall": True,
+                "offered_spring": True,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "",
+                "offering_confidence": "high",
+                "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["FINA 6001"] = parse_prereqs("none")
+
+        result = check_can_take(
+            "FINA 6001",
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            student_stage="undergrad",
+        )
+
+        assert result["can_take"] is False
+        assert "Undergraduate" in result["why_not"]
 
 
 class TestParseTerm:

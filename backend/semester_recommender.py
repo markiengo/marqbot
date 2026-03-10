@@ -1,5 +1,4 @@
 import re
-from math import ceil
 
 import pandas as pd
 
@@ -23,9 +22,6 @@ from prereq_parser import prereq_course_codes
 SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
 
 _MAX_PER_BUCKET_PER_SEM = 2
-_BCC_REQUIRED_MAX_PER_SEM = 3
-_FAMILY_CAP_DIVISOR = 3
-_DECLARED_MIN_DIVISOR = 3
 _DISC_FAMILY_PREFIX = "MCC_DISC"
 _PROJECTION_NOTE = (
     "Projected progress below assumes you complete these recommendations."
@@ -46,6 +42,7 @@ _NEUTRAL_DISCOVERY_DEPTS = {
 
 _STANDING_LABELS = {1: "Freshman", 2: "Sophomore", 3: "Junior", 4: "Senior"}
 _BCC_PREFIX = "BCC_"
+_MATH_SUBJECT_PREFIX = "MATH"
 
 
 def _credits_to_standing(credits: int) -> int:
@@ -221,6 +218,7 @@ def _build_standing_recovery_candidates(
     blocked_targets: list[str],
     selected_program_ids: list[str] | None = None,
     is_honors_student: bool = False,
+    student_stage: str | None = None,
 ) -> list[dict]:
     filler_candidates = get_eligible_courses(
         data["courses_df"],
@@ -241,6 +239,7 @@ def _build_standing_recovery_candidates(
         equiv_map=data.get("equiv_prereq_map"),
         cross_listed_map=data.get("cross_listed_map"),
         current_standing=current_standing,
+        student_stage=student_stage,
     )
     filler_candidates = [
         c for c in filler_candidates
@@ -480,8 +479,6 @@ def _select_assignable_buckets_allocator_style(
     for bid in ordered:
         if virtual_remaining.get(bid, 0) <= 0:
             continue
-        if enforce_bucket_cap and picks_per_bucket.get(bid, 0) >= _bucket_pick_cap(bid, max_per_bucket):
-            continue
         if not assigned:
             assigned.append(bid)
             continue
@@ -584,79 +581,6 @@ def _build_bucket_parent_map(data: dict, track_id: str) -> dict[str, str]:
     return out
 
 
-def _build_family_id_map(data: dict, track_id: str) -> dict[str, str]:
-    """Build runtime bucket_id -> double_count_family_id map."""
-    buckets_df = data.get("buckets_df")
-    if buckets_df is None or len(buckets_df) == 0:
-        return {}
-    tid = str(track_id or "").strip().upper()
-    subset = buckets_df[
-        buckets_df["track_id"].astype(str).str.strip().str.upper() == tid
-    ]
-    out: dict[str, str] = {}
-    for _, row in subset.iterrows():
-        bid = str(row.get("bucket_id", "") or "").strip().upper()
-        fam = str(row.get("double_count_family_id", "") or "").strip().upper()
-        if bid:
-            out[bid] = fam if fam else bid
-    return out
-
-
-def _build_bucket_requirement_mode_map(data: dict, track_id: str) -> dict[str, str]:
-    """Build runtime bucket_id -> requirement_mode map."""
-    buckets_df = data.get("buckets_df")
-    if buckets_df is None or len(buckets_df) == 0:
-        return {}
-    tid = str(track_id or "").strip().upper()
-    subset = buckets_df[
-        buckets_df["track_id"].astype(str).str.strip().str.upper() == tid
-    ]
-    out: dict[str, str] = {}
-    for _, row in subset.iterrows():
-        bid = str(row.get("bucket_id", "") or "").strip().upper()
-        mode = str(_infer_requirement_mode(row) or "").strip().lower()
-        if bid:
-            out[bid] = mode
-    return out
-
-
-def _candidate_counts_toward_declared_min(
-    candidate: dict,
-    bucket_parent_map: dict[str, str],
-    parent_type_map: dict[str, str],
-    family_id_map: dict[str, str],
-    requirement_mode_map: dict[str, str],
-) -> bool:
-    """True if the candidate advances a declared major/track non-pool requirement."""
-
-    def _bucket_counts(bucket_id: str) -> bool:
-        bid_upper = str(bucket_id).strip().upper()
-        if not bid_upper:
-            return False
-        parent = bucket_parent_map.get(bid_upper, "")
-        ptype = parent_type_map.get(parent, "")
-        if ptype not in ("major", "track"):
-            return False
-        # Exclude Discovery-theme buckets from satisfying the declared-path quota.
-        fam = family_id_map.get(bid_upper, "")
-        if fam.startswith(_DISC_FAMILY_PREFIX):
-            return False
-        mode = requirement_mode_map.get(bid_upper, "")
-        return mode in ("required", "choose_n")
-
-    for bid in candidate.get("fills_buckets", []):
-        if _bucket_counts(bid):
-            return True
-
-    # Bridge courses can satisfy the quota if they unlock declared non-pool
-    # buckets, even when they do not directly fill one themselves.
-    for bid in candidate.get("bridge_target_buckets", []):
-        if _bucket_counts(bid):
-            return True
-
-    return False
-
-
 def _tier_for_bucket_v2(
     bucket_id: str,
     *,
@@ -671,33 +595,80 @@ def _tier_for_bucket_v2(
     if not parent_id and bucket_id == primary_bucket:
         parent_id = primary_parent_id
     parent_id = str(parent_id or "").strip().upper()
+    parent_type = parent_type_map.get(parent_id, "")
+    track_required = bucket_track_required_map.get(bucket_id, "")
 
-    if local_id in _MCC_FOUNDATION_BUCKET_IDS or parent_id == "MCC_FOUNDATION":
+    if local_id == "BCC_REQUIRED":
         return 1
 
-    if local_id.startswith(_BCC_PREFIX) or bucket_id.startswith("BCC::") or parent_id.startswith("BCC"):
+    if local_id in {"MCC_CORE", "MCC_FOUNDATION"} or parent_id in {"MCC_CORE", "MCC_FOUNDATION"}:
         return 2
 
-    if local_id.startswith(_DISC_FAMILY_PREFIX) or parent_id.startswith(_DISC_FAMILY_PREFIX):
-        return 6
+    if local_id == "MCC_ESSV1" or parent_id == "MCC_ESSV1":
+        return 3
 
-    if local_id in _MCC_LOWEST_BUCKET_IDS or parent_id in _MCC_LOWEST_BUCKET_IDS:
-        return 6
+    if parent_type == "major":
+        return 4
 
-    if local_id in _MCC_LATE_BUCKET_IDS or parent_id in _MCC_LATE_BUCKET_IDS:
+    if local_id.startswith(_BCC_PREFIX) or bucket_id.startswith("BCC::") or parent_id.startswith("BCC"):
         return 5
 
-    parent_type = parent_type_map.get(parent_id, "")
-    if parent_type == "major":
-        return 3
     if parent_type in {"track", "minor"}:
-        return 4
+        return 6
 
-    track_required = bucket_track_required_map.get(bucket_id, "")
     if track_required:
-        return 4
+        return 6
 
-    return 3
+    if (
+        local_id in _MCC_LATE_BUCKET_IDS
+        or parent_id in _MCC_LATE_BUCKET_IDS
+        or local_id in _MCC_LOWEST_BUCKET_IDS
+        or parent_id in _MCC_LOWEST_BUCKET_IDS
+        or local_id.startswith(_DISC_FAMILY_PREFIX)
+        or parent_id.startswith(_DISC_FAMILY_PREFIX)
+    ):
+        return 7
+
+    return 7
+
+
+def _is_math_candidate(candidate: dict) -> bool:
+    course_code = str(candidate.get("course_code", "") or "").strip().upper()
+    return course_code.startswith(f"{_MATH_SUBJECT_PREFIX} ")
+
+
+def _is_priority_core_bridge_candidate(candidate: dict) -> bool:
+    if not candidate.get("is_bridge_course"):
+        return False
+    level = _course_level(candidate)
+    if level is not None and level >= 2000:
+        return False
+    raw_soft_tags = candidate.get("all_soft_tags") or candidate.get("soft_tags") or []
+    if isinstance(raw_soft_tags, str):
+        raw_soft_tags = raw_soft_tags.split(";")
+    soft_tags = {
+        str(tag or "").strip().lower()
+        for tag in raw_soft_tags
+        if str(tag or "").strip()
+    }
+    if "standing_requirement" not in soft_tags:
+        return False
+    target_bucket_ids = [
+        str(bucket_id or "").strip().upper()
+        for bucket_id in (
+            list(candidate.get("bridge_target_buckets", []) or [])
+            + [candidate.get("primary_bucket", "")]
+        )
+        if str(bucket_id or "").strip()
+    ]
+    return any(
+        (
+            (_local_bucket_id(bucket_id).upper() == "BCC_REQUIRED")
+            or _local_bucket_id(bucket_id).upper().startswith("MCC_CORE")
+            or _local_bucket_id(bucket_id).upper().startswith("MCC_ESSV1")
+        )
+        for bucket_id in target_bucket_ids
+    )
 
 
 def _bcc_priority_rank(candidate: dict, bucket_parent_map: dict[str, str]) -> int:
@@ -711,28 +682,45 @@ def _bcc_priority_rank(candidate: dict, bucket_parent_map: dict[str, str]) -> in
         bucket_ids = [primary_bucket]
 
     has_bcc = False
+    has_bcc_required = False
     for bucket_id in bucket_ids:
         local_id = _local_bucket_id(bucket_id).upper()
         parent_id = str(bucket_parent_map.get(bucket_id, "") or "").strip().upper()
         if local_id == "BCC_REQUIRED":
-            return 0
+            has_bcc_required = True
         if local_id.startswith(_BCC_PREFIX) or bucket_id.startswith("BCC::") or parent_id.startswith("BCC"):
             has_bcc = True
-    return 1 if has_bcc else 0
+    if has_bcc_required:
+        return 0 if _is_math_candidate(candidate) else 1
+    return 2 if has_bcc else 3
 
 
-def _is_family_cap_exempt_bucket(bucket_id: str) -> bool:
-    return _local_bucket_id(bucket_id).upper() == "BCC_REQUIRED"
+def _is_critical_bridge_candidate(candidate: dict, bucket_parent_map: dict[str, str]) -> bool:
+    if not candidate.get("is_bridge_course"):
+        return False
+
+    target_bucket_ids = [
+        str(bucket_id or "").strip().upper()
+        for bucket_id in (
+            list(candidate.get("bridge_target_buckets", []) or [])
+            + [candidate.get("primary_bucket", "")]
+        )
+        if str(bucket_id or "").strip()
+    ]
+    for bucket_id in target_bucket_ids:
+        local_id = _local_bucket_id(bucket_id).upper()
+        parent_id = str(bucket_parent_map.get(bucket_id, "") or "").strip().upper()
+        if local_id == "BCC_REQUIRED":
+            return True
+        if local_id in _MCC_FOUNDATION_BUCKET_IDS or parent_id == "MCC_FOUNDATION":
+            return True
+    return False
 
 
-def _bucket_pick_cap(bucket_id: str, default_cap: int) -> int:
-    local_id = _local_bucket_id(bucket_id).upper()
-    if local_id == "BCC_REQUIRED":
-        return max(default_cap, _BCC_REQUIRED_MAX_PER_SEM)
-    if local_id == "MCC_WRIT" or local_id.startswith(_DISC_FAMILY_PREFIX):
-        return 1
-    return default_cap
-
+def _bridge_sort_penalty(candidate: dict, bucket_parent_map: dict[str, str]) -> int:
+    if not candidate.get("is_bridge_course"):
+        return 0
+    return 0 if _is_critical_bridge_candidate(candidate, bucket_parent_map) else 1
 
 def _bucket_hierarchy_tier_v2(
     candidate: dict,
@@ -742,12 +730,13 @@ def _bucket_hierarchy_tier_v2(
 ) -> int:
     """
     Priority tiers:
-      1) MCC Foundation (MCC_CORE, MCC_ESSV1)
-      2) BCC
-      3) major parent buckets
-      4) track/minor parent buckets
-      5) MCC_ESSV2 + MCC_WRIT
-      6) Discovery + MCC_CULM
+      1) BCC_REQUIRED
+      2) MCC_CORE
+      3) MCC_ESSV1
+      4) major parent buckets
+      5) other BCC buckets
+      6) track/minor parent buckets
+      7) other MCC/discovery/culminating buckets
 
     Unlockers remain an in-tier tie-break in the ranking key.
     """
@@ -760,7 +749,7 @@ def _bucket_hierarchy_tier_v2(
     ]
     bucket_ids = fills if fills else ([primary_bucket] if primary_bucket else [])
     if not bucket_ids:
-        return 3
+        return 7
 
     return min(
         _tier_for_bucket_v2(
@@ -1002,22 +991,6 @@ def _build_debug_trace(
     return trace
 
 
-def _candidate_program_ids(
-    candidate: dict,
-    bucket_parent_map: dict[str, str],
-    parent_type_map: dict[str, str],
-) -> set[str]:
-    """Extract major/track parent IDs that a candidate course fills."""
-    programs: set[str] = set()
-    for bid in candidate.get("fills_buckets", []):
-        parent = bucket_parent_map.get(str(bid), "")
-        if not parent:
-            continue
-        if parent_type_map.get(parent, "") in ("major", "track"):
-            programs.add(parent)
-    return programs
-
-
 def _course_codes_for_local_bucket(
     course_bucket_map_df: pd.DataFrame,
     track_id: str,
@@ -1073,9 +1046,6 @@ def _candidate_advances_declared_or_bcc_requirement(
     return False
 
 
-_PROGRAM_BALANCE_THRESHOLD = 2
-
-
 def run_recommendation_semester(
     completed: list[str],
     in_progress: list[str],
@@ -1092,6 +1062,7 @@ def run_recommendation_semester(
     chain_depths: dict[str, int] | None = None,
     is_honors_student: bool = False,
     selected_program_ids: list[str] | None = None,
+    student_stage: str | None = None,
 ) -> dict:
     """Run the full recommendation pipeline for a single semester."""
     if completed_only_standing is None:
@@ -1134,16 +1105,26 @@ def run_recommendation_semester(
         equiv_map=data.get("equiv_prereq_map"),
         cross_listed_map=data.get("cross_listed_map"),
         current_standing=current_standing,
+        student_stage=student_stage,
     )
+
+    def _passes_standing_gate(candidate: dict) -> bool:
+        min_standing = candidate.get("min_standing") or 0
+        if min_standing <= current_standing:
+            return True
+        # Some foundational bridge courses carry noisy standing metadata in the
+        # source workbook; keep them eligible and surface the standing warning.
+        return _is_priority_core_bridge_candidate(candidate)
+
     standing_blocked_sem = [
         c for c in eligible_sem
         if not c.get("manual_review")
-        and (c.get("min_standing") or 0) > current_standing
+        and not _passes_standing_gate(c)
     ]
     # Standing gate: exclude courses whose min_standing exceeds the student's current standing.
     eligible_sem = [
         c for c in eligible_sem
-        if (c.get("min_standing") or 0) <= current_standing
+        if _passes_standing_gate(c)
     ]
     # Summer hard filter: only recommend courses offered in summer; cap recs at 4.
     is_summer_sem = "summer" in target_semester_label.lower()
@@ -1167,8 +1148,6 @@ def run_recommendation_semester(
     bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
     bucket_parent_map = _build_bucket_parent_map(data, track_id)
     bucket_role_map = _build_bucket_role_map(data, track_id)
-    family_id_map = _build_family_id_map(data, track_id)
-    requirement_mode_map = _build_bucket_requirement_mode_map(data, track_id)
     writ_course_codes = _course_codes_for_local_bucket(
         data.get("course_bucket_map_df"),
         track_id,
@@ -1226,6 +1205,7 @@ def run_recommendation_semester(
                 blocked_targets,
                 selected_program_ids=selection_program_ids,
                 is_honors_student=is_honors_student,
+                student_stage=student_stage,
             )
         standing_recovery_sem = [
             c for c in standing_recovery_sem
@@ -1348,7 +1328,8 @@ def run_recommendation_semester(
         scored_non_manual_sem,
         key=lambda c: (
             c.get("ranking_tier", 99),
-            1 if c.get("is_bridge_course") else 0,
+            _bcc_priority_rank(c, bucket_parent_map),
+            _bridge_sort_penalty(c, bucket_parent_map),
             -_chain.get(c["course_code"], 0),
             -c.get("multi_bucket_score", 0),
             # Honors students: prefer H variants (sort before base course).
@@ -1383,28 +1364,10 @@ def run_recommendation_semester(
     }
     virtual_remaining_snapshot = dict(virtual_remaining) if debug else {}
     picks_per_bucket: dict[str, int] = {}
-    picks_per_program: dict[str, int] = {}
-    picks_per_family: dict[str, int] = {}
-    deferred_for_balance: list[dict] = []
     bridge_targets_covered: set[str] = set()
     selected_writ_courses: set[str] = set()
-    cap_relaxed = False
-    family_cap_relaxed = False
-    family_blocked_codes: set[str] = set()
     skipped_reasons: dict[str, str] = {}
-
-    # Family cap and declared-program minimum, derived from max_recs.
-    family_cap = max(1, ceil(max_recs / _FAMILY_CAP_DIVISOR))
-    declared_min_target = max(1, ceil(max_recs / _DECLARED_MIN_DIVISOR))
-    declared_min_achieved = 0
-    declared_min_relaxed = False
-
-    # Pre-tag candidates with declared-min eligibility.
-    for cand in ranked_sem:
-        cand["_counts_toward_declared_min"] = _candidate_counts_toward_declared_min(
-            cand, bucket_parent_map, parent_type_map,
-            family_id_map, requirement_mode_map,
-        )
+    selected_codes_set: set[str] = set()
 
     def _assignable_buckets_for_candidate(candidate: dict, *, enforce_bucket_cap: bool) -> list[str]:
         return _select_assignable_buckets_allocator_style(
@@ -1423,20 +1386,8 @@ def run_recommendation_semester(
             for b in candidate.get("bridge_target_buckets", [])
         )
 
-    def _has_open_foundation_or_bcc_candidates() -> bool:
-        for candidate in ranked_sem:
-            if candidate.get("ranking_tier", 99) > 2:
-                continue
-            if _blocked_by_writ_lifetime_limit(
-                candidate,
-                selected_writ_courses=selected_writ_courses,
-            ):
-                continue
-            if _missing_same_semester_prereqs(candidate):
-                continue
-            if _assignable_buckets_for_candidate(candidate, enforce_bucket_cap=True):
-                return True
-        return False
+    def _should_defer_bridge_for_direct_fill(candidate: dict) -> bool:
+        return not _is_critical_bridge_candidate(candidate, bucket_parent_map)
 
     def _has_available_direct_fill_candidate(
         *,
@@ -1461,8 +1412,6 @@ def run_recommendation_semester(
                 enforce_bucket_cap=enforce_bucket_cap,
             )
             if not assigned:
-                continue
-            if _family_cap_exceeded(assigned):
                 continue
             return True
         return False
@@ -1505,21 +1454,7 @@ def run_recommendation_semester(
             )
             if not assigned:
                 continue
-            if _family_cap_exceeded(assigned):
-                continue
             return True
-        return False
-
-    def _family_cap_exceeded(assigned_buckets: list[str]) -> bool:
-        """Check if selecting this candidate would exceed the family cap."""
-        if family_cap_relaxed:
-            return False
-        for bid in assigned_buckets:
-            if _is_family_cap_exempt_bucket(bid):
-                continue
-            fam = family_id_map.get(bid.upper(), bid.upper())
-            if picks_per_family.get(fam, 0) >= family_cap:
-                return True
         return False
 
     def _accept_candidate(cand: dict, assigned_buckets: list[str]) -> None:
@@ -1533,13 +1468,7 @@ def run_recommendation_semester(
         if _is_bridge_candidate(cand):
             for b in cand.get("bridge_target_buckets", []):
                 bridge_targets_covered.add(b)
-        cand_programs = _candidate_program_ids(cand, bucket_parent_map, parent_type_map)
-        for prog in cand_programs:
-            picks_per_program[prog] = picks_per_program.get(prog, 0) + 1
         for bid in assigned_buckets:
-            if not _is_family_cap_exempt_bucket(bid):
-                fam = family_id_map.get(bid.upper(), bid.upper())
-                picks_per_family[fam] = picks_per_family.get(fam, 0) + 1
             if virtual_remaining.get(bid, 0) > 0:
                 consume = _bucket_virtual_consumption_units(
                     bid, cand, selection_bucket_meta,
@@ -1559,67 +1488,10 @@ def run_recommendation_semester(
             if code not in available_codes
         ]
 
-    # ---------- Pass 1: Declared-program priority ----------
-    # Select up to declared_min_target courses that count toward declared
-    # major/track requirements, respecting family cap and bucket capacity.
-    suppress_declared_preemption = current_standing <= 1 and _has_open_foundation_or_bcc_candidates()
+    # ---------- Main greedy pass ----------
+    # Walk one ranked list, respecting prerequisites, real bucket capacity,
+    # bridge ordering, and dedupe. No separate balance or quota layer.
     for cand in ranked_sem:
-        if declared_min_achieved >= declared_min_target:
-            break
-        if len(selected_sem) >= max_recs:
-            break
-        if suppress_declared_preemption and cand.get("ranking_tier", 99) > 2:
-            continue
-        if not cand.get("_counts_toward_declared_min"):
-            continue
-        if _blocked_by_writ_lifetime_limit(
-            cand,
-            selected_writ_courses=selected_writ_courses,
-        ):
-            if debug:
-                skipped_reasons[cand["course_code"]] = "WRIT lifetime limit"
-            continue
-        unresolved_same_sem = _missing_same_semester_prereqs(cand)
-        if unresolved_same_sem:
-            if debug:
-                skipped_reasons[cand["course_code"]] = (
-                    "waiting on same-semester concurrent course(s): "
-                    + ", ".join(unresolved_same_sem)
-                )
-            continue
-        if _maturity_guard_blocks(
-            cand,
-            enforce_bucket_cap=True,
-            excluded_codes={c["course_code"] for c in selected_sem},
-        ):
-            if debug:
-                skipped_reasons[cand["course_code"]] = "freshman maturity guard deferred advanced course"
-            continue
-        assigned_buckets = _assignable_buckets_for_candidate(cand, enforce_bucket_cap=True)
-        is_bridge_pick = _is_bridge_candidate(cand)
-        if not assigned_buckets and not is_bridge_pick:
-            continue
-        if is_bridge_pick and _has_available_direct_fill_candidate(
-            enforce_bucket_cap=True,
-            excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
-        ):
-            if debug:
-                skipped_reasons[cand["course_code"]] = "bridge deferred while direct-fill options remain"
-            continue
-        if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
-            continue
-        if _family_cap_exceeded(assigned_buckets):
-            continue
-        _accept_candidate(cand, assigned_buckets)
-        declared_min_achieved += 1
-
-    # Track which courses were already selected in pass 1 (including equivalents).
-    selected_codes_set = _expand_with_equivalents({c["course_code"] for c in selected_sem})
-
-    # ---------- Pass 2: Normal greedy fill ----------
-    # Fill remaining slots with the standard ranked greedy loop, now with
-    # family cap enforcement alongside the existing per-bucket cap.
-    for idx, cand in enumerate(ranked_sem):
         if len(selected_sem) >= max_recs:
             if debug:
                 skipped_reasons[cand["course_code"]] = "max_recs reached"
@@ -1641,35 +1513,9 @@ def run_recommendation_semester(
                     + ", ".join(unresolved_same_sem)
                 )
             continue
-        remaining_slots_to_fill = max_recs - len(selected_sem)
-        if not cap_relaxed:
-            remaining_candidates = ranked_sem[idx:]
-            viable_unmet_buckets: set[str] = set()
-            for rc in remaining_candidates:
-                if rc["course_code"] in selected_codes_set:
-                    continue
-                if _blocked_by_writ_lifetime_limit(
-                    rc,
-                    selected_writ_courses=selected_writ_courses,
-                ):
-                    continue
-                viable_unmet_buckets.update(
-                    _select_assignable_buckets_allocator_style(
-                        _selection_bucket_ids(rc),
-                        virtual_remaining,
-                        picks_per_bucket,
-                        enforce_bucket_cap=True,
-                        max_per_bucket=_MAX_PER_BUCKET_PER_SEM,
-                        allowed_pairs=allowed_pairs,
-                        bucket_meta=selection_bucket_meta,
-                    )
-                )
-        if (not cap_relaxed) and (len(viable_unmet_buckets) < remaining_slots_to_fill):
-            cap_relaxed = True
-        enforce_bucket_cap = not cap_relaxed
         if _maturity_guard_blocks(
             cand,
-            enforce_bucket_cap=enforce_bucket_cap,
+            enforce_bucket_cap=False,
             excluded_codes={c["course_code"] for c in selected_sem},
         ):
             if debug:
@@ -1678,16 +1524,20 @@ def run_recommendation_semester(
 
         assigned_buckets = _assignable_buckets_for_candidate(
             cand,
-            enforce_bucket_cap=enforce_bucket_cap,
+            enforce_bucket_cap=False,
         )
         is_bridge_pick = _is_bridge_candidate(cand)
         if not assigned_buckets and not is_bridge_pick:
             if debug:
-                skipped_reasons[cand["course_code"]] = "no assignable buckets (capacity full or diversity cap)"
+                skipped_reasons[cand["course_code"]] = "no assignable buckets (capacity full)"
             continue
-        if is_bridge_pick and _has_available_direct_fill_candidate(
-            enforce_bucket_cap=enforce_bucket_cap,
-            excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
+        if (
+            is_bridge_pick
+            and _should_defer_bridge_for_direct_fill(cand)
+            and _has_available_direct_fill_candidate(
+                enforce_bucket_cap=False,
+                excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
+            )
         ):
             if debug:
                 skipped_reasons[cand["course_code"]] = "bridge deferred while direct-fill options remain"
@@ -1697,94 +1547,8 @@ def run_recommendation_semester(
                 skipped_reasons[cand["course_code"]] = "bridge targets already covered"
             continue
 
-        # Family cap gate.
-        if assigned_buckets and _family_cap_exceeded(assigned_buckets):
-            family_blocked_codes.add(cand["course_code"])
-            if debug:
-                skipped_reasons[cand["course_code"]] = "family cap exceeded"
-            continue
-
-        # Program balance gate: defer if this program is over-represented.
-        cand_programs = _candidate_program_ids(cand, bucket_parent_map, parent_type_map)
-        if cand_programs and picks_per_program:
-            active_programs = set(picks_per_program.keys()) | cand_programs
-            min_global = min(picks_per_program.get(p, 0) for p in active_programs)
-            cand_min = min(picks_per_program.get(p, 0) for p in cand_programs)
-            if cand_min >= min_global + _PROGRAM_BALANCE_THRESHOLD:
-                deferred_for_balance.append(cand)
-                if debug:
-                    skipped_reasons[cand["course_code"]] = "program balance deferral"
-                continue
-
         _accept_candidate(cand, assigned_buckets)
-
-    # ---------- Deferred balance pass ----------
-    for cand in deferred_for_balance:
-        if len(selected_sem) >= max_recs:
-            break
-        if cand["course_code"] in selected_codes_set:
-            continue
-        if _blocked_by_writ_lifetime_limit(
-            cand,
-            selected_writ_courses=selected_writ_courses,
-        ):
-            continue
-        if _missing_same_semester_prereqs(cand):
-            continue
-        if _maturity_guard_blocks(
-            cand,
-            enforce_bucket_cap=False,
-            excluded_codes={c["course_code"] for c in selected_sem},
-        ):
-            continue
-        assigned_buckets = _assignable_buckets_for_candidate(cand, enforce_bucket_cap=False)
-        is_bridge_pick = _is_bridge_candidate(cand)
-        if not assigned_buckets and not is_bridge_pick:
-            continue
-        if is_bridge_pick and _has_available_direct_fill_candidate(
-            enforce_bucket_cap=False,
-            excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
-        ):
-            continue
-        if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
-            continue
-        if assigned_buckets and _family_cap_exceeded(assigned_buckets):
-            family_blocked_codes.add(cand["course_code"])
-            continue
-        _accept_candidate(cand, assigned_buckets)
-
-    # ---------- Family cap relaxation pass ----------
-    # If we still have unfilled slots and the family cap blocked candidates,
-    # relax the family cap and try again.
-    if len(selected_sem) < max_recs:
-        selected_codes_set = _expand_with_equivalents({c["course_code"] for c in selected_sem})
-        if family_blocked_codes - selected_codes_set:
-            family_cap_relaxed = True
-            for cand in ranked_sem:
-                if len(selected_sem) >= max_recs:
-                    break
-                if cand["course_code"] in selected_codes_set:
-                    continue
-                if _blocked_by_writ_lifetime_limit(
-                    cand,
-                    selected_writ_courses=selected_writ_courses,
-                ):
-                    continue
-                if _missing_same_semester_prereqs(cand):
-                    continue
-                if _maturity_guard_blocks(
-                    cand,
-                    enforce_bucket_cap=not cap_relaxed,
-                    excluded_codes={c["course_code"] for c in selected_sem},
-                ):
-                    continue
-                assigned_buckets = _assignable_buckets_for_candidate(
-                    cand, enforce_bucket_cap=not cap_relaxed,
-                )
-                if not assigned_buckets:
-                    continue
-                _accept_candidate(cand, assigned_buckets)
-                selected_codes_set.update(_expand_with_equivalents({cand["course_code"]}))
+        selected_codes_set.update(_expand_with_equivalents({cand["course_code"]}))
 
     # ---------- Same-semester concurrent follow-up ----------
     if len(selected_sem) < max_recs:
@@ -1804,25 +1568,27 @@ def run_recommendation_semester(
                 continue
             if _maturity_guard_blocks(
                 cand,
-                enforce_bucket_cap=not cap_relaxed,
+                enforce_bucket_cap=False,
                 excluded_codes={c["course_code"] for c in selected_sem},
             ):
                 continue
             assigned_buckets = _assignable_buckets_for_candidate(
                 cand,
-                enforce_bucket_cap=not cap_relaxed,
+                enforce_bucket_cap=False,
             )
             is_bridge_pick = _is_bridge_candidate(cand)
             if not assigned_buckets and not is_bridge_pick:
                 continue
-            if is_bridge_pick and _has_available_direct_fill_candidate(
-                enforce_bucket_cap=not cap_relaxed,
-                excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
+            if (
+                is_bridge_pick
+                and _should_defer_bridge_for_direct_fill(cand)
+                and _has_available_direct_fill_candidate(
+                    enforce_bucket_cap=False,
+                    excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
+                )
             ):
                 continue
             if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
-                continue
-            if assigned_buckets and _family_cap_exceeded(assigned_buckets):
                 continue
             _accept_candidate(cand, assigned_buckets)
             selected_codes_set.update(_expand_with_equivalents({cand["course_code"]}))
@@ -1860,17 +1626,7 @@ def run_recommendation_semester(
                 if not assigned_buckets:
                     continue
                 _accept_candidate(cand, assigned_buckets)
-
-    # Derive response metadata from the final selected semester, not just
-    # the initial quota pass, so UI chips reflect what actually shipped.
-    declared_min_achieved = sum(
-        1 for cand in selected_sem
-        if cand.get("_counts_toward_declared_min")
-    )
-    declared_min_relaxed = declared_min_achieved < declared_min_target
-    family_cap_relaxed = family_cap_relaxed or any(
-        count > family_cap for count in picks_per_family.values()
-    )
+                selected_codes_set.update(_expand_with_equivalents({cand["course_code"]}))
 
     for cand in selected_sem:
         cand["tier"] = _bucket_hierarchy_tier_v2(
@@ -1879,11 +1635,6 @@ def run_recommendation_semester(
             bucket_track_required_map,
             bucket_parent_map,
         )
-        cand.pop("_counts_toward_declared_min", None)
-
-    # Clean internal keys from non-selected candidates too.
-    for cand in ranked_sem:
-        cand.pop("_counts_toward_declared_min", None)
 
     recommendations_sem = _build_deterministic_recommendations(selected_sem, len(selected_sem))
 
@@ -1933,13 +1684,6 @@ def run_recommendation_semester(
         "manual_review_courses": manual_review_sem,
         "projected_progress": projected_progress_sem,
         "projection_note": _PROJECTION_NOTE,
-        "balance_policy": {
-            "family_cap": family_cap,
-            "family_cap_relaxed": family_cap_relaxed,
-            "declared_min_target": declared_min_target,
-            "declared_min_achieved": declared_min_achieved,
-            "declared_min_relaxed": declared_min_relaxed,
-        },
     }
     if debug:
         selected_code_set = {r["course_code"] for r in recommendations_sem}

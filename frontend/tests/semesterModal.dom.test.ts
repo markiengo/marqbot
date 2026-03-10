@@ -9,8 +9,8 @@ import { describe, expect, test } from "vitest";
 import { SemesterModal } from "../src/components/planner/SemesterModal";
 import { CourseDetailModal } from "../src/components/shared/CourseDetailModal";
 
-describe("SemesterModal balance policy notes", () => {
-  test("renders balance-policy chips from semester metadata", () => {
+describe("SemesterModal planner copy", () => {
+  test("does not render retired balance-policy chips", () => {
     render(
       createElement(SemesterModal, {
         open: true,
@@ -27,11 +27,6 @@ describe("SemesterModal balance policy notes", () => {
             },
           ],
           eligible_count: 1,
-          balance_policy: {
-            declared_min_achieved: 1,
-            declared_min_relaxed: false,
-            family_cap_relaxed: true,
-          },
         },
         index: 0,
         totalCount: 1,
@@ -47,9 +42,9 @@ describe("SemesterModal balance policy notes", () => {
       }),
     );
 
-    expect(screen.getByText("Major or track progress prioritized")).toBeInTheDocument();
-    expect(screen.getByText("Family balance relaxed because the pool was thin")).toBeInTheDocument();
     expect(screen.queryByText("Limited major or track options this term")).not.toBeInTheDocument();
+    expect(screen.queryByText("Major or track progress prioritized")).not.toBeInTheDocument();
+    expect(screen.queryByText("Family balance relaxed because the pool was thin")).not.toBeInTheDocument();
   });
 
   test("uses compact recommendation cards and hides boilerplate why text", () => {

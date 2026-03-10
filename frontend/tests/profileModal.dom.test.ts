@@ -74,4 +74,33 @@ describe("ProfileModal recommendation submit flow", () => {
     await waitFor(() => expect(onSubmitRecommendations).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
   });
+
+  test("renders the student stage selector in profile edit", async () => {
+    const user = userEvent.setup();
+
+    renderWithApp(
+      createElement(ProfileModal, {
+        open: true,
+        onClose: vi.fn(),
+        loading: false,
+        error: null,
+        onSubmitRecommendations: vi.fn().mockResolvedValue(null),
+      }),
+      makeAppState({
+        selectedMajors: new Set(["FIN_MAJOR"]),
+        programs: {
+          majors: [{ id: "FIN_MAJOR", label: "Finance", requires_primary_major: false }],
+          tracks: [],
+          minors: [],
+          default_track_id: "FIN_MAJOR",
+        },
+      }),
+    );
+
+    const selector = screen.getByRole("combobox", { name: /student stage/i });
+    expect(selector).toHaveValue("undergrad");
+
+    await user.selectOptions(selector, "doctoral");
+    expect(selector).toHaveValue("doctoral");
+  });
 });

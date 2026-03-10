@@ -4,6 +4,11 @@ from prereq_parser import prereq_course_codes, prereqs_satisfied, build_prereq_c
 from requirements import SOFT_WARNING_TAGS, COMPLEX_PREREQ_TAGS, CONCURRENT_TAGS, DEFAULT_TRACK_ID
 from unlocks import build_reverse_prereq_map
 from allocator import get_runtime_course_index, get_runtime_track_index, _safe_bool
+from student_stage import (
+    build_student_stage_block_message,
+    coerce_course_level,
+    stage_allows_course_level,
+)
 
 
 def parse_term(s: str) -> str:
@@ -590,6 +595,7 @@ def get_eligible_courses(
     equiv_map: dict[str, set[str]] | None = None,
     cross_listed_map: dict[str, set[str]] | None = None,
     current_standing: int = 0,
+    student_stage: str | None = None,
 ) -> list[dict]:
     """
     Returns eligible courses for the target term, sorted by:
@@ -736,7 +742,7 @@ def get_eligible_courses(
 
     for row in course_rows:
         code = row["course_code"]
-        course_level = course_level_index.get(code)
+        course_level = coerce_course_level(course_level_index.get(code), code)
 
         if code in completed_set or code in in_progress_set:
             continue
@@ -756,6 +762,8 @@ def get_eligible_courses(
             row.get("credits"),
             is_honors_student=is_honors_student,
         ):
+            continue
+        if student_stage and not stage_allows_course_level(student_stage, course_level):
             continue
 
         offered_this_term = _safe_bool(row.get(term_col, False))
@@ -1050,6 +1058,7 @@ def check_can_take(
     selected_program_ids: list[str] | None = None,
     runtime_indexes: dict | None = None,
     equiv_map: dict[str, set[str]] | None = None,
+    student_stage: str | None = None,
 ) -> dict:
     """
     Returns a can-take assessment for a specific requested course.
@@ -1085,6 +1094,20 @@ def check_can_take(
         return {
             "can_take": False,
             "why_not": f"{requested_code} is not in the course catalog.",
+            "missing_prereqs": [],
+            "not_offered_this_term": False,
+            "unsupported_prereq_format": False,
+        }
+
+    course_level = coerce_course_level(row.get("level"), requested_code)
+    if student_stage and not stage_allows_course_level(student_stage, course_level):
+        return {
+            "can_take": False,
+            "why_not": build_student_stage_block_message(
+                student_stage,
+                requested_code,
+                course_level,
+            ),
             "missing_prereqs": [],
             "not_offered_this_term": False,
             "unsupported_prereq_format": False,

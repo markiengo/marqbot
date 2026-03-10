@@ -205,26 +205,6 @@ export function SemesterModal({
               </div>
             )}
 
-            {/* Balance policy notes */}
-            {semester.balance_policy && recs.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {!semester.balance_policy.declared_min_relaxed && (semester.balance_policy.declared_min_achieved ?? 0) > 0 && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-ok/10 text-ok border border-ok/20">
-                    Major or track progress prioritized
-                  </span>
-                )}
-                {semester.balance_policy.declared_min_relaxed && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/20">
-                    Limited major or track options this term
-                  </span>
-                )}
-                {semester.balance_policy.family_cap_relaxed && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/20">
-                    Family balance relaxed because the pool was thin
-                  </span>
-                )}
-              </div>
-            )}
           </>
         )}
 

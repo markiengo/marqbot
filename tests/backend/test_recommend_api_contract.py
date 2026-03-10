@@ -38,6 +38,23 @@ def _post(client, **overrides):
     return client.post("/recommend", json=_payload(**overrides))
 
 
+def _catalog_course_for_level(min_level: int, max_level: int | None = None) -> str:
+    rows = server._data["courses_df"]
+    mask = rows["level"].astype(float) >= float(min_level)
+    if max_level is not None:
+        mask &= rows["level"].astype(float) <= float(max_level)
+    row = rows[mask].iloc[0]
+    return str(row["course_code"]).strip().upper()
+
+
+def _course_level(course_code: str) -> int | None:
+    rows = server._data["courses_df"]
+    match = rows[rows["course_code"].astype(str).str.strip().str.upper() == course_code.upper()]
+    if match.empty:
+        return None
+    return int(float(match.iloc[0]["level"]))
+
+
 def test_invalid_json_body_returns_400_invalid_input(client):
     response = client.post(
         "/recommend",
@@ -106,6 +123,15 @@ def test_missing_program_selection_returns_400(client):
     assert "major or track" in data["error"]["message"]
 
 
+def test_invalid_student_stage_returns_400(client):
+    response = _post(client, student_stage="postdoc")
+
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["error"]["error_code"] == "INVALID_INPUT"
+    assert "student_stage" in data["error"]["message"]
+
+
 def test_malformed_requested_course_returns_400(client):
     response = _post(client, requested_course="garbage")
 
@@ -161,6 +187,50 @@ def test_valid_response_includes_expected_top_level_contract(client):
     assert data["target_semester"] == first_semester["target_semester"]
     assert data["standing"] == first_semester["standing"]
     assert data["progress"] == first_semester["progress"]
+
+
+@pytest.mark.parametrize(
+    ("student_stage", "min_level", "max_level"),
+    [
+        ("undergrad", 1000, 4999),
+        ("graduate", 5000, 7999),
+        ("doctoral", 8000, None),
+    ],
+)
+def test_student_stage_hard_filters_recommendations(client, student_stage, min_level, max_level):
+    response = _post(client, student_stage=student_stage)
+
+    assert response.status_code == 200
+    recommendations = response.get_json()["semesters"][0]["recommendations"]
+    for rec in recommendations:
+        level = _course_level(rec["course_code"])
+        assert level is not None
+        assert level >= min_level
+        if max_level is not None:
+            assert level <= max_level
+
+
+def test_missing_student_stage_infers_from_history(client):
+    graduate_history_code = _catalog_course_for_level(5000, 7999)
+    response = _post(client, completed_courses=graduate_history_code)
+
+    assert response.status_code == 200
+    recommendations = response.get_json()["semesters"][0]["recommendations"]
+    assert all((_course_level(rec["course_code"]) or 0) >= 5000 for rec in recommendations)
+    assert all((_course_level(rec["course_code"]) or 0) < 8000 for rec in recommendations)
+
+
+def test_explicit_undergrad_with_graduate_history_still_succeeds(client):
+    graduate_history_code = _catalog_course_for_level(5000, 7999)
+    response = _post(
+        client,
+        completed_courses=graduate_history_code,
+        student_stage="undergrad",
+    )
+
+    assert response.status_code == 200
+    recommendations = response.get_json()["semesters"][0]["recommendations"]
+    assert all(1000 <= (_course_level(rec["course_code"]) or 0) < 5000 for rec in recommendations)
 
 
 def test_selection_context_is_coherent_for_declared_program_requests(client):

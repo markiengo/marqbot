@@ -113,7 +113,7 @@ export function ProofSection() {
               <span className="font-semibold text-gold">Double-check with your advisor</span> before registration gets ideas.
             </div>
             <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-300">
-              <span className="font-semibold text-gold">Built by a Marquette student.</span> It knows the difference between Raynor stress and O'Brien stress.
+              <span className="font-semibold text-gold">Built by a Marquette student.</span> It knows the difference between Raynor stress and O&apos;Brien stress.
             </div>
           </div>
         </motion.div>

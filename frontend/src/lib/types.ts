@@ -67,6 +67,8 @@ export interface BucketProgress {
   recommendation_tier?: number;
 }
 
+export type StudentStage = "undergrad" | "graduate" | "doctoral";
+
 export type BucketDetailMode = "current" | "projected";
 
 export interface BucketDetailState {
@@ -89,14 +91,6 @@ export interface SelectionContext {
   selected_track_label?: string;
 }
 
-export interface BalancePolicy {
-  family_cap?: number;
-  family_cap_relaxed?: boolean;
-  declared_min_target?: number;
-  declared_min_achieved?: number;
-  declared_min_relaxed?: boolean;
-}
-
 export interface SemesterData {
   target_semester?: string;
   standing?: number;
@@ -110,7 +104,6 @@ export interface SemesterData {
   projection_note?: string;
   input_completed_count?: number;
   applied_completed_count?: number;
-  balance_policy?: BalancePolicy;
 }
 
 export interface RecommendationResponse {
@@ -140,6 +133,7 @@ export interface FeedbackSessionSnapshot {
   max_recs: string;
   include_summer: boolean;
   is_honors_student: boolean;
+  student_stage: StudentStage;
   active_nav_tab: string;
   onboarding_complete: boolean;
   last_requested_count: number;
@@ -192,6 +186,8 @@ export interface SessionSnapshot {
   maxRecs: string;
   includeSummer?: boolean;
   isHonorsStudent?: boolean;
+  studentStage?: StudentStage;
+  studentStageIsExplicit?: boolean;
   canTake: string;
   declaredMajors: string[];
   declaredTracks: string[];
@@ -214,6 +210,8 @@ export interface SavedPlanInputs {
   semesterCount: string;
   maxRecs: string;
   includeSummer: boolean;
+  studentStage: StudentStage;
+  studentStageIsExplicit?: boolean;
 }
 
 export interface SavedPlanRecord {
@@ -257,6 +255,8 @@ export interface AppState {
   maxRecs: string;
   includeSummer: boolean;
   isHonorsStudent: boolean;
+  studentStage: StudentStage;
+  studentStageIsExplicit: boolean;
   canTakeQuery: string;
   activeNavTab: string;
   onboardingComplete: boolean;

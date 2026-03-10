@@ -24,6 +24,7 @@ def _valid_payload():
                 "max_recs": "4",
                 "include_summer": False,
                 "is_honors_student": False,
+                "student_stage": "undergrad",
                 "active_nav_tab": "plan",
                 "onboarding_complete": True,
                 "last_requested_count": 4,

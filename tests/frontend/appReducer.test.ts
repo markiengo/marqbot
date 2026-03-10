@@ -115,6 +115,43 @@ describe("appReducer APPLY_PLANNER_SNAPSHOT", () => {
     expect(next.lastRecommendationData?.mode).toBe("recommendations");
   });
 
+  test("infers student stage from restored history when the snapshot has no explicit stage", () => {
+    const state = {
+      ...initialState,
+      courses: [
+        { course_code: "GRAD 6001", course_name: "Graduate Seminar", credits: 3, level: 6000 },
+      ],
+      programs: {
+        majors: [{ id: "FIN_MAJOR", label: "Finance" }],
+        tracks: [],
+        minors: [],
+        default_track_id: "FIN_MAJOR",
+      },
+    };
+
+    const next = appReducer(state, {
+      type: "APPLY_PLANNER_SNAPSHOT",
+      payload: {
+        completed: ["GRAD 6001"],
+        inProgress: [],
+        targetSemester: "Fall 2026",
+        semesterCount: "2",
+        maxRecs: "4",
+        includeSummer: false,
+        canTake: "",
+        declaredMajors: ["FIN_MAJOR"],
+        declaredTracks: [],
+        declaredMinors: [],
+        discoveryTheme: "",
+        activeNavTab: "saved",
+        onboardingComplete: false,
+      },
+    });
+
+    expect(next.studentStage).toBe("graduate");
+    expect(next.studentStageIsExplicit).toBe(false);
+  });
+
   test("sanitizes invalid tracks and catalog-invalid courses", () => {
     const state = {
       ...initialState,
@@ -203,5 +240,26 @@ describe("appReducer APPLY_PLANNER_SNAPSHOT", () => {
 
     expect([...next.selectedMajors]).toEqual(["ACCO_MAJOR"]);
     expect(next.selectedTracks).toEqual([]);
+  });
+
+  test("keeps an explicit student stage when higher-level history is added later", () => {
+    const state = {
+      ...initialState,
+      courses: [
+        { course_code: "GRAD 6001", course_name: "Graduate Seminar", credits: 3, level: 6000 },
+      ],
+    };
+
+    const explicit = appReducer(state, {
+      type: "SET_STUDENT_STAGE",
+      payload: "undergrad",
+    });
+    const next = appReducer(explicit, {
+      type: "ADD_COMPLETED",
+      payload: "GRAD 6001",
+    });
+
+    expect(next.studentStage).toBe("undergrad");
+    expect(next.studentStageIsExplicit).toBe(true);
   });
 });

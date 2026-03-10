@@ -7,6 +7,8 @@ import {
   SEMESTER_COUNT_OPTIONS,
   MAX_RECS_OPTIONS,
 } from "@/lib/constants";
+import { STUDENT_STAGE_OPTIONS } from "@/lib/studentStage";
+import type { StudentStage } from "@/lib/types";
 
 interface PreferencesPanelProps {
   onSubmit?: () => void;
@@ -86,6 +88,29 @@ export function PreferencesPanel({
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium uppercase tracking-wider text-ink-muted">
+          Student Stage
+        </label>
+        <select
+          aria-label="Student stage"
+          value={state.studentStage}
+          onChange={(e) =>
+            dispatch({ type: "SET_STUDENT_STAGE", payload: e.target.value as StudentStage })
+          }
+          className="w-full rounded-lg border border-border-medium bg-surface-input px-2 py-1.5 text-sm text-ink-primary transition-colors hover:border-gold/40 focus:outline-none focus:ring-1 focus:ring-gold/40"
+        >
+          {STUDENT_STAGE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-ink-faint">
+          {STUDENT_STAGE_OPTIONS.find((option) => option.value === state.studentStage)?.helper}
+        </p>
       </div>
 
       <div className="flex items-center justify-between gap-3">

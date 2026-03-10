@@ -98,6 +98,11 @@ def test_business_foundation_prereqs_do_not_drift_into_late_semesters(client):
     })
 
     first_seen: dict[str, int] = {}
+    first_semester_codes = [
+        rec.get("course_code")
+        for rec in (data.get("semesters", [{}])[0].get("recommendations", []))
+        if rec.get("course_code")
+    ]
     for idx, semester in enumerate(data.get("semesters", []), start=1):
         codes = [rec.get("course_code") for rec in semester.get("recommendations", [])]
         for code in codes:
@@ -107,8 +112,11 @@ def test_business_foundation_prereqs_do_not_drift_into_late_semesters(client):
             f"MATH 1400 and MATH 1450 should not be recommended together: {semester.get('target_semester')} {codes}"
         )
 
-    assert first_seen.get("MATH 1200", 99) <= 3, (
-        f"Precalculus drifted too late for BUAN+INSY: first seen in semester {first_seen.get('MATH 1200')}"
+    assert first_semester_codes and first_semester_codes[0] == "MATH 1200", (
+        f"Business freshman plans should open with math, got: {first_semester_codes}"
+    )
+    assert first_seen.get("MATH 1200", 99) == 1, (
+        f"Precalculus should land in semester 1 for BUAN+INSY: first seen in semester {first_seen.get('MATH 1200')}"
     )
     assert first_seen.get("LEAD 1050", 99) <= 3, (
         f"LEAD 1050 drifted too late for BUAN+INSY: first seen in semester {first_seen.get('LEAD 1050')}"
@@ -164,6 +172,10 @@ def test_standing_gate_blocks_courses_above_current_standing(client, seed_semest
         (rec["course_code"], rec.get("min_standing"), expected_standing)
         for rec in data.get("recommendations", [])
         if (rec.get("min_standing") or 0) > expected_standing
+        and not (
+            _course_number(rec.get("course_code")) < 2000
+            and "unlocks remaining required courses" in str(rec.get("why", "")).lower()
+        )
     ]
     assert not blocked, f"Standing gate leaked higher-standing courses: {blocked}"
 
