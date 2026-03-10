@@ -5,6 +5,7 @@ import {
   MAX_SAVED_PLANS,
   SAVED_PLANS_STORAGE_KEY,
 } from "./constants";
+import { inferStudentStageFromCourseCodes, normalizeStudentStage } from "./studentStage";
 import type {
   AppState,
   RecommendationResponse,
@@ -64,11 +65,14 @@ function normalizeStringArray(values: unknown): string[] {
 }
 
 export function normalizeSavedPlanInputs(inputs: Partial<SavedPlanInputs> | null | undefined): SavedPlanInputs {
+  const completed = normalizeStringArray(inputs?.completed);
+  const inProgress = normalizeStringArray(inputs?.inProgress).filter(
+    (code) => !completed.includes(code),
+  );
+  const normalizedStudentStage = normalizeStudentStage(inputs?.studentStage);
   return {
-    completed: normalizeStringArray(inputs?.completed),
-    inProgress: normalizeStringArray(inputs?.inProgress).filter(
-      (code) => !normalizeStringArray(inputs?.completed).includes(code),
-    ),
+    completed,
+    inProgress,
     declaredMajors: normalizeStringArray(inputs?.declaredMajors),
     declaredTracks: normalizeStringArray(inputs?.declaredTracks),
     declaredMinors: normalizeStringArray(inputs?.declaredMinors),
@@ -77,6 +81,11 @@ export function normalizeSavedPlanInputs(inputs: Partial<SavedPlanInputs> | null
     semesterCount: String(inputs?.semesterCount || DEFAULT_SEMESTER_COUNT).trim() || DEFAULT_SEMESTER_COUNT,
     maxRecs: String(inputs?.maxRecs || DEFAULT_MAX_RECS).trim() || DEFAULT_MAX_RECS,
     includeSummer: Boolean(inputs?.includeSummer),
+    studentStage: normalizedStudentStage || inferStudentStageFromCourseCodes([...completed, ...inProgress]),
+    studentStageIsExplicit:
+      typeof inputs?.studentStageIsExplicit === "boolean"
+        ? inputs.studentStageIsExplicit
+        : normalizedStudentStage !== null,
   };
 }
 
@@ -305,6 +314,8 @@ export function buildSavedPlanInputsFromAppState(state: AppState): SavedPlanInpu
     semesterCount: state.semesterCount,
     maxRecs: state.maxRecs,
     includeSummer: state.includeSummer,
+    studentStage: state.studentStage,
+    studentStageIsExplicit: state.studentStageIsExplicit,
   });
 }
 
@@ -316,6 +327,8 @@ export function buildSessionSnapshotFromSavedPlan(plan: SavedPlanRecord): Sessio
     semesterCount: plan.inputs.semesterCount,
     maxRecs: plan.inputs.maxRecs,
     includeSummer: plan.inputs.includeSummer,
+    studentStage: plan.inputs.studentStage,
+    studentStageIsExplicit: plan.inputs.studentStageIsExplicit,
     canTake: "",
     declaredMajors: plan.inputs.declaredMajors,
     declaredTracks: plan.inputs.declaredTracks,
@@ -343,5 +356,6 @@ export function buildRecommendPayloadFromSavedPlanInputs(inputs: SavedPlanInputs
   if (normalized.declaredMinors.length > 0) payload.declared_minors = normalized.declaredMinors;
   if (normalized.discoveryTheme) payload.discovery_theme = normalized.discoveryTheme;
   if (normalized.includeSummer) payload.include_summer = true;
+  payload.student_stage = normalized.studentStage;
   return payload;
 }

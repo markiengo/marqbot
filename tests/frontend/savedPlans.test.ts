@@ -53,6 +53,8 @@ function makeSavedPlan(overrides: Partial<SavedPlanRecord> = {}): SavedPlanRecor
       semesterCount: "3",
       maxRecs: "4",
       includeSummer: false,
+      studentStage: "undergrad",
+      studentStageIsExplicit: false,
     },
     recommendationData: overrides.recommendationData === undefined ? makeRecommendation() : overrides.recommendationData,
     lastRequestedCount: overrides.lastRequestedCount || 4,
@@ -78,6 +80,8 @@ describe("savedPlans storage", () => {
         semesterCount: "3",
         maxRecs: "4",
         includeSummer: false,
+        studentStage: "undergrad",
+        studentStageIsExplicit: false,
       },
       recommendationData: makeRecommendation(),
       lastRequestedCount: 4,
@@ -141,6 +145,8 @@ describe("savedPlans mutations", () => {
         semesterCount: "2",
         maxRecs: "4",
         includeSummer: false,
+        studentStage: "undergrad",
+        studentStageIsExplicit: false,
       },
       recommendationData: makeRecommendation(),
       lastRequestedCount: 4,
@@ -199,6 +205,8 @@ describe("savedPlans transforms", () => {
     expect(snapshot.completed).toEqual(["ACCO 1030"]);
     expect(snapshot.inProgress).toEqual(["FINA 3001"]);
     expect(snapshot.declaredMajors).toEqual(["FIN_MAJOR"]);
+    expect(snapshot.studentStage).toBe("undergrad");
+    expect(snapshot.studentStageIsExplicit).toBe(false);
     expect(snapshot.lastRecommendationData?.mode).toBe("recommendations");
     expect(snapshot.onboardingComplete).toBe(true);
   });

@@ -76,6 +76,129 @@ def test_soft_demoted_courses_still_return_as_fallback():
     assert "projection_note" in out
 
 
+def test_equivalent_courses_do_not_both_get_selected_in_same_semester():
+    courses = [
+        {
+            "course_code": "MATH 1200",
+            "course_name": "Precalculus",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "MATH 1400",
+            "course_name": "Elements of Calculus",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "MATH 1200",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "MATH 1450",
+            "course_name": "Calculus 1",
+            "credits": 4,
+            "level": 1000,
+            "prereq_hard": "MATH 1200",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "BCC::BCC_REQUIRED",
+            "bucket_label": "BCC Required",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "BCC_CORE",
+            "parent_bucket_priority": 1,
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_DISC_EOH_NSM",
+            "bucket_label": "EOH NSM",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_DISC_EOH",
+            "parent_bucket_priority": 2,
+            "double_count_family_id": "MCC_DISC",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "MATH 1400"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_EOH_NSM", "course_code": "MATH 1450"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["equivalencies_df"] = pd.DataFrame([
+        {
+            "equiv_group_id": "MATH_EQ",
+            "course_code": "MATH 1400",
+            "relation_type": "equivalent",
+            "scope_program_id": "",
+            "label": "",
+        },
+        {
+            "equiv_group_id": "MATH_EQ",
+            "course_code": "MATH 1450",
+            "relation_type": "equivalent",
+            "scope_program_id": "",
+            "label": "",
+        },
+    ])
+    data["equiv_prereq_map"] = {
+        "MATH 1400": {"MATH 1450"},
+        "MATH 1450": {"MATH 1400"},
+    }
+    data["cross_listed_map"] = {}
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "BCC_CORE", "type": "universal"},
+        {"parent_bucket_id": "MCC_DISC_EOH", "type": "track"},
+    ])
+
+    out = run_recommendation_semester(
+        completed=["MATH 1200"],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        current_standing=1,
+        completed_only_standing=1,
+    )
+
+    codes = [rec["course_code"] for rec in out["recommendations"]]
+    assert len({"MATH 1400", "MATH 1450"} & set(codes)) == 1
+
+
 def test_same_semester_may_be_concurrent_course_can_be_recommended_after_its_prereq():
     courses = [
         {
@@ -412,8 +535,8 @@ def test_standing_only_soft_prereq_is_not_double_demoted():
     assert standing_plus["soft_prereq_penalty"] == 1
 
 
-def test_mcc_foundation_then_bcc_then_major_order():
-    """Foundation ranks first, then BCC, then major."""
+def test_bcc_required_then_mcc_core_then_major_order():
+    """BCC required work now ranks ahead of MCC core, then major work follows."""
     courses = [
         {
             "course_code": "PHIL 1001",
@@ -518,7 +641,7 @@ def test_mcc_foundation_then_bcc_then_major_order():
     )
 
     codes = [r["course_code"] for r in out["recommendations"]]
-    assert codes == ["PHIL 1001", "ZZZZ 1000", "ACCO 2000"]
+    assert codes == ["ZZZZ 1000", "PHIL 1001", "ACCO 2000"]
 
 
 def test_mcc_foundation_ranks_above_major():
@@ -701,8 +824,8 @@ def test_single_slot_bucket_gets_at_most_one_recommendation():
     assert len(codes) == 3
 
 
-def test_soft_bucket_cap_auto_relaxes_when_few_viable_buckets_remain():
-    """When viable bucket diversity is low, cap auto-relaxes to fill requested count."""
+def test_single_bucket_work_can_fill_multiple_slots_without_diversity_cap():
+    """A high-priority bucket can keep filling slots while it still has unmet demand."""
     courses = [
         {
             "course_code": f"MCC {1000 + i}",
@@ -778,19 +901,19 @@ def test_soft_bucket_cap_auto_relaxes_when_few_viable_buckets_remain():
     )
 
     codes = [r["course_code"] for r in out["recommendations"]]
-    # Only two viable unmet buckets exist for five requested slots, so cap relaxes.
     mcc_codes = [c for c in codes if c.startswith("MCC")]
-    assert len(mcc_codes) == 4, f"Expected relaxed cap to allow 4 MCC picks, got {len(mcc_codes)}: {mcc_codes}"
+    assert len(mcc_codes) == 4, f"Expected 4 MCC foundation picks, got {len(mcc_codes)}: {mcc_codes}"
     assert "FINA 3001" in codes
     assert len(codes) == 5
+    assert "balance_policy" not in out
 
 
-def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then_discovery():
-    """Tier order follows the standardized hierarchy."""
+def test_tier_order_bcc_then_mcc_core_then_essv1_then_major_then_other_bcc_then_track():
+    """Recommendations follow the fixed global hierarchy without a balance pass."""
     courses = [
         {
-            "course_code": "FOUND 1001",
-            "course_name": "Foundation Course",
+            "course_code": "ACCO 1030",
+            "course_name": "Business Core Required",
             "credits": 3,
             "level": 1000,
             "prereq_hard": "none",
@@ -803,8 +926,8 @@ def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then
             "notes": None,
         },
         {
-            "course_code": "BCC 1001",
-            "course_name": "BCC Required",
+            "course_code": "ENGL 1001",
+            "course_name": "MCC Core",
             "credits": 3,
             "level": 1000,
             "prereq_hard": "none",
@@ -817,8 +940,36 @@ def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then
             "notes": None,
         },
         {
-            "course_code": "MAJOR 2001",
+            "course_code": "SOCI 1001",
+            "course_name": "ESSV1 Course",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "FINA 3001",
             "course_name": "Major Req Course",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "BULA 2050",
+            "course_name": "Later BCC Course",
             "credits": 3,
             "level": 2000,
             "prereq_hard": "none",
@@ -845,22 +996,8 @@ def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then
             "notes": None,
         },
         {
-            "course_code": "WRIT 3001",
-            "course_name": "Writing Course",
-            "credits": 3,
-            "level": 3000,
-            "prereq_hard": "none",
-            "prereq_soft": "",
-            "prereq_level": 0,
-            "offered_fall": True,
-            "offered_spring": False,
-            "offered_summer": False,
-            "offering_confidence": "high",
-            "notes": None,
-        },
-        {
-            "course_code": "DISC 1001",
-            "course_name": "Discovery Course",
+            "course_code": "HIST 1301",
+            "course_name": "Late MCC Course",
             "credits": 3,
             "level": 1000,
             "prereq_hard": "none",
@@ -876,19 +1013,6 @@ def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then
     buckets = [
         {
             "track_id": "FIN_MAJOR",
-            "bucket_id": "MCC::MCC_CORE",
-            "bucket_label": "MCC Core",
-            "priority": 1,
-            "needed_count": 1,
-            "needed_credits": None,
-            "min_level": None,
-            "allow_double_count": False,
-            "role": "core",
-            "parent_bucket_id": "MCC_FOUNDATION",
-            "track_required": "",
-        },
-        {
-            "track_id": "FIN_MAJOR",
             "bucket_id": "BCC::BCC_REQUIRED",
             "bucket_label": "Business Core Required",
             "priority": 1,
@@ -902,6 +1026,32 @@ def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then
         },
         {
             "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_CORE",
+            "bucket_label": "MCC Core",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "parent_bucket_id": "MCC_FOUNDATION",
+            "track_required": "",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_ESSV1",
+            "bucket_label": "ESSV1 Bucket",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "parent_bucket_id": "MCC_ESSV1",
+            "track_required": "",
+        },
+        {
+            "track_id": "FIN_MAJOR",
             "bucket_id": "FIN_MAJOR::FIN_CORE",
             "bucket_label": "Major Bucket",
             "priority": 5,
@@ -911,6 +1061,19 @@ def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then
             "allow_double_count": False,
             "role": "core",
             "parent_bucket_id": "FIN_MAJOR",
+            "track_required": "",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "BCC::BCC_ETHICS",
+            "bucket_label": "BCC Ethics",
+            "priority": 6,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "parent_bucket_id": "BCC_CORE",
             "track_required": "",
         },
         {
@@ -930,7 +1093,7 @@ def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then
             "track_id": "FIN_MAJOR",
             "bucket_id": "MCC::MCC_WRIT",
             "bucket_label": "MCC Writ",
-            "priority": 2,
+            "priority": 9,
             "needed_count": 1,
             "needed_credits": None,
             "min_level": None,
@@ -939,36 +1102,24 @@ def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then
             "parent_bucket_id": "MCC_WRIT",
             "track_required": "",
         },
-        {
-            "track_id": "FIN_MAJOR",
-            "bucket_id": "MCC::MCC_DISC_CB_HUM",
-            "bucket_label": "Discovery Humanities",
-            "priority": 2,
-            "needed_count": 1,
-            "needed_credits": None,
-            "min_level": None,
-            "allow_double_count": False,
-            "role": "core",
-            "parent_bucket_id": "MCC_DISC_CB",
-            "track_required": "",
-        },
     ]
     course_map = [
-        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_CORE", "course_code": "FOUND 1001"},
-        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "BCC 1001"},
-        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::FIN_CORE", "course_code": "MAJOR 2001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "ACCO 1030"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_CORE", "course_code": "ENGL 1001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_ESSV1", "course_code": "SOCI 1001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::FIN_CORE", "course_code": "FINA 3001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_ETHICS", "course_code": "BULA 2050"},
         {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::COMMBANK_CORE", "course_code": "TRACK 3001"},
-        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_WRIT", "course_code": "WRIT 3001"},
-        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_DISC_CB_HUM", "course_code": "DISC 1001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_WRIT", "course_code": "HIST 1301"},
     ]
     data = _mk_data(courses, course_map, buckets)
     data["parent_buckets_df"] = pd.DataFrame([
-        {"parent_bucket_id": "MCC_FOUNDATION", "type": "universal"},
         {"parent_bucket_id": "BCC_CORE", "type": "universal"},
+        {"parent_bucket_id": "MCC_FOUNDATION", "type": "universal"},
+        {"parent_bucket_id": "MCC_ESSV1", "type": "universal"},
         {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
         {"parent_bucket_id": "CB_TRACK", "type": "track"},
         {"parent_bucket_id": "MCC_WRIT", "type": "universal"},
-        {"parent_bucket_id": "MCC_DISC_CB", "type": "track"},
     ])
 
     out = run_recommendation_semester(
@@ -986,7 +1137,9 @@ def test_tier_order_foundation_then_bcc_then_major_then_track_then_late_mcc_then
     )
 
     codes = [r["course_code"] for r in out["debug"][:6]]
-    assert codes == ["FOUND 1001", "BCC 1001", "MAJOR 2001", "TRACK 3001", "WRIT 3001", "DISC 1001"]
+    assert codes == ["ACCO 1030", "ENGL 1001", "SOCI 1001", "FINA 3001", "BULA 2050", "TRACK 3001"]
+    assert "HIST 1301" not in codes
+    assert "balance_policy" not in out
 
 
 def test_bcc_required_in_any_fill_bucket_forces_bcc_tier_priority():
@@ -1073,63 +1226,61 @@ def test_bcc_required_in_any_fill_bucket_forces_bcc_tier_priority():
     assert codes == ["ZZZ 2001", "AAA 2001"]
 
 
-def test_soft_bucket_cap_stays_enforced_when_bucket_diversity_is_sufficient():
-    """Cap remains active when viable unmet buckets can satisfy requested count."""
+def test_math_bridge_into_bcc_required_survives_standing_gate_and_ranks_first():
+    """Foundational math bridges should survive noisy standing metadata and lead the semester."""
     courses = [
         {
-            "course_code": f"A {i}",
-            "course_name": f"A Option {i}",
+            "course_code": "MATH 1200",
+            "course_name": "Precalculus",
             "credits": 3,
-            "level": 3000,
+            "level": 1000,
             "prereq_hard": "none",
-            "prereq_soft": "",
-            "prereq_level": 0,
+            "prereq_soft": "standing_requirement",
+            "prereq_level": 2,
             "offered_fall": True,
-            "offered_spring": False,
-            "offered_summer": False,
-            "offering_confidence": "high",
-            "notes": None,
-        }
-        for i in range(1, 5)
-    ] + [
-        {
-            "course_code": "B 1",
-            "course_name": "B One",
-            "credits": 3,
-            "level": 3000,
-            "prereq_hard": "none",
-            "prereq_soft": "",
-            "prereq_level": 0,
-            "offered_fall": True,
-            "offered_spring": False,
+            "offered_spring": True,
             "offered_summer": False,
             "offering_confidence": "high",
             "notes": None,
         },
         {
-            "course_code": "C 1",
-            "course_name": "C One",
+            "course_code": "MATH 1400",
+            "course_name": "Elements of Calculus",
             "credits": 3,
-            "level": 3000,
-            "prereq_hard": "none",
+            "level": 1000,
+            "prereq_hard": "MATH 1200",
             "prereq_soft": "",
             "prereq_level": 0,
             "offered_fall": True,
-            "offered_spring": False,
+            "offered_spring": True,
             "offered_summer": False,
             "offering_confidence": "high",
             "notes": None,
         },
         {
-            "course_code": "D 1",
-            "course_name": "D One",
+            "course_code": "ACCO 1030",
+            "course_name": "Accounting",
             "credits": 3,
-            "level": 3000,
+            "level": 1000,
             "prereq_hard": "none",
             "prereq_soft": "",
             "prereq_level": 0,
             "offered_fall": True,
-            "offered_spring": False,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "ENGL 1001",
+            "course_name": "English",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
             "offered_summer": False,
             "offering_confidence": "high",
             "notes": None,
@@ -1138,58 +1289,41 @@ def test_soft_bucket_cap_stays_enforced_when_bucket_diversity_is_sufficient():
     buckets = [
         {
             "track_id": "FIN_MAJOR",
-            "bucket_id": "FIN_MAJOR::A",
-            "bucket_label": "Bucket A",
+            "bucket_id": "BCC::BCC_REQUIRED",
+            "bucket_label": "Business Core Required",
             "priority": 1,
-            "needed_count": 4,
+            "needed_count": 2,
             "needed_credits": None,
             "min_level": None,
             "allow_double_count": False,
             "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "BCC_CORE",
         },
         {
             "track_id": "FIN_MAJOR",
-            "bucket_id": "FIN_MAJOR::B",
-            "bucket_label": "Bucket B",
+            "bucket_id": "MCC::MCC_CORE",
+            "bucket_label": "MCC Core",
             "priority": 2,
             "needed_count": 1,
             "needed_credits": None,
             "min_level": None,
             "allow_double_count": False,
             "role": "core",
-        },
-        {
-            "track_id": "FIN_MAJOR",
-            "bucket_id": "FIN_MAJOR::C",
-            "bucket_label": "Bucket C",
-            "priority": 3,
-            "needed_count": 1,
-            "needed_credits": None,
-            "min_level": None,
-            "allow_double_count": False,
-            "role": "core",
-        },
-        {
-            "track_id": "FIN_MAJOR",
-            "bucket_id": "FIN_MAJOR::D",
-            "bucket_label": "Bucket D",
-            "priority": 4,
-            "needed_count": 1,
-            "needed_credits": None,
-            "min_level": None,
-            "allow_double_count": False,
-            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_FOUNDATION",
         },
     ]
     course_map = [
-        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::A", "course_code": f"A {i}"}
-        for i in range(1, 5)
-    ] + [
-        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::B", "course_code": "B 1"},
-        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::C", "course_code": "C 1"},
-        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::D", "course_code": "D 1"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "MATH 1400"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "ACCO 1030"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_CORE", "course_code": "ENGL 1001"},
     ]
     data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "BCC_CORE", "type": "universal"},
+        {"parent_bucket_id": "MCC_FOUNDATION", "type": "universal"},
+    ])
 
     out = run_recommendation_semester(
         completed=[],
@@ -1197,14 +1331,17 @@ def test_soft_bucket_cap_stays_enforced_when_bucket_diversity_is_sufficient():
         target_semester_label="Fall 2026",
         data=data,
         max_recs=4,
-        reverse_map={},
+        reverse_map={"MATH 1200": ["MATH 1400"]},
         track_id="FIN_MAJOR",
+        current_standing=1,
+        completed_only_standing=1,
     )
 
     codes = [r["course_code"] for r in out["recommendations"]]
-    a_codes = [c for c in codes if c.startswith("A ")]
-    assert len(a_codes) <= 2
-    assert len(codes) == 4
+    assert codes[0] == "MATH 1200"
+    assert "ACCO 1030" in codes
+    assert "ENGL 1001" in codes
+    assert "balance_policy" not in out
 
 
 def test_selection_uses_allocator_style_non_elective_first_within_same_family():
@@ -1747,12 +1884,13 @@ def test_bridge_course_does_not_take_slot_while_direct_fill_exists():
     )
 
     codes = [r["course_code"] for r in out["recommendations"]]
-    assert codes[:3] == ["FOUND 1001", "REQ 1001", "REQ 1002"]
+    assert codes[:3] == ["REQ 1001", "REQ 1002", "FOUND 1001"]
     assert "BRDG 1001" not in codes
 
     bridge = next(entry for entry in out["debug"] if entry["course_code"] == "BRDG 1001")
     assert bridge["skip_reason"] in {
         "bridge deferred while direct-fill options remain",
+        "bridge targets already covered",
         "max_recs reached",
     }
 
@@ -1868,11 +2006,8 @@ def test_standing_recovery_recommends_declared_path_filler_when_only_required_co
     assert "standing needed" in out["recommendations"][0]["why"].lower()
 
 
-def test_family_cap_limits_discovery_courses_per_semester():
-    """
-    Regression: BUAN+FIN+CB+CMI student should NOT get 3+ Discovery courses
-    in one semester. The family cap (ceil(n/3)) limits MCC_DISC family courses.
-    """
+def test_fixed_hierarchy_prefers_major_courses_before_extra_discovery_fillers():
+    """Discovery filler stays behind MCC foundation and major work in the fixed hierarchy."""
     # 3 Discovery courses + 2 major courses + 1 MCC Foundation = 6 eligible
     courses = [
         {
@@ -2050,23 +2185,12 @@ def test_family_cap_limits_discovery_courses_per_semester():
     )
 
     codes = [r["course_code"] for r in out["recommendations"]]
+    assert codes[0] == "ENGL 1001"
+    assert {"FINA 3001", "BUAN 3001"} <= set(codes[:3])
     disc_codes = [c for c in codes if c.startswith("DISC")]
-    # Family cap = ceil(5/3) = 2 → at most 2 Discovery courses
-    assert len(disc_codes) <= 2, (
-        f"Expected at most 2 Discovery courses (family cap), got {len(disc_codes)}: {disc_codes}"
-    )
-    # Declared-min target is 2, so both declared-path courses should appear.
-    major_codes = [c for c in codes if c.startswith("FINA") or c.startswith("BUAN")]
-    assert len(major_codes) == 2, (
-        f"Expected 2 declared-major courses, got {len(major_codes)}: {codes}"
-    )
-    # Balance policy metadata should be present
-    policy = out.get("balance_policy", {})
-    assert policy.get("family_cap") == 2
-    assert policy.get("declared_min_target") == 2
-    assert policy.get("declared_min_achieved") == 2
-    assert policy.get("declared_min_relaxed") is False
+    assert len(disc_codes) == 2
     assert len(codes) == 5
+    assert "balance_policy" not in out
 
 
 def test_discovery_penalties_order_foundation_and_neutral_before_far_discovery():
@@ -2745,8 +2869,8 @@ def test_same_semester_recommendations_only_include_one_writ_tagged_mcc_course()
     assert len({"ENGL 2011", "ENGL 2012"} & set(codes)) == 1
 
 
-def test_declared_min_relaxes_when_no_major_courses_eligible():
-    """When no declared-major courses are eligible, declared_min relaxes gracefully."""
+def test_recommendations_still_return_when_only_mcc_work_is_available():
+    """The planner should still emit recommendations when only core MCC work is open."""
     courses = [
         {
             "course_code": f"MCC {1000 + i}",
@@ -2802,16 +2926,12 @@ def test_declared_min_relaxes_when_no_major_courses_eligible():
     )
 
     codes = [r["course_code"] for r in out["recommendations"]]
-    # Should still produce recommendations even without major courses
-    assert len(codes) >= 2
-    # declared_min_relaxed should be True
-    policy = out.get("balance_policy", {})
-    assert policy.get("declared_min_relaxed") is True
-    assert policy.get("declared_min_achieved") == 0
+    assert codes == ["MCC 1001", "MCC 1002", "MCC 1003", "MCC 1004"]
+    assert "balance_policy" not in out
 
 
-def test_declared_min_counts_bridge_unlocker_for_declared_required_bucket():
-    """A bridge course that unlocks a declared required bucket should satisfy the quota."""
+def test_major_bridge_unlocker_stays_after_core_work_without_quota_preemption():
+    """A major bridge can still surface, but it should no longer preempt higher-tier MCC core work."""
     courses = [
         {
             "course_code": "BRIDGE 1001",
@@ -2939,8 +3059,5 @@ def test_declared_min_counts_bridge_unlocker_for_declared_required_bucket():
     )
 
     codes = [r["course_code"] for r in out["recommendations"]]
-    assert "BRIDGE 1001" in codes
-    policy = out.get("balance_policy", {})
-    assert policy.get("declared_min_target") == 1
-    assert policy.get("declared_min_achieved") == 1
-    assert policy.get("declared_min_relaxed") is False
+    assert codes == ["MCC 1001", "MCC 1002", "BRIDGE 1001"]
+    assert "balance_policy" not in out

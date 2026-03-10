@@ -30,6 +30,17 @@ def post_can_take(client, payload):
     return resp.status_code, resp.get_json()
 
 
+def _catalog_course_for_level(min_level: int, max_level: int | None = None) -> str:
+    import server
+
+    rows = server._data["courses_df"]
+    mask = rows["level"].astype(float) >= float(min_level)
+    if max_level is not None:
+        mask &= rows["level"].astype(float) <= float(max_level)
+    row = rows[mask].iloc[0]
+    return str(row["course_code"]).strip().upper()
+
+
 def _completed_courses_for_senior_standing(exclude_code: str = "") -> list[str]:
     import server
 
@@ -46,6 +57,10 @@ def _completed_courses_for_senior_standing(exclude_code: str = "") -> list[str]:
         try:
             credit_value = float(row.get("credits"))
         except (TypeError, ValueError):
+            continue
+
+        level = float(row.get("level") or 0)
+        if level >= 5000:
             continue
 
         if credit_value <= 0 or credit_value % 1 != 0:
@@ -125,6 +140,14 @@ class TestCanTakeInputValidation:
         _, data = post_can_take(client, {"requested_course": "fina 3001"})
         assert data["requested_course"] == "FINA 3001"
 
+    def test_invalid_student_stage_returns_400(self, client):
+        status, data = post_can_take(client, {
+            "requested_course": "FINA 3001",
+            "student_stage": "postdoc",
+        })
+        assert status == 400
+        assert "student_stage" in str(data.get("error", ""))
+
 
 # ── Eligibility outcomes ─────────────────────────────────────────────────────
 
@@ -180,6 +203,17 @@ class TestCanTakeEligibility:
         })
         assert data["can_take"] is True
         assert data["unsupported_prereq_format"] is False
+
+    def test_student_stage_blocks_out_of_band_course(self, client):
+        graduate_code = _catalog_course_for_level(5000, 7999)
+        status, data = post_can_take(client, {
+            "requested_course": graduate_code,
+            "student_stage": "undergrad",
+            "target_semester": "Fall 2026",
+        })
+        assert status == 200
+        assert data["can_take"] is False
+        assert "Undergraduate" in str(data.get("why_not", ""))
 
 
 # ── Program context ──────────────────────────────────────────────────────────

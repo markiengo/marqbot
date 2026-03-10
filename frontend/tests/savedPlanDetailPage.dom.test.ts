@@ -71,6 +71,8 @@ vi.mock("@/hooks/useSavedPlans", () => ({
               semesterCount: "4",
               maxRecs: "5",
               includeSummer: false,
+              studentStage: "undergrad",
+              studentStageIsExplicit: false,
             },
             recommendationData: {
               mode: "recommendations",

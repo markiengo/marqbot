@@ -27,6 +27,11 @@ from unlocks import build_reverse_prereq_map, compute_chain_depths
 from eligibility import check_can_take, parse_term
 from data_loader import load_data
 from allocator import allocate_courses, ensure_runtime_indexes, get_applied_bucket_progress_units
+from student_stage import (
+    VALID_STUDENT_STAGES,
+    infer_student_stage_from_courses,
+    normalize_student_stage,
+)
 from semester_recommender import (
     SEM_RE,
     normalize_semester_label,
@@ -394,6 +399,12 @@ def _normalize_feedback_context(raw_context):
     except (TypeError, ValueError):
         return None, "context.session_snapshot.last_requested_count must be numeric."
 
+    raw_student_stage = raw_session.get("student_stage")
+    normalized_student_stage = normalize_student_stage(raw_student_stage)
+    if raw_student_stage not in (None, "") and normalized_student_stage is None:
+        allowed = ", ".join(VALID_STUDENT_STAGES)
+        return None, f"context.session_snapshot.student_stage must be one of: {allowed}."
+
     normalized_session = {
         "completed": _coerce_string_list(raw_session.get("completed"), limit=400),
         "in_progress": _coerce_string_list(raw_session.get("in_progress"), limit=200),
@@ -406,6 +417,7 @@ def _normalize_feedback_context(raw_context):
         "max_recs": str(raw_session.get("max_recs", "")).strip()[:20],
         "include_summer": bool(raw_session.get("include_summer", False)),
         "is_honors_student": bool(raw_session.get("is_honors_student", False)),
+        "student_stage": "",
         "active_nav_tab": str(raw_session.get("active_nav_tab", "")).strip()[:40],
         "onboarding_complete": bool(raw_session.get("onboarding_complete", False)),
         "last_requested_count": last_requested_count,
@@ -413,6 +425,10 @@ def _normalize_feedback_context(raw_context):
     for key in ("completed", "in_progress", "declared_majors", "declared_tracks", "declared_minors"):
         if normalized_session[key] is None:
             return None, f"context.session_snapshot.{key} must be an array."
+    normalized_session["student_stage"] = normalized_student_stage or infer_student_stage_from_courses(
+        normalized_session["completed"] + normalized_session["in_progress"],
+        _data.get("courses_df") if _data else None,
+    )
 
     normalized_context = {
         "source": source,
@@ -483,6 +499,10 @@ def _validate_recommend_body(body):
             raise ValueError
     except (TypeError, ValueError):
         return "INVALID_INPUT", "max_recommendations must be an integer between 1 and 15."
+    raw_student_stage = body.get("student_stage")
+    if raw_student_stage not in (None, "") and normalize_student_stage(raw_student_stage) is None:
+        allowed = ", ".join(VALID_STUDENT_STAGES)
+        return "INVALID_INPUT", f"student_stage must be one of: {allowed}."
     semester_count_raw = body.get("target_semester_count")
     if semester_count_raw not in (None, ""):
         try:
@@ -2208,6 +2228,10 @@ def recommend():
     completed_input = list(completed)
     in_progress_input = list(in_progress)
     not_in_catalog_warn = comp_result["not_in_catalog"] + ip_result["not_in_catalog"]
+    student_stage = normalize_student_stage(body.get("student_stage")) or infer_student_stage_from_courses(
+        completed_input + in_progress_input,
+        effective_data.get("courses_df"),
+    )
 
     # Build a course→credits lookup for standing projection.
     _credits_lookup = _course_credit_lookup(effective_data)
@@ -2332,6 +2356,7 @@ def recommend():
                 chain_depths=_chain_depths,
                 is_honors_student=is_honors_student,
                 selected_program_ids=selection.get("restriction_program_ids"),
+                student_stage=student_stage,
             )
         else:
             completed_only_standing = _credits_to_standing(
@@ -2352,6 +2377,7 @@ def recommend():
                 chain_depths=_chain_depths,
                 is_honors_student=is_honors_student,
                 selected_program_ids=selection.get("restriction_program_ids"),
+                student_stage=student_stage,
             )
         semesters_payload.append(semester_payload)
         # Accumulate recommended course credits for the next semester's standing projection.
@@ -2418,6 +2444,15 @@ def can_take_endpoint():
     if not requested_course_raw:
         return jsonify({"mode": "can_take", "error": "requested_course is required."}), 400
 
+    raw_student_stage = body.get("student_stage")
+    normalized_student_stage = normalize_student_stage(raw_student_stage)
+    if raw_student_stage not in (None, "") and normalized_student_stage is None:
+        allowed = ", ".join(VALID_STUDENT_STAGES)
+        return jsonify({
+            "mode": "can_take",
+            "error": f"student_stage must be one of: {allowed}.",
+        }), 400
+
     requested_course = normalize_code(requested_course_raw)
     if not requested_course or requested_course not in _data["catalog_codes"]:
         response_payload = {
@@ -2452,6 +2487,10 @@ def can_take_endpoint():
     # Optional program context (ignored if malformed)
     selection, selection_error = _resolve_program_selection(body, _data)
     effective_data = _data if selection_error else selection["effective_data"]
+    student_stage = normalized_student_stage or infer_student_stage_from_courses(
+        completed + in_progress,
+        effective_data.get("courses_df"),
+    )
 
     # Expand prereq chains (mirrors /recommend pipeline)
     completed, _ = expand_completed_with_prereqs_with_provenance(
@@ -2509,6 +2548,7 @@ def can_take_endpoint():
         selected_program_ids=(selection or {}).get("restriction_program_ids"),
         runtime_indexes=effective_data.get("runtime_indexes"),
         equiv_map=effective_data.get("equiv_prereq_map"),
+        student_stage=student_stage,
     )
 
     response_payload = {

@@ -145,7 +145,7 @@ function makeRecommendationData(overrides: Partial<RecommendationResponse> = {})
   };
 }
 
-function renderPlanner() {
+function renderPlanner(overrides: Parameters<typeof makeAppState>[0] = {}) {
   return renderWithApp(
     createElement(PlannerLayout),
     makeAppState({
@@ -164,6 +164,7 @@ function renderPlanner() {
       },
       onboardingComplete: false,
       lastRecommendationData: null,
+      ...overrides,
     }),
   );
 }
@@ -204,5 +205,21 @@ describe("Planner completed course modal", () => {
     expect(screen.queryByText("Assumptions Applied")).not.toBeInTheDocument();
     expect(screen.getByText("FINA 3001")).toBeInTheDocument();
     expect(screen.queryByText("ACCO 1030")).not.toBeInTheDocument();
+  });
+
+  test("shows a warning when explicit undergrad stage conflicts with graduate history", () => {
+    renderPlanner({
+      courses: [
+        { course_code: "ACCO 1030", course_name: "Financial Accounting", credits: 3, level: 1000 },
+        { course_code: "FINA 3001", course_name: "Introduction to Financial Management", credits: 3, level: 3000 },
+        { course_code: "GRAD 6001", course_name: "Graduate Seminar", credits: 3, level: 6000 },
+      ],
+      completed: new Set(["GRAD 6001"]),
+      studentStage: "undergrad",
+      studentStageIsExplicit: true,
+    });
+
+    expect(screen.getByText(/history includes 5000-7999-level coursework/i)).toBeInTheDocument();
+    expect(screen.getByText(/locked to undergraduate recommendations/i)).toBeInTheDocument();
   });
 });

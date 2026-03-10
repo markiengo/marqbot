@@ -32,6 +32,8 @@ function makePlan(overrides: Partial<SavedPlanRecord> = {}): SavedPlanRecord {
       semesterCount: "3",
       maxRecs: "4",
       includeSummer: true,
+      studentStage: "undergrad",
+      studentStageIsExplicit: false,
     },
     recommendationData: overrides.recommendationData || { mode: "recommendations", semesters: [] },
     lastRequestedCount: overrides.lastRequestedCount || 4,

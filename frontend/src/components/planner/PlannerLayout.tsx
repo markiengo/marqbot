@@ -33,6 +33,7 @@ import {
 import { buildRecommendationWarnings, getProgramLabelMap, sanitizeRecommendationWhy } from "@/lib/rendering";
 import { getCurrentCourseLists } from "@/lib/progressSources";
 import { buildSavedPlanInputsFromAppState } from "@/lib/savedPlans";
+import { getStudentStageHistoryConflict, studentStageLabel, studentStageLevelLabel } from "@/lib/studentStage";
 import type { RecommendedCourse, RecommendationResponse, SemesterData } from "@/lib/types";
 
 function formatPlanDate(date: Date): string {
@@ -80,13 +81,8 @@ const rankingExplainerItems = [
   },
   {
     id: "8",
-    title: "Requirement diversity",
-    detail: "It tries not to fill your whole plan with one kind of requirement.",
-  },
-  {
-    id: "9",
     title: "Does it fit your main path?",
-    detail: "It keeps enough picks aimed at the major or track you chose.",
+    detail: "Major requirements beat later BCC work, and track work stays behind the core path.",
   },
 ] as const;
 
@@ -249,6 +245,15 @@ export function PlannerLayout() {
     () => new Set(currentCourseLists.inProgress),
     [currentCourseLists.inProgress],
   );
+  const stageHistoryConflict = useMemo(() => {
+    if (!state.studentStageIsExplicit) return null;
+    return getStudentStageHistoryConflict({
+      studentStage: state.studentStage,
+      completed: state.completed,
+      inProgress: state.inProgress,
+      courses: state.courses,
+    });
+  }, [state.studentStage, state.studentStageIsExplicit, state.completed, state.inProgress, state.courses]);
 
   // Reverse map: course_code -> bucket IDs from current_progress allocations
   const courseBucketMap = useMemo(() => {
@@ -335,6 +340,7 @@ export function PlannerLayout() {
         target_semester_primary: data.semesters[semIdx]?.target_semester ?? state.targetSemester,
         target_semester_count: 1,
         max_recommendations: 15,
+        student_stage: state.studentStage,
       };
       if (majors.length > 0) payload.declared_majors = majors;
       const editTrackIds = [...state.selectedTracks];
@@ -345,6 +351,7 @@ export function PlannerLayout() {
       if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
       if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
       if (state.includeSummer) payload.include_summer = true;
+      if (state.isHonorsStudent) payload.is_honors_student = true;
       const result = await postRecommend(payload);
       setSemEditCandidates(result.semesters?.[0]?.recommendations ?? []);
     } catch {
@@ -402,6 +409,7 @@ export function PlannerLayout() {
       target_semester_primary: nextSemTarget,
       target_semester_count: remainingCount,
       max_recommendations: Number(state.maxRecs) || 3,
+      student_stage: state.studentStage,
     };
     if (majors.length > 0) payload.declared_majors = majors;
     const rerunTrackIds = [...state.selectedTracks];
@@ -412,6 +420,7 @@ export function PlannerLayout() {
     if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
     if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
     if (state.includeSummer) payload.include_summer = true;
+    if (state.isHonorsStudent) payload.is_honors_student = true;
 
     const downstream: RecommendationResponse = await postRecommend(payload);
 
@@ -499,6 +508,12 @@ export function PlannerLayout() {
           >
             Add profile
           </button>
+        </div>
+      )}
+
+      {stageHistoryConflict && (
+        <div className="mb-3 rounded-xl border border-gold/20 bg-gold/10 px-4 py-3 text-sm text-gold/85">
+          History includes {studentStageLevelLabel(stageHistoryConflict)}-level coursework, but the planner is locked to {studentStageLabel(state.studentStage).toLowerCase()} recommendations. Recorded courses stay on your profile. Future recommendations and can-take checks stay in the {studentStageLevelLabel(state.studentStage)} band.
         </div>
       )}
 

@@ -1,4 +1,5 @@
-import type { AppState, Course, ProgramsData, RecommendationResponse, SessionSnapshot } from "@/lib/types";
+import type { AppState, Course, ProgramsData, RecommendationResponse, SessionSnapshot, StudentStage } from "@/lib/types";
+import { resolveStudentStageSelection, syncStudentStageWithHistory } from "@/lib/studentStage";
 
 import {
   DEFAULT_SEMESTER,
@@ -30,6 +31,7 @@ export type AppAction =
   | { type: "SET_MAX_RECS"; payload: string }
   | { type: "SET_INCLUDE_SUMMER"; payload: boolean }
   | { type: "SET_HONORS_STUDENT"; payload: boolean }
+  | { type: "SET_STUDENT_STAGE"; payload: StudentStage }
   | { type: "SET_CAN_TAKE_QUERY"; payload: string }
   | { type: "SET_NAV_TAB"; payload: string }
   | { type: "SET_RECOMMENDATIONS"; payload: { data: RecommendationResponse; count: number } }
@@ -55,6 +57,8 @@ export const initialState: AppState = {
   maxRecs: DEFAULT_MAX_RECS,
   includeSummer: false,
   isHonorsStudent: false,
+  studentStage: "undergrad",
+  studentStageIsExplicit: false,
   canTakeQuery: "",
   activeNavTab: "plan",
   onboardingComplete: false,
@@ -95,6 +99,8 @@ interface NormalizedSessionPayload {
   maxRecs: string;
   includeSummer: boolean;
   isHonorsStudent: boolean;
+  studentStage: AppState["studentStage"];
+  studentStageIsExplicit: boolean;
   canTakeQuery: string;
   activeNavTab: string;
   onboardingComplete: boolean;
@@ -144,6 +150,13 @@ function normalizeSessionSnapshot(
   );
   const selectionWasSanitized =
     filteredTracks.length !== selectedTracks.length;
+  const studentStageSelection = resolveStudentStageSelection({
+    storedStage: snap.studentStage,
+    storedStageIsExplicit: snap.studentStageIsExplicit,
+    completed,
+    inProgress,
+    courses: state.courses,
+  });
 
   return {
     completed,
@@ -157,6 +170,8 @@ function normalizeSessionSnapshot(
     maxRecs: snap.maxRecs || DEFAULT_MAX_RECS,
     includeSummer: snap.includeSummer ?? false,
     isHonorsStudent: snap.isHonorsStudent ?? false,
+    studentStage: studentStageSelection.studentStage,
+    studentStageIsExplicit: studentStageSelection.studentStageIsExplicit,
     canTakeQuery: snap.canTake || "",
     activeNavTab: options?.activeNavTab || snap.activeNavTab || "plan",
     onboardingComplete: options?.forceOnboardingComplete ?? (snap.onboardingComplete || false),
@@ -170,6 +185,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_COURSES":
       return {
         ...state,
+        ...syncStudentStageWithHistory({
+          studentStage: state.studentStage,
+          studentStageIsExplicit: state.studentStageIsExplicit,
+          completed: state.completed,
+          inProgress: state.inProgress,
+          courses: action.payload,
+        }),
         courses: action.payload,
         coursesLoadStatus: "ready",
         coursesLoadError: null,
@@ -280,13 +302,36 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const nextIp = new Set(state.inProgress);
       nextIp.delete(action.payload);
       nextCompleted.add(action.payload);
-      return { ...state, completed: nextCompleted, inProgress: nextIp, lastRecommendationData: null };
+      return {
+        ...state,
+        ...syncStudentStageWithHistory({
+          studentStage: state.studentStage,
+          studentStageIsExplicit: state.studentStageIsExplicit,
+          completed: nextCompleted,
+          inProgress: nextIp,
+          courses: state.courses,
+        }),
+        completed: nextCompleted,
+        inProgress: nextIp,
+        lastRecommendationData: null,
+      };
     }
 
     case "REMOVE_COMPLETED": {
       const next = new Set(state.completed);
       next.delete(action.payload);
-      return { ...state, completed: next, lastRecommendationData: null };
+      return {
+        ...state,
+        ...syncStudentStageWithHistory({
+          studentStage: state.studentStage,
+          studentStageIsExplicit: state.studentStageIsExplicit,
+          completed: next,
+          inProgress: state.inProgress,
+          courses: state.courses,
+        }),
+        completed: next,
+        lastRecommendationData: null,
+      };
     }
 
     case "ADD_IN_PROGRESS": {
@@ -294,13 +339,36 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const nextCompleted = new Set(state.completed);
       nextCompleted.delete(action.payload);
       nextIp.add(action.payload);
-      return { ...state, inProgress: nextIp, completed: nextCompleted, lastRecommendationData: null };
+      return {
+        ...state,
+        ...syncStudentStageWithHistory({
+          studentStage: state.studentStage,
+          studentStageIsExplicit: state.studentStageIsExplicit,
+          completed: nextCompleted,
+          inProgress: nextIp,
+          courses: state.courses,
+        }),
+        inProgress: nextIp,
+        completed: nextCompleted,
+        lastRecommendationData: null,
+      };
     }
 
     case "REMOVE_IN_PROGRESS": {
       const next = new Set(state.inProgress);
       next.delete(action.payload);
-      return { ...state, inProgress: next, lastRecommendationData: null };
+      return {
+        ...state,
+        ...syncStudentStageWithHistory({
+          studentStage: state.studentStage,
+          studentStageIsExplicit: state.studentStageIsExplicit,
+          completed: state.completed,
+          inProgress: next,
+          courses: state.courses,
+        }),
+        inProgress: next,
+        lastRecommendationData: null,
+      };
     }
 
     case "SET_TARGET_SEMESTER":
@@ -317,6 +385,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case "SET_HONORS_STUDENT":
       return { ...state, isHonorsStudent: action.payload };
+
+    case "SET_STUDENT_STAGE":
+      return {
+        ...state,
+        studentStage: action.payload,
+        studentStageIsExplicit: true,
+        lastRecommendationData: null,
+      };
 
     case "SET_CAN_TAKE_QUERY":
       return { ...state, canTakeQuery: action.payload };

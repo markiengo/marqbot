@@ -63,6 +63,7 @@ def _plan_case_for_major(
     max_recommendations: int = 6,
     target_semester_primary: str = "Fall 2026",
     include_summer: bool = False,
+    student_stage: str | None = None,
 ) -> PlanCase:
     return PlanCase(
         declared_majors=declared_majors_for_major(major_id),
@@ -73,6 +74,7 @@ def _plan_case_for_major(
         target_semester_primary=target_semester_primary,
         include_summer=include_summer,
         max_recommendations=max_recommendations,
+        student_stage=student_stage,
     )
 
 
@@ -83,6 +85,44 @@ def _unsatisfied_bucket_count(progress: dict) -> int:
 def _course_number(course_code: str) -> int:
     match = re.search(r"\b(\d{4})\b", str(course_code or ""))
     return int(match.group(1)) if match else 0
+
+
+def test_business_foundation_prereqs_do_not_drift_into_late_semesters(client):
+    data = post_recommend(client, {
+        "declared_majors": ["BUAN_MAJOR", "INSY_MAJOR"],
+        "completed_courses": "",
+        "in_progress_courses": "",
+        "target_semester_primary": "Fall 2026",
+        "target_semester_count": 8,
+        "max_recommendations": 6,
+    })
+
+    first_seen: dict[str, int] = {}
+    first_semester_codes = [
+        rec.get("course_code")
+        for rec in (data.get("semesters", [{}])[0].get("recommendations", []))
+        if rec.get("course_code")
+    ]
+    for idx, semester in enumerate(data.get("semesters", []), start=1):
+        codes = [rec.get("course_code") for rec in semester.get("recommendations", [])]
+        for code in codes:
+            if code and code not in first_seen:
+                first_seen[code] = idx
+        assert not ({"MATH 1400", "MATH 1450"} <= set(codes)), (
+            f"MATH 1400 and MATH 1450 should not be recommended together: {semester.get('target_semester')} {codes}"
+        )
+
+    assert first_semester_codes and first_semester_codes[0] == "MATH 1200", (
+        f"Business freshman plans should open with math, got: {first_semester_codes}"
+    )
+    assert first_seen.get("MATH 1200", 99) == 1, (
+        f"Precalculus should land in semester 1 for BUAN+INSY: first seen in semester {first_seen.get('MATH 1200')}"
+    )
+    assert first_seen.get("LEAD 1050", 99) <= 3, (
+        f"LEAD 1050 drifted too late for BUAN+INSY: first seen in semester {first_seen.get('LEAD 1050')}"
+    )
+    if "LEAD 2000" in first_seen:
+        assert first_seen["LEAD 1050"] < first_seen["LEAD 2000"]
 
 
 @pytest.mark.parametrize(
@@ -132,6 +172,10 @@ def test_standing_gate_blocks_courses_above_current_standing(client, seed_semest
         (rec["course_code"], rec.get("min_standing"), expected_standing)
         for rec in data.get("recommendations", [])
         if (rec.get("min_standing") or 0) > expected_standing
+        and not (
+            _course_number(rec.get("course_code")) < 2000
+            and "unlocks remaining required courses" in str(rec.get("why", "")).lower()
+        )
     ]
     assert not blocked, f"Standing gate leaked higher-standing courses: {blocked}"
 

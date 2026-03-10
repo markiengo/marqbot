@@ -87,6 +87,10 @@ describe("OnboardingPage component flow", () => {
     expect(
       await screen.findByRole("heading", { name: /tell marqbot what kind of plan you want/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /student stage/i })).toHaveValue("undergrad");
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /student stage/i }), "graduate");
+    expect(screen.getByRole("combobox", { name: /student stage/i })).toHaveValue("graduate");
 
     await user.click(screen.getByRole("button", { name: /show my plan/i }));
     expect(pushSpy).toHaveBeenCalledWith("/planner");
