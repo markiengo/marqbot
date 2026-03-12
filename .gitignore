@@ -33,6 +33,9 @@ frontend/nul
 
 # Local-only IDE/agent state
 .claude/
+.claude-flow/
+.mcp.json
+CLAUDE.md
 .vscode/
 .pytest-tmp/
 test-reports/
