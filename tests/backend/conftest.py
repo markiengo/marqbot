@@ -35,7 +35,8 @@ def pytest_sessionfinish(session, exitstatus):
 
     report_dir = os.path.join(os.path.dirname(__file__), "..", "nightly_reports")
     os.makedirs(report_dir, exist_ok=True)
-    report_path = os.path.join(report_dir, f"{date.today().isoformat()}.md")
+    report_date = os.environ.get("NIGHTLY_REPORT_DATE", "").strip() or date.today().isoformat()
+    report_path = os.path.join(report_dir, f"{report_date}.md")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report)
     print(f"\n[NIGHTLY REPORT] Written to {report_path}")

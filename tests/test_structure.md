@@ -101,7 +101,7 @@ One unified workflow: `.github/workflows/nightly-sweep.yml`
 | Trigger | Jobs that run |
 |---|---|
 | **Pull request** | Backend Regression, Planner Fast Guardrail, Frontend Tests |
-| **Schedule** (about 2:00 AM Milwaukee) | Nightly Focused Sweep |
+| **Schedule** (07:00 UTC; about 3:00 AM New York during daylight saving time) | Nightly Focused Sweep |
 | **Manual** (`workflow_dispatch`) | Nightly Focused Sweep |
 
 ## Running Tests Locally
@@ -137,7 +137,7 @@ cd frontend
 npm run test
 ```
 
-The nightly sweep generates a report at `tests/nightly_reports/YYYY-MM-DD.md` after finishing.
+The nightly sweep generates one report file at `tests/nightly_reports/YYYY-MM-DD.md` after finishing.
 
 ## Nightly Sweep Details
 
@@ -148,13 +148,13 @@ The nightly sweep is now a focused sampled harness, not an exhaustive combinator
 - **Course-selection variants**: `5` prereq-valid planner-seeded histories per profile, built chronologically from actual recommendation order
 - **Seeded history rules**: undergrad-only completed courses, no random course-universe sampling, no impossible prerequisite jumps, and invalid seeded histories are reported as first-class nightly issues
 - **Deadline rule**: each seeded student must both avoid dead-ends and still be on pace to finish within an overall `8`-semester path; the seeded semesters already taken count against that cap
-- **Expected count accounting**: the report shows expected cases, executed cases, invalid seeded histories, and whether the run was complete or partial
-- **Report layout**: short coverage intro and summary first, then student-first failure blocks with majors, track, seeded courses taken, fail point, and plain-English reason text
+- **Expected count accounting**: the report shows planned samples, evaluated samples, invalid seeded histories, and whether the run was complete or partial
+- **Report layout**: plain-English health summary first, then biggest patterns, then an appendix with run details and student profile logs
 - **Seed**: override combo/history replay with `NIGHTLY_SEED`
 - **Knobs**: `NIGHTLY_SAMPLE_SIZE`, `NIGHTLY_SELECTION_VARIANTS`, and `NIGHTLY_CASE_BUDGET`
-- **Report**: uploaded as artifact `nightly-sweep-report` (14-day retention); includes coverage accounting and student-level failures
+- **Report**: uploaded as one artifact named `nightly-sweep-report-YYYY-MM-DD` (14-day retention) and contains one Markdown report file for that run
 - **Fallback**: if pytest crashes during collection, a fallback report captures the error output
-- **Where to find results**: [GitHub Actions -> Nightly Sweep](../../actions/workflows/nightly-sweep.yml) -> click a run -> scroll to Artifacts at the bottom -> download `nightly-sweep-report`
+- **Where to find results**: [GitHub Actions -> Nightly Sweep](../../actions/workflows/nightly-sweep.yml) -> click a run -> scroll to Artifacts at the bottom -> download `nightly-sweep-report-YYYY-MM-DD`
 - **Local runs** generate the report at `tests/nightly_reports/YYYY-MM-DD.md`
 
 ### How the nightly sweep works

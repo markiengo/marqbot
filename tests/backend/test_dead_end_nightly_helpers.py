@@ -60,7 +60,7 @@ def test_seeded_histories_are_undergrad_and_nonempty():
         assert all(int(course.split()[1]) < 5000 for course in variant.completed_courses)
 
 
-def test_nightly_report_shows_intro_student_blocks_and_partial_status():
+def test_nightly_report_uses_plain_english_sections_and_appendix_logs():
     spec = NightlyCaseSpec(
         label="triple-FIN+INSY/foundation/v1",
         scenario_label="triple-FIN+INSY",
@@ -103,10 +103,15 @@ def test_nightly_report_shows_intro_student_blocks_and_partial_status():
 
     report = collector.generate_report()
 
-    assert "Focused nightly sweep over sampled multi-program combos." in report
-    assert "- Status: Partial" in report
-    assert "executed cases (1) did not match expected cases (2)" in report
-    assert "### Student 1" in report
+    assert "# Nightly Planner Report -" in report
+    assert "## Overall Health" in report
+    assert "- Status: Red" in report
+    assert "This run is incomplete" in report
+    assert "## What Needs Attention" in report
+    assert "## Biggest Patterns" in report
+    assert "## Appendix" in report
+    assert "### Student Profile Logs" in report
+    assert "#### Student 1" in report
     assert "- status: dead end + not graduated by semester 8" in report
-    assert "No eligible courses were available" in report
     assert "ELIGIBILITY_GAP" not in report
+    assert "All sampled student plans completed without reported issues." not in report
