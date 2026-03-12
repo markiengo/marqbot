@@ -658,26 +658,29 @@ def run_case_and_assert(case: PlanCase, num_terms: int = 9):
 def assert_graduates_by(case: PlanCase, max_semesters: int = 8):
     """
     Simulate max_semesters terms and assert all buckets are satisfied
-    by the final semester. Raises AssertionError with detail on failure.
+    after all semesters' recommendations are applied.
+
+    Runs max_semesters+1 terms so the extra semester's progress reflects
+    the full completed set from all max_semesters recommendation rounds.
     """
     try:
-        semesters = simulate_terms(case, num_terms=max_semesters)
+        semesters = simulate_terms(case, num_terms=max_semesters + 1)
     except ValueError as exc:
         raise AssertionError(f"Program selection failed: {exc}")
 
-    if not semesters:
-        raise AssertionError("No semesters returned")
+    if len(semesters) < max_semesters + 1:
+        raise AssertionError("Not enough semesters returned")
 
-    last = semesters[-1]
-    progress = last.get("progress", {})
-    unsat = unsatisfied_active_buckets(progress)
+    # Progress at semester max_semesters+1 reflects all recs from semesters 1..max_semesters.
+    final_progress = semesters[max_semesters].get("progress", {})
+    unsat = unsatisfied_active_buckets(final_progress)
     if not unsat:
         return
 
-    total_recs = sum(len(s.get("recommendations", [])) for s in semesters)
+    total_recs = sum(len(s.get("recommendations", [])) for s in semesters[:max_semesters])
     per_sem = [
         f"  Sem {i+1}: {len(s.get('recommendations', []))} recs"
-        for i, s in enumerate(semesters)
+        for i, s in enumerate(semesters[:max_semesters])
     ]
     lines = [
         f"NOT GRADUATED after {max_semesters} semesters ({total_recs} total courses)",
@@ -687,9 +690,9 @@ def assert_graduates_by(case: PlanCase, max_semesters: int = 8):
         f"  Unsatisfied buckets ({len(unsat)}):",
     ]
     for bid in unsat:
-        info = progress[bid]
+        info = final_progress[bid]
         lines.append(
-            f"    {bid}: {info.get('completed', 0)}/{info.get('required_courses', 0)} courses"
+            f"    {bid}: {info.get('completed_done', 0)}/{info.get('needed_count', 0)} courses"
         )
     lines.extend(per_sem)
     raise AssertionError("\n".join(lines))

@@ -1270,17 +1270,22 @@ def run_recommendation_semester(
             "projection_note": _PROJECTION_NOTE,
         }
 
-    core_bucket_ids = get_buckets_by_role(data["buckets_df"], track_id, "core")
+    # Build core_prereq_blockers: prereqs of remaining courses in unsatisfied
+    # non-universal required/choose_n buckets.  These courses need to be
+    # scheduled early so the courses they unlock can still fit in 8 semesters.
     core_remaining_sem: list[str] = []
-    for core_bid in core_bucket_ids:
-        # Skip universal (BCC/MCC) buckets — core_prereq_blocker only matters
-        # for major/track buckets where unlocking a specific course is critical.
-        parent_id = bucket_parent_map.get(core_bid.upper(), "")
+    for bid, rem_info in alloc["remaining"].items():
+        slots = rem_info.get("slots_remaining", 0)
+        if slots <= 0:
+            continue
+        # Skip credit-pool buckets (electives don't create critical chains).
+        if rem_info.get("is_credit_based"):
+            continue
+        # Skip universal (BCC/MCC) buckets.
+        parent_id = bucket_parent_map.get(bid.upper(), "")
         if parent_type_map.get(parent_id) == "universal":
             continue
-        core_remaining_sem.extend(
-            alloc["remaining"].get(core_bid, {}).get("remaining_courses", [])
-        )
+        core_remaining_sem.extend(rem_info.get("remaining_courses", []))
     # Deduplicate while preserving order for deterministic warnings.
     core_remaining_sem = list(dict.fromkeys(core_remaining_sem))
     core_prereq_blockers_sem: set[str] = set()
@@ -1312,6 +1317,7 @@ def run_recommendation_semester(
             bucket_parent_map,
         )
         tagged["current_unmet_buckets"] = current_unmet_buckets
+        tagged["is_core_prereq_blocker"] = tagged["course_code"] in core_prereq_blockers_sem
         tagged["is_discovery_driven"] = is_discovery_driven
         tagged["soft_prereq_penalty"] = _soft_prereq_demote_penalty(tagged)
         if is_discovery_driven:

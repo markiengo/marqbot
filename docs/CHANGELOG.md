@@ -8,6 +8,24 @@ Format per release:
 
 ---
 
+## [v2.4.1] - 2026-03-12
+
+### Changes
+
+- Bucket mappings now come solely from `master_bucket_courses.csv` — equivalency expansion no longer adds phantom courses to buckets.
+- Added prereq courses (ACCO 4050, OSCM 4020) to their major's required buckets and bumped `courses_required` for ACCO, BUAN, and OSCM accordingly.
+- Removed bad REAL 4061/REAL 4100 equivalency that was treating two distinct required courses as interchangeable.
+- Fixed graduation check in both fast tests and nightly sweep to evaluate progress after all semesters' recommendations are applied (was off by one).
+- Rewrote core prereq blocker detection to use actual remaining buckets instead of a broken role-based lookup.
+
+### Design Decisions
+
+- `master_bucket_courses.csv` is the single source of truth for which courses map to which buckets. Equivalency expansion was causing grad-level phantom courses to appear in undergrad buckets.
+- Prereq courses that gate required courses belong in the required bucket — the engine needs to see them as required work to schedule them early enough.
+- Graduation progress must be checked after the final semester's recommendations are applied, not before. The prior off-by-one caused false graduation failures.
+
+---
+
 ## [v2.4.0] - 2026-03-10
 
 ### Changes

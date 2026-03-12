@@ -149,7 +149,8 @@ def _build_track_runtime_index(
     base_track_map = course_bucket_map_df[
         course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
     ].copy()
-    track_map = _expand_map_with_equivalencies(base_track_map, equivalencies_df, track_key)
+    # Bucket mappings come solely from master_bucket_courses.csv (no equivalency expansion).
+    track_map = base_track_map
 
     course_bucket_index: dict[str, list[str]] = {}
     bucket_course_index: dict[str, list[str]] = {}

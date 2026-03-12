@@ -506,12 +506,20 @@ def classify_graduation(
             reproduction_case=case,
         )
 
-    last = relevant[-1]
-    unsatisfied = unsatisfied_active_buckets(last.get("progress", {}))
+    # Check progress from the semester AFTER the last recommendations are applied.
+    # semesters[N] has progress reflecting recs from semesters 0..N-1.
+    check_index = remaining_semesters  # one past the last recommendation semester
+    if check_index < len(semesters):
+        progress_sem = semesters[check_index]
+    else:
+        progress_sem = relevant[-1]
+
+    last_rec_sem = relevant[-1]
+    unsatisfied = unsatisfied_active_buckets(progress_sem.get("progress", {}))
     return GraduationCheck(
         failed=bool(unsatisfied),
         max_semesters=max_semesters,
-        semester_label=last.get("target_semester", "?"),
+        semester_label=last_rec_sem.get("target_semester", "?"),
         unsatisfied_buckets=unsatisfied,
         total_recommendations=sum(len(s.get("recommendations", [])) for s in relevant),
         reproduction_case=case,
