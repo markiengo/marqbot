@@ -15,11 +15,17 @@ export function Navbar() {
   const navItems = NAV_ITEMS;
 
   return (
-    <nav className="sticky top-0 z-40 bg-surface-overlay/80 backdrop-blur-md border-b-[3px] border-b-gold/20">
+    <nav
+      className={`sticky top-0 z-40 backdrop-blur-md ${
+        isLanding
+          ? "border-b border-white/8 bg-[linear-gradient(180deg,rgba(7,16,30,0.94),rgba(7,16,30,0.78))]"
+          : "bg-surface-overlay/80 border-b-[3px] border-b-gold/20"
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="relative z-10 flex items-center gap-2.5 shrink-0">
+          <Link href="/" className="relative z-10 flex items-center gap-3 shrink-0">
             <Image
               src="/assets/branding/marquette_logo.webp"
               alt="Marquette"
@@ -34,7 +40,7 @@ export function Navbar() {
 
           {/* Desktop nav — absolutely centered in viewport */}
           <div className="hidden md:flex items-center gap-1 absolute inset-0 justify-center pointer-events-none">
-            <div className="flex items-center gap-1 pointer-events-auto">
+            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-2 py-1 pointer-events-auto shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
               {navItems.map((item) => {
                 const active = pathname === item.href;
                 return (
@@ -63,7 +69,11 @@ export function Navbar() {
           <div className="hidden md:flex items-center relative z-10">
             {isLanding ? (
               <Link href="/onboarding">
-                <Button variant="gold" size="sm" className="min-w-[136px]">
+                <Button
+                  variant="gold"
+                  size="sm"
+                  className="min-w-[148px] border border-gold/60 pulse-gold-soft shadow-[0_0_22px_rgba(255,204,0,0.20)]"
+                >
                   Get My Plan
                 </Button>
               </Link>
