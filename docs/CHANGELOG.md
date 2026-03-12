@@ -8,6 +8,20 @@ Format per release:
 
 ---
 
+## [v2.4.2] - 2026-03-12
+
+### Changes
+
+- Tightened the landing hero so the headline stays dominant, the copy gets to the point faster, and the right-side preview reads more like a clear ranked plan than a crowded dashboard.
+- Refreshed the landing navbar with a cleaner centered link pill and a stronger landing-page CTA treatment.
+
+### Design Decisions
+
+- The first screen should sell the outcome quickly: headline first, curiosity second, product proof third.
+- Landing copy can be more Marquette-specific and playful as long as the structure stays clear and the CTA remains easy to find.
+
+---
+
 ## [v2.4.1] - 2026-03-12
 
 ### Changes
