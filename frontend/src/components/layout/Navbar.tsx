@@ -50,7 +50,7 @@ export function Navbar() {
                     className={`relative px-3.5 py-2 rounded-xl text-[1rem] font-semibold transition-colors ${
                       active
                         ? "text-gold"
-                        : "text-ink-muted hover:text-ink-primary hover:bg-surface-hover"
+                        : "text-ink-muted hover:text-ink-primary hover:bg-surface-hover underline-reveal"
                     }`}
                   >
                     {item.label}
@@ -72,7 +72,7 @@ export function Navbar() {
                 <Button
                   variant="gold"
                   size="sm"
-                  className="min-w-[148px] border border-gold/60 pulse-gold-soft shadow-[0_0_22px_rgba(255,204,0,0.20)]"
+                  className="min-w-[148px] border border-gold/50 shadow-[0_0_16px_rgba(255,204,0,0.18)] hover:shadow-[0_0_22px_rgba(255,204,0,0.28)] transition-shadow duration-300"
                 >
                   Get My Plan
                 </Button>

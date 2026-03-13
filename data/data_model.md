@@ -3,7 +3,7 @@
 All checked-in runtime inputs live in `data/` as UTF-8-BOM CSVs. The loader builds three runtime layers:
 - a course catalog overlay (`courses.csv` + split prereqs + offerings metadata)
 - a parent/child requirement graph (`parent_buckets.csv` + `child_buckets.csv` + `master_bucket_courses.csv`)
-- an equivalency overlay (`course_equivalencies.csv`) used for prereq satisfaction, bucket expansion, and no-double-credit blocking
+- an equivalency overlay (`course_equivalencies.csv`) used for prereq satisfaction, dedup filtering, and no-double-credit blocking
 
 ## Runtime Assembly
 

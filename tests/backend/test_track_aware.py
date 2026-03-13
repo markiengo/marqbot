@@ -13,8 +13,27 @@ import pytest
 import pandas as pd
 
 from allocator import allocate_courses
+from conftest import get_nightly_collector
 from eligibility import get_course_eligible_buckets, get_eligible_courses
 from requirements import DEFAULT_TRACK_ID, get_buckets_by_role
+
+
+def _record_track_catalog_issue(
+    *,
+    label: str,
+    scenario_label: str,
+    reason: str,
+    details: list[str] | None = None,
+):
+    collector = get_nightly_collector()
+    collector.supplemental_checks += 1
+    collector.record_supplemental_issue(
+        label=label,
+        issue_kind="track catalog audit",
+        scenario_label=scenario_label,
+        reason=reason,
+        details=details or [],
+    )
 
 
 # ── Shared multi-track fixtures ──────────────────────────────────────────────
@@ -774,6 +793,7 @@ class TestServerTrackValidation:
         assert "AIM_MAJOR::AIM-REQ-CORE" in progress_keys
         assert "AIM_FINTECH_TRACK::AIM-FINTECH-REQ-CORE" in progress_keys
 
+    @pytest.mark.nightly
     def test_aim_pcib_core_mapping_matches_curated_list(self):
         import server
 
@@ -796,7 +816,7 @@ class TestServerTrackValidation:
                 & (mappings["sub_bucket_id"] == "AIM-PCIB-REQ-CORE")
             ]["course_code"].astype(str).str.strip().tolist()
         )
-        assert actual == {
+        expected = {
             "ACCO 4080",
             "AIM 4310",
             "AIM 4470",
@@ -804,7 +824,21 @@ class TestServerTrackValidation:
             "FINA 4081",
             "MARK 4094",
         }
+        try:
+            assert actual == expected
+        except AssertionError as exc:
+            _record_track_catalog_issue(
+                label="aim_pcib_core_mapping",
+                scenario_label="AIM_IB_TRACK",
+                reason=f"AIM IB core mapping drifted: {exc}",
+                details=[
+                    f"expected: {sorted(expected)}",
+                    f"actual: {sorted(actual)}",
+                ],
+            )
+            raise
 
+    @pytest.mark.nightly
     def test_aim_major_buckets_match_curated_list(self):
         import server
 
@@ -827,13 +861,26 @@ class TestServerTrackValidation:
                 & (mappings["sub_bucket_id"] == "AIM-REQ-CORE")
             ]["course_code"].astype(str).str.strip().tolist()
         )
-        assert core_actual == {
+        core_expected = {
             "ACCO 4080",
             "AIM 4400",
             "AIM 4440",
             "AIM 4470",
             "AIM 4996",
         }
+        try:
+            assert core_actual == core_expected
+        except AssertionError as exc:
+            _record_track_catalog_issue(
+                label="aim_major_core_mapping",
+                scenario_label="AIM_MAJOR",
+                reason=f"AIM major core mapping drifted: {exc}",
+                details=[
+                    f"expected: {sorted(core_expected)}",
+                    f"actual: {sorted(core_actual)}",
+                ],
+            )
+            raise
 
         choose_row = sub[
             (sub["program_id"] == "AIM_MAJOR")
@@ -847,7 +894,7 @@ class TestServerTrackValidation:
                 & (mappings["sub_bucket_id"] == "AIM-CHOOSE-1")
             ]["course_code"].astype(str).str.strip().tolist()
         )
-        assert choose_actual == {
+        choose_expected = {
             "ACCO 4050",
             "AIM 4320",
             "AIM 4931",
@@ -865,7 +912,21 @@ class TestServerTrackValidation:
             "OSCM 4060",
             "REAL 3001",
         }
+        try:
+            assert choose_actual == choose_expected
+        except AssertionError as exc:
+            _record_track_catalog_issue(
+                label="aim_major_choose_mapping",
+                scenario_label="AIM_MAJOR",
+                reason=f"AIM major choose-one mapping drifted: {exc}",
+                details=[
+                    f"expected: {sorted(choose_expected)}",
+                    f"actual: {sorted(choose_actual)}",
+                ],
+            )
+            raise
 
+    @pytest.mark.nightly
     def test_aim_cfa_buckets_exclude_5000_level_alternatives(self):
         import server
 
@@ -889,7 +950,7 @@ class TestServerTrackValidation:
                 & (mappings["sub_bucket_id"] == "AIM-CFA-REQ-CORE")
             ]["course_code"].astype(str).str.strip().tolist()
         )
-        assert core_actual == {
+        core_expected = {
             "ACCO 3001",
             "ACCO 4080",
             "AIM 4310",
@@ -900,6 +961,19 @@ class TestServerTrackValidation:
             "FINA 4065",
             "FINA 4075",
         }
+        try:
+            assert core_actual == core_expected
+        except AssertionError as exc:
+            _record_track_catalog_issue(
+                label="aim_cfa_core_mapping",
+                scenario_label="AIM_CFA_TRACK",
+                reason=f"AIM CFA core mapping drifted: {exc}",
+                details=[
+                    f"expected: {sorted(core_expected)}",
+                    f"actual: {sorted(core_actual)}",
+                ],
+            )
+            raise
 
         intl_actual = set(
             mappings[
@@ -907,7 +981,7 @@ class TestServerTrackValidation:
                 & (mappings["sub_bucket_id"] == "AIM-CFA-INTL-CHOOSE-1")
             ]["course_code"].astype(str).str.strip().tolist()
         )
-        assert intl_actual == {
+        intl_expected = {
             "ACCO 4040",
             "ACCOI 4931",
             "ECON 4040",
@@ -919,9 +993,23 @@ class TestServerTrackValidation:
             "FINAI 4931",
             "INBUI 4931",
         }
-        assert "ACCO 5040" not in intl_actual
-        assert "FINA 5040" not in intl_actual
+        try:
+            assert intl_actual == intl_expected
+            assert "ACCO 5040" not in intl_actual
+            assert "FINA 5040" not in intl_actual
+        except AssertionError as exc:
+            _record_track_catalog_issue(
+                label="aim_cfa_intl_mapping",
+                scenario_label="AIM_CFA_TRACK",
+                reason=f"AIM CFA international mapping drifted: {exc}",
+                details=[
+                    f"expected: {sorted(intl_expected)}",
+                    f"actual: {sorted(intl_actual)}",
+                ],
+            )
+            raise
 
+    @pytest.mark.nightly
     def test_aim_fintech_core_matches_curated_list(self):
         import server
 
@@ -944,7 +1032,7 @@ class TestServerTrackValidation:
                 & (mappings["sub_bucket_id"] == "AIM-FINTECH-REQ-CORE")
             ]["course_code"].astype(str).str.strip().tolist()
         )
-        assert actual == {
+        expected = {
             "AIM 4410",
             "AIM 4420",
             "AIM 4430",
@@ -952,26 +1040,49 @@ class TestServerTrackValidation:
             "AIM 4996",
             "FINA 4075",
         }
+        try:
+            assert actual == expected
+        except AssertionError as exc:
+            _record_track_catalog_issue(
+                label="aim_fintech_core_mapping",
+                scenario_label="AIM_FINTECH_TRACK",
+                reason=f"AIM FinTech core mapping drifted: {exc}",
+                details=[
+                    f"expected: {sorted(expected)}",
+                    f"actual: {sorted(actual)}",
+                ],
+            )
+            raise
 
+    @pytest.mark.nightly
     def test_aim_4410_prereqs_match_catalog_audit(self):
         import server
 
         courses = server._data["courses_df"].copy()
         courses["course_code"] = courses["course_code"].astype(str).str.strip().str.upper()
         row = courses[courses["course_code"] == "AIM 4410"]
-        assert len(row) == 1
-        assert str(row.iloc[0]["prereq_hard"]).strip() == "none"
-        assert str(row.iloc[0]["prereq_concurrent"]).strip() == "FINA 4075 or FINA 5075"
         soft_tags = {
             tag.strip()
             for tag in str(row.iloc[0]["prereq_soft"]).replace(";", ",").split(",")
             if tag.strip()
         }
-        assert "may_be_concurrent" in soft_tags
-        assert "instructor_consent" in soft_tags
-        assert "major_restriction" in soft_tags
-        assert float(row.iloc[0]["prereq_level"]) == 0.0
+        try:
+            assert len(row) == 1
+            assert str(row.iloc[0]["prereq_hard"]).strip() == "none"
+            assert str(row.iloc[0]["prereq_concurrent"]).strip() == "FINA 4075 or FINA 5075"
+            assert "may_be_concurrent" in soft_tags
+            assert "instructor_consent" in soft_tags
+            assert "major_restriction" in soft_tags
+            assert float(row.iloc[0]["prereq_level"]) == 0.0
+        except AssertionError as exc:
+            _record_track_catalog_issue(
+                label="aim_4410_catalog_audit",
+                scenario_label="AIM_FINTECH_TRACK",
+                reason=f"AIM 4410 catalog audit drifted: {exc}",
+            )
+            raise
 
+    @pytest.mark.nightly
     def test_aim_catalog_soft_restrictions_and_standing_are_encoded(self):
         import server
 
@@ -1000,25 +1111,33 @@ class TestServerTrackValidation:
             "AIM 4995",
         }
 
-        for _, row in aim_rows.iterrows():
-            course_code = str(row["course_code"]).strip()
-            prereq_level = float(row.get("prereq_level") or 0.0)
-            soft_tags = {
-                tag.strip()
-                for tag in str(row.get("prereq_soft") or "").replace(";", ",").split(",")
-                if tag.strip()
-            }
-            if course_code == "AIM 4400":
-                assert prereq_level == 2.0, course_code
-                assert "standing_requirement" in soft_tags, course_code
-            else:
-                assert prereq_level == 0.0, course_code
-                assert "standing_requirement" not in soft_tags, course_code
+        try:
+            for _, row in aim_rows.iterrows():
+                course_code = str(row["course_code"]).strip()
+                prereq_level = float(row.get("prereq_level") or 0.0)
+                soft_tags = {
+                    tag.strip()
+                    for tag in str(row.get("prereq_soft") or "").replace(";", ",").split(",")
+                    if tag.strip()
+                }
+                if course_code == "AIM 4400":
+                    assert prereq_level == 2.0, course_code
+                    assert "standing_requirement" in soft_tags, course_code
+                else:
+                    assert prereq_level == 0.0, course_code
+                    assert "standing_requirement" not in soft_tags, course_code
 
-            if course_code in expected_major_restriction:
-                assert "major_restriction" in soft_tags, course_code
-            if course_code in not_major_restricted:
-                assert "major_restriction" not in soft_tags, course_code
+                if course_code in expected_major_restriction:
+                    assert "major_restriction" in soft_tags, course_code
+                if course_code in not_major_restricted:
+                    assert "major_restriction" not in soft_tags, course_code
+        except AssertionError as exc:
+            _record_track_catalog_issue(
+                label="aim_soft_restrictions_catalog_audit",
+                scenario_label="AIM catalog",
+                reason=f"AIM soft-restriction catalog audit drifted: {exc}",
+            )
+            raise
 
     def test_multiple_tracks_with_same_parent_major_are_allowed(self, client):
         resp = client.post("/recommend", json={

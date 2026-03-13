@@ -149,7 +149,8 @@ def _build_track_runtime_index(
     base_track_map = course_bucket_map_df[
         course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
     ].copy()
-    track_map = _expand_map_with_equivalencies(base_track_map, equivalencies_df, track_key)
+    # Bucket mappings come solely from master_bucket_courses.csv (no equivalency expansion).
+    track_map = base_track_map
 
     course_bucket_index: dict[str, list[str]] = {}
     bucket_course_index: dict[str, list[str]] = {}
@@ -616,6 +617,9 @@ def allocate_courses(
             applied[bid]["satisfied"] = (
                 applied[bid]["credits_applied"] >= meta["needed_credits"]
             )
+        else:
+            # No count or credit threshold — vacuously satisfied
+            applied[bid]["satisfied"] = True
 
     def assign_completed_to_bucket(course_code: str, bid: str, credits: int):
         applied[bid]["completed_applied"].append(course_code)

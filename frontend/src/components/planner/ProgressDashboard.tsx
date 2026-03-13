@@ -42,7 +42,7 @@ export function ProgressDashboard({ onViewDetails, onCompletedClick, onInProgres
   const hasData = state.completed.size > 0 || state.inProgress.size > 0;
 
   return (
-    <div className="lg:h-full lg:min-h-0 rounded-2xl glass-card p-3 flex flex-col gap-1.5 relative overflow-hidden">
+    <div className="lg:h-full lg:min-h-0 rounded-2xl glass-card gradient-border p-3 flex flex-col gap-1.5 relative overflow-hidden">
       {/* Atmospheric glow overlay */}
       <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{
         background: "radial-gradient(ellipse 60% 50% at 80% 15%, rgba(30, 159, 97, 0.06), transparent), radial-gradient(ellipse 50% 40% at 15% 85%, rgba(255, 204, 0, 0.05), transparent)"

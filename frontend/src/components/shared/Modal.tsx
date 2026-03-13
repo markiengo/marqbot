@@ -15,7 +15,7 @@ interface ModalProps {
 }
 
 const sizeClasses = {
-  default: "max-w-[56rem] w-full max-h-[90vh] scale-[1.15] origin-center",
+  default: "max-w-[56rem] w-full max-h-[90vh]",
   large: "w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] max-w-none",
   "planner-detail": "w-full max-w-[98vw] max-h-[94vh] md:max-w-[77vw] md:max-h-[77vh]",
   xl: "w-full max-w-[1056px] max-h-[94vh]",
@@ -114,7 +114,7 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="absolute inset-0 bg-black/50 backdrop-blur-[16px]"
+            className="absolute inset-0 bg-black/55 backdrop-blur-[20px]"
             onClick={onClose}
           />
 

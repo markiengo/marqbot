@@ -177,10 +177,16 @@ def _check_window_rate_limit(
     now = time.time()
     with lock:
         timestamps = tracker[ip]
-        tracker[ip] = [t for t in timestamps if now - t < window_seconds]
-        if len(tracker[ip]) >= max_requests:
+        fresh = [t for t in timestamps if now - t < window_seconds]
+        if not fresh:
+            tracker.pop(ip, None)
+            tracker[ip] = [now]
+            return True
+        if len(fresh) >= max_requests:
+            tracker[ip] = fresh
             return False
-        tracker[ip].append(now)
+        fresh.append(now)
+        tracker[ip] = fresh
         return True
 
 

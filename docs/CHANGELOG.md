@@ -8,6 +8,31 @@ Format per release:
 
 ---
 
+## [v2.4.3] - 2026-03-12
+
+### Changes
+
+- Updated the GitHub Actions workflow to Node 24-safe action versions (`actions/checkout@v5`, `actions/setup-node@v5`, `actions/setup-python@v6`, `actions/upload-artifact@v6`).
+- Split CI expectations cleanly: pull requests run only stable backend/frontend/planner guardrail checks, while nightly-only catalog audits stay out of the PR gate.
+- Expanded the nightly report so advisor-gold mismatches, track catalog audits, baseline graduation gaps, and track-only program-setup failures are all captured in one report section with readable course-history logging.
+- Refreshed `tests/test_structure.md` and `docs/prompts/file_cleanup.md` to document the report-driven nightly workflow and the stable-vs-nightly test split.
+- Added frontend CSS polish: text gradients, gradient borders, shimmer effects, breathing glow, underline-reveal nav links, frosted panels, and stagger-enter animations with reduced-motion fallbacks.
+- Rewrote about page copy to be funnier and more student-facing.
+- Fixed recommendation sort key: wired `soft_prereq_penalty`, `discovery_foundation_penalty`, `discovery_affinity_penalty`, and `is_core_prereq_blocker` into the actual ranking (were computed but unused).
+- Fixed rate-limit tracker memory leak: expired IP keys now get evicted instead of accumulating as empty lists.
+- Fixed empty-bucket (0/0) satisfaction: buckets with no count or credit threshold are now marked satisfied instead of blocking progress.
+- Deleted 14 dead frontend files (unused components, orphaned lib module, stale CSV).
+- Archived 7 one-time migration/scraping scripts to `scripts/archive/`.
+
+### Design Decisions
+
+- Stable product behavior should be protected by green PR-facing checks; course and major data drift should be reviewed from the nightly report instead of blocking merges.
+- The scheduled nightly workflow should stay green when pytest reports catalog-data mismatches (`exit code 1`) as long as the report artifact is produced, but it should still fail on real runner, collection, or internal pytest errors.
+- CSS effects use safe box-shadow approach instead of mask-composite to avoid Safari/Framer Motion composited-layer breaks.
+- Shimmer limited to the primary hero CTA only to avoid diluting the visual signal across multiple buttons.
+
+---
+
 ## [v2.4.2] - 2026-03-12
 
 ### Changes
@@ -19,6 +44,24 @@ Format per release:
 
 - The first screen should sell the outcome quickly: headline first, curiosity second, product proof third.
 - Landing copy can be more Marquette-specific and playful as long as the structure stays clear and the CTA remains easy to find.
+
+---
+
+## [v2.4.1] - 2026-03-12
+
+### Changes
+
+- Bucket mappings now come solely from `master_bucket_courses.csv` — equivalency expansion no longer adds phantom courses to buckets.
+- Added prereq courses (ACCO 4050, OSCM 4020) to their major's required buckets and bumped `courses_required` for ACCO, BUAN, and OSCM accordingly.
+- Removed bad REAL 4061/REAL 4100 equivalency that was treating two distinct required courses as interchangeable.
+- Fixed graduation check in both fast tests and nightly sweep to evaluate progress after all semesters' recommendations are applied (was off by one).
+- Rewrote core prereq blocker detection to use actual remaining buckets instead of a broken role-based lookup.
+
+### Design Decisions
+
+- `master_bucket_courses.csv` is the single source of truth for which courses map to which buckets. Equivalency expansion was causing grad-level phantom courses to appear in undergrad buckets.
+- Prereq courses that gate required courses belong in the required bucket — the engine needs to see them as required work to schedule them early enough.
+- Graduation progress must be checked after the final semester's recommendations are applied, not before. The prior off-by-one caused false graduation failures.
 
 ---
 

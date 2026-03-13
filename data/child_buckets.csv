@@ -1,5 +1,5 @@
 parent_bucket_id,child_bucket_id,child_bucket_label,requirement_mode,courses_required,credits_required,min_level,notes
-ACCO_MAJOR,acco-req-core,Accounting Core Requirements,required,8.0,,,
+ACCO_MAJOR,acco-req-core,Accounting Core Requirements,required,9.0,,,
 ACCO_MAJOR,acco-choose-2,Choose 2,choose_n,2.0,,3000.0,
 ACCO_MAJOR,acco-elec-2,2 Business Electives (6 credits),credits_pool,,6.0,3000.0,Elective pool intentionally unmapped for now.
 AIM_CFA_TRACK,aim-cfa-req-core,AIM CFA Core,required,9.0,,,
@@ -21,7 +21,7 @@ BCC_CORE,BCC_REQUIRED,Business Core Required,required,18.0,,,
 BECO_MAJOR,beco-req-core,Specific Economics Course Requirements,required,5.0,,,
 BECO_MAJOR,beco-econ-3000plus-9,Upper-Division ECON Electives (Choose 3),choose_n,3.0,,3000.0,Excludes ECON 3399 ECON 4986 ECON 4989 and required core courses.
 BECO_MAJOR,beco-biz-elec-9,Business Electives (9 credits),credits_pool,,9.0,3000.0,Exclude ECON 3399; Elective pool intentionally unmapped for now.
-BUAN_MAJOR,buan-req-core,BUAN Core Requirements,required,3.0,,,
+BUAN_MAJOR,buan-req-core,BUAN Core Requirements,required,4.0,,,
 BUAN_MAJOR,buan-choose-1,Choose 1,choose_n,1.0,,3000.0,
 BUAN_MAJOR,buan-adv,BUAN Advanced,required,1.0,,3000.0,
 BUAN_MAJOR,buan-elec-upper-15,Upper Division Business Electives (15 credits),credits_pool,,15.0,3000.0,Elective pool intentionally unmapped for now.
@@ -79,7 +79,7 @@ MCC_WRIT,MCC_WRIT,MCC Writing Intensive,required,1.0,,,
 MCC_CULM,MCC_CULM,MCC Culminating Course,required,1.0,,,
 MCC_FOUNDATION,MCC_ESSV1,MCC Engaging Social Systems and Values 1,required,1.0,,,
 MCC_FOUNDATION,MCC_CORE,MCC Core,required,4.0,,,
-OSCM_MAJOR,oscm-req-core,OSCM Core Requirements,required,5.0,,,
+OSCM_MAJOR,oscm-req-core,OSCM Core Requirements,required,6.0,,,
 OSCM_MAJOR,oscm-choose-1,Choose 1,choose_n,1.0,,3000.0,
 OSCM_MAJOR,oscm-elec-4,4 Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
 REAL_MAJOR,real-req-core,Specific Real Estate Course Requirements,required,5.0,,,

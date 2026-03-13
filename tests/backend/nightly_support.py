@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from collections import Counter
 import random
+import re
 import time
 from dataclasses import dataclass
+from functools import lru_cache
 
 import server
 from dead_end_utils import (
@@ -100,6 +103,224 @@ def _format_bucket_list(bucket_ids: list[str], limit: int = 3) -> str:
     shown = bucket_ids[:limit]
     suffix = f", +{len(bucket_ids) - limit} more" if len(bucket_ids) > limit else ""
     return ", ".join(shown) + suffix
+
+
+def _normalize_string_list(values) -> list[str]:
+    if values is None:
+        return []
+    if isinstance(values, str):
+        return [piece.strip() for piece in values.split(",") if piece.strip()]
+
+    normalized: list[str] = []
+    for value in values:
+        text = str(value).strip()
+        if text:
+            normalized.append(text)
+    return normalized
+
+
+def _titleize_words(text: str) -> str:
+    parts = []
+    for word in str(text or "").split():
+        if word.isupper() and len(word) <= 5:
+            parts.append(word)
+        else:
+            parts.append(word.capitalize())
+    return " ".join(parts)
+
+
+def _fallback_program_label(program_id: str) -> str:
+    raw = str(program_id or "").strip().upper()
+    if not raw:
+        return "Unknown program"
+
+    suffix_map = {
+        "_MAJOR": "major",
+        "_TRACK": "track",
+        "_MINOR": "minor",
+        "_CONC": "concentration",
+    }
+    for suffix, noun in suffix_map.items():
+        if raw.endswith(suffix):
+            stem = raw[: -len(suffix)]
+            words = _titleize_words(stem.replace("_", " "))
+            return f"{words} {noun}"
+    return _titleize_words(raw.replace("_", " "))
+
+
+def _fallback_bucket_label(bucket_id: str) -> str:
+    raw = str(bucket_id or "").strip()
+    if not raw:
+        return "Unknown requirement"
+
+    normalized = raw.replace("-", " ").replace("_", " ").lower()
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    replacements = {
+        "req core": "required courses",
+        "core requirements": "core requirements",
+        "required": "required",
+        "choose n": "choice requirement",
+        "elec": "electives",
+        "culm": "culminating requirement",
+        "upper": "upper division",
+    }
+    for old, new in replacements.items():
+        normalized = normalized.replace(old, new)
+    return _titleize_words(normalized)
+
+
+@lru_cache(maxsize=1)
+def _label_lookups() -> tuple[dict[str, str], dict[str, str]]:
+    data = getattr(server, "_data", {}) or {}
+    parent_buckets_df = data.get("parent_buckets_df")
+    child_buckets_df = data.get("child_buckets_df")
+
+    program_labels: dict[str, str] = {}
+    bucket_labels: dict[str, str] = {}
+
+    if parent_buckets_df is not None and len(parent_buckets_df) > 0:
+        for _, row in parent_buckets_df.iterrows():
+            parent_id = str(row.get("parent_bucket_id", "") or "").strip().upper()
+            if not parent_id:
+                continue
+            parent_label = str(row.get("parent_bucket_label", parent_id) or "").strip() or parent_id
+            program_labels[parent_id] = parent_label
+
+    if child_buckets_df is not None and len(child_buckets_df) > 0:
+        for _, row in child_buckets_df.iterrows():
+            child_id = str(row.get("child_bucket_id", "") or "").strip().lower()
+            if not child_id:
+                continue
+            child_label = str(row.get("child_bucket_label", child_id) or "").strip() or child_id
+            parent_id = str(row.get("parent_bucket_id", "") or "").strip().upper()
+            parent_label = program_labels.get(parent_id, _fallback_program_label(parent_id))
+            bucket_labels[child_id] = f"{parent_label}: {child_label}" if parent_label else child_label
+
+    return program_labels, bucket_labels
+
+
+def _friendly_program_label(program_id: str) -> str:
+    program_labels, _ = _label_lookups()
+    raw = str(program_id or "").strip().upper()
+    return program_labels.get(raw, _fallback_program_label(raw))
+
+
+def _friendly_bucket_label(bucket_id: str) -> str:
+    _, bucket_labels = _label_lookups()
+    raw = str(bucket_id or "").strip()
+    if not raw:
+        return "Unknown requirement"
+    if raw == "NO_SEMESTERS":
+        return "No semesters were available to evaluate"
+
+    parent_id, sep, child_id = raw.partition("::")
+    child_key = (child_id if sep else raw).strip().lower()
+    mapped = bucket_labels.get(child_key)
+    if mapped:
+        return mapped
+    if sep:
+        return f"{_friendly_program_label(parent_id)}: {_fallback_bucket_label(child_id)}"
+    return _fallback_bucket_label(raw)
+
+
+def _friendly_scenario_label(scenario_label: str) -> str:
+    raw = str(scenario_label or "").strip()
+    if not raw:
+        return "Unknown sample group"
+
+    _, sep, remainder = raw.partition("-")
+    payload = remainder if sep else raw
+    parts = [piece for piece in payload.split("+") if piece]
+    if not parts:
+        return raw
+    return " + ".join(_friendly_program_label(part) for part in parts)
+
+
+def _plain_invalid_reason(reason: str) -> str:
+    text = str(reason or "").strip()
+    if not text:
+        return "the sample could not be evaluated."
+    if "PRIMARY_MAJOR_REQUIRED" in text:
+        return "a selected track required a matching major that was not declared."
+    if "declared_majors cannot be empty" in text:
+        return "the sample ended up with no declared major."
+    if "Could not build a unique prereq-hardened seeded history" in text:
+        return "the test runner could not build a unique student history for this sample."
+    if "Seed builder stalled in" in text:
+        return "the seeded history builder ran out of undergraduate course options."
+    return "the sample could not be evaluated."
+
+
+def _plain_reason(record: dict) -> str:
+    status = str(record.get("status", "") or "")
+    buckets = list(record.get("unsatisfied_buckets") or [])
+    first_bucket = _friendly_bucket_label(buckets[0]) if buckets else "remaining requirements"
+
+    if "invalid seeded history" in status:
+        return _plain_invalid_reason(str(record.get("reason", "") or ""))
+    if "dead end" in status and "not graduated by semester 8" in status:
+        return (
+            f"the planner ran out of valid next courses, and the plan still had open work in {first_bucket}."
+        )
+    if "dead end" in status:
+        return f"the planner ran out of valid next courses around {first_bucket}."
+    if "not graduated by semester 8" in status:
+        return f"the plan still had open work in {first_bucket} by semester 8."
+    return "the sample needs review."
+
+
+def _health_status(
+    *,
+    partial: bool,
+    total_tests: int,
+    reported: int,
+    dead_end_count: int,
+    not_finished_count: int,
+    supplemental_count: int,
+) -> str:
+    if partial or total_tests == 0:
+        return "Red"
+    if reported == 0:
+        if supplemental_count:
+            return "Yellow"
+        return "Green"
+    if dead_end_count > 0 or not_finished_count >= max(5, total_tests // 4):
+        return "Red"
+    return "Yellow"
+
+
+def _plain_summary(
+    *,
+    partial: bool,
+    total_tests: int,
+    expected_tests: int,
+    invalid_count: int,
+    not_finished_count: int,
+    dead_end_count: int,
+    reported: int,
+    supplemental_count: int,
+) -> str:
+    if partial or total_tests == 0:
+        return (
+            f"This run is incomplete, so it should not be used as a clean daily decision signal yet "
+            f"({total_tests} of {expected_tests} planned samples were evaluated)."
+        )
+    if reported == 0 and supplemental_count == 0:
+        return "All sampled student plans completed without reported issues."
+    if reported == 0 and supplemental_count > 0:
+        return "Sampled plans passed, but nightly catalog baseline checks still found issues to review."
+    if not_finished_count > 0:
+        return "Many sampled student plans still do not finish within 8 semesters."
+    if dead_end_count > 0:
+        return "Some sampled student plans still run out of valid next courses."
+    if invalid_count > 0:
+        return "Some sampled student plans could not be evaluated because the sample setup was invalid."
+    return "This run found issues that still need review."
+
+
+def _count_phrase(count: int, singular: str, plural: str | None = None) -> str:
+    noun = singular if count == 1 else (plural or f"{singular}s")
+    return f"{count} {noun}"
 
 
 def build_seeded_history_variants(
@@ -312,12 +533,20 @@ def classify_graduation(
             reproduction_case=case,
         )
 
-    last = relevant[-1]
-    unsatisfied = unsatisfied_active_buckets(last.get("progress", {}))
+    # Check progress from the semester AFTER the last recommendations are applied.
+    # semesters[N] has progress reflecting recs from semesters 0..N-1.
+    check_index = remaining_semesters  # one past the last recommendation semester
+    if check_index < len(semesters):
+        progress_sem = semesters[check_index]
+    else:
+        progress_sem = relevant[-1]
+
+    last_rec_sem = relevant[-1]
+    unsatisfied = unsatisfied_active_buckets(progress_sem.get("progress", {}))
     return GraduationCheck(
         failed=bool(unsatisfied),
         max_semesters=max_semesters,
-        semester_label=last.get("target_semester", "?"),
+        semester_label=last_rec_sem.get("target_semester", "?"),
         unsatisfied_buckets=unsatisfied,
         total_recommendations=sum(len(s.get("recommendations", [])) for s in relevant),
         reproduction_case=case,
@@ -383,6 +612,8 @@ class NightlyFailureCollector:
         self.expected_tests = 0
         self.case_budget = 0
         self.invalid_cases = 0
+        self.supplemental_checks = 0
+        self.supplemental_records: list[dict] = []
         self._start_time = time.time()
 
     def configure_suite(self, suite: NightlySuite, *, seed: int):
@@ -442,6 +673,33 @@ class NightlyFailureCollector:
             "unsatisfied_buckets": list(dict.fromkeys(unsatisfied)),
         })
 
+    def record_supplemental_issue(
+        self,
+        *,
+        label: str,
+        issue_kind: str,
+        reason: str,
+        scenario_label: str,
+        declared_majors: list[str] | None = None,
+        track_ids: list[str] | None = None,
+        declared_minors: list[str] | None = None,
+        completed_courses: list[str] | None = None,
+        unsatisfied_buckets: list[str] | None = None,
+        details: list[str] | None = None,
+    ):
+        self.supplemental_records.append({
+            "label": label,
+            "issue_kind": issue_kind,
+            "reason": reason,
+            "scenario_label": scenario_label,
+            "declared_majors": _normalize_string_list(declared_majors),
+            "track_ids": _normalize_string_list(track_ids),
+            "declared_minors": _normalize_string_list(declared_minors),
+            "completed_courses": _normalize_string_list(completed_courses),
+            "unsatisfied_buckets": list(dict.fromkeys(unsatisfied_buckets or [])),
+            "details": list(details or []),
+        })
+
     def generate_report(self) -> str:
         from datetime import date as _date
 
@@ -450,62 +708,184 @@ class NightlyFailureCollector:
         passed = self.total_tests - len(self.records)
         partial = bool(self.expected_tests and self.total_tests != self.expected_tests)
 
-        status_counts: dict[str, int] = {}
-        bucket_counts: dict[str, int] = {}
+        status_counts: Counter[str] = Counter()
+        bucket_counts: Counter[str] = Counter()
+        scenario_counts: Counter[tuple[str, str]] = Counter()
+        invalid_reason_counts: Counter[str] = Counter()
         for record in self.records:
-            status_counts[record["status"]] = status_counts.get(record["status"], 0) + 1
+            status = str(record["status"])
+            status_counts[status] += 1
+            scenario_counts[(status, str(record["scenario_label"]))] += 1
             for bucket in record["unsatisfied_buckets"]:
-                bucket_counts[bucket] = bucket_counts.get(bucket, 0) + 1
+                bucket_counts[bucket] += 1
+            if "invalid seeded history" in status:
+                invalid_reason_counts[_plain_invalid_reason(str(record["reason"]))] += 1
+
+        invalid_count = sum(
+            count for status, count in status_counts.items() if "invalid seeded history" in status
+        )
+        not_finished_count = sum(
+            count for status, count in status_counts.items() if "not graduated by semester 8" in status
+        )
+        dead_end_count = sum(
+            count for status, count in status_counts.items() if "dead end" in status
+        )
+        health = _health_status(
+            partial=partial,
+            total_tests=self.total_tests,
+            reported=len(self.records),
+            dead_end_count=dead_end_count,
+            not_finished_count=not_finished_count,
+            supplemental_count=len(self.supplemental_records),
+        )
 
         lines = [
-            f"# Nightly Sweep - {_date.today().isoformat()}",
+            f"# Nightly Planner Report - {_date.today().isoformat()}",
             "",
-            "Focused nightly sweep over sampled multi-program combos.",
-            "Student histories are planner-seeded, chronological, prereq-hardened, and undergrad-only.",
+            "Daily decision summary for sampled student plans.",
+            "This version is written for quick review first, with raw case logs saved in the appendix.",
             "",
-            "## Coverage",
-            f"- Scenario pool: {len(self.sampled_scenario_labels)}/{self.total_possible_scenarios} sampled combos",
-            f"- Student profiles per combo: {self.profiles_per_scenario}",
-            f"- Seeded course selections per profile: {self.selection_variants}",
-            f"- Expected cases: {self.expected_tests}",
-            f"- Executed cases: {self.total_tests}",
-            f"- Invalid seeded histories: {self.invalid_cases}",
-            f"- Status: {'Partial' if partial else 'Complete'}",
-            f"- Seed: `{self.seed or 'unknown'}`",
+            "## Overall Health",
+            f"- Status: {health}",
+            "- Plain-English Summary: "
+            + _plain_summary(
+                partial=partial,
+                total_tests=self.total_tests,
+                expected_tests=self.expected_tests,
+                invalid_count=invalid_count,
+                not_finished_count=not_finished_count,
+                dead_end_count=dead_end_count,
+                reported=len(self.records),
+                supplemental_count=len(self.supplemental_records),
+            ),
+            f"- Review Date: {_date.today().isoformat()}",
             f"- Runtime: {mins}m {secs}s",
         ]
         if partial:
             lines.append(
-                f"- Completeness note: report is non-exhaustive because executed cases ({self.total_tests}) "
-                f"did not match expected cases ({self.expected_tests})."
+                f"- Run Completeness: Incomplete. Only {self.total_tests} of {self.expected_tests} planned samples were evaluated."
             )
+        else:
+            lines.append(f"- Run Completeness: Complete. {self.total_tests} planned samples were evaluated.")
 
         lines.extend([
             "",
-            "## Summary",
-            f"- Passed students: {passed}",
-            f"- Reported students: {len(self.records)}",
+            "## What Needs Attention",
         ])
-        for status, count in sorted(status_counts.items(), key=lambda item: (-item[1], item[0])):
-            lines.append(f"- {status.title()}: {count}")
+
+        if partial:
+            lines.append(
+                "- The run itself needs attention first: "
+                f"{_count_phrase(self.total_tests, 'planned sample')} out of "
+                f"{_count_phrase(self.expected_tests, 'planned sample')} were evaluated."
+            )
+        if invalid_count:
+            top_invalid_reason = invalid_reason_counts.most_common(1)[0][0]
+            lines.append(
+                f"- {_count_phrase(invalid_count, 'sampled plan')} could not be evaluated. "
+                f"Most commonly, {top_invalid_reason}"
+            )
+        if not_finished_count:
+            lines.append(
+                f"- {_count_phrase(not_finished_count, 'sampled plan')} did not finish within 8 semesters."
+            )
+        if dead_end_count:
+            lines.append(
+                f"- {_count_phrase(dead_end_count, 'sampled plan')} ran out of valid next courses before finishing."
+            )
+        if self.supplemental_records:
+            kind_counts = Counter(record["issue_kind"] for record in self.supplemental_records)
+            summary = ", ".join(
+                f"{count} {kind}"
+                for kind, count in sorted(kind_counts.items(), key=lambda item: (-item[1], item[0]))
+            )
+            lines.append(
+                f"- {_count_phrase(len(self.supplemental_records), 'nightly catalog baseline check')} failed: {summary}."
+            )
+        if not any([partial, invalid_count, not_finished_count, dead_end_count, self.supplemental_records]):
+            lines.append("- No action items were reported in this run.")
+
+        lines.extend(["", "## Biggest Patterns"])
         if bucket_counts:
             hottest = sorted(bucket_counts.items(), key=lambda item: (-item[1], item[0]))[:5]
-            lines.append(
-                "- Most common unfinished buckets: "
-                + ", ".join(f"`{bucket}` ({count})" for bucket, count in hottest)
-            )
+            for bucket, count in hottest:
+                lines.append(f"- {_friendly_bucket_label(bucket)} remained open in {count} sampled plans.")
+        elif len(self.records) == 0 and not partial:
+            lines.append("- No recurring requirement gaps were found in the sampled plans.")
+        else:
+            lines.append("- No requirement pattern summary is available for this run.")
 
-        if not self.records:
-            lines.extend(["", "All sampled students passed the nightly sweep."])
+        lines.extend(["", "## Catalog Baseline Audits"])
+        if self.supplemental_records:
+            grouped: Counter[tuple[str, str]] = Counter(
+                (record["issue_kind"], record["scenario_label"]) for record in self.supplemental_records
+            )
+            for (issue_kind, scenario_label), count in sorted(
+                grouped.items(),
+                key=lambda item: (-item[1], item[0][0], item[0][1]),
+            )[:8]:
+                sample = next(
+                    (
+                        record for record in self.supplemental_records
+                        if record["issue_kind"] == issue_kind and record["scenario_label"] == scenario_label
+                    ),
+                    None,
+                )
+                if sample is None:
+                    continue
+                lines.append(
+                    f"- {_count_phrase(count, issue_kind)} in {scenario_label}: {sample['reason']}"
+                )
+        else:
+            lines.append("- No nightly catalog baseline issues were reported.")
+
+        lines.extend(["", "## Sample Plan Groups To Review"])
+        top_groups = sorted(scenario_counts.items(), key=lambda item: (-item[1], item[0][0], item[0][1]))[:5]
+        if top_groups:
+            for (status, scenario_label), count in top_groups:
+                matching_record = next(
+                    (
+                        record for record in self.records
+                        if record["status"] == status and record["scenario_label"] == scenario_label
+                    ),
+                    None,
+                )
+                plain_reason = _plain_reason(matching_record or {})
+                lines.append(
+                    f"- {_count_phrase(count, 'sampled student')} in "
+                    f"{_friendly_scenario_label(scenario_label)} needed review because {plain_reason}"
+                )
+        elif len(self.records) == 0 and not partial:
+            lines.append("- No sample groups were flagged for review in this run.")
+        else:
+            lines.append("- No sample groups were available to summarize.")
+
+        lines.extend(["", "## Appendix", "", "### Run Details"])
+        lines.extend([
+            f"- Sampled plan groups: {len(self.sampled_scenario_labels)} of {self.total_possible_scenarios}",
+            f"- Student profiles per group: {self.profiles_per_scenario}",
+            f"- Course-history variants per profile: {self.selection_variants}",
+            f"- Planned samples: {self.expected_tests}",
+            f"- Evaluated samples: {self.total_tests}",
+            f"- Samples with no reported issues: {max(passed, 0)}",
+            f"- Samples with reported issues: {len(self.records)}",
+            f"- Samples that could not be evaluated: {self.invalid_cases}",
+            f"- Nightly catalog baseline checks run: {self.supplemental_checks}",
+            f"- Nightly catalog baseline issues: {len(self.supplemental_records)}",
+            f"- Seed: `{self.seed or 'unknown'}`",
+        ])
+
+        if not self.records and not self.supplemental_records:
+            lines.extend(["", "### Student Profile Logs", "", "No student profile logs were recorded for this run."])
             return "\n".join(lines)
 
-        lines.extend(["", "## Student Logs", ""])
+        lines.extend(["", "### Student Profile Logs", ""])
         for index, record in enumerate(self.records, 1):
             tracks = ", ".join(record["track_ids"]) if record["track_ids"] else "none"
             minors = ", ".join(record["declared_minors"]) if record["declared_minors"] else "none"
             courses = ", ".join(record["completed_courses"]) if record["completed_courses"] else "none"
             lines.extend([
-                f"### Student {index}",
+                f"#### Student {index}",
                 f"- combo: {record['scenario_label']}",
                 f"- profile: {record['profile_label']} ({record['seeded_semesters']} seeded semesters)",
                 f"- selection: variant {record['selection_variant']}",
@@ -518,6 +898,31 @@ class NightlyFailureCollector:
                 f"- reason: {record['reason']}",
                 "",
             ])
+        if self.supplemental_records:
+            lines.extend(["### Catalog Baseline Logs", ""])
+            for index, record in enumerate(self.supplemental_records, 1):
+                tracks = ", ".join(record["track_ids"]) if record["track_ids"] else "none"
+                minors = ", ".join(record["declared_minors"]) if record["declared_minors"] else "none"
+                courses = ", ".join(record["completed_courses"]) if record["completed_courses"] else "none"
+                lines.extend([
+                    f"#### Catalog Issue {index}",
+                    f"- label: {record['label']}",
+                    f"- kind: {record['issue_kind']}",
+                    f"- majors: {', '.join(record['declared_majors']) or 'none'}",
+                    f"- track: {tracks}",
+                    f"- minors: {minors}",
+                    f"- scenario: {record['scenario_label']}",
+                    f"- courses taken: {courses}",
+                    f"- reason: {record['reason']}",
+                ])
+                if record["unsatisfied_buckets"]:
+                    lines.append(
+                        "- buckets: "
+                        + ", ".join(_friendly_bucket_label(bucket) for bucket in record["unsatisfied_buckets"])
+                    )
+                for detail in record["details"]:
+                    lines.append(f"- detail: {detail}")
+                lines.append("")
         return "\n".join(lines)
 
 

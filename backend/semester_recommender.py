@@ -26,8 +26,8 @@ _DISC_FAMILY_PREFIX = "MCC_DISC"
 _PROJECTION_NOTE = (
     "Projected progress below assumes you complete these recommendations."
 )
-_DISCOVERY_FOUNDATION_BUCKET_IDS = {"MCC_CORE", "MCC_ESSV1"}
 _MCC_FOUNDATION_BUCKET_IDS = {"MCC_CORE", "MCC_ESSV1"}
+_DISCOVERY_FOUNDATION_BUCKET_IDS = _MCC_FOUNDATION_BUCKET_IDS
 _MCC_LATE_BUCKET_IDS = {"MCC_ESSV2", "MCC_WRIT"}
 _MCC_LOWEST_BUCKET_IDS = {"MCC_CULM"}
 _STANDING_SOFT_TAG = "standing_requirement"
@@ -598,36 +598,38 @@ def _tier_for_bucket_v2(
     parent_type = parent_type_map.get(parent_id, "")
     track_required = bucket_track_required_map.get(bucket_id, "")
 
-    if local_id == "BCC_REQUIRED":
+    # Tier 1 - MCC foundation work should be filled before business-core backfill.
+    if local_id in _MCC_FOUNDATION_BUCKET_IDS or parent_id == "MCC_FOUNDATION":
         return 1
 
-    if local_id in {"MCC_CORE", "MCC_FOUNDATION"} or parent_id in {"MCC_CORE", "MCC_FOUNDATION"}:
+    # Tier 2 - all BCC work, with BCC_REQUIRED first inside the tier.
+    if local_id.startswith(_BCC_PREFIX) or bucket_id.startswith("BCC::") or parent_id.startswith("BCC"):
         return 2
 
-    if local_id == "MCC_ESSV1" or parent_id == "MCC_ESSV1":
+    # Tier 3 - declared major requirements.
+    if parent_type == "major":
         return 3
 
-    if parent_type == "major":
-        return 4
-
-    if local_id.startswith(_BCC_PREFIX) or bucket_id.startswith("BCC::") or parent_id.startswith("BCC"):
-        return 5
-
-    if parent_type in {"track", "minor"}:
-        return 6
-
-    if track_required:
-        return 6
-
+    # Discovery and culminating buckets stay below explicit major/track work.
     if (
-        local_id in _MCC_LATE_BUCKET_IDS
-        or parent_id in _MCC_LATE_BUCKET_IDS
-        or local_id in _MCC_LOWEST_BUCKET_IDS
+        local_id in _MCC_LOWEST_BUCKET_IDS
         or parent_id in _MCC_LOWEST_BUCKET_IDS
         or local_id.startswith(_DISC_FAMILY_PREFIX)
         or parent_id.startswith(_DISC_FAMILY_PREFIX)
     ):
-        return 7
+        return 6
+
+    # Tier 4 - track and minor requirements.
+    if parent_type in {"track", "minor"} or track_required:
+        return 4
+
+    # Tier 5 - later MCC buckets that still matter before discovery/culm.
+    if local_id in _MCC_LATE_BUCKET_IDS or parent_id in _MCC_LATE_BUCKET_IDS:
+        return 5
+
+    # Unknown non-core buckets stay at the bottom.
+    if local_id or parent_id:
+        return 6
 
     return 7
 
@@ -695,6 +697,45 @@ def _bcc_priority_rank(candidate: dict, bucket_parent_map: dict[str, str]) -> in
     return 2 if has_bcc else 3
 
 
+def _ranking_band(candidate: dict, bucket_parent_map: dict[str, str]) -> int:
+    """
+    Actual selection order is slightly stricter than the semantic tier labels.
+
+    We still expose tier metadata as:
+      1) MCC foundation
+      2) BCC
+      3) major
+      4) track/minor
+      5) late MCC
+      6) discovery/culm
+
+    But direct BCC_REQUIRED work and its critical math/bridge unlockers should
+    surface ahead of other foundation work so freshmen do not drift math and
+    business-core prerequisites too far to the right.
+    """
+    if _is_priority_core_bridge_candidate(candidate):
+        return 0
+
+    bcc_rank = _bcc_priority_rank(candidate, bucket_parent_map)
+    if bcc_rank <= 1:
+        return 1
+
+    tier = int(candidate.get("ranking_tier", 99) or 99)
+    if tier == 1:
+        return 2
+    if tier == 2:
+        return 3
+    if tier == 3:
+        return 4
+    if tier == 4:
+        return 5
+    if tier == 5:
+        return 6
+    if tier == 6:
+        return 7
+    return 8
+
+
 def _is_critical_bridge_candidate(candidate: dict, bucket_parent_map: dict[str, str]) -> bool:
     if not candidate.get("is_bridge_course"):
         return False
@@ -730,13 +771,12 @@ def _bucket_hierarchy_tier_v2(
 ) -> int:
     """
     Priority tiers:
-      1) BCC_REQUIRED
-      2) MCC_CORE
-      3) MCC_ESSV1
-      4) major parent buckets
-      5) other BCC buckets
-      6) track/minor parent buckets
-      7) other MCC/discovery/culminating buckets
+      1) MCC foundation
+      2) BCC
+      3) major parent buckets
+      4) track/minor parent buckets
+      5) MCC_ESSV2 + MCC_WRIT
+      6) discovery + culminating buckets
 
     Unlockers remain an in-tier tie-break in the ranking key.
     """
@@ -783,6 +823,10 @@ def _compute_satisfied(applied: dict, assumed_done_credits: int) -> bool:
     if needed_credits > 0:
         return assumed_done_credits >= needed_credits
 
+    # No count or credit threshold defined -> vacuously satisfied
+    if needed_count is None and needed_credits <= 0:
+        return True
+
     return False
 
 
@@ -816,13 +860,20 @@ def annotate_progress_with_recommendation_hierarchy(
     progress: dict,
     data: dict,
     track_id: str,
+    *,
+    parent_type_map: dict[str, str] | None = None,
+    bucket_track_required_map: dict[str, str] | None = None,
+    bucket_parent_map: dict[str, str] | None = None,
 ) -> dict:
     if not progress:
         return progress
 
-    parent_type_map = _build_parent_type_map(data)
-    bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
-    bucket_parent_map = _build_bucket_parent_map(data, track_id)
+    if parent_type_map is None:
+        parent_type_map = _build_parent_type_map(data)
+    if bucket_track_required_map is None:
+        bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
+    if bucket_parent_map is None:
+        bucket_parent_map = _build_bucket_parent_map(data, track_id)
 
     annotated: dict = {}
     for bid, info in progress.items():
@@ -853,21 +904,29 @@ def _build_projected_outputs(
     selected_codes: list[str],
     data: dict,
     track_id: str,
+    *,
+    prebuilt_alloc: dict | None = None,
+    parent_type_map: dict[str, str] | None = None,
+    bucket_track_required_map: dict[str, str] | None = None,
+    bucket_parent_map: dict[str, str] | None = None,
 ) -> dict:
     # Progress view keeps planned semester courses as in-progress (yellow segment).
     projected_completed_for_progress = _dedupe_codes(completed)
     projected_in_progress_for_progress = _dedupe_codes(in_progress + selected_codes)
-    projected_alloc_for_progress = allocate_courses(
-        projected_completed_for_progress,
-        projected_in_progress_for_progress,
-        data["buckets_df"],
-        data["course_bucket_map_df"],
-        data["courses_df"],
-        data["equivalencies_df"],
-        track_id=track_id,
-        double_count_policy_df=data.get("v2_double_count_policy_df"),
-        runtime_indexes=data.get("runtime_indexes"),
-    )
+    if prebuilt_alloc is not None and not selected_codes:
+        projected_alloc_for_progress = prebuilt_alloc
+    else:
+        projected_alloc_for_progress = allocate_courses(
+            projected_completed_for_progress,
+            projected_in_progress_for_progress,
+            data["buckets_df"],
+            data["course_bucket_map_df"],
+            data["courses_df"],
+            data["equivalencies_df"],
+            track_id=track_id,
+            double_count_policy_df=data.get("v2_double_count_policy_df"),
+            runtime_indexes=data.get("runtime_indexes"),
+        )
     projected_progress = build_progress_output(
         projected_alloc_for_progress,
         data["course_bucket_map_df"],
@@ -876,6 +935,9 @@ def _build_projected_outputs(
         projected_progress,
         data,
         track_id,
+        parent_type_map=parent_type_map,
+        bucket_track_required_map=bucket_track_required_map,
+        bucket_parent_map=bucket_parent_map,
     )
 
 
@@ -1135,19 +1197,24 @@ def run_recommendation_semester(
     non_manual_sem = [c for c in eligible_sem if not c.get("manual_review")]
     eligible_count_sem = len(non_manual_sem)
 
+    # Build maps once and reuse throughout this request
+    parent_type_map = _build_parent_type_map(data)
+    bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
+    bucket_parent_map = _build_bucket_parent_map(data, track_id)
+    bucket_role_map = _build_bucket_role_map(data, track_id)
+
     progress_sem = annotate_progress_with_recommendation_hierarchy(
         build_progress_output(alloc, data["course_bucket_map_df"]),
         data,
         track_id,
+        parent_type_map=parent_type_map,
+        bucket_track_required_map=bucket_track_required_map,
+        bucket_parent_map=bucket_parent_map,
     )
     unsatisfied_bucket_ids = [
         bid for bid, info in progress_sem.items()
         if not info.get("satisfied", True)
     ]
-    parent_type_map = _build_parent_type_map(data)
-    bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
-    bucket_parent_map = _build_bucket_parent_map(data, track_id)
-    bucket_role_map = _build_bucket_role_map(data, track_id)
     writ_course_codes = _course_codes_for_local_bucket(
         data.get("course_bucket_map_df"),
         track_id,
@@ -1223,6 +1290,9 @@ def run_recommendation_semester(
                 selected_codes,
                 data,
                 track_id,
+                parent_type_map=parent_type_map,
+                bucket_track_required_map=bucket_track_required_map,
+                bucket_parent_map=bucket_parent_map,
             )
             return {
                 "target_semester": target_semester_label,
@@ -1249,6 +1319,10 @@ def run_recommendation_semester(
             [],
             data,
             track_id,
+            prebuilt_alloc=alloc,
+            parent_type_map=parent_type_map,
+            bucket_track_required_map=bucket_track_required_map,
+            bucket_parent_map=bucket_parent_map,
         )
         return {
             "target_semester": target_semester_label,
@@ -1270,17 +1344,22 @@ def run_recommendation_semester(
             "projection_note": _PROJECTION_NOTE,
         }
 
-    core_bucket_ids = get_buckets_by_role(data["buckets_df"], track_id, "core")
+    # Build core_prereq_blockers: prereqs of remaining courses in unsatisfied
+    # non-universal required/choose_n buckets.  These courses need to be
+    # scheduled early so the courses they unlock can still fit in 8 semesters.
     core_remaining_sem: list[str] = []
-    for core_bid in core_bucket_ids:
-        # Skip universal (BCC/MCC) buckets — core_prereq_blocker only matters
-        # for major/track buckets where unlocking a specific course is critical.
-        parent_id = bucket_parent_map.get(core_bid.upper(), "")
+    for bid, rem_info in alloc["remaining"].items():
+        slots = rem_info.get("slots_remaining", 0)
+        if slots <= 0:
+            continue
+        # Skip credit-pool buckets (electives don't create critical chains).
+        if rem_info.get("is_credit_based"):
+            continue
+        # Skip universal (BCC/MCC) buckets.
+        parent_id = bucket_parent_map.get(bid.upper(), "")
         if parent_type_map.get(parent_id) == "universal":
             continue
-        core_remaining_sem.extend(
-            alloc["remaining"].get(core_bid, {}).get("remaining_courses", [])
-        )
+        core_remaining_sem.extend(rem_info.get("remaining_courses", []))
     # Deduplicate while preserving order for deterministic warnings.
     core_remaining_sem = list(dict.fromkeys(core_remaining_sem))
     core_prereq_blockers_sem: set[str] = set()
@@ -1312,6 +1391,7 @@ def run_recommendation_semester(
             bucket_parent_map,
         )
         tagged["current_unmet_buckets"] = current_unmet_buckets
+        tagged["is_core_prereq_blocker"] = tagged["course_code"] in core_prereq_blockers_sem
         tagged["is_discovery_driven"] = is_discovery_driven
         tagged["soft_prereq_penalty"] = _soft_prereq_demote_penalty(tagged)
         if is_discovery_driven:
@@ -1327,9 +1407,14 @@ def run_recommendation_semester(
     ranked_sem = sorted(
         scored_non_manual_sem,
         key=lambda c: (
+            _ranking_band(c, bucket_parent_map),
             c.get("ranking_tier", 99),
             _bcc_priority_rank(c, bucket_parent_map),
+            0 if c.get("is_core_prereq_blocker") else 1,
             _bridge_sort_penalty(c, bucket_parent_map),
+            c.get("soft_prereq_penalty", 0),
+            c.get("discovery_foundation_penalty", 0),
+            c.get("discovery_affinity_penalty", 0),
             -_chain.get(c["course_code"], 0),
             -c.get("multi_bucket_score", 0),
             # Honors students: prefer H variants (sort before base course).
@@ -1667,6 +1752,9 @@ def run_recommendation_semester(
         selected_codes,
         data,
         track_id,
+        parent_type_map=parent_type_map,
+        bucket_track_required_map=bucket_track_required_map,
+        bucket_parent_map=bucket_parent_map,
     )
 
     result = {
