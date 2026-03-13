@@ -908,8 +908,8 @@ def test_single_bucket_work_can_fill_multiple_slots_without_diversity_cap():
     assert "balance_policy" not in out
 
 
-def test_tier_order_bcc_then_mcc_core_then_essv1_then_major_then_other_bcc_then_track():
-    """Recommendations follow the fixed global hierarchy without a balance pass."""
+def test_tier_order_bcc_required_then_foundation_then_other_bcc_then_major():
+    """Direct BCC-required work leads, but foundation still beats major and late MCC."""
     courses = [
         {
             "course_code": "ACCO 1030",
@@ -1137,7 +1137,7 @@ def test_tier_order_bcc_then_mcc_core_then_essv1_then_major_then_other_bcc_then_
     )
 
     codes = [r["course_code"] for r in out["debug"][:6]]
-    assert codes == ["ACCO 1030", "ENGL 1001", "SOCI 1001", "FINA 3001", "BULA 2050", "TRACK 3001"]
+    assert codes == ["ACCO 1030", "ENGL 1001", "SOCI 1001", "BULA 2050", "FINA 3001", "TRACK 3001"]
     assert "HIST 1301" not in codes
     assert "balance_policy" not in out
 

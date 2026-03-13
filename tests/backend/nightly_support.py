@@ -105,6 +105,20 @@ def _format_bucket_list(bucket_ids: list[str], limit: int = 3) -> str:
     return ", ".join(shown) + suffix
 
 
+def _normalize_string_list(values) -> list[str]:
+    if values is None:
+        return []
+    if isinstance(values, str):
+        return [piece.strip() for piece in values.split(",") if piece.strip()]
+
+    normalized: list[str] = []
+    for value in values:
+        text = str(value).strip()
+        if text:
+            normalized.append(text)
+    return normalized
+
+
 def _titleize_words(text: str) -> str:
     parts = []
     for word in str(text or "").split():
@@ -255,10 +269,20 @@ def _plain_reason(record: dict) -> str:
     return "the sample needs review."
 
 
-def _health_status(*, partial: bool, total_tests: int, reported: int, dead_end_count: int, not_finished_count: int) -> str:
+def _health_status(
+    *,
+    partial: bool,
+    total_tests: int,
+    reported: int,
+    dead_end_count: int,
+    not_finished_count: int,
+    supplemental_count: int,
+) -> str:
     if partial or total_tests == 0:
         return "Red"
     if reported == 0:
+        if supplemental_count:
+            return "Yellow"
         return "Green"
     if dead_end_count > 0 or not_finished_count >= max(5, total_tests // 4):
         return "Red"
@@ -274,14 +298,17 @@ def _plain_summary(
     not_finished_count: int,
     dead_end_count: int,
     reported: int,
+    supplemental_count: int,
 ) -> str:
     if partial or total_tests == 0:
         return (
             f"This run is incomplete, so it should not be used as a clean daily decision signal yet "
             f"({total_tests} of {expected_tests} planned samples were evaluated)."
         )
-    if reported == 0:
+    if reported == 0 and supplemental_count == 0:
         return "All sampled student plans completed without reported issues."
+    if reported == 0 and supplemental_count > 0:
+        return "Sampled plans passed, but nightly catalog baseline checks still found issues to review."
     if not_finished_count > 0:
         return "Many sampled student plans still do not finish within 8 semesters."
     if dead_end_count > 0:
@@ -585,6 +612,8 @@ class NightlyFailureCollector:
         self.expected_tests = 0
         self.case_budget = 0
         self.invalid_cases = 0
+        self.supplemental_checks = 0
+        self.supplemental_records: list[dict] = []
         self._start_time = time.time()
 
     def configure_suite(self, suite: NightlySuite, *, seed: int):
@@ -644,6 +673,33 @@ class NightlyFailureCollector:
             "unsatisfied_buckets": list(dict.fromkeys(unsatisfied)),
         })
 
+    def record_supplemental_issue(
+        self,
+        *,
+        label: str,
+        issue_kind: str,
+        reason: str,
+        scenario_label: str,
+        declared_majors: list[str] | None = None,
+        track_ids: list[str] | None = None,
+        declared_minors: list[str] | None = None,
+        completed_courses: list[str] | None = None,
+        unsatisfied_buckets: list[str] | None = None,
+        details: list[str] | None = None,
+    ):
+        self.supplemental_records.append({
+            "label": label,
+            "issue_kind": issue_kind,
+            "reason": reason,
+            "scenario_label": scenario_label,
+            "declared_majors": _normalize_string_list(declared_majors),
+            "track_ids": _normalize_string_list(track_ids),
+            "declared_minors": _normalize_string_list(declared_minors),
+            "completed_courses": _normalize_string_list(completed_courses),
+            "unsatisfied_buckets": list(dict.fromkeys(unsatisfied_buckets or [])),
+            "details": list(details or []),
+        })
+
     def generate_report(self) -> str:
         from datetime import date as _date
 
@@ -680,6 +736,7 @@ class NightlyFailureCollector:
             reported=len(self.records),
             dead_end_count=dead_end_count,
             not_finished_count=not_finished_count,
+            supplemental_count=len(self.supplemental_records),
         )
 
         lines = [
@@ -699,6 +756,7 @@ class NightlyFailureCollector:
                 not_finished_count=not_finished_count,
                 dead_end_count=dead_end_count,
                 reported=len(self.records),
+                supplemental_count=len(self.supplemental_records),
             ),
             f"- Review Date: {_date.today().isoformat()}",
             f"- Runtime: {mins}m {secs}s",
@@ -735,7 +793,16 @@ class NightlyFailureCollector:
             lines.append(
                 f"- {_count_phrase(dead_end_count, 'sampled plan')} ran out of valid next courses before finishing."
             )
-        if not any([partial, invalid_count, not_finished_count, dead_end_count]):
+        if self.supplemental_records:
+            kind_counts = Counter(record["issue_kind"] for record in self.supplemental_records)
+            summary = ", ".join(
+                f"{count} {kind}"
+                for kind, count in sorted(kind_counts.items(), key=lambda item: (-item[1], item[0]))
+            )
+            lines.append(
+                f"- {_count_phrase(len(self.supplemental_records), 'nightly catalog baseline check')} failed: {summary}."
+            )
+        if not any([partial, invalid_count, not_finished_count, dead_end_count, self.supplemental_records]):
             lines.append("- No action items were reported in this run.")
 
         lines.extend(["", "## Biggest Patterns"])
@@ -747,6 +814,30 @@ class NightlyFailureCollector:
             lines.append("- No recurring requirement gaps were found in the sampled plans.")
         else:
             lines.append("- No requirement pattern summary is available for this run.")
+
+        lines.extend(["", "## Catalog Baseline Audits"])
+        if self.supplemental_records:
+            grouped: Counter[tuple[str, str]] = Counter(
+                (record["issue_kind"], record["scenario_label"]) for record in self.supplemental_records
+            )
+            for (issue_kind, scenario_label), count in sorted(
+                grouped.items(),
+                key=lambda item: (-item[1], item[0][0], item[0][1]),
+            )[:8]:
+                sample = next(
+                    (
+                        record for record in self.supplemental_records
+                        if record["issue_kind"] == issue_kind and record["scenario_label"] == scenario_label
+                    ),
+                    None,
+                )
+                if sample is None:
+                    continue
+                lines.append(
+                    f"- {_count_phrase(count, issue_kind)} in {scenario_label}: {sample['reason']}"
+                )
+        else:
+            lines.append("- No nightly catalog baseline issues were reported.")
 
         lines.extend(["", "## Sample Plan Groups To Review"])
         top_groups = sorted(scenario_counts.items(), key=lambda item: (-item[1], item[0][0], item[0][1]))[:5]
@@ -779,10 +870,12 @@ class NightlyFailureCollector:
             f"- Samples with no reported issues: {max(passed, 0)}",
             f"- Samples with reported issues: {len(self.records)}",
             f"- Samples that could not be evaluated: {self.invalid_cases}",
+            f"- Nightly catalog baseline checks run: {self.supplemental_checks}",
+            f"- Nightly catalog baseline issues: {len(self.supplemental_records)}",
             f"- Seed: `{self.seed or 'unknown'}`",
         ])
 
-        if not self.records:
+        if not self.records and not self.supplemental_records:
             lines.extend(["", "### Student Profile Logs", "", "No student profile logs were recorded for this run."])
             return "\n".join(lines)
 
@@ -805,6 +898,31 @@ class NightlyFailureCollector:
                 f"- reason: {record['reason']}",
                 "",
             ])
+        if self.supplemental_records:
+            lines.extend(["### Catalog Baseline Logs", ""])
+            for index, record in enumerate(self.supplemental_records, 1):
+                tracks = ", ".join(record["track_ids"]) if record["track_ids"] else "none"
+                minors = ", ".join(record["declared_minors"]) if record["declared_minors"] else "none"
+                courses = ", ".join(record["completed_courses"]) if record["completed_courses"] else "none"
+                lines.extend([
+                    f"#### Catalog Issue {index}",
+                    f"- label: {record['label']}",
+                    f"- kind: {record['issue_kind']}",
+                    f"- majors: {', '.join(record['declared_majors']) or 'none'}",
+                    f"- track: {tracks}",
+                    f"- minors: {minors}",
+                    f"- scenario: {record['scenario_label']}",
+                    f"- courses taken: {courses}",
+                    f"- reason: {record['reason']}",
+                ])
+                if record["unsatisfied_buckets"]:
+                    lines.append(
+                        "- buckets: "
+                        + ", ".join(_friendly_bucket_label(bucket) for bucket in record["unsatisfied_buckets"])
+                    )
+                for detail in record["details"]:
+                    lines.append(f"- detail: {detail}")
+                lines.append("")
         return "\n".join(lines)
 
 

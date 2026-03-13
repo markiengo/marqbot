@@ -1,6 +1,6 @@
 # Test Structure
 
-Last updated: 2026-03-10
+Last updated: 2026-03-12
 
 Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
@@ -8,12 +8,13 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
 | What to run | Command | Tests |
 |---|---|---:|
-| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | ~637 |
-| **Fast dead-end check** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q` | ~67 |
-| **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q` | 750 default |
-| **Frontend** | `cd frontend; npm run test` | 84 |
+| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 590 |
+| **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | 15 |
+| **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly -q` | 750 sampled + nightly-only catalog audits |
+| **Frontend** | `cd frontend; npm run test` | 89 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
+Nightly is now the home for data-sensitive catalog acceptance checks that are expected to drive course/major patch decisions from the report, not PR gating.
 
 ## When to Run What
 
@@ -21,7 +22,7 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 |---|---|
 | Narrow backend fix | Closest test file |
 | Broad backend change | Focused file + `.\.venv\Scripts\python.exe -m pytest -q` |
-| Planner / recommendation logic | Focused file + `test_dead_end_fast.py` |
+| Planner / recommendation logic | Focused file + the planner smoke guardrail |
 | Release confidence | Nightly sweep (separately) |
 | Frontend helper | Closest test file |
 | Frontend broad / pre-push | `cd frontend; npm run test; npm run lint; npm run build` |
@@ -30,11 +31,11 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 
 | File | Tests | What it covers |
 |---|---:|---|
-| `test_advisor_match.py` | 14 | Gold-profile overlap against advisor expectations |
+| `test_advisor_match.py` | 14 | Nightly-only advisor gold-profile overlap audit |
 | `test_allocator.py` | 26 | Allocation routing, min-level, double-count policy |
 | `test_data_integrity.py` | 34 | CSV schema, FK integrity, prereq graph sanity |
 | `test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
-| `test_dead_end_fast.py` | ~67 | Single-program empty-state, curated combos, smoke tests, graduation-by-8 |
+| `test_dead_end_fast.py` | ~67 total | Mixed file: PR smoke checks plus nightly-only catalog dead-end and graduation baselines |
 | `test_dead_end_nightly.py` | 750 default | Focused sampled nightly sweep with prereq-hardened seeded histories and semester-8 completion checks |
 | `test_dead_end_nightly_helpers.py` | 4 | Nightly sampler, seeded-history builder, budget guard, and report-format regression tests |
 | `test_eligibility.py` | 42 | Eligibility filters, restrictions, bridge courses, can-take helpers |
@@ -52,7 +53,7 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 | `test_server_data_reload.py` | 3 | Hot-reload safety |
 | `test_server_security.py` | 6 | Health, security headers, rate limiting |
 | `test_tier_invariants.py` | 6 | Stable recommendation tier ordering |
-| `test_track_aware.py` | 68 | Track allocation, aliases, merged progress, catalog audits |
+| `test_track_aware.py` | 68 | Track allocation, aliases, merged progress; AIM catalog audits now run nightly-only |
 | `test_unlocks.py` | 9 | Reverse prereq map, blocker warnings |
 | `test_validate_prereqs_endpoint.py` | 8 | `/validate-prereqs` endpoint contract |
 | `test_validate_track.py` | 45 | Publish-gate validation, V2 governance |
@@ -104,6 +105,8 @@ One unified workflow: `.github/workflows/nightly-sweep.yml`
 | **Schedule** (07:00 UTC; about 3:00 AM New York during daylight saving time) | Nightly Focused Sweep |
 | **Manual** (`workflow_dispatch`) | Nightly Focused Sweep |
 
+For the scheduled/manual nightly job, catalog-data assertion failures are treated as reportable review items, not release-blocking CI failures. The job stays green on pytest exit code `1` as long as the report artifact is produced; runner/internal pytest errors still fail the workflow.
+
 ## Running Tests Locally
 
 All tests run fully offline once dependencies already exist locally. Make sure `.venv/` and `frontend/node_modules/` are present before you lose internet. Everything reads from the CSVs in `data/`.
@@ -112,20 +115,20 @@ All tests run fully offline once dependencies already exist locally. Make sure `
 # Standard suite (~1 min)
 .\.venv\Scripts\python.exe -m pytest -q
 
-# Fast dead-end only (~30s)
-.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -q
+# Planner smoke guardrail only (15 tests)
+.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q
 
-# Nightly focused sweep (default: 30 combos x 5 profiles x 5 variants = 750 tests)
+# Nightly focused sweep plus nightly-only catalog audits
 .\.venv\Scripts\python.exe -m pytest -m nightly -q
 
 # Nightly with a specific seed in PowerShell (replay a past day's sampled combos/histories)
 $env:NIGHTLY_SEED='20260308'
 .\.venv\Scripts\python.exe -m pytest -m nightly -q
 
-# Reduced nightly smoke (1 combo x 5 profiles x 1 variant)
+# Reduced nightly smoke (1 combo x 5 profiles x 1 variant, plus any nightly catalog audits)
 $env:NIGHTLY_SAMPLE_SIZE='1'
 $env:NIGHTLY_SELECTION_VARIANTS='1'
-.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q
+.\.venv\Scripts\python.exe -m pytest -m nightly -q
 Remove-Item Env:NIGHTLY_SAMPLE_SIZE
 Remove-Item Env:NIGHTLY_SELECTION_VARIANTS
 
@@ -138,6 +141,7 @@ npm run test
 ```
 
 The nightly sweep generates one report file at `tests/nightly_reports/YYYY-MM-DD.md` after finishing.
+That report is the intended daily review surface for catalog-sensitive failures such as advisor-gold drift, baseline dead-ends, and baseline graduation gaps.
 
 ## Nightly Sweep Details
 
@@ -150,6 +154,7 @@ The nightly sweep is now a focused sampled harness, not an exhaustive combinator
 - **Deadline rule**: each seeded student must both avoid dead-ends and still be on pace to finish within an overall `8`-semester path; the seeded semesters already taken count against that cap
 - **Expected count accounting**: the report shows planned samples, evaluated samples, invalid seeded histories, and whether the run was complete or partial
 - **Report layout**: plain-English health summary first, then biggest patterns, then an appendix with run details and student profile logs
+- **Catalog baseline section**: advisor-gold mismatches and baseline dead-end / graduation audits are summarized in a dedicated nightly report section
 - **Seed**: override combo/history replay with `NIGHTLY_SEED`
 - **Knobs**: `NIGHTLY_SAMPLE_SIZE`, `NIGHTLY_SELECTION_VARIANTS`, and `NIGHTLY_CASE_BUDGET`
 - **Report**: uploaded as one artifact named `nightly-sweep-report-YYYY-MM-DD` (14-day retention) and contains one Markdown report file for that run

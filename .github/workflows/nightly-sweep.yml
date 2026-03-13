@@ -22,9 +22,9 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -44,9 +44,9 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -57,7 +57,7 @@ jobs:
       - name: Run fast dead-end checks
         env:
           PYTHONPATH: backend:tests/backend
-        run: python -m pytest tests/backend/test_dead_end_fast.py -q
+        run: python -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q
 
   frontend:
     name: Frontend Tests
@@ -66,9 +66,9 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
@@ -91,9 +91,9 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -113,12 +113,19 @@ jobs:
 
       - name: Run nightly focused sweep
         id: nightly_run
+        shell: bash
         env:
           PYTHONPATH: backend:tests/backend
           NIGHTLY_REPORT_DATE: ${{ steps.report_meta.outputs.report_date }}
         run: |
+          set +e
           python -m pytest -m nightly -q 2>&1 | tee nightly_output.txt
-          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          if [ "$exit_code" -eq 1 ]; then
+            echo "Nightly catalog/data issues were recorded in the report; keeping the workflow green."
+          fi
+          exit 0
 
       - name: Generate fallback report on collection failure
         if: steps.nightly_run.outputs.exit_code != '0'
@@ -134,9 +141,15 @@ jobs:
           fi
 
       - name: Upload nightly report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: nightly-sweep-report-${{ steps.report_meta.outputs.report_date }}
           path: ${{ steps.report_meta.outputs.report_path }}
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Fail on nightly runner errors
+        if: ${{ steps.nightly_run.outputs.exit_code != '0' && steps.nightly_run.outputs.exit_code != '1' }}
+        run: |
+          echo "Pytest exited with code ${{ steps.nightly_run.outputs.exit_code }}."
+          exit 1

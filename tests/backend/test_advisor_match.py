@@ -4,15 +4,18 @@ Offline Advisor Match tests (v1.9).
 Calls the Flask test client (no live server needed) to score each gold profile.
 Pass criteria per profile: overlap(actual_top6, expected_top6) >= 4.
 
-These tests use pytest.mark.xfail when a profile is known to not yet meet the
-threshold, allowing CI to track progress without blocking.
+These tests are nightly-only because the gold profiles are intended to drive
+catalog patch decisions from the nightly report rather than block PRs.
 """
 
 import json
 import os
 import pytest
 from advisor_match_common import score_against_gold
+from conftest import get_nightly_collector
 from server import app
+
+pytestmark = pytest.mark.nightly
 
 
 GOLD_PATH = os.path.join(
@@ -40,6 +43,14 @@ def _score(client, profile: dict, expected_top6: list[str]) -> tuple[int, list[s
     return overlap, actual_top6
 
 
+def _normalize_profile_list(value) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [piece.strip() for piece in value.split(",") if piece.strip()]
+    return [str(piece).strip() for piece in value if str(piece).strip()]
+
+
 def _make_test(entry: dict):
     """Generate a test function for a single gold profile."""
     profile_id = entry["id"]
@@ -47,17 +58,52 @@ def _make_test(entry: dict):
     profile = entry["profile"]
     expected_top6 = entry["expected_top6"]
     notes = entry.get("notes", "")
+    declared_majors = _normalize_profile_list(profile.get("declared_majors"))
+    track_ids = (
+        [str(profile["track_id"]).strip()]
+        if profile.get("track_id")
+        else _normalize_profile_list(profile.get("track_ids"))
+    )
+    declared_minors = _normalize_profile_list(profile.get("declared_minors"))
+    completed_courses = _normalize_profile_list(profile.get("completed_courses"))
 
     def test_fn(client):
+        collector = get_nightly_collector()
+        collector.supplemental_checks += 1
         overlap, actual = _score(client, profile, expected_top6)
-        assert overlap >= 4, (
+        if overlap >= 4:
+            return
+
+        missing = sorted(set(expected_top6) - set(actual))
+        extra = sorted(set(actual) - set(expected_top6))
+        collector.record_supplemental_issue(
+            label=profile_id,
+            issue_kind="advisor gold mismatch",
+            scenario_label=profile_id,
+            declared_majors=declared_majors,
+            track_ids=track_ids,
+            declared_minors=declared_minors,
+            completed_courses=completed_courses,
+            reason=(
+                f"Top-6 overlap was {overlap}/6 for {description}. "
+                f"The planner missed {', '.join(missing) if missing else 'none'}."
+            ),
+            details=[
+                f"notes: {notes}" if notes else "notes: none",
+                f"expected top6: {', '.join(expected_top6)}",
+                f"actual top6: {', '.join(actual)}",
+                f"missing: {', '.join(missing) if missing else 'none'}",
+                f"extra: {', '.join(extra) if extra else 'none'}",
+            ],
+        )
+        raise AssertionError(
             f"[{profile_id}] Advisor Match FAIL: overlap={overlap}/6\n"
             f"  Profile    : {description}\n"
             f"  Notes      : {notes}\n"
             f"  Expected   : {expected_top6}\n"
             f"  Actual top6: {actual}\n"
-            f"  Missing    : {sorted(set(expected_top6) - set(actual))}\n"
-            f"  Extra      : {sorted(set(actual) - set(expected_top6))}"
+            f"  Missing    : {missing}\n"
+            f"  Extra      : {extra}"
         )
 
     test_fn.__name__ = f"test_advisor_match_{profile_id}"

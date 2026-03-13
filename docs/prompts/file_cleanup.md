@@ -3,6 +3,11 @@
 Use this before deleting or archiving files in this repo.
 Goal: remove clutter without breaking MarqBot.
 
+Test philosophy reminder:
+- PR-facing checks should stay green from stable code behavior.
+- Nightly is where broad catalog/data drift should surface in one report.
+- Do not "fix" cleanup risk by weakening stable regression coverage.
+
 ## 1) Start safe
 - Run `git status`.
 - Write down:
@@ -109,6 +114,9 @@ Use `tests/test_structure.md` as the source of truth.
 - read the workflow file carefully
 - make sure paths and commands still exist
 - do not treat the nightly sweep as a normal cleanup check
+- if cleanup only affects local agent files or docs plumbing, prefer stable PR checks over the nightly sweep
+- if cleanup changes course/major data or test routing, make sure the nightly report still remains the single review surface for catalog patch decisions
+- keep the scheduled nightly workflow report-driven: catalog-data issues should land in the report artifact, while true runner or collection failures should still fail the workflow
 
 ## 8) Report what happened
 Always write down:

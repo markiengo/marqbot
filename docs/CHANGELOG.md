@@ -8,6 +8,22 @@ Format per release:
 
 ---
 
+## [v2.4.3] - 2026-03-12
+
+### Changes
+
+- Updated the GitHub Actions workflow to Node 24-safe action versions (`actions/checkout@v5`, `actions/setup-node@v5`, `actions/setup-python@v6`, `actions/upload-artifact@v6`).
+- Split CI expectations cleanly: pull requests run only stable backend/frontend/planner guardrail checks, while nightly-only catalog audits stay out of the PR gate.
+- Expanded the nightly report so advisor-gold mismatches, track catalog audits, baseline graduation gaps, and track-only program-setup failures are all captured in one report section with readable course-history logging.
+- Refreshed `tests/test_structure.md` and `docs/prompts/file_cleanup.md` to document the report-driven nightly workflow and the stable-vs-nightly test split.
+
+### Design Decisions
+
+- Stable product behavior should be protected by green PR-facing checks; course and major data drift should be reviewed from the nightly report instead of blocking merges.
+- The scheduled nightly workflow should stay green when pytest reports catalog-data mismatches (`exit code 1`) as long as the report artifact is produced, but it should still fail on real runner, collection, or internal pytest errors.
+
+---
+
 ## [v2.4.2] - 2026-03-12
 
 ### Changes

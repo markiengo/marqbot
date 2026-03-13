@@ -31,6 +31,9 @@ def pytest_sessionfinish(session, exitstatus):
     from datetime import date
 
     collector = _nightly_collector
+    if collector.total_tests == 0 and collector.supplemental_checks == 0:
+        return
+
     report = collector.generate_report()
 
     report_dir = os.path.join(os.path.dirname(__file__), "..", "nightly_reports")
