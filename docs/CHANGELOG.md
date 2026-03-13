@@ -16,11 +16,20 @@ Format per release:
 - Split CI expectations cleanly: pull requests run only stable backend/frontend/planner guardrail checks, while nightly-only catalog audits stay out of the PR gate.
 - Expanded the nightly report so advisor-gold mismatches, track catalog audits, baseline graduation gaps, and track-only program-setup failures are all captured in one report section with readable course-history logging.
 - Refreshed `tests/test_structure.md` and `docs/prompts/file_cleanup.md` to document the report-driven nightly workflow and the stable-vs-nightly test split.
+- Added frontend CSS polish: text gradients, gradient borders, shimmer effects, breathing glow, underline-reveal nav links, frosted panels, and stagger-enter animations with reduced-motion fallbacks.
+- Rewrote about page copy to be funnier and more student-facing.
+- Fixed recommendation sort key: wired `soft_prereq_penalty`, `discovery_foundation_penalty`, `discovery_affinity_penalty`, and `is_core_prereq_blocker` into the actual ranking (were computed but unused).
+- Fixed rate-limit tracker memory leak: expired IP keys now get evicted instead of accumulating as empty lists.
+- Fixed empty-bucket (0/0) satisfaction: buckets with no count or credit threshold are now marked satisfied instead of blocking progress.
+- Deleted 14 dead frontend files (unused components, orphaned lib module, stale CSV).
+- Archived 7 one-time migration/scraping scripts to `scripts/archive/`.
 
 ### Design Decisions
 
 - Stable product behavior should be protected by green PR-facing checks; course and major data drift should be reviewed from the nightly report instead of blocking merges.
 - The scheduled nightly workflow should stay green when pytest reports catalog-data mismatches (`exit code 1`) as long as the report artifact is produced, but it should still fail on real runner, collection, or internal pytest errors.
+- CSS effects use safe box-shadow approach instead of mask-composite to avoid Safari/Framer Motion composited-layer breaks.
+- Shimmer limited to the primary hero CTA only to avoid diluting the visual signal across multiple buttons.
 
 ---
 

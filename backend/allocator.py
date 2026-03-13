@@ -617,6 +617,9 @@ def allocate_courses(
             applied[bid]["satisfied"] = (
                 applied[bid]["credits_applied"] >= meta["needed_credits"]
             )
+        else:
+            # No count or credit threshold — vacuously satisfied
+            applied[bid]["satisfied"] = True
 
     def assign_completed_to_bucket(course_code: str, bid: str, credits: int):
         applied[bid]["completed_applied"].append(course_code)

@@ -26,8 +26,8 @@ _DISC_FAMILY_PREFIX = "MCC_DISC"
 _PROJECTION_NOTE = (
     "Projected progress below assumes you complete these recommendations."
 )
-_DISCOVERY_FOUNDATION_BUCKET_IDS = {"MCC_CORE", "MCC_ESSV1"}
 _MCC_FOUNDATION_BUCKET_IDS = {"MCC_CORE", "MCC_ESSV1"}
+_DISCOVERY_FOUNDATION_BUCKET_IDS = _MCC_FOUNDATION_BUCKET_IDS
 _MCC_LATE_BUCKET_IDS = {"MCC_ESSV2", "MCC_WRIT"}
 _MCC_LOWEST_BUCKET_IDS = {"MCC_CULM"}
 _STANDING_SOFT_TAG = "standing_requirement"
@@ -1410,7 +1410,11 @@ def run_recommendation_semester(
             _ranking_band(c, bucket_parent_map),
             c.get("ranking_tier", 99),
             _bcc_priority_rank(c, bucket_parent_map),
+            0 if c.get("is_core_prereq_blocker") else 1,
             _bridge_sort_penalty(c, bucket_parent_map),
+            c.get("soft_prereq_penalty", 0),
+            c.get("discovery_foundation_penalty", 0),
+            c.get("discovery_affinity_penalty", 0),
             -_chain.get(c["course_code"], 0),
             -c.get("multi_bucket_score", 0),
             # Honors students: prefer H variants (sort before base course).

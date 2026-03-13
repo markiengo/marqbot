@@ -43,13 +43,13 @@ export function NowNextSection() {
             {...viewAnim(14, 0.08)}
             className="font-[family-name:var(--font-sora)] text-[2rem] font-bold leading-tight text-white md:text-[2.8rem]"
           >
-            The stuff I&apos;m working on now.
+            Here are the stuff I have on my to-dos.
           </motion.h2>
           <motion.p
             {...viewAnim(10, 0.16)}
             className="mx-auto max-w-[38rem] text-[0.98rem] leading-relaxed text-ink-muted sm:text-[1.05rem]"
           >
-            There is a longer backlog. These are the four items currently winning.
+            The backlog is longer than my transcript. These four are winning right now.
           </motion.p>
         </div>
 

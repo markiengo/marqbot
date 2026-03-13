@@ -84,7 +84,7 @@ export function LandingHeroSimple() {
               <span className="mt-3 block text-emphasis-blue">
                 Before CheckMarq turns registration
               </span>
-              <span className="block text-gold">into a six-tab side quest.</span>
+              <span className="block text-gradient-gold">into a six-tab side quest.</span>
             </motion.h1>
 
             <motion.p
@@ -164,7 +164,7 @@ export function LandingHeroSimple() {
               <p className="mt-1 text-sm font-semibold text-white">5,300+ course records wired in</p>
             </motion.div>
 
-            <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(145deg,rgba(10,24,50,0.96),rgba(8,19,39,0.90))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.30)] sm:p-5">
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/10 gradient-border bg-[linear-gradient(145deg,rgba(10,24,50,0.96),rgba(8,19,39,0.90))] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.30)] sm:p-5">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.08),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(0,114,206,0.10),transparent_34%)] opacity-80" />
 
               <div className="relative flex items-center justify-between gap-3 rounded-[1.25rem] border border-white/8 bg-white/[0.03] px-4 py-3">

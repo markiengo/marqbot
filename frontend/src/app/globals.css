@@ -60,6 +60,7 @@
   /* MU extended palette */
   --color-mu-blue: #0072ce;
   --color-mu-dark-gold: #836236;
+  --color-ink-accent-blue: #8ec8ff;
 
   /* Radii */
   --radius-sm: 8px;
@@ -95,6 +96,20 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+}
+
+/* Film grain overlay for depth — sits over body, under content */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  mix-blend-mode: overlay;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -270,13 +285,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .hover-lift {
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 280ms ease;
 }
 .hover-lift:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.005);
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.25),
-    0 2px 8px rgba(0, 0, 0, 0.15);
+    0 12px 32px rgba(0, 0, 0, 0.28),
+    0 4px 12px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(141, 170, 224, 0.08);
 }
 
 .glow-gold {
@@ -307,19 +323,6 @@ h1, h2, h3, h4, h5, h6 {
 .divider-fade {
   height: 1px;
   background: linear-gradient(90deg, transparent 2%, rgba(255, 204, 0, 0.18) 35%, rgba(0, 114, 206, 0.14) 65%, transparent 98%);
-}
-.stat-card-decor {
-  position: relative;
-}
-.stat-card-decor::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 80% 60% at 80% 10%, rgba(255, 204, 0, 0.06), transparent),
-    radial-gradient(ellipse 60% 50% at 10% 85%, rgba(0, 114, 206, 0.04), transparent);
 }
 /* Progress bar glow effects */
 .bar-glow-ok {
@@ -402,7 +405,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .text-emphasis-blue {
-  color: #8ec8ff;
+  color: var(--color-ink-accent-blue);
 }
 
 /* Respect user motion preferences */
@@ -419,10 +422,6 @@ h1, h2, h3, h4, h5, h6 {
   .shine-sweep::after,
   .bar-animate-in {
     animation: none !important;
-  }
-  [style*="animation: shimmer"] {
-    animation: none !important;
-    background-position: 0 0 !important;
   }
 }
 
@@ -617,26 +616,28 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
 .glass-card {
   background: linear-gradient(145deg, rgba(18, 33, 63, 0.70), rgba(22, 43, 80, 0.55));
   border: 1px solid rgba(141, 170, 224, 0.14);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.18),
     0 8px 24px rgba(0, 0, 0, 0.10),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
 }
 
 /* Card with hover glow — gold glow bloom on hover */
 .card-glow-hover {
-  transition: box-shadow 300ms ease, border-color 300ms ease;
+  transition: box-shadow 350ms cubic-bezier(0.22, 1, 0.36, 1), border-color 350ms ease, background 350ms ease;
 }
 .card-glow-hover:hover {
-  border-color: rgba(255, 204, 0, 0.25);
+  border-color: rgba(255, 204, 0, 0.30);
+  background: linear-gradient(145deg, rgba(20, 37, 68, 0.80), rgba(26, 48, 88, 0.65));
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.20),
-    0 8px 24px rgba(0, 0, 0, 0.12),
-    0 0 20px rgba(255, 204, 0, 0.10),
-    0 0 40px rgba(255, 204, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 4px 8px rgba(0, 0, 0, 0.22),
+    0 12px 32px rgba(0, 0, 0, 0.14),
+    0 0 24px rgba(255, 204, 0, 0.12),
+    0 0 48px rgba(255, 204, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* KPI tile glow states */
@@ -736,4 +737,151 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
 /* Ring container glow */
 .ring-glow {
   filter: drop-shadow(0 0 8px rgba(255, 204, 0, 0.15)) drop-shadow(0 0 20px rgba(30, 159, 97, 0.10));
+}
+
+/* ── Premium text gradients ──────────────────────────────────── */
+.text-gradient-gold {
+  color: var(--color-gold); /* fallback for older WebKit */
+  background: linear-gradient(135deg, #ffcc00, #ffe066 40%, #e6b800 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-gradient-blue-gold {
+  background: linear-gradient(135deg, #8ec8ff 0%, #ffcc00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Gold CTA shimmer sweep ──────────────────────────────────── */
+@keyframes cta-shimmer {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+.cta-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.cta-shimmer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  animation: cta-shimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Gradient border glow (safe cross-browser, no mask-composite) ─── */
+.gradient-border {
+  box-shadow:
+    0 0 0 1px rgba(255, 204, 0, 0.22),
+    0 0 0 1px rgba(0, 114, 206, 0.14),
+    0 0 16px rgba(255, 204, 0, 0.06),
+    0 0 16px rgba(0, 114, 206, 0.04);
+}
+
+/* ── Staggered entrance animation for lists ──────────────────── */
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.stagger-enter > * {
+  animation: slide-up-fade 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger-enter > *:nth-child(1) { animation-delay: 0s; }
+.stagger-enter > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger-enter > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger-enter > *:nth-child(4) { animation-delay: 0.18s; }
+.stagger-enter > *:nth-child(5) { animation-delay: 0.24s; }
+.stagger-enter > *:nth-child(6) { animation-delay: 0.30s; }
+.stagger-enter > *:nth-child(7) { animation-delay: 0.36s; }
+.stagger-enter > *:nth-child(8) { animation-delay: 0.42s; }
+
+
+/* ── Badge / pill shine on hover ─────────────────────────────── */
+.pill-shine {
+  position: relative;
+  overflow: hidden;
+}
+.pill-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.08) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform 450ms ease;
+  pointer-events: none;
+}
+.pill-shine:hover::after {
+  transform: translateX(100%);
+}
+
+/* ── Soft breathing glow for active elements ─────────────────── */
+@keyframes breathe {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.breathe-glow {
+  animation: breathe 2.8s ease-in-out infinite;
+}
+
+/* ── Frosted glass panel variant (stronger effect) ───────────── */
+.frosted-panel {
+  background: linear-gradient(145deg, rgba(7, 18, 39, 0.88), rgba(12, 29, 56, 0.78));
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(141, 170, 224, 0.16);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.22),
+    0 16px 48px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.10);
+}
+
+/* ── Smooth underline reveal on hover ────────────────────────── */
+.underline-reveal {
+  position: relative;
+}
+.underline-reveal::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-gold), var(--color-mu-blue));
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.underline-reveal:hover::after {
+  transform: scaleX(1);
+}
+
+/* ── Enhanced reduced-motion overrides ───────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cta-shimmer::before,
+  .pill-shine::after,
+  .breathe-glow {
+    animation: none !important;
+  }
+  .stagger-enter > * {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  .underline-reveal::after {
+    transition: none !important;
+  }
 }

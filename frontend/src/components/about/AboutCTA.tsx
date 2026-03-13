@@ -83,21 +83,21 @@ export function AboutCTA() {
               {...viewAnim(12, 0.14)}
               className="mx-auto mt-4 max-w-[36rem] font-[family-name:var(--font-sora)] text-[2rem] font-bold leading-tight text-white sm:text-[2.6rem]"
             >
-              Want to send a note? I will read it.
+              Found a bug? Have an idea? Just want to vent about CheckMarq?
             </motion.h2>
 
             <motion.p
               {...viewAnim(10, 0.22)}
               className="mx-auto mt-4 max-w-[34rem] text-[0.98rem] leading-relaxed text-ink-muted sm:text-[1.05rem]"
             >
-              Bug reports, requirement fixes, or copy that drifted out of bounds all belong here.
+              I read everything. Bug reports, feature ideas, or just telling me a prereq is wrong — all useful, all welcome.
             </motion.p>
 
             <motion.p
               {...viewAnim(10, 0.25)}
               className="mx-auto mt-3 max-w-[34rem] text-sm leading-relaxed text-ink-secondary"
             >
-              Fastest route: use the Feedback button inside the planner. If CheckMarq and MarqBot disagree, send it. Email or DM works too.
+              Fastest route: hit the Feedback button inside the planner. If CheckMarq and MarqBot disagree, definitely send it — one of us is wrong and I'd rather know.
             </motion.p>
 
             <motion.div
@@ -143,7 +143,7 @@ export function AboutCTA() {
             </div>
 
             <p className="mt-8 text-sm leading-relaxed text-ink-muted">
-              If you are already in the app, use Feedback. If not, send the course code, what you clicked, and what you expected to happen.
+              Pro tip: include the course code and what you expected to happen. Screenshots are chef's kiss.
             </p>
 
             <AnchorLine variant="fade" className="mt-8" />
