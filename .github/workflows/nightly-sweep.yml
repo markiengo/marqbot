@@ -147,7 +147,7 @@ jobs:
           fi
 
       - name: Upload nightly report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: nightly-sweep-report-${{ steps.report_meta.outputs.report_date }}
           path: |
@@ -184,7 +184,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Download nightly report artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v4
         with:
           name: nightly-sweep-report-${{ needs.nightly-exhaustive.outputs.report_date }}
           path: tests/nightly_reports

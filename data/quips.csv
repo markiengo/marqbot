@@ -797,3 +797,109 @@ compound,multi_major,,both,1,Multi-major on CheckMarq. The bucket list is litera
 compound,multi_major,,both,2,Two degrees, one Zilber transcript, very little slack. Respectable chaos.
 compound,multi_major,,both,0.5,Double major on D2L. Every double-counted course is a personal victory.
 compound,multi_major,,both,2,Multi-major plan on CheckMarq. This is not a hobby. This is a commitment.
+dimension,standing,freshman,progress,2,Freshman standing. Lock in early or the prereq chain locks you out.
+dimension,standing,freshman,progress,1,Year one. Ngl the whole degree looks massive from here. That's normal.
+dimension,standing,freshman,progress,2,Freshman era. Your transcript is a blank page and CheckMarq already has opinions.
+dimension,standing,sophomore,progress,2,Sophomore standing. You lowkey know what you're doing now. Rare behavior.
+dimension,standing,sophomore,progress,1,Year two. The warm-up is over. Lock in or get cooked by prereqs.
+dimension,standing,sophomore,progress,2,Sophomore standing and building momentum. That's a W.
+dimension,standing,junior,progress,2,Junior standing. No shot you're winging this anymore. The plan matters.
+dimension,standing,junior,progress,1,Year three. Your transcript has actual lore now. Use it.
+dimension,standing,junior,progress,2,Junior standing. The requirements are the final boss and they know it.
+dimension,standing,senior,progress,2,Senior standing. Lock in. Land the plane. No side quests.
+dimension,standing,senior,progress,1,Senior era. Ngl if you crash out now the timeline gets ugly.
+dimension,standing,senior,progress,2,Senior standing. +1000 aura if you finish without one more CheckMarq drama.
+dimension,progress,early,progress,2,Early progress. The degree just started its main quest.
+dimension,progress,early,progress,1,Under 16% done. The loading screen is still playing fr fr.
+dimension,progress,early,progress,2,Lil bro the degree just started. The grind is ahead of you not behind.
+dimension,progress,building,progress,2,Building progress. The transcript is lowkey looking intentional now.
+dimension,progress,building,progress,1,Not done not stuck. Cruising altitude. That's valid.
+dimension,progress,building,progress,2,Building momentum on CheckMarq. Ngl the plan is cooking.
+dimension,progress,midway,progress,2,Midway through. Turning back would be an L of historic proportions.
+dimension,progress,midway,progress,1,Half done. That's not a participation trophy fr fr. That's a W.
+dimension,progress,midway,progress,2,Midpoint reached. The transcript entered its locked-in era.
+dimension,progress,homestretch,progress,2,Homestretch. Lock in. Every remaining credit is a finale credit.
+dimension,progress,homestretch,progress,1,Almost there. Do not crash out this close to the finish line.
+dimension,progress,homestretch,progress,2,Homestretch and the plan is still holding. +500 aura.
+dimension,progress,nearDone,both,2,Near done. Single-digit requirements left. Do not fumble. Lock in.
+dimension,progress,nearDone,both,1,So close. Ngl one bad move and you're cooked. Stay sharp.
+dimension,progress,nearDone,both,2,Almost complete. No shot you're getting experimental this close.
+dimension,progress,done,both,2,Done. You ate that entire degree and left no crumbs.
+dimension,progress,done,both,1,All requirements cleared. +10000 aura. Legendary behavior.
+dimension,progress,done,both,2,Zero remaining. That is a generational W on CheckMarq.
+dimension,remaining,mountain,progress,2,Mountain of credits ahead. Canon event: realizing how long this takes.
+dimension,remaining,mountain,progress,1,Triple-digit credits left. Ngl the degree is not bluffing.
+dimension,remaining,mountain,progress,2,The full climb is visible. Lil bro it's a marathon not a sprint.
+dimension,remaining,chunk,progress,2,A solid chunk remains. Not enough to crash out about though.
+dimension,remaining,chunk,progress,1,Still plenty to do. Lock in and the math works out.
+dimension,remaining,manageable,progress,2,Manageable credits left. Your schedule is lowkey in a good spot.
+dimension,remaining,manageable,progress,1,This count says wrap it up. The plan is valid.
+dimension,remaining,handful,progress,2,Handful left. No shot you fumble this close to done.
+dimension,remaining,handful,progress,1,So few credits left the planner is basically a sticky note fr fr.
+dimension,remaining,zero,both,2,Zero credits remain. You cooked the degree. In the good way.
+dimension,remaining,zero,both,1,Nothing left. The transcript just ate. Screenshot this.
+dimension,inProgress,heavy,progress,2,Heavy in-progress load. Your calendar is lowkey unhinged right now.
+dimension,inProgress,heavy,progress,1,A stacked schedule. Ngl you're either locked in or about to crash out.
+dimension,inProgress,light,progress,2,Light current load. Your schedule has actual white space. That's valid.
+dimension,inProgress,moderate,progress,2,Moderate load. Cruising altitude. Not cooked not bored. Perfect.
+dimension,bucketHealth,allSatisfied,both,2,Every bucket is satisfied. You ate that. No crumbs anywhere.
+dimension,bucketHealth,allSatisfied,both,1,All green across the board. +infinite aura.
+dimension,bucketHealth,mostDone,both,2,Most buckets handled. The leftovers are just being dramatic fr fr.
+dimension,bucketHealth,earlyDays,both,2,Early bucket days. The main quest just started loading.
+dimension,season,fall,semester,2,Fall semester. Lock in season. The syllabus just dropped and it's unhinged.
+dimension,season,fall,semester,1,Fall term. Canon event: realizing week two is actually week two.
+dimension,season,spring,semester,2,Spring semester. Ngl the sequel usually goes harder.
+dimension,season,spring,semester,1,Spring term. The sun comes back. The workload does not. That's valid.
+dimension,season,summer,semester,2,Summer grind. Short window. Lock in or get cooked by the deadline.
+dimension,season,summer,semester,1,Summer term. The academic speedrun is live fr fr.
+dimension,recCount,empty,semester,2,No recs this term. The algorithm said touch grass and come back.
+dimension,recCount,empty,semester,1,Empty result. Ngl the prereqs are gatekeeping everything right now.
+dimension,recCount,light,semester,2,Light lineup. Few picks but every single one is a W.
+dimension,recCount,normal,semester,2,Normal rec count. Not unhinged not boring. Lowkey perfect.
+dimension,recCount,heavy,semester,2,Heavy rec count. This semester is stacked. Lock in or it locks you out.
+dimension,recCount,heavy,semester,1,Packed lineup. Ngl your free time just took an L.
+dimension,hasWarnings,warned,semester,2,Warnings on some picks. Ngl the fine print is louder than usual.
+dimension,hasWarnings,warned,semester,1,Yellow flags detected. Don't crash out. Read them first.
+dimension,hasWarnings,clean,semester,2,No warnings. Clean board. The algorithm cooked and it came out perfect.
+dimension,semesterIndex,first,semester,2,First semester. The main quest just started. Lock in early.
+dimension,semesterIndex,first,semester,1,Opening term. Ngl every decision here is lowkey load-bearing.
+dimension,semesterIndex,middle,semester,2,Middle semesters. The unglamorous backbone of the whole degree fr fr.
+dimension,semesterIndex,deep,semester,2,Deep planning mode. You're main-questing three semesters ahead. +500 aura.
+dimension,semesterIndex,deep,semester,1,This far ahead? Ngl that's plot armor. You planned the unplannable.
+compound,easter_egg_complete,,both,0.1,Everything complete. You ate the whole degree. Generational W.
+compound,easter_egg_complete,,both,0.1,Done. Zero remaining. The CheckMarq final boss has been defeated.
+compound,easter_egg_full_plan,,semester,0.1,Full timeline mapped. You main-quested the entire degree. Legendary.
+compound,easter_egg_full_plan,,semester,0.1,The whole roadmap is here. Ngl that's plot armor levels of planning.
+compound,freshman_mountain,,progress,1,Freshman with the full mountain visible. Canon event. The grind is real.
+compound,freshman_mountain,,progress,0.5,Year one plus triple-digit credits. Lil bro the climb just started.
+compound,senior_homestretch,,both,1,Senior homestretch. Lock in. No side quests. Land the plane.
+compound,senior_homestretch,,both,0.5,Almost done. Ngl if you crash out now that's a historic L.
+compound,senior_done,,both,1,Senior and done. You cooked the degree. +10000 aura permanently.
+compound,senior_done,,both,0.5,Degree complete. The transcript just ate. Roll credits.
+compound,sophomore_building,,progress,1,Sophomore and building. The transcript is lowkey starting to look real.
+compound,junior_midway,,progress,1,Junior midway. Ngl this is where the degree starts looking inevitable.
+compound,heavy_warned,,semester,1,Heavy load plus warnings. Lock in and read every flag. No crash outs.
+compound,deep_planning,,semester,0.5,Deep planning mode. Your future self just sent a thank-you note fr fr.
+compound,multibucket_stacking,,semester,1,Multi-bucket overlap everywhere. The efficiency is unhinged. In a good way.
+compound,summer_grind,,semester,1,Summer recs loaded. Lock in. The academic speedrun is live.
+compound,summer_empty,,semester,1,No summer recs. The algorithm said touch grass. That's valid.
+compound,first_semester_heavy,,semester,1,First semester and you chose the hard version. Ngl that's either genius or cooked.
+compound,almost_clean,,progress,1,Almost clean across the board. One more locked-in semester and it's a W.
+compound,finance_major,,both,2,Finance major. The Bloomberg terminal awaits. Lock in at Zilber.
+compound,finance_major,,both,1,FIN major. Ngl the spreadsheet game is about to become your whole personality.
+compound,accounting_major,,both,2,Accounting major. Debits on the left. Credits on the right. Lock in.
+compound,accounting_major,,both,1,ACCO major. The CPA exam is lowkey already watching you.
+compound,marketing_major,,both,2,Marketing major. You think in campaigns. That's valid.
+compound,marketing_major,,both,1,MARK major. Ngl you tried to A/B test your own degree plan.
+compound,insy_major,,both,2,INSY major. Have you tried turning your degree plan off and on. Fr fr.
+compound,insy_major,,both,1,Information Systems. Where SELECT * FROM degree actually returns Raynor results.
+compound,buan_major,,both,2,BUAN major. The data says lock in. Literally. We ran the model.
+compound,buan_major,,both,1,Business Analytics. Ngl your Jupyter notebook has more lore than your diary.
+compound,aim_major,,both,2,AIM major. Bloomberg terminal dreams. Lock in at Zilber.
+compound,hure_major,,both,2,HURE major. Conflict resolution starts with schedule conflicts. That's valid.
+compound,oscm_major,,both,2,OSCM major. Your course sequence is literally a supply chain fr fr.
+compound,real_major,,both,2,Real Estate major. Location location location. Including your seat in Zilber.
+compound,beco_major,,both,2,BECO major. Opportunity cost applies to every course you pick. Lock in.
+compound,badm_major,,both,2,BADM major. The Swiss Army knife of business degrees. That's a W.
+compound,inbu_major,,both,2,INBU major. Thinking globally. Scheduling locally. Lock in.
+compound,multi_major,,both,2,Double major. You chose violence against your free time. Ngl respect.

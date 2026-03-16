@@ -27,6 +27,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Every single bucket filled. The CheckMarq algorithm has no feedback.", target: "both", weight: 2.0 },
         { text: "All buckets green. This is what Zilber excellence looks like in grid form.", target: "both", weight: 0.5 },
         { text: "All buckets satisfied. The CheckMarq grid is fully green. Beautiful.", target: "both", weight: 2.0 },
+        { text: "Every bucket is satisfied. You ate that. No crumbs anywhere.", target: "both", weight: 2.0 },
+        { text: "All green across the board. +infinite aura.", target: "both", weight: 1.0 },
       ],
       earlyDays: [
         { text: "Bucket progress is still early on CheckMarq. Plenty of room to build.", target: "both", weight: 2.0 },
@@ -38,6 +40,7 @@ export const QUIP_BANK: QuipBank = {
         { text: "Early bucket coverage. The D2L grid is loading from the bottom up.", target: "both", weight: 2.0 },
         { text: "Most buckets are unsatisfied. That is normal O'Brien not failure.", target: "both", weight: 1.0 },
         { text: "Early bucket days. The CheckMarq grid will fill. Give it time.", target: "both", weight: 2.0 },
+        { text: "Early bucket days. The main quest just started loading.", target: "both", weight: 2.0 },
       ],
       halfDone: [
         { text: "About half the buckets are satisfied on CheckMarq. Solid middle game.", target: "both", weight: 2.0 },
@@ -60,6 +63,7 @@ export const QUIP_BANK: QuipBank = {
         { text: "Almost all green on O'Brien. A few yellows are negotiating surrender.", target: "both", weight: 0.5 },
         { text: "Bucket health is strong. A couple more Raynor semesters and it is over.", target: "both", weight: 2.0 },
         { text: "Most buckets done. The last few on CheckMarq are just formalities.", target: "both", weight: 2.0 },
+        { text: "Most buckets handled. The leftovers are just being dramatic fr fr.", target: "both", weight: 2.0 },
       ],
     },
     hasWarnings: {
@@ -72,6 +76,7 @@ export const QUIP_BANK: QuipBank = {
         { text: "Zero warnings on D2L. The algorithm is at peace with this lineup.", target: "semester", weight: 0.5 },
         { text: "Clean set. Nothing to read twice on CheckMarq.", target: "semester", weight: 2.0 },
         { text: "No warnings. The Zilber lineup passed inspection clean.", target: "semester", weight: 2.0 },
+        { text: "No warnings. Clean board. The algorithm cooked and it came out perfect.", target: "semester", weight: 2.0 },
       ],
       warned: [
         { text: "Some picks have CheckMarq warnings. Read them before doing anything brave.", target: "semester", weight: 2.0 },
@@ -82,6 +87,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Warnings detected on D2L. The details section is doing important work.", target: "semester", weight: 2.0 },
         { text: "Yellow flags on some Raynor picks. The footnotes are louder than usual.", target: "semester", weight: 0.5 },
         { text: "Warnings present on CheckMarq. The footnotes deserve your full attention.", target: "semester", weight: 2.0 },
+        { text: "Warnings on some picks. Ngl the fine print is louder than usual.", target: "semester", weight: 2.0 },
+        { text: "Yellow flags detected. Don't crash out. Read them first.", target: "semester", weight: 1.0 },
       ],
     },
     inProgress: {
@@ -94,6 +101,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Heavy load. The Raynor study rooms have your face memorized.", target: "progress", weight: 2.0 },
         { text: "So many credits in progress that your O'Brien backpack filed a complaint.", target: "progress", weight: 0.5 },
         { text: "Heavy in-progress load. The CheckMarq semester is fully subscribed.", target: "progress", weight: 2.0 },
+        { text: "Heavy in-progress load. Your calendar is lowkey unhinged right now.", target: "progress", weight: 2.0 },
+        { text: "A stacked schedule. Ngl you're either locked in or about to crash out.", target: "progress", weight: 1.0 },
       ],
       light: [
         { text: "A light in-progress load on D2L. Enough to matter not enough to haunt.", target: "progress", weight: 2.0 },
@@ -104,6 +113,7 @@ export const QUIP_BANK: QuipBank = {
         { text: "Light load. Your Zilber calendar has actual white space. Treasure it.", target: "progress", weight: 0.5 },
         { text: "Light in-progress credits. The D2L dashboard is politely busy.", target: "progress", weight: 2.0 },
         { text: "Light in-progress load. Room to breathe and plan at Raynor.", target: "progress", weight: 2.0 },
+        { text: "Light current load. Your schedule has actual white space. That's valid.", target: "progress", weight: 2.0 },
       ],
       moderate: [
         { text: "Moderate in-progress load on D2L. Busy, but the normal kind.", target: "progress", weight: 2.0 },
@@ -114,6 +124,7 @@ export const QUIP_BANK: QuipBank = {
         { text: "Moderate load. The Zilber semester is humming at cruising altitude.", target: "progress", weight: 0.5 },
         { text: "Enough in progress on CheckMarq to keep you honest. Not to ruin you.", target: "progress", weight: 2.0 },
         { text: "Moderate load. The D2L semester is running at normal Raynor capacity.", target: "progress", weight: 2.0 },
+        { text: "Moderate load. Cruising altitude. Not cooked not bored. Perfect.", target: "progress", weight: 2.0 },
       ],
       none: [
         { text: "Nothing in progress right now. Clean slate on CheckMarq. Pure planning.", target: "progress", weight: 2.0 },
@@ -175,6 +186,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "Building progress. The degree is leaving its Raynor larval stage.", target: "progress", weight: 2.0 },
         { text: "Real movement happening. O'Brien Suite 111 would nod approvingly.", target: "progress", weight: 2.0 },
         { text: "Building progress. The credits are accumulating with Zilber purpose.", target: "progress", weight: 2.0 },
+        { text: "Building progress. The transcript is lowkey looking intentional now.", target: "progress", weight: 2.0 },
+        { text: "Not done not stuck. Cruising altitude. That's valid.", target: "progress", weight: 1.0 },
+        { text: "Building momentum on CheckMarq. Ngl the plan is cooking.", target: "progress", weight: 2.0 },
       ],
       done: [
         { text: "Done. The CheckMarq spreadsheet absolutely bodied this degree.", target: "both", weight: 2.0 },
@@ -192,6 +206,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "Done. The Raynor printer can stop seeing you now.", target: "both", weight: 2.0 },
         { text: "Complete. Your CheckMarq account just exhaled for the first time.", target: "both", weight: 2.0 },
         { text: "Done. The degree plan has entered its O'Brien retirement era.", target: "both", weight: 2.0 },
+        { text: "Done. You ate that entire degree and left no crumbs.", target: "both", weight: 2.0 },
+        { text: "All requirements cleared. +10000 aura. Legendary behavior.", target: "both", weight: 1.0 },
+        { text: "Zero remaining. That is a generational W on CheckMarq.", target: "both", weight: 2.0 },
       ],
       early: [
         { text: "Early progress. The loading bar just appeared on your CheckMarq screen.", target: "progress", weight: 2.0 },
@@ -209,6 +226,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "Early progress. The degree grind is buffering on CheckMarq.", target: "progress", weight: 2.0 },
         { text: "Single-digit progress. The O'Brien spreadsheet is judging you gently.", target: "progress", weight: 2.0 },
         { text: "Early progress. The D2L dashboard just woke up.", target: "progress", weight: 2.0 },
+        { text: "Early progress. The degree just started its main quest.", target: "progress", weight: 2.0 },
+        { text: "Under 16% done. The loading screen is still playing fr fr.", target: "progress", weight: 1.0 },
+        { text: "Lil bro the degree just started. The grind is ahead of you not behind.", target: "progress", weight: 2.0 },
       ],
       homestretch: [
         { text: "Homestretch. No filler episodes. Every CheckMarq credit is a finale credit.", target: "progress", weight: 2.0 },
@@ -226,6 +246,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "The degree is 66% baked. The D2L oven is not the time to get creative.", target: "progress", weight: 2.0 },
         { text: "Homestretch progress. The Zilber mood is cautious and serious.", target: "progress", weight: 1.0 },
         { text: "Homestretch progress. Wisconsin Ave sunsets hit different when you are close.", target: "progress", weight: 2.0 },
+        { text: "Homestretch. Lock in. Every remaining credit is a finale credit.", target: "progress", weight: 2.0 },
+        { text: "Almost there. Do not crash out this close to the finish line.", target: "progress", weight: 1.0 },
+        { text: "Homestretch and the plan is still holding. +500 aura.", target: "progress", weight: 2.0 },
       ],
       midway: [
         { text: "Midway progress. You cannot ghost the degree now. CheckMarq has your address.", target: "progress", weight: 2.0 },
@@ -243,6 +266,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "Midway progress. The degree audit is no longer a horror movie.", target: "progress", weight: 2.0 },
         { text: "Half the credits are done. The Zilber other half just got competitive.", target: "progress", weight: 1.0 },
         { text: "Midway. The degree has entered its second act on Wisconsin Ave.", target: "progress", weight: 2.0 },
+        { text: "Midway through. Turning back would be an L of historic proportions.", target: "progress", weight: 2.0 },
+        { text: "Half done. That's not a participation trophy fr fr. That's a W.", target: "progress", weight: 1.0 },
+        { text: "Midpoint reached. The transcript entered its locked-in era.", target: "progress", weight: 2.0 },
       ],
       nearDone: [
         { text: "Near done. Single-digit requirements left on CheckMarq. Do not fumble.", target: "both", weight: 2.0 },
@@ -260,6 +286,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "Near done. Your O'Brien transcript is about to close its own chapter.", target: "both", weight: 2.0 },
         { text: "The requirements list fits on a sticky note. Act accordingly.", target: "both", weight: 1.0 },
         { text: "The requirements list fits on a Raynor sticky note. Act accordingly.", target: "both", weight: 2.0 },
+        { text: "Near done. Single-digit requirements left. Do not fumble. Lock in.", target: "both", weight: 2.0 },
+        { text: "So close. Ngl one bad move and you're cooked. Stay sharp.", target: "both", weight: 1.0 },
+        { text: "Almost complete. No shot you're getting experimental this close.", target: "both", weight: 2.0 },
       ],
     },
     recCount: {
@@ -279,6 +308,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Empty result. The Zilber prerequisites are gatekeeping everything.", target: "semester", weight: 1.0 },
         { text: "No recs. The D2L eligibility filters did not leave anything standing.", target: "semester", weight: 2.0 },
         { text: "Empty result. The CheckMarq eligibility wall was undefeated this round.", target: "semester", weight: 2.0 },
+        { text: "No recs this term. The algorithm said touch grass and come back.", target: "semester", weight: 2.0 },
+        { text: "Empty result. Ngl the prereqs are gatekeeping everything right now.", target: "semester", weight: 1.0 },
       ],
       heavy: [
         { text: "Heavy recommendation count on CheckMarq. This term is serious business.", target: "semester", weight: 2.0 },
@@ -296,6 +327,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Packed CheckMarq lineup. The planner believes in you more than you do.", target: "semester", weight: 2.0 },
         { text: "Heavy recs. The Zilber semester just flexed on your calendar.", target: "semester", weight: 2.0 },
         { text: "Heavy lineup on D2L. Your future self is both grateful and nervous.", target: "semester", weight: 2.0 },
+        { text: "Heavy rec count. This semester is stacked. Lock in or it locks you out.", target: "semester", weight: 2.0 },
+        { text: "Packed lineup. Ngl your free time just took an L.", target: "semester", weight: 1.0 },
       ],
       light: [
         { text: "Light semester set on CheckMarq. Minimal but every pick is carrying weight.", target: "semester", weight: 2.0 },
@@ -313,6 +346,7 @@ export const QUIP_BANK: QuipBank = {
         { text: "Light lineup. The O'Brien algorithm was being selective not lazy.", target: "semester", weight: 0.5 },
         { text: "Few recs but they all hit on CheckMarq. Precision over volume.", target: "semester", weight: 2.0 },
         { text: "Light set. Lean Raynor lineup with maximum intent.", target: "semester", weight: 2.0 },
+        { text: "Light lineup. Few picks but every single one is a W.", target: "semester", weight: 2.0 },
       ],
       normal: [
         { text: "Normal recommendation count on CheckMarq. Balanced and boring in the best way.", target: "semester", weight: 2.0 },
@@ -330,6 +364,7 @@ export const QUIP_BANK: QuipBank = {
         { text: "Normal rec count. The Zilber algorithm is in a healthy relationship with this.", target: "semester", weight: 0.5 },
         { text: "Standard count. The CheckMarq plan is cruising through O'Brien.", target: "semester", weight: 2.0 },
         { text: "Normal count. The D2L planner is in its comfort zone.", target: "semester", weight: 2.0 },
+        { text: "Normal rec count. Not unhinged not boring. Lowkey perfect.", target: "semester", weight: 2.0 },
       ],
     },
     remaining: {
@@ -349,6 +384,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "The chunk is real but the plan is more real. O'Brien math checks out.", target: "progress", weight: 2.0 },
         { text: "Enough left to keep you honest. Not enough to keep you up at Raynor.", target: "progress", weight: 0.5 },
         { text: "A workable chunk remains. Structured and Zilber-approachable.", target: "progress", weight: 2.0 },
+        { text: "A solid chunk remains. Not enough to crash out about though.", target: "progress", weight: 2.0 },
+        { text: "Still plenty to do. Lock in and the math works out.", target: "progress", weight: 1.0 },
       ],
       handful: [
         { text: "A handful of credits remain. Tiny but emotionally loaded on CheckMarq.", target: "progress", weight: 2.0 },
@@ -366,6 +403,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Single-digit credits remaining on CheckMarq. This is the hard part.", target: "progress", weight: 2.0 },
         { text: "So few left that the Zilber planner is basically a sticky note.", target: "progress", weight: 1.0 },
         { text: "Handful remaining. Each credit is worth its weight in Raynor gold.", target: "progress", weight: 2.0 },
+        { text: "Handful left. No shot you fumble this close to done.", target: "progress", weight: 2.0 },
+        { text: "So few credits left the planner is basically a sticky note fr fr.", target: "progress", weight: 1.0 },
       ],
       manageable: [
         { text: "Manageable remaining credits. This is where CheckMarq planning gets fun.", target: "progress", weight: 2.0 },
@@ -383,6 +422,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "The remaining credits are politely waiting in the D2L queue.", target: "progress", weight: 2.0 },
         { text: "This count says wrap it up. CheckMarq respects that.", target: "progress", weight: 0.5 },
         { text: "Manageable credits left. The O'Brien math finally feels friendly.", target: "progress", weight: 2.0 },
+        { text: "Manageable credits left. Your schedule is lowkey in a good spot.", target: "progress", weight: 2.0 },
+        { text: "This count says wrap it up. The plan is valid.", target: "progress", weight: 1.0 },
       ],
       mountain: [
         { text: "A mountain of credits remains. The view from Raynor is honest.", target: "progress", weight: 2.0 },
@@ -400,6 +441,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "The credit mountain has base camps. You are at the O'Brien first one.", target: "progress", weight: 2.0 },
         { text: "Triple-digit credits left. The degree is not bluffing.", target: "progress", weight: 0.5 },
         { text: "Mountain of credits ahead. The Wisconsin Ave trailhead starts here.", target: "progress", weight: 2.0 },
+        { text: "Mountain of credits ahead. Canon event: realizing how long this takes.", target: "progress", weight: 2.0 },
+        { text: "Triple-digit credits left. Ngl the degree is not bluffing.", target: "progress", weight: 1.0 },
+        { text: "The full climb is visible. Lil bro it's a marathon not a sprint.", target: "progress", weight: 2.0 },
       ],
       zero: [
         { text: "Zero credits remain. That is the whole CheckMarq sentence.", target: "both", weight: 2.0 },
@@ -417,6 +461,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Zero. Done. The CheckMarq tab can finally close forever.", target: "both", weight: 2.0 },
         { text: "Nothing left. The O'Brien algorithm is standing and applauding.", target: "both", weight: 0.5 },
         { text: "Zero left. The number everyone dreams about at Zilber.", target: "both", weight: 2.0 },
+        { text: "Zero credits remain. You cooked the degree. In the good way.", target: "both", weight: 2.0 },
+        { text: "Nothing left. The transcript just ate. Screenshot this.", target: "both", weight: 1.0 },
       ],
     },
     season: {
@@ -437,6 +483,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Fall. The D2L semester just restarted.", target: "semester", weight: 2.0 },
         { text: "Fall term. The Raynor study rooms are booked until further notice.", target: "semester", weight: 1.0 },
         { text: "Fall semester. Campus is alive on Wisconsin Ave and so is your course load.", target: "semester", weight: 2.0 },
+        { text: "Fall semester. Lock in season. The syllabus just dropped and it's unhinged.", target: "semester", weight: 2.0 },
+        { text: "Fall term. Canon event: realizing week two is actually week two.", target: "semester", weight: 1.0 },
       ],
       spring: [
         { text: "Spring semester. New CheckMarq calendar", target: "semester", weight: 2.0 },
@@ -454,6 +502,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Spring semester. Wisconsin Ave gets pretty. Your Zilber schedule does not.", target: "semester", weight: 0.5 },
         { text: "Spring term. The sequel semester with better AMU lighting and worse sleep.", target: "semester", weight: 2.0 },
         { text: "Spring semester. Second verse in O'Brien different from the first.", target: "semester", weight: 2.0 },
+        { text: "Spring semester. Ngl the sequel usually goes harder.", target: "semester", weight: 2.0 },
+        { text: "Spring term. The sun comes back. The workload does not. That's valid.", target: "semester", weight: 1.0 },
       ],
       summer: [
         { text: "Summer term. Smaller window on CheckMarq, zero room for improv.", target: "semester", weight: 2.0 },
@@ -471,6 +521,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Summer. Raynor campus is empty but the credit counter keeps moving.", target: "semester", weight: 2.0 },
         { text: "Summer semester. The Brew is quiet. Your D2L workload is not.", target: "semester", weight: 1.0 },
         { text: "Summer term. Maximum credits per day of Wisconsin Ave sunshine.", target: "semester", weight: 2.0 },
+        { text: "Summer grind. Short window. Lock in or get cooked by the deadline.", target: "semester", weight: 2.0 },
+        { text: "Summer term. The academic speedrun is live fr fr.", target: "semester", weight: 1.0 },
       ],
     },
     semesterIndex: {
@@ -490,6 +542,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "Deep timeline. Your future self at Raynor just sent a thank-you note.", target: "semester", weight: 0.5 },
         { text: "So far ahead the D2L calendar app needs therapy.", target: "semester", weight: 2.0 },
         { text: "Deep timeline. You are playing the long game and winning on CheckMarq.", target: "semester", weight: 2.0 },
+        { text: "Deep planning mode. You're main-questing three semesters ahead. +500 aura.", target: "semester", weight: 2.0 },
+        { text: "This far ahead? Ngl that's plot armor. You planned the unplannable.", target: "semester", weight: 1.0 },
       ],
       first: [
         { text: "First semester on the timeline. First CheckMarq impressions are load-bearing.", target: "semester", weight: 2.0 },
@@ -507,6 +561,8 @@ export const QUIP_BANK: QuipBank = {
         { text: "First planned term. The D2L butterfly effect is very real from here.", target: "semester", weight: 0.5 },
         { text: "Opening semester. The foundation of the entire O'Brien plan lives here.", target: "semester", weight: 2.0 },
         { text: "First semester. The whole CheckMarq plan starts with this decision.", target: "semester", weight: 2.0 },
+        { text: "First semester. The main quest just started. Lock in early.", target: "semester", weight: 2.0 },
+        { text: "Opening term. Ngl every decision here is lowkey load-bearing.", target: "semester", weight: 1.0 },
       ],
       middle: [
         { text: "Middle of the timeline. The D2L plan is fully alive and breathing.", target: "semester", weight: 2.0 },
@@ -524,6 +580,7 @@ export const QUIP_BANK: QuipBank = {
         { text: "Mid-timeline. The boring Raynor semesters are secretly most important.", target: "semester", weight: 0.5 },
         { text: "Middle of the plan. Peak O'Brien execution zone.", target: "semester", weight: 2.0 },
         { text: "Middle semester. Where the real CheckMarq progress happens.", target: "semester", weight: 2.0 },
+        { text: "Middle semesters. The unglamorous backbone of the whole degree fr fr.", target: "semester", weight: 2.0 },
       ],
     },
     standing: {
@@ -545,6 +602,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "Freshman standing. You still think the AMU food court moves fast.", target: "progress", weight: 0.5 },
         { text: "Freshman status. The AMU food court is still exciting. Cherish that.", target: "progress", weight: 2.0 },
         { text: "Year one. Wisconsin Ave feels longer when you are carrying textbooks.", target: "progress", weight: 1.0 },
+        { text: "Freshman standing. Lock in early or the prereq chain locks you out.", target: "progress", weight: 2.0 },
+        { text: "Year one. Ngl the whole degree looks massive from here. That's normal.", target: "progress", weight: 1.0 },
+        { text: "Freshman era. Your transcript is a blank page and CheckMarq already has opinions.", target: "progress", weight: 2.0 },
       ],
       junior: [
         { text: "Junior standing. The major said enough warm-up. O'Brien wants receipts.", target: "progress", weight: 2.0 },
@@ -562,6 +622,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "Year three. O'Brien hallways feel like a second home. Concerning.", target: "progress", weight: 2.0 },
         { text: "Junior standing. Your D2L notifications have their own D2L notifications.", target: "progress", weight: 0.5 },
         { text: "Upper-division semester. The group project found you in Zilber anyway.", target: "progress", weight: 2.0 },
+        { text: "Junior standing. No shot you're winging this anymore. The plan matters.", target: "progress", weight: 2.0 },
+        { text: "Year three. Your transcript has actual lore now. Use it.", target: "progress", weight: 1.0 },
+        { text: "Junior standing. The requirements are the final boss and they know it.", target: "progress", weight: 2.0 },
       ],
       senior: [
         { text: "Senior standing. Final stretch. The diploma is rendering in real time.", target: "progress", weight: 2.0 },
@@ -581,6 +644,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "Year four. The cap and gown is loading in the CheckMarq background.", target: "progress", weight: 1.0 },
         { text: "Senior standing. Every remaining course feels like a Zilber surprise.", target: "progress", weight: 2.0 },
         { text: "Year four. The AMU food court hits nostalgic now.", target: "progress", weight: 1.0 },
+        { text: "Senior standing. Lock in. Land the plane. No side quests.", target: "progress", weight: 2.0 },
+        { text: "Senior era. Ngl if you crash out now the timeline gets ugly.", target: "progress", weight: 1.0 },
+        { text: "Senior standing. +1000 aura if you finish without one more CheckMarq drama.", target: "progress", weight: 2.0 },
       ],
       sophomore: [
         { text: "Sophomore standing. The warm-up is over. The D2L notifications hit back now.", target: "progress", weight: 2.0 },
@@ -598,6 +664,9 @@ export const QUIP_BANK: QuipBank = {
         { text: "Second year. You have a favorite Raynor spot and strong feelings about it.", target: "progress", weight: 2.0 },
         { text: "Sophomore standing. The Brew knows your name and your order.", target: "progress", weight: 0.5 },
         { text: "Year two and the AMU food court knows your order by heart.", target: "progress", weight: 2.0 },
+        { text: "Sophomore standing. You lowkey know what you're doing now. Rare behavior.", target: "progress", weight: 2.0 },
+        { text: "Year two. The warm-up is over. Lock in or get cooked by prereqs.", target: "progress", weight: 1.0 },
+        { text: "Sophomore standing and building momentum. That's a W.", target: "progress", weight: 2.0 },
       ],
     },
   },
@@ -615,6 +684,8 @@ export const QUIP_BANK: QuipBank = {
       { text: "ACCO major at O'Brien. Debits, credits, and a future full of busy seasons.", target: "both", weight: 2.0 },
       { text: "Accounting. Where Zilber journal entries are not about feelings.", target: "both", weight: 0.5 },
       { text: "ACCO major on CheckMarq. The CPA exam is already sending you signals.", target: "both", weight: 2.0 },
+      { text: "Accounting major. Debits on the left. Credits on the right. Lock in.", target: "both", weight: 2.0 },
+      { text: "ACCO major. The CPA exam is lowkey already watching you.", target: "both", weight: 1.0 },
     ],
     aim_major: [
       { text: "AIM major at Zilber. Bloomberg terminal and a portfolio before graduation.", target: "both", weight: 2.0 },
@@ -629,6 +700,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "AIM major on CheckMarq. Alpha generation starts with credit generation.", target: "both", weight: 2.0 },
       { text: "AIM at Zilber. Your classmates already dress like internship season.", target: "both", weight: 0.5 },
       { text: "AIM major. Portfolio theory on D2L applies to your course selection too.", target: "both", weight: 2.0 },
+      { text: "AIM major. Bloomberg terminal dreams. Lock in at Zilber.", target: "both", weight: 2.0 },
     ],
     almost_clean: [
       { text: "Almost clean across the O'Brien board. Just a few loose ends.", target: "progress", weight: 1.0 },
@@ -642,6 +714,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "Almost everything is handled on CheckMarq. The finish wants precision.", target: "progress", weight: 1.0 },
       { text: "The Raynor grid is nearly full. Just a little final cleanup left.", target: "progress", weight: 1.0 },
       { text: "Almost clean on D2L. The remaining gaps are more cosmetic than structural.", target: "progress", weight: 0.5 },
+      { text: "Almost clean across the board. One more locked-in semester and it's a W.", target: "progress", weight: 1.0 },
     ],
     badm_major: [
       { text: "BADM major at O'Brien. Jack of all business trades. Master of graduating.", target: "both", weight: 2.0 },
@@ -656,6 +729,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "BADM at O'Brien. Where knowing a little about everything becomes a superpower.", target: "both", weight: 2.0 },
       { text: "Business Administration on D2L. The degree that keeps its options open.", target: "both", weight: 0.5 },
       { text: "BADM major at Zilber. Your CheckMarq degree plan has range. Literally.", target: "both", weight: 2.0 },
+      { text: "BADM major. The Swiss Army knife of business degrees. That's a W.", target: "both", weight: 2.0 },
     ],
     beco_major: [
       { text: "BECO major at O'Brien. Supply and demand but the supply of free time is zero.", target: "both", weight: 2.0 },
@@ -670,6 +744,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "BECO at Zilber. Where market analysis meets degree-audit analysis.", target: "both", weight: 2.0 },
       { text: "Business Economics on D2L. Your utility function includes graduating.", target: "both", weight: 0.5 },
       { text: "BECO major on CheckMarq. Diminishing returns do not apply to credits.", target: "both", weight: 2.0 },
+      { text: "BECO major. Opportunity cost applies to every course you pick. Lock in.", target: "both", weight: 2.0 },
     ],
     buan_major: [
       { text: "BUAN major at Zilber. The data says lock in. Literally. We ran the model.", target: "both", weight: 2.0 },
@@ -684,6 +759,8 @@ export const QUIP_BANK: QuipBank = {
       { text: "BUAN major at Zilber. You visualize degree progress like a Tableau dash.", target: "both", weight: 2.0 },
       { text: "Business Analytics on CheckMarq. Where the confidence interval is never 100%.", target: "both", weight: 0.5 },
       { text: "BUAN major. Your Raynor sklearn imports are getting career-ready.", target: "both", weight: 2.0 },
+      { text: "BUAN major. The data says lock in. Literally. We ran the model.", target: "both", weight: 2.0 },
+      { text: "Business Analytics. Ngl your Jupyter notebook has more lore than your diary.", target: "both", weight: 1.0 },
     ],
     deep_planning: [
       { text: "Deep planning mode on CheckMarq. Future-you leaked the spoilers.", target: "semester", weight: 1.0 },
@@ -697,6 +774,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "You are planning three semesters ahead while CheckMarq registration is still one tab at a time.", target: "semester", weight: 1.0 },
       { text: "This much O'Brien foresight is mildly terrifying in the best way.", target: "semester", weight: 0.5 },
       { text: "Deep planning on D2L. The kind of foresight Raynor advisors wish was standard.", target: "semester", weight: 1.0 },
+      { text: "Deep planning mode. Your future self just sent a thank-you note fr fr.", target: "semester", weight: 0.5 },
     ],
     easter_egg_complete: [
       { text: "Everything is complete on CheckMarq. This planner can finally log off.", target: "both", weight: 0.1 },
@@ -710,6 +788,8 @@ export const QUIP_BANK: QuipBank = {
       { text: "All progress bars are full at Raynor. Screenshot this immediately.", target: "progress", weight: 0.1 },
       { text: "This is what done looks like when the CheckMarq planning was real.", target: "progress", weight: 0.1 },
       { text: "Complete. The Raynor printer will miss you. CheckMarq will not.", target: "both", weight: 0.1 },
+      { text: "Everything complete. You ate the whole degree. Generational W.", target: "both", weight: 0.1 },
+      { text: "Done. Zero remaining. The CheckMarq final boss has been defeated.", target: "both", weight: 0.1 },
     ],
     easter_egg_full_plan: [
       { text: "You planned the whole CheckMarq timeline. Serious organization.", target: "semester", weight: 0.1 },
@@ -723,6 +803,8 @@ export const QUIP_BANK: QuipBank = {
       { text: "You really said show me the entire CheckMarq saga in spreadsheet form.", target: "semester", weight: 0.1 },
       { text: "Complete long-range plan. Suspiciously good Raynor levels of organization.", target: "semester", weight: 0.1 },
       { text: "Every semester mapped on D2L. This is the plan advisors dream about.", target: "semester", weight: 0.1 },
+      { text: "Full timeline mapped. You main-quested the entire degree. Legendary.", target: "semester", weight: 0.1 },
+      { text: "The whole roadmap is here. Ngl that's plot armor levels of planning.", target: "semester", weight: 0.1 },
     ],
     finance_major: [
       { text: "Finance major. Bloomberg terminal dreams and Zilber DCF nightmares.", target: "both", weight: 2.0 },
@@ -737,6 +819,8 @@ export const QUIP_BANK: QuipBank = {
       { text: "FIN major. The only thing compounding faster than interest is D2L stress.", target: "both", weight: 2.0 },
       { text: "Finance at O'Brien. Where time value of money is real, including yours.", target: "both", weight: 0.5 },
       { text: "Finance major on CheckMarq. Markets are volatile, your plan should not be.", target: "both", weight: 2.0 },
+      { text: "Finance major. The Bloomberg terminal awaits. Lock in at Zilber.", target: "both", weight: 2.0 },
+      { text: "FIN major. Ngl the spreadsheet game is about to become your whole personality.", target: "both", weight: 1.0 },
     ],
     first_semester_heavy: [
       { text: "First semester and you immediately chose the hard version on CheckMarq. Bold.", target: "semester", weight: 0.5 },
@@ -750,6 +834,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "A packed first O'Brien term means the calendar speaks first and loudest.", target: "semester", weight: 1.0 },
       { text: "First semester heavy D2L recs. Instant academic Zilber pressure.", target: "semester", weight: 0.5 },
       { text: "Opening with a heavy CheckMarq load. The planner respects the aggression.", target: "semester", weight: 1.0 },
+      { text: "First semester and you chose the hard version. Ngl that's either genius or cooked.", target: "semester", weight: 1.0 },
     ],
     freshman_mountain: [
       { text: "Freshman with the full mountain visible on CheckMarq. Better than late.", target: "progress", weight: 1.0 },
@@ -763,6 +848,8 @@ export const QUIP_BANK: QuipBank = {
       { text: "This is the part where Raynor planning beats pure optimism hard.", target: "progress", weight: 0.5 },
       { text: "Freshman standing with full-picture CheckMarq awareness. Extremely rare.", target: "progress", weight: 1.0 },
       { text: "The whole degree just introduced itself on D2L. It was not short.", target: "progress", weight: 1.0 },
+      { text: "Freshman with the full mountain visible. Canon event. The grind is real.", target: "progress", weight: 1.0 },
+      { text: "Year one plus triple-digit credits. Lil bro the climb just started.", target: "progress", weight: 0.5 },
     ],
     heavy_warned: [
       { text: "Heavy semester with CheckMarq warnings. Not a skim-and-hope situation.", target: "semester", weight: 1.0 },
@@ -776,6 +863,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "Busy D2L semester plus warnings. The details are sprinting.", target: "semester", weight: 1.0 },
       { text: "This is the kind of term where reading Raynor beats guessing.", target: "semester", weight: 0.5 },
       { text: "Heavy and warned on CheckMarq. The footnotes are not optional this time.", target: "semester", weight: 1.0 },
+      { text: "Heavy load plus warnings. Lock in and read every flag. No crash outs.", target: "semester", weight: 1.0 },
     ],
     hure_major: [
       { text: "HURE major at O'Brien. You manage careers before managing your own CheckMarq.", target: "both", weight: 2.0 },
@@ -790,6 +878,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "HURE major on CheckMarq. Performance reviews start with your performance.", target: "both", weight: 2.0 },
       { text: "HR major at O'Brien. Onboarding yourself into upper-division courses.", target: "both", weight: 0.5 },
       { text: "HURE major at Zilber. Retention strategy applies to keeping your credits.", target: "both", weight: 2.0 },
+      { text: "HURE major. Conflict resolution starts with schedule conflicts. That's valid.", target: "both", weight: 2.0 },
     ],
     inbu_major: [
       { text: "INBU major at O'Brien. Your transcript has more stamps than your passport.", target: "both", weight: 2.0 },
@@ -804,6 +893,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "INBU at O'Brien. Your competitive advantage is thinking beyond Wisconsin Ave.", target: "both", weight: 2.0 },
       { text: "International Business on CheckMarq. Passport ready. Raynor degree plan ready.", target: "both", weight: 0.5 },
       { text: "INBU major. Your D2L network will eventually span time zones.", target: "both", weight: 2.0 },
+      { text: "INBU major. Thinking globally. Scheduling locally. Lock in.", target: "both", weight: 2.0 },
     ],
     insy_major: [
       { text: "INSY major at O'Brien. Have you tried turning your degree plan off and on.", target: "both", weight: 2.0 },
@@ -818,6 +908,8 @@ export const QUIP_BANK: QuipBank = {
       { text: "INSY track on CheckMarq. You automate everything except your own login.", target: "both", weight: 2.0 },
       { text: "INSY major at O'Brien. Your classmates will ask you to fix their laptops.", target: "both", weight: 0.5 },
       { text: "Information Systems. Where SELECT * FROM degree gives actual Raynor results.", target: "both", weight: 2.0 },
+      { text: "INSY major. Have you tried turning your degree plan off and on. Fr fr.", target: "both", weight: 2.0 },
+      { text: "Information Systems. Where SELECT * FROM degree actually returns Raynor results.", target: "both", weight: 1.0 },
     ],
     junior_midway: [
       { text: "Junior and halfway on CheckMarq. O'Brien Suite 111 would nod approvingly.", target: "progress", weight: 1.0 },
@@ -831,6 +923,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "Mid-junior at Zilber. Enough progress to feel genuinely real.", target: "progress", weight: 1.0 },
       { text: "Halfway through and already in the upper-division Raynor storyline.", target: "progress", weight: 1.0 },
       { text: "Junior midway on CheckMarq. The plan is holding up under real pressure.", target: "progress", weight: 0.5 },
+      { text: "Junior midway. Ngl this is where the degree starts looking inevitable.", target: "progress", weight: 1.0 },
     ],
     marketing_major: [
       { text: "Marketing major at O'Brien. You can brand anything except your sleep schedule.", target: "both", weight: 2.0 },
@@ -845,6 +938,8 @@ export const QUIP_BANK: QuipBank = {
       { text: "MARK major. You see conversion funnels in everything on D2L now.", target: "both", weight: 2.0 },
       { text: "Marketing at Zilber. Where the four Ps meet the four years of your life.", target: "both", weight: 0.5 },
       { text: "Marketing major on CheckMarq. Brand awareness starts with degree awareness.", target: "both", weight: 2.0 },
+      { text: "Marketing major. You think in campaigns. That's valid.", target: "both", weight: 2.0 },
+      { text: "MARK major. Ngl you tried to A/B test your own degree plan.", target: "both", weight: 1.0 },
     ],
     multi_major: [
       { text: "Multiple majors on CheckMarq. You chose violence against your free time.", target: "both", weight: 2.0 },
@@ -859,6 +954,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "Two degrees", target: "both", weight: 2.0 },
       { text: "Double major on D2L. Every double-counted course is a personal victory.", target: "both", weight: 0.5 },
       { text: "Multi-major plan on CheckMarq. This is not a hobby. This is a commitment.", target: "both", weight: 2.0 },
+      { text: "Double major. You chose violence against your free time. Ngl respect.", target: "both", weight: 2.0 },
     ],
     multibucket_stacking: [
       { text: "This lineup is stacking CheckMarq buckets like degree planning is ranked.", target: "semester", weight: 1.0 },
@@ -872,6 +968,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "Multi-bucket stacking is live on D2L and absolutely thriving.", target: "semester", weight: 1.0 },
       { text: "One O'Brien class, multiple buckets, minimal waste. Clean work.", target: "semester", weight: 0.5 },
       { text: "The CheckMarq overlap game is strong. The planner found some real deals.", target: "semester", weight: 1.0 },
+      { text: "Multi-bucket overlap everywhere. The efficiency is unhinged. In a good way.", target: "semester", weight: 1.0 },
     ],
     oscm_major: [
       { text: "OSCM major at O'Brien. Your semester logistics need Zilber optimization.", target: "both", weight: 2.0 },
@@ -886,6 +983,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "OSCM at O'Brien. Inventory management meets credit-hour management.", target: "both", weight: 2.0 },
       { text: "Supply chain major. The Raynor bullwhip effect applies to procrastination.", target: "both", weight: 0.5 },
       { text: "OSCM major on CheckMarq. Optimize the process. The process is your degree.", target: "both", weight: 2.0 },
+      { text: "OSCM major. Your course sequence is literally a supply chain fr fr.", target: "both", weight: 2.0 },
     ],
     real_major: [
       { text: "Real Estate major at Zilber. Location location location applies to seats.", target: "both", weight: 2.0 },
@@ -900,6 +998,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "REAL major at O'Brien. Commercial, residential, and academic real estate.", target: "both", weight: 2.0 },
       { text: "Real Estate at Zilber. The only major where square footage is a class topic.", target: "both", weight: 0.5 },
       { text: "REAL major on CheckMarq. Your degree is prime resume real estate.", target: "both", weight: 2.0 },
+      { text: "Real Estate major. Location location location. Including your seat in Zilber.", target: "both", weight: 2.0 },
     ],
     senior_done: [
       { text: "Senior and done on CheckMarq. Diploma pending. Raynor aura restored.", target: "both", weight: 1.0 },
@@ -913,6 +1012,8 @@ export const QUIP_BANK: QuipBank = {
       { text: "You understood the O'Brien assignment and then deleted the assignment.", target: "both", weight: 1.0 },
       { text: "Degree complete in senior year as the D2L timeline intended.", target: "both", weight: 1.0 },
       { text: "Done. The Wisconsin Ave cap and gown can stop being hypothetical.", target: "both", weight: 0.5 },
+      { text: "Senior and done. You cooked the degree. +10000 aura permanently.", target: "both", weight: 1.0 },
+      { text: "Degree complete. The transcript just ate. Roll credits.", target: "both", weight: 0.5 },
     ],
     senior_homestretch: [
       { text: "Senior and close to done on CheckMarq. Land the plane. No unnecessary drama.", target: "both", weight: 1.0 },
@@ -926,6 +1027,8 @@ export const QUIP_BANK: QuipBank = {
       { text: "The diploma is on-screen. Handshake tab should be open.", target: "both", weight: 0.5 },
       { text: "You made it to the last Raynor lap. Respect the lap and finish clean.", target: "both", weight: 1.0 },
       { text: "Senior homestretch. Every remaining CheckMarq credit is a finale credit.", target: "both", weight: 1.0 },
+      { text: "Senior homestretch. Lock in. No side quests. Land the plane.", target: "both", weight: 1.0 },
+      { text: "Almost done. Ngl if you crash out now that's a historic L.", target: "both", weight: 0.5 },
     ],
     sophomore_building: [
       { text: "Sophomore and building on CheckMarq. Quietly beating the no-plan allegations.", target: "progress", weight: 1.0 },
@@ -939,6 +1042,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "This is where the Raynor foundation starts acting like a real structure.", target: "progress", weight: 1.0 },
       { text: "Sophomore CheckMarq progress with visible momentum. Clean execution.", target: "progress", weight: 1.0 },
       { text: "Sophomore building phase at Zilber. The plan is getting real.", target: "progress", weight: 0.5 },
+      { text: "Sophomore and building. The transcript is lowkey starting to look real.", target: "progress", weight: 1.0 },
     ],
     summer_empty: [
       { text: "No summer recs on CheckMarq. The planner said go enjoy Wisconsin Ave.", target: "semester", weight: 1.0 },
@@ -952,6 +1056,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "The degree is not asking for Raynor summer labor this time around.", target: "semester", weight: 1.0 },
       { text: "A blank summer on D2L can still be strategic. No panic required.", target: "semester", weight: 1.0 },
       { text: "Empty summer. Even the CheckMarq planner needs a break sometimes.", target: "semester", weight: 0.5 },
+      { text: "No summer recs. The algorithm said touch grass. That's valid.", target: "semester", weight: 1.0 },
     ],
     summer_grind: [
       { text: "Summer recs on CheckMarq are live. Quiet campus. Loud ambition.", target: "semester", weight: 1.0 },
@@ -965,6 +1070,7 @@ export const QUIP_BANK: QuipBank = {
       { text: "The O'Brien campus chills. The degree grind does not.", target: "semester", weight: 1.0 },
       { text: "Summer recs loaded on D2L. Academic speedrun activated.", target: "semester", weight: 1.0 },
       { text: "Summer session on CheckMarq but make it strategic. The algorithm approves.", target: "semester", weight: 0.5 },
+      { text: "Summer recs loaded. Lock in. The academic speedrun is live.", target: "semester", weight: 1.0 },
     ],
   },
 };
