@@ -1,4 +1,7 @@
+import json
+import os
 import re
+from functools import lru_cache
 
 import pandas as pd
 
@@ -43,6 +46,10 @@ _NEUTRAL_DISCOVERY_DEPTS = {
 _STANDING_LABELS = {1: "Freshman", 2: "Sophomore", 3: "Junior", 4: "Senior"}
 _BCC_PREFIX = "BCC_"
 _MATH_SUBJECT_PREFIX = "MATH"
+_MAX_RANKING_OVERRIDE_BOOST = 2
+_RANKING_OVERRIDES_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "config", "ranking_overrides.json")
+)
 
 
 def _credits_to_standing(credits: int) -> int:
@@ -53,6 +60,31 @@ def _credits_to_standing(credits: int) -> int:
     if credits >= 24:
         return 2
     return 1
+
+
+@lru_cache(maxsize=1)
+def _load_ranking_overrides() -> dict:
+    try:
+        with open(_RANKING_OVERRIDES_PATH, encoding="utf-8") as f:
+            raw = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {"bucket_priority_boosts": {}}
+
+    boosts = {}
+    for bucket_id, raw_value in (raw.get("bucket_priority_boosts") or {}).items():
+        try:
+            boost = int(raw_value)
+        except (TypeError, ValueError):
+            continue
+        boost = max(-_MAX_RANKING_OVERRIDE_BOOST, min(0, boost))
+        if boost >= 0:
+            continue
+        boosts[str(bucket_id or "").strip().upper()] = boost
+    return {"bucket_priority_boosts": boosts}
+
+
+def _clear_ranking_overrides_cache() -> None:
+    _load_ranking_overrides.cache_clear()
 
 
 def normalize_semester_label(label: str) -> str:
@@ -411,6 +443,14 @@ def _selection_bucket_ids(candidate: dict) -> list[str]:
     if raw is None:
         raw = candidate.get("fills_buckets", [])
     return [str(b).strip() for b in (raw or []) if str(b).strip()]
+
+
+def _override_tier_adj(candidate: dict, overrides: dict) -> int:
+    boosts = overrides.get("bucket_priority_boosts") or {}
+    adjustment = 0
+    for bucket_id in _selection_bucket_ids(candidate):
+        adjustment = min(adjustment, int(boosts.get(str(bucket_id).strip().upper(), 0) or 0))
+    return max(-_MAX_RANKING_OVERRIDE_BOOST, min(0, adjustment))
 
 
 def _is_bridge_candidate(candidate: dict) -> bool:
@@ -1039,6 +1079,8 @@ def _build_debug_trace(
             "discovery_foundation_penalty": c.get("discovery_foundation_penalty", 0),
             "discovery_affinity_penalty": c.get("discovery_affinity_penalty", 0),
             "soft_prereq_penalty": c.get("soft_prereq_penalty", 0),
+            "override_tier_adj": c.get("override_tier_adj", 0),
+            "effective_ranking_tier": c.get("effective_ranking_tier", tier),
             "current_unmet_buckets": c.get("current_unmet_buckets", []),
             "is_core_prereq_blocker": code in core_prereq_blockers,
             "is_bridge_course": bool(c.get("is_bridge_course")),
@@ -1373,6 +1415,7 @@ def run_recommendation_semester(
         bucket_parent_map,
         parent_type_map,
     )
+    ranking_overrides = _load_ranking_overrides()
     scored_non_manual_sem: list[dict] = []
     for cand in non_manual_sem:
         if _blocked_by_writ_lifetime_limit(cand):
@@ -1403,12 +1446,14 @@ def run_recommendation_semester(
         else:
             tagged["discovery_foundation_penalty"] = 0
             tagged["discovery_affinity_penalty"] = 0
+        tagged["override_tier_adj"] = _override_tier_adj(tagged, ranking_overrides)
+        tagged["effective_ranking_tier"] = tagged["ranking_tier"] + tagged["override_tier_adj"]
         scored_non_manual_sem.append(tagged)
     ranked_sem = sorted(
         scored_non_manual_sem,
         key=lambda c: (
             _ranking_band(c, bucket_parent_map),
-            c.get("ranking_tier", 99),
+            c.get("effective_ranking_tier", c.get("ranking_tier", 99)),
             _bcc_priority_rank(c, bucket_parent_map),
             0 if c.get("is_core_prereq_blocker") else 1,
             _bridge_sort_penalty(c, bucket_parent_map),

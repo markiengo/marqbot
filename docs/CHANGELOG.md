@@ -8,6 +8,25 @@ Format per release:
 
 ---
 
+## [v2.4.4] - 2026-03-15
+
+### Changes
+
+- Fixed nightly collection crashes caused by archived migration imports: `test_schema_migration.py` now loads archived migration scripts lazily, so `pytest -m nightly` no longer dies during collection on missing `migrate_schema` modules.
+- Added structured nightly JSON output alongside the Markdown report, with new report sections for priority fixes, CSV investigation guidance, and failures grouped by program.
+- Added nightly auto-tune analysis via `scripts/analyze_nightly.py`, plus checked-in `config/ranking_overrides.json` and `config/data_investigation_queue.json` for deterministic follow-up actions.
+- Updated the nightly GitHub Actions workflow to upload the JSON sidecar, run the analyzer after scheduled/manual sweeps, and open auto-tune PRs for config-only changes.
+- Fixed track-parent lookup for program helpers so track baselines use `parent_major_id` correctly instead of producing false setup failures for AIM tracks.
+- Updated current docs to explain the JSON sidecar, config-driven nightly tuning, and the new local analyzer command.
+
+### Design Decisions
+
+- Nightly self-improvement is limited to checked-in config changes, not direct CSV edits or arbitrary code edits.
+- Auto-tuned changes should land through PRs rather than direct commits to `main`, so nightly behavior changes stay reviewable and reversible.
+- Nightly collection should not fail just because a non-nightly archived migration test imports tooling that has been moved out of the active script path.
+
+---
+
 ## [v2.4.3] - 2026-03-12
 
 ### Changes

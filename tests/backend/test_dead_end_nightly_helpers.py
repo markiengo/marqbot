@@ -102,12 +102,16 @@ def test_nightly_report_uses_plain_english_sections_and_appendix_logs():
     collector.record_case_issue(spec, dead_end=dead_end, graduation=graduation)
 
     report = collector.generate_report()
+    snapshot = collector.to_snapshot(report_date="2026-03-09")
 
     assert "# Nightly Planner Report -" in report
     assert "## Overall Health" in report
     assert "- Status: Red" in report
     assert "This run is incomplete" in report
     assert "## What Needs Attention" in report
+    assert "## Priority Fix List" in report
+    assert "## Data Investigation Checklist" in report
+    assert "## Failures by Program" in report
     assert "## Biggest Patterns" in report
     assert "## Appendix" in report
     assert "### Student Profile Logs" in report
@@ -115,3 +119,7 @@ def test_nightly_report_uses_plain_english_sections_and_appendix_logs():
     assert "- status: dead end + not graduated by semester 8" in report
     assert "ELIGIBILITY_GAP" not in report
     assert "All sampled student plans completed without reported issues." not in report
+    assert snapshot["report_date"] == "2026-03-09"
+    assert snapshot["priority_fix_list"]
+    assert snapshot["data_investigation_checklist"]
+    assert snapshot["failures_by_program"]

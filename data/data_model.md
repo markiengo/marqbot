@@ -1,9 +1,10 @@
 # MarqBot Data Model
 
-All checked-in runtime inputs live in `data/` as UTF-8-BOM CSVs. The loader builds three runtime layers:
+MarqBot's checked-in catalog inputs live in `data/` as UTF-8-BOM CSVs. The planner also reads checked-in operational config from `config/`. Together, the loader and recommender build these runtime layers:
 - a course catalog overlay (`courses.csv` + split prereqs + offerings metadata)
 - a parent/child requirement graph (`parent_buckets.csv` + `child_buckets.csv` + `master_bucket_courses.csv`)
 - an equivalency overlay (`course_equivalencies.csv`) used for prereq satisfaction, dedup filtering, and no-double-credit blocking
+- a ranking override layer (`config/ranking_overrides.json`) used for deterministic bucket-priority boosts
 
 ## Runtime Assembly
 
@@ -13,6 +14,7 @@ flowchart TD
     classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
     classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
     classDef purple fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef yellow fill:#fef3c7,stroke:#d97706,color:#78350f
 
     subgraph CSV["📂 CSV Files (data/)"]
         direction LR
@@ -31,6 +33,10 @@ flowchart TD
         DYN["Elective Synthesis\nbiz_elective → credits_pool"]
     end
 
+    subgraph CONFIG["🧭 Config (config/)"]
+        CFG["ranking_overrides.json\nbucket priority boosts"]
+    end
+
     subgraph ENGINE["🎯 Engine"]
         ENG["Allocator → Eligibility → Recommender"]
     end
@@ -38,12 +44,14 @@ flowchart TD
     C & HP & SP --> RC
     PB & CB & MBC --> BG
     C & CB --> DYN --> BG
+    CFG --> ENG
     RC & BG --> ENG
 
     class C,HP,SP blue
     class PB,CB,MBC orange
     class RC,BG,DYN green
     class ENG purple
+    class CFG yellow
 ```
 
 ## Entity Relationships
@@ -113,6 +121,13 @@ erDiagram
 | `course_soft_prereqs.csv` | Soft warnings, raw prerequisite text, and audit detail columns. |
 | `course_offerings.csv` | Seasonal offering history. Currently disabled - all courses treated as offered every term. |
 | `course_equivalencies.csv` | Equivalency groups used for honors/grad alternatives, cross-listing, and no-double-count logic. |
+
+## Operational Config
+
+| File | Role |
+|------|------|
+| `config/ranking_overrides.json` | Checked-in deterministic ranking adjustments learned from nightly report analysis. Same CSVs + same overrides + same inputs = same planner output. |
+| `config/data_investigation_queue.json` | Nightly-generated queue of data issues to review manually in the CSVs or bulletin. This is repo state, not a direct planner input. |
 
 ## Parent/Child Program Model
 

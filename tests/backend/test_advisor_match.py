@@ -22,8 +22,13 @@ GOLD_PATH = os.path.join(
     os.path.dirname(__file__), "..", "..", "eval", "advisor_gold.json"
 )
 
-with open(GOLD_PATH, encoding="utf-8") as _f:
-    _GOLD_DATASET = json.load(_f)
+_COLLECTION_ERROR = ""
+try:
+    with open(GOLD_PATH, encoding="utf-8") as _f:
+        _GOLD_DATASET = json.load(_f)
+except (OSError, json.JSONDecodeError) as exc:  # pragma: no cover - exercised only on collection failures
+    _COLLECTION_ERROR = f"Advisor gold dataset could not be loaded during collection: {exc}"
+    _GOLD_DATASET = []
 
 
 @pytest.fixture(scope="module")
@@ -109,6 +114,21 @@ def _make_test(entry: dict):
     test_fn.__name__ = f"test_advisor_match_{profile_id}"
     test_fn.__doc__ = description
     return test_fn
+
+
+def test_advisor_gold_collection_setup():
+    if not _COLLECTION_ERROR:
+        return
+    collector = get_nightly_collector()
+    collector.supplemental_checks += 1
+    collector.record_supplemental_issue(
+        label="advisor-gold-collection",
+        issue_kind="nightly collection setup",
+        scenario_label="advisor-gold",
+        reason=_COLLECTION_ERROR,
+        details=["The advisor gold dataset could not be loaded during test collection."],
+    )
+    raise AssertionError(_COLLECTION_ERROR)
 
 
 # Dynamically generate one test per gold profile.

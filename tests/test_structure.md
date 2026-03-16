@@ -102,10 +102,10 @@ One unified workflow: `.github/workflows/nightly-sweep.yml`
 | Trigger | Jobs that run |
 |---|---|
 | **Pull request** | Backend Regression, Planner Fast Guardrail, Frontend Tests |
-| **Schedule** (07:00 UTC; about 3:00 AM New York during daylight saving time) | Nightly Focused Sweep |
-| **Manual** (`workflow_dispatch`) | Nightly Focused Sweep |
+| **Schedule** (07:00 UTC; about 3:00 AM New York during daylight saving time) | Nightly Focused Sweep, Nightly Auto-Tune |
+| **Manual** (`workflow_dispatch`) | Nightly Focused Sweep, Nightly Auto-Tune |
 
-For the scheduled/manual nightly job, catalog-data assertion failures are treated as reportable review items, not release-blocking CI failures. The job stays green on pytest exit code `1` as long as the report artifact is produced; runner/internal pytest errors still fail the workflow.
+For the scheduled/manual nightly jobs, catalog-data assertion failures are treated as reportable review items, not release-blocking CI failures. The sweep stays green on pytest exit code `1` as long as the report artifact is produced; runner/internal pytest errors still fail the workflow. After a successful sweep, the auto-tune job reads the JSON sidecar, updates `config/ranking_overrides.json` plus `config/data_investigation_queue.json`, and opens a PR. Small override changes (`<= 3` bucket override edits) are set to auto-merge.
 
 ## Running Tests Locally
 
@@ -135,13 +135,16 @@ Remove-Item Env:NIGHTLY_SELECTION_VARIANTS
 # Run one specific combo
 .\.venv\Scripts\python.exe -m pytest -m nightly -k "ACCO_MAJOR+AIM_IB_TRACK+INSY_MAJOR" -q
 
+# Analyze the latest nightly JSON locally without writing config changes
+.\.venv\Scripts\python.exe scripts\analyze_nightly.py --report tests\nightly_reports\YYYY-MM-DD.json --dry-run
+
 # Frontend
 cd frontend
 npm run test
 ```
 
-The nightly sweep generates one report file at `tests/nightly_reports/YYYY-MM-DD.md` after finishing.
-That report is the intended daily review surface for catalog-sensitive failures such as advisor-gold drift, baseline dead-ends, and baseline graduation gaps.
+The nightly sweep generates `tests/nightly_reports/YYYY-MM-DD.md` plus `tests/nightly_reports/YYYY-MM-DD.json` after finishing.
+The Markdown report is the daily review surface for catalog-sensitive failures such as advisor-gold drift, baseline dead-ends, and baseline graduation gaps. The JSON sidecar is the machine-readable input for `scripts/analyze_nightly.py`.
 
 ## Nightly Sweep Details
 
@@ -153,14 +156,16 @@ The nightly sweep is now a focused sampled harness, not an exhaustive combinator
 - **Seeded history rules**: undergrad-only completed courses, no random course-universe sampling, no impossible prerequisite jumps, and invalid seeded histories are reported as first-class nightly issues
 - **Deadline rule**: each seeded student must both avoid dead-ends and still be on pace to finish within an overall `8`-semester path; the seeded semesters already taken count against that cap
 - **Expected count accounting**: the report shows planned samples, evaluated samples, invalid seeded histories, and whether the run was complete or partial
-- **Report layout**: plain-English health summary first, then biggest patterns, then an appendix with run details and student profile logs
+- **Report layout**: plain-English health summary first, then priority fix list, data-investigation checklist, failures by program, biggest patterns, and an appendix with run details and student profile logs
 - **Catalog baseline section**: advisor-gold mismatches and baseline dead-end / graduation audits are summarized in a dedicated nightly report section
+- **JSON sidecar**: each run also writes `YYYY-MM-DD.json` with raw sampled-plan failures, baseline audit records, and derived priority/checklist sections
 - **Seed**: override combo/history replay with `NIGHTLY_SEED`
 - **Knobs**: `NIGHTLY_SAMPLE_SIZE`, `NIGHTLY_SELECTION_VARIANTS`, and `NIGHTLY_CASE_BUDGET`
-- **Report**: uploaded as one artifact named `nightly-sweep-report-YYYY-MM-DD` (14-day retention) and contains one Markdown report file for that run
+- **Auto-tune**: `scripts/analyze_nightly.py` classifies bucket failures as `DATA`, `ALGORITHM`, or `SETUP`, updates ranking overrides, and refreshes the human investigation queue
+- **Report artifact**: uploaded as one artifact named `nightly-sweep-report-YYYY-MM-DD` (14-day retention) and contains both the Markdown report and JSON sidecar
 - **Fallback**: if pytest crashes during collection, a fallback report captures the error output
 - **Where to find results**: [GitHub Actions -> Nightly Sweep](../../actions/workflows/nightly-sweep.yml) -> click a run -> scroll to Artifacts at the bottom -> download `nightly-sweep-report-YYYY-MM-DD`
-- **Local runs** generate the report at `tests/nightly_reports/YYYY-MM-DD.md`
+- **Local runs** generate the report pair at `tests/nightly_reports/YYYY-MM-DD.md` and `tests/nightly_reports/YYYY-MM-DD.json`
 
 ### How the nightly sweep works
 

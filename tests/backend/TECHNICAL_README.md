@@ -43,7 +43,7 @@ Run this when touching planner selection, eligibility, or recommendation orderin
 
 `.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q`
 
-This is the large exhaustive planner pass. Do not treat it as a normal local command.
+This is the focused sampled nightly planner pass. It also writes the nightly Markdown + JSON report pair. Do not treat it as a normal local command.
 
 ### Full backend suite
 
@@ -55,7 +55,7 @@ Use only when you explicitly want to override the default `pytest.ini` nightly e
 
 - Normal CI uses the default backend regression lane from `pytest.ini` (nightly excluded).
 - Fast planner guardrail runs as its own CI job.
-- The exhaustive planner matrix stays in the nightly workflow only.
+- The focused nightly sweep stays in the nightly workflow only, and the follow-up auto-tune job reads its JSON artifact.
 
 ## Practical Rule
 

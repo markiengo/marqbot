@@ -15,7 +15,7 @@ Built by a Marquette student who got tired of guessing through CheckMarq.
 - Saved plan snapshots in your browser
 - An in-app feedback form for bugs and ideas
 
-Same inputs = same outputs. No randomness.
+Same CSVs + same ranking overrides + same inputs = same outputs. No randomness.
 
 ## What It Is Not
 
@@ -49,6 +49,17 @@ cd ..
 - Backend tests: `.\.venv\Scripts\python.exe -m pytest -q`
 - Frontend checks: `cd frontend; npm run test; npm run lint; npm run build`
 - Track validation: `.\.venv\Scripts\python.exe scripts/validate_track.py --all`
+- Nightly analyzer dry run: `.\.venv\Scripts\python.exe scripts/analyze_nightly.py --report tests/nightly_reports/YYYY-MM-DD.json --dry-run`
+
+## Nightly Workflow
+
+The scheduled nightly workflow runs the focused planner sweep, writes both a Markdown report and a JSON sidecar, and uploads them as one GitHub Actions artifact.
+
+After that, a second nightly job analyzes the JSON report. It can open a PR that updates:
+- `config/ranking_overrides.json`
+- `config/data_investigation_queue.json`
+
+Those auto-tuned changes are limited to checked-in config. They do not edit the CSV catalog for you. CSV fixes and bulletin checks still stay manual.
 
 ## Environment
 
@@ -62,9 +73,10 @@ cd ..
 ## Project Directory
 
 - `backend/`: API + recommendation engine
+- `config/`: checked-in ranking overrides + nightly investigation queue
 - `frontend/`: Next.js UI
 - `data/`: course, prereq, offering, and requirement CSVs
-- `scripts/`: local tooling + data utilities
+- `scripts/`: local tooling, data utilities, and nightly analysis
 - `tests/`: backend and frontend tests
 - `docs/`: changelog, algorithm notes, prompts, and working memos
 

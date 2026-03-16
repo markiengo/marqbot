@@ -1,6 +1,9 @@
+import json
+
 import pandas as pd
 
 from prereq_parser import parse_prereqs
+import semester_recommender
 from semester_recommender import run_recommendation_semester
 
 
@@ -3061,3 +3064,101 @@ def test_major_bridge_unlocker_stays_after_core_work_without_quota_preemption():
     codes = [r["course_code"] for r in out["recommendations"]]
     assert codes == ["MCC 1001", "MCC 1002", "BRIDGE 1001"]
     assert "balance_policy" not in out
+
+
+def test_bucket_priority_override_promotes_matching_bucket(monkeypatch, tmp_path):
+    overrides_path = tmp_path / "ranking_overrides.json"
+    overrides_path.write_text(json.dumps({
+        "version": 1,
+        "last_updated": "2026-03-15",
+        "bucket_priority_boosts": {
+            "FIN_MAJOR::B_CORE": -1,
+        },
+        "failure_history": {},
+    }), encoding="utf-8")
+    monkeypatch.setattr(semester_recommender, "_RANKING_OVERRIDES_PATH", str(overrides_path))
+    semester_recommender._clear_ranking_overrides_cache()
+
+    courses = [
+        {
+            "course_code": "ACCO 3001",
+            "course_name": "Bucket A Course",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "BUAN 3001",
+            "course_name": "Bucket B Course",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::A_CORE",
+            "bucket_label": "Bucket A",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::B_CORE",
+            "bucket_label": "Bucket B",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::A_CORE", "course_code": "ACCO 3001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::B_CORE", "course_code": "BUAN 3001"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+    ])
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        debug=True,
+    )
+
+    codes = [rec["course_code"] for rec in out["recommendations"]]
+    assert codes[:2] == ["BUAN 3001", "ACCO 3001"]
+    debug_entry = next(entry for entry in out["debug"] if entry["course_code"] == "BUAN 3001")
+    assert debug_entry["override_tier_adj"] == -1
+    semester_recommender._clear_ranking_overrides_cache()

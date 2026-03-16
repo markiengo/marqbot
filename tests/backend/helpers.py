@@ -110,7 +110,14 @@ def get_parent_major(track_id: str) -> str | None:
     row = catalog_df[catalog_df["track_id"] == track_id]
     if row.empty:
         return None
-    return str(row.iloc[0].get("parent_major", "")) or None
+    return (
+        str(
+            row.iloc[0].get("parent_major")
+            or row.iloc[0].get("parent_major_id")
+            or ""
+        ).strip()
+        or None
+    )
 
 
 # ── Payload builders ───────────────────────────────────────────────────────

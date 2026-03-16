@@ -323,6 +323,24 @@ def _count_phrase(count: int, singular: str, plural: str | None = None) -> str:
     return f"{count} {noun}"
 
 
+def _coerce_optional_float(value) -> float | None:
+    text = str(value or "").strip()
+    if not text or text.lower() == "nan":
+        return None
+    try:
+        return float(text)
+    except (TypeError, ValueError):
+        return None
+
+
+def _extract_failure_kind(details: list[str]) -> str:
+    for detail in details:
+        text = str(detail or "").strip()
+        if text.lower().startswith("failure kind:"):
+            return text.split(":", 1)[1].strip().upper()
+    return ""
+
+
 def build_seeded_history_variants(
     case: PlanCase,
     *,
@@ -671,6 +689,12 @@ class NightlyFailureCollector:
             "fail_at": fail_at,
             "reason": " ".join(reason_parts) if reason_parts else "Unknown nightly failure.",
             "unsatisfied_buckets": list(dict.fromkeys(unsatisfied)),
+            "failure_kind": dead_end.failure_kind if dead_end and dead_end.failed else "",
+            "manual_review_courses": list(dead_end.manual_review_courses) if dead_end and dead_end.failed else [],
+            "eligible_count": dead_end.eligible_count if dead_end and dead_end.failed else None,
+            "total_recommendations": (
+                graduation.total_recommendations if graduation and graduation.failed else None
+            ),
         })
 
     def record_supplemental_issue(
@@ -700,13 +724,295 @@ class NightlyFailureCollector:
             "details": list(details or []),
         })
 
-    def generate_report(self) -> str:
+    def _bucket_metadata(self) -> dict[str, dict]:
+        data = getattr(server, "_data", {}) or {}
+        parent_df = data.get("parent_buckets_df")
+        child_df = data.get("child_buckets_df")
+
+        parent_types: dict[str, str] = {}
+        if parent_df is not None and len(parent_df) > 0:
+            for _, row in parent_df.iterrows():
+                parent_id = str(row.get("parent_bucket_id", "") or "").strip().upper()
+                if parent_id:
+                    parent_types[parent_id] = str(row.get("type", "") or "").strip().lower()
+
+        metadata: dict[str, dict] = {}
+        if child_df is None or len(child_df) == 0:
+            return metadata
+
+        for _, row in child_df.iterrows():
+            parent_id = str(row.get("parent_bucket_id", "") or "").strip().upper()
+            child_id = str(row.get("child_bucket_id", "") or "").strip().upper()
+            if not parent_id or not child_id:
+                continue
+            metadata[f"{parent_id}::{child_id}"] = {
+                "parent_bucket_id": parent_id,
+                "child_bucket_id": child_id,
+                "requirement_mode": str(row.get("requirement_mode", "") or "").strip().lower(),
+                "courses_required": _coerce_optional_float(row.get("courses_required")),
+                "credits_required": _coerce_optional_float(row.get("credits_required")),
+                "min_level": _coerce_optional_float(row.get("min_level")),
+                "parent_type": parent_types.get(parent_id, ""),
+            }
+        return metadata
+
+    def _diagnosis_for_issue(
+        self,
+        *,
+        bucket_id: str = "",
+        reason: str = "",
+        status: str = "",
+        issue_kind: str = "",
+        failure_kind: str = "",
+    ) -> tuple[str, str]:
+        text = str(reason or "").strip().lower()
+        normalized_issue = str(issue_kind or "").strip().lower()
+        normalized_failure_kind = str(failure_kind or "").strip().upper()
+        bucket_key = str(bucket_id or "").strip().upper()
+        bucket_label = _friendly_bucket_label(bucket_key) if bucket_key else "this issue"
+        meta = self._bucket_metadata().get(bucket_key, {})
+
+        if normalized_issue == "nightly collection setup":
+            return (
+                "tests/backend/test_schema_migration.py",
+                "Fix the archived migration imports or other collection-time code errors before trusting the nightly report.",
+            )
+        if normalized_issue == "advisor gold mismatch":
+            return (
+                "master_bucket_courses.csv",
+                f"Compare mapped intro/core courses and bucket labels against the advisor gold expectations for {bucket_label}.",
+            )
+        if normalized_issue in {"catalog plan setup", "track catalog audit"} or "program selection failed" in text:
+            return (
+                "parent_buckets.csv",
+                f"Check parent_major, required_major, active, and requires_primary_major metadata for {bucket_label}.",
+            )
+        if normalized_failure_kind in {"ELIGIBILITY_GAP", "MANUAL_REVIEW_BLOCK"} or "prereq" in text:
+            return (
+                "course_hard_prereqs.csv",
+                f"Look for circular, missing, or over-restrictive prerequisite chains that block {bucket_label}.",
+            )
+        if meta.get("requirement_mode") == "credits_pool":
+            return (
+                "child_buckets.csv",
+                f"Compare credits_required and min_level against mapped eligible courses for {bucket_label}.",
+            )
+        if meta.get("min_level") is not None:
+            return (
+                "child_buckets.csv",
+                f"Check courses_required and min_level for {bucket_label} against the courses currently mapped to it.",
+            )
+        if bucket_key:
+            return (
+                "master_bucket_courses.csv",
+                f"Verify that the needed courses are mapped into {bucket_label}.",
+            )
+        return (
+            "child_buckets.csv",
+            f"Review the requirement metadata behind {bucket_label}.",
+        )
+
+    def _priority_fix_items(self) -> list[dict]:
+        aggregated: dict[str, dict] = {}
+        for record in self.records:
+            for bucket_id in list(dict.fromkeys(record.get("unsatisfied_buckets") or [])):
+                entry = aggregated.setdefault(
+                    bucket_id,
+                    {
+                        "bucket_id": bucket_id,
+                        "bucket_label": _friendly_bucket_label(bucket_id),
+                        "scenario_labels": set(),
+                        "failure_count": 0,
+                        "example_record": record,
+                    },
+                )
+                entry["scenario_labels"].add(str(record.get("scenario_label", "") or ""))
+                entry["failure_count"] += 1
+
+        items = []
+        for entry in aggregated.values():
+            csv_to_check, what_to_look_for = self._diagnosis_for_issue(
+                bucket_id=entry["bucket_id"],
+                reason=str(entry["example_record"].get("reason", "") or ""),
+                status=str(entry["example_record"].get("status", "") or ""),
+                failure_kind=str(entry["example_record"].get("failure_kind", "") or ""),
+            )
+            items.append({
+                "bucket_id": entry["bucket_id"],
+                "bucket_label": entry["bucket_label"],
+                "affected_combos": len([label for label in entry["scenario_labels"] if label]),
+                "failure_count": entry["failure_count"],
+                "csv_to_check": csv_to_check,
+                "what_to_look_for": what_to_look_for,
+            })
+
+        return sorted(
+            items,
+            key=lambda item: (-item["affected_combos"], -item["failure_count"], item["bucket_label"]),
+        )[:5]
+
+    def _checklist_items(self) -> list[dict]:
+        aggregated: dict[tuple[str, str, str], dict] = {}
+
+        for record in self.records:
+            buckets = list(dict.fromkeys(record.get("unsatisfied_buckets") or []))
+            if not buckets:
+                key = (
+                    str(record.get("scenario_label", "") or ""),
+                    str(record.get("status", "") or ""),
+                    "",
+                )
+                csv_to_check, what_to_look_for = self._diagnosis_for_issue(
+                    reason=str(record.get("reason", "") or ""),
+                    status=str(record.get("status", "") or ""),
+                    failure_kind=str(record.get("failure_kind", "") or ""),
+                )
+                entry = aggregated.setdefault(
+                    key,
+                    {
+                        "scenario_label": key[0],
+                        "subject_label": key[1] or "nightly issue",
+                        "csv_to_check": csv_to_check,
+                        "what_to_look_for": what_to_look_for,
+                        "occurrences": 0,
+                    },
+                )
+                entry["occurrences"] += 1
+                continue
+
+            for bucket_id in buckets:
+                key = (str(record.get("scenario_label", "") or ""), bucket_id, "record")
+                csv_to_check, what_to_look_for = self._diagnosis_for_issue(
+                    bucket_id=bucket_id,
+                    reason=str(record.get("reason", "") or ""),
+                    status=str(record.get("status", "") or ""),
+                    failure_kind=str(record.get("failure_kind", "") or ""),
+                )
+                entry = aggregated.setdefault(
+                    key,
+                    {
+                        "scenario_label": key[0],
+                        "subject_label": _friendly_bucket_label(bucket_id),
+                        "csv_to_check": csv_to_check,
+                        "what_to_look_for": what_to_look_for,
+                        "occurrences": 0,
+                    },
+                )
+                entry["occurrences"] += 1
+
+        for record in self.supplemental_records:
+            buckets = list(dict.fromkeys(record.get("unsatisfied_buckets") or []))
+            if buckets:
+                for bucket_id in buckets:
+                    key = (str(record.get("scenario_label", "") or ""), bucket_id, str(record.get("issue_kind", "") or ""))
+                    csv_to_check, what_to_look_for = self._diagnosis_for_issue(
+                        bucket_id=bucket_id,
+                        reason=str(record.get("reason", "") or ""),
+                        issue_kind=str(record.get("issue_kind", "") or ""),
+                        failure_kind=_extract_failure_kind(record.get("details") or []),
+                    )
+                    entry = aggregated.setdefault(
+                        key,
+                        {
+                            "scenario_label": key[0],
+                            "subject_label": _friendly_bucket_label(bucket_id),
+                            "csv_to_check": csv_to_check,
+                            "what_to_look_for": what_to_look_for,
+                            "occurrences": 0,
+                        },
+                    )
+                    entry["occurrences"] += 1
+            else:
+                subject_label = str(record.get("issue_kind", "") or "catalog issue")
+                key = (str(record.get("scenario_label", "") or ""), subject_label, "supplemental")
+                csv_to_check, what_to_look_for = self._diagnosis_for_issue(
+                    reason=str(record.get("reason", "") or ""),
+                    issue_kind=str(record.get("issue_kind", "") or ""),
+                    failure_kind=_extract_failure_kind(record.get("details") or []),
+                )
+                entry = aggregated.setdefault(
+                    key,
+                    {
+                        "scenario_label": key[0],
+                        "subject_label": subject_label,
+                        "csv_to_check": csv_to_check,
+                        "what_to_look_for": what_to_look_for,
+                        "occurrences": 0,
+                    },
+                )
+                entry["occurrences"] += 1
+
+        items = list(aggregated.values())
+        return sorted(
+            items,
+            key=lambda item: (-item["occurrences"], _friendly_scenario_label(item["scenario_label"]), item["subject_label"]),
+        )[:12]
+
+    def _program_groups(self) -> list[dict]:
+        grouped: dict[str, dict] = {}
+
+        for record in self.records:
+            scenario_label = str(record.get("scenario_label", "") or "")
+            entry = grouped.setdefault(
+                scenario_label,
+                {
+                    "scenario_label": scenario_label,
+                    "friendly_label": _friendly_scenario_label(scenario_label),
+                    "sampled_failures": 0,
+                    "supplemental_failures": 0,
+                    "buckets": Counter(),
+                    "issue_kinds": Counter(),
+                },
+            )
+            entry["sampled_failures"] += 1
+            for bucket_id in list(dict.fromkeys(record.get("unsatisfied_buckets") or [])):
+                entry["buckets"][_friendly_bucket_label(bucket_id)] += 1
+
+        for record in self.supplemental_records:
+            scenario_label = str(record.get("scenario_label", "") or "")
+            entry = grouped.setdefault(
+                scenario_label,
+                {
+                    "scenario_label": scenario_label,
+                    "friendly_label": _friendly_scenario_label(scenario_label),
+                    "sampled_failures": 0,
+                    "supplemental_failures": 0,
+                    "buckets": Counter(),
+                    "issue_kinds": Counter(),
+                },
+            )
+            entry["supplemental_failures"] += 1
+            entry["issue_kinds"][str(record.get("issue_kind", "") or "catalog issue")] += 1
+            for bucket_id in list(dict.fromkeys(record.get("unsatisfied_buckets") or [])):
+                entry["buckets"][_friendly_bucket_label(bucket_id)] += 1
+
+        items = []
+        for entry in grouped.values():
+            top_buckets = [label for label, _count in entry["buckets"].most_common(3)]
+            top_issue_kinds = [label for label, _count in entry["issue_kinds"].most_common(3)]
+            items.append({
+                "scenario_label": entry["scenario_label"],
+                "friendly_label": entry["friendly_label"],
+                "sampled_failures": entry["sampled_failures"],
+                "supplemental_failures": entry["supplemental_failures"],
+                "top_buckets": top_buckets,
+                "top_issue_kinds": top_issue_kinds,
+                "total_failures": entry["sampled_failures"] + entry["supplemental_failures"],
+            })
+
+        return sorted(
+            items,
+            key=lambda item: (-item["total_failures"], item["friendly_label"]),
+        )[:8]
+
+    def to_snapshot(self, *, report_date: str | None = None) -> dict:
         from datetime import date as _date
 
         elapsed = time.time() - self._start_time
         mins, secs = divmod(int(elapsed), 60)
         passed = self.total_tests - len(self.records)
         partial = bool(self.expected_tests and self.total_tests != self.expected_tests)
+        resolved_report_date = str(report_date or _date.today().isoformat())
 
         status_counts: Counter[str] = Counter()
         bucket_counts: Counter[str] = Counter()
@@ -739,16 +1045,11 @@ class NightlyFailureCollector:
             supplemental_count=len(self.supplemental_records),
         )
 
-        lines = [
-            f"# Nightly Planner Report - {_date.today().isoformat()}",
-            "",
-            "Daily decision summary for sampled student plans.",
-            "This version is written for quick review first, with raw case logs saved in the appendix.",
-            "",
-            "## Overall Health",
-            f"- Status: {health}",
-            "- Plain-English Summary: "
-            + _plain_summary(
+        return {
+            "report_version": 2,
+            "report_date": resolved_report_date,
+            "status": health,
+            "plain_summary": _plain_summary(
                 partial=partial,
                 total_tests=self.total_tests,
                 expected_tests=self.expected_tests,
@@ -758,10 +1059,57 @@ class NightlyFailureCollector:
                 reported=len(self.records),
                 supplemental_count=len(self.supplemental_records),
             ),
-            f"- Review Date: {_date.today().isoformat()}",
-            f"- Runtime: {mins}m {secs}s",
+            "runtime": {
+                "minutes": mins,
+                "seconds": secs,
+            },
+            "suite": {
+                "seed": self.seed,
+                "total_possible_scenarios": self.total_possible_scenarios,
+                "sampled_scenario_labels": list(self.sampled_scenario_labels),
+                "profiles_per_scenario": self.profiles_per_scenario,
+                "selection_variants": self.selection_variants,
+                "expected_tests": self.expected_tests,
+                "case_budget": self.case_budget,
+            },
+            "totals": {
+                "total_tests": self.total_tests,
+                "passed_tests": max(passed, 0),
+                "reported_issues": len(self.records),
+                "invalid_cases": self.invalid_cases,
+                "supplemental_checks": self.supplemental_checks,
+                "supplemental_issues": len(self.supplemental_records),
+                "partial": partial,
+                "status_counts": dict(status_counts),
+                "dead_end_count": dead_end_count,
+                "not_finished_count": not_finished_count,
+                "invalid_count": invalid_count,
+            },
+            "priority_fix_list": self._priority_fix_items(),
+            "data_investigation_checklist": self._checklist_items(),
+            "failures_by_program": self._program_groups(),
+            "records": self.records,
+            "supplemental_records": self.supplemental_records,
+        }
+
+    def generate_report(self, *, report_date: str | None = None) -> str:
+        snapshot = self.to_snapshot(report_date=report_date)
+        totals = snapshot["totals"]
+        suite = snapshot["suite"]
+
+        lines = [
+            f"# Nightly Planner Report - {snapshot['report_date']}",
+            "",
+            "Daily decision summary for sampled student plans.",
+            "This version is written for quick review first, with raw case logs saved in the appendix.",
+            "",
+            "## Overall Health",
+            f"- Status: {snapshot['status']}",
+            f"- Plain-English Summary: {snapshot['plain_summary']}",
+            f"- Review Date: {snapshot['report_date']}",
+            f"- Runtime: {snapshot['runtime']['minutes']}m {snapshot['runtime']['seconds']}s",
         ]
-        if partial:
+        if totals["partial"]:
             lines.append(
                 f"- Run Completeness: Incomplete. Only {self.total_tests} of {self.expected_tests} planned samples were evaluated."
             )
@@ -773,25 +1121,29 @@ class NightlyFailureCollector:
             "## What Needs Attention",
         ])
 
-        if partial:
+        if totals["partial"]:
             lines.append(
                 "- The run itself needs attention first: "
                 f"{_count_phrase(self.total_tests, 'planned sample')} out of "
                 f"{_count_phrase(self.expected_tests, 'planned sample')} were evaluated."
             )
-        if invalid_count:
-            top_invalid_reason = invalid_reason_counts.most_common(1)[0][0]
+        if totals["invalid_count"]:
+            top_invalid_reason = Counter(
+                _plain_invalid_reason(str(record.get("reason", "") or ""))
+                for record in self.records
+                if "invalid seeded history" in str(record.get("status", "") or "")
+            ).most_common(1)[0][0]
             lines.append(
-                f"- {_count_phrase(invalid_count, 'sampled plan')} could not be evaluated. "
+                f"- {_count_phrase(totals['invalid_count'], 'sampled plan')} could not be evaluated. "
                 f"Most commonly, {top_invalid_reason}"
             )
-        if not_finished_count:
+        if totals["not_finished_count"]:
             lines.append(
-                f"- {_count_phrase(not_finished_count, 'sampled plan')} did not finish within 8 semesters."
+                f"- {_count_phrase(totals['not_finished_count'], 'sampled plan')} did not finish within 8 semesters."
             )
-        if dead_end_count:
+        if totals["dead_end_count"]:
             lines.append(
-                f"- {_count_phrase(dead_end_count, 'sampled plan')} ran out of valid next courses before finishing."
+                f"- {_count_phrase(totals['dead_end_count'], 'sampled plan')} ran out of valid next courses before finishing."
             )
         if self.supplemental_records:
             kind_counts = Counter(record["issue_kind"] for record in self.supplemental_records)
@@ -802,18 +1154,48 @@ class NightlyFailureCollector:
             lines.append(
                 f"- {_count_phrase(len(self.supplemental_records), 'nightly catalog baseline check')} failed: {summary}."
             )
-        if not any([partial, invalid_count, not_finished_count, dead_end_count, self.supplemental_records]):
+        if not any([
+            totals["partial"],
+            totals["invalid_count"],
+            totals["not_finished_count"],
+            totals["dead_end_count"],
+            self.supplemental_records,
+        ]):
             lines.append("- No action items were reported in this run.")
 
         lines.extend(["", "## Biggest Patterns"])
+        bucket_counts = Counter()
+        for record in self.records:
+            for bucket in record.get("unsatisfied_buckets") or []:
+                bucket_counts[str(bucket)] += 1
         if bucket_counts:
             hottest = sorted(bucket_counts.items(), key=lambda item: (-item[1], item[0]))[:5]
             for bucket, count in hottest:
                 lines.append(f"- {_friendly_bucket_label(bucket)} remained open in {count} sampled plans.")
-        elif len(self.records) == 0 and not partial:
+        elif len(self.records) == 0 and not totals["partial"]:
             lines.append("- No recurring requirement gaps were found in the sampled plans.")
         else:
             lines.append("- No requirement pattern summary is available for this run.")
+
+        lines.extend(["", "## Priority Fix List"])
+        if snapshot["priority_fix_list"]:
+            for item in snapshot["priority_fix_list"]:
+                lines.append(
+                    f"- {item['bucket_label']} affected {item['affected_combos']} distinct program combos "
+                    f"({item['failure_count']} sampled failures). Check `{item['csv_to_check']}`."
+                )
+        else:
+            lines.append("- No recurring bucket failures were found to prioritize.")
+
+        lines.extend(["", "## Data Investigation Checklist"])
+        if snapshot["data_investigation_checklist"]:
+            for item in snapshot["data_investigation_checklist"]:
+                lines.append(
+                    f"- {_friendly_scenario_label(item['scenario_label'])}: check `{item['csv_to_check']}` for "
+                    f"{item['subject_label']} ({item['what_to_look_for']})"
+                )
+        else:
+            lines.append("- No data-investigation checklist items were generated for this run.")
 
         lines.extend(["", "## Catalog Baseline Audits"])
         if self.supplemental_records:
@@ -839,7 +1221,26 @@ class NightlyFailureCollector:
         else:
             lines.append("- No nightly catalog baseline issues were reported.")
 
+        lines.extend(["", "## Failures by Program"])
+        if snapshot["failures_by_program"]:
+            for item in snapshot["failures_by_program"]:
+                summary_parts = []
+                if item["sampled_failures"]:
+                    summary_parts.append(f"{item['sampled_failures']} sampled-plan failures")
+                if item["supplemental_failures"]:
+                    summary_parts.append(f"{item['supplemental_failures']} baseline/audit issues")
+                if item["top_buckets"]:
+                    summary_parts.append("open buckets: " + ", ".join(item["top_buckets"]))
+                if item["top_issue_kinds"]:
+                    summary_parts.append("audit types: " + ", ".join(item["top_issue_kinds"]))
+                lines.append(f"- {item['friendly_label']}: {'; '.join(summary_parts)}")
+        else:
+            lines.append("- No program-specific grouping is available for this run.")
+
         lines.extend(["", "## Sample Plan Groups To Review"])
+        scenario_counts: Counter[tuple[str, str]] = Counter()
+        for record in self.records:
+            scenario_counts[(str(record["status"]), str(record["scenario_label"]))] += 1
         top_groups = sorted(scenario_counts.items(), key=lambda item: (-item[1], item[0][0], item[0][1]))[:5]
         if top_groups:
             for (status, scenario_label), count in top_groups:
@@ -855,7 +1256,7 @@ class NightlyFailureCollector:
                     f"- {_count_phrase(count, 'sampled student')} in "
                     f"{_friendly_scenario_label(scenario_label)} needed review because {plain_reason}"
                 )
-        elif len(self.records) == 0 and not partial:
+        elif len(self.records) == 0 and not totals["partial"]:
             lines.append("- No sample groups were flagged for review in this run.")
         else:
             lines.append("- No sample groups were available to summarize.")
@@ -863,16 +1264,16 @@ class NightlyFailureCollector:
         lines.extend(["", "## Appendix", "", "### Run Details"])
         lines.extend([
             f"- Sampled plan groups: {len(self.sampled_scenario_labels)} of {self.total_possible_scenarios}",
-            f"- Student profiles per group: {self.profiles_per_scenario}",
-            f"- Course-history variants per profile: {self.selection_variants}",
-            f"- Planned samples: {self.expected_tests}",
+            f"- Student profiles per group: {suite['profiles_per_scenario']}",
+            f"- Course-history variants per profile: {suite['selection_variants']}",
+            f"- Planned samples: {suite['expected_tests']}",
             f"- Evaluated samples: {self.total_tests}",
-            f"- Samples with no reported issues: {max(passed, 0)}",
+            f"- Samples with no reported issues: {totals['passed_tests']}",
             f"- Samples with reported issues: {len(self.records)}",
             f"- Samples that could not be evaluated: {self.invalid_cases}",
             f"- Nightly catalog baseline checks run: {self.supplemental_checks}",
             f"- Nightly catalog baseline issues: {len(self.supplemental_records)}",
-            f"- Seed: `{self.seed or 'unknown'}`",
+            f"- Seed: `{suite['seed'] or 'unknown'}`",
         ])
 
         if not self.records and not self.supplemental_records:

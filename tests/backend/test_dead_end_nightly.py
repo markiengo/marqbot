@@ -22,7 +22,7 @@ import pytest
 from conftest import get_nightly_collector
 from dead_end_utils import classify_dead_end, simulate_terms
 from helpers import NIGHTLY_CASE_BUDGET, NIGHTLY_SAMPLE_SIZE, NIGHTLY_SELECTION_VARIANTS
-from nightly_support import build_nightly_suite, classify_graduation, format_nightly_failure
+from nightly_support import NightlySuite, build_nightly_suite, classify_graduation, format_nightly_failure
 
 pytestmark = pytest.mark.nightly
 
@@ -33,13 +33,42 @@ SELECTION_VARIANTS = int(
 )
 CASE_BUDGET = int(os.environ.get("NIGHTLY_CASE_BUDGET", NIGHTLY_CASE_BUDGET))
 
-_NIGHTLY_SUITE = build_nightly_suite(
-    SEED,
-    sample_size=SAMPLE_SIZE,
-    selection_variants=SELECTION_VARIANTS,
-    case_budget=CASE_BUDGET,
-)
-get_nightly_collector().configure_suite(_NIGHTLY_SUITE, seed=SEED)
+_COLLECTION_ERROR = ""
+try:
+    _NIGHTLY_SUITE = build_nightly_suite(
+        SEED,
+        sample_size=SAMPLE_SIZE,
+        selection_variants=SELECTION_VARIANTS,
+        case_budget=CASE_BUDGET,
+    )
+except Exception as exc:  # pragma: no cover - exercised only on collection failures
+    _COLLECTION_ERROR = f"Nightly suite setup failed during collection: {exc}"
+    _NIGHTLY_SUITE = NightlySuite(
+        cases=(),
+        total_possible_scenarios=0,
+        sampled_scenario_labels=(),
+        profiles_per_scenario=0,
+        selection_variants=0,
+        expected_tests=0,
+        case_budget=CASE_BUDGET,
+    )
+else:
+    get_nightly_collector().configure_suite(_NIGHTLY_SUITE, seed=SEED)
+
+
+def test_nightly_suite_collection_setup():
+    if not _COLLECTION_ERROR:
+        return
+    collector = get_nightly_collector()
+    collector.supplemental_checks += 1
+    collector.record_supplemental_issue(
+        label="nightly-suite-collection",
+        issue_kind="nightly collection setup",
+        scenario_label="nightly-suite",
+        reason=_COLLECTION_ERROR,
+        details=["The sampled nightly suite could not be built during test collection."],
+    )
+    raise AssertionError(_COLLECTION_ERROR)
 
 
 @pytest.mark.parametrize(

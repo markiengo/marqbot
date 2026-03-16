@@ -89,6 +89,11 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    outputs:
+      report_date: ${{ steps.report_meta.outputs.report_date }}
+      report_path: ${{ steps.report_meta.outputs.report_path }}
+      report_json_path: ${{ steps.report_meta.outputs.report_json_path }}
+      pytest_exit_code: ${{ steps.nightly_run.outputs.exit_code }}
 
     steps:
       - uses: actions/checkout@v5
@@ -104,9 +109,10 @@ jobs:
         run: |
           report_date="$(TZ=America/New_York date +%Y-%m-%d)"
           mkdir -p tests/nightly_reports
-          rm -f tests/nightly_reports/*.md
+          rm -f tests/nightly_reports/*.md tests/nightly_reports/*.json
           echo "report_date=$report_date" >> "$GITHUB_OUTPUT"
           echo "report_path=tests/nightly_reports/$report_date.md" >> "$GITHUB_OUTPUT"
+          echo "report_json_path=tests/nightly_reports/$report_date.json" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
@@ -144,7 +150,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: nightly-sweep-report-${{ steps.report_meta.outputs.report_date }}
-          path: ${{ steps.report_meta.outputs.report_path }}
+          path: |
+            ${{ steps.report_meta.outputs.report_path }}
+            ${{ steps.report_meta.outputs.report_json_path }}
           if-no-files-found: warn
           retention-days: 14
 
@@ -153,3 +161,102 @@ jobs:
         run: |
           echo "Pytest exited with code ${{ steps.nightly_run.outputs.exit_code }}."
           exit 1
+
+  nightly-analyze:
+    name: Nightly Auto-Tune
+    if: github.event_name != 'pull_request'
+    needs: nightly-exhaustive
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Download nightly report artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: nightly-sweep-report-${{ needs.nightly-exhaustive.outputs.report_date }}
+          path: tests/nightly_reports
+
+      - name: Analyze nightly report
+        id: analyze
+        shell: bash
+        env:
+          PYTHONPATH: backend:tests/backend:scripts
+        run: |
+          test -f "${{ needs.nightly-exhaustive.outputs.report_json_path }}"
+          python scripts/analyze_nightly.py \
+            --report "${{ needs.nightly-exhaustive.outputs.report_json_path }}" \
+            --summary-out nightly_analysis_summary.json \
+            --pr-body-out nightly_analysis_pr_body.md
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          with open("nightly_analysis_summary.json", encoding="utf-8") as f:
+              summary = json.load(f)
+          print(f"override_change_count={summary['override_change_count']}")
+          print(f"queue_count={summary['queue_count']}")
+          PY
+
+      - name: Detect config changes
+        id: detect_changes
+        shell: bash
+        run: |
+          if git diff --quiet -- config/ranking_overrides.json config/data_investigation_queue.json; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          echo "branch_name=nightly-tuning/${{ needs.nightly-exhaustive.outputs.report_date }}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push nightly tuning branch
+        if: steps.detect_changes.outputs.has_changes == 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "${{ steps.detect_changes.outputs.branch_name }}"
+          git add config/ranking_overrides.json config/data_investigation_queue.json
+          git commit -m "Nightly auto-tune ${{ needs.nightly-exhaustive.outputs.report_date }}"
+          git push --force origin "${{ steps.detect_changes.outputs.branch_name }}"
+
+      - name: Create or update nightly tuning PR
+        if: steps.detect_changes.outputs.has_changes == 'true'
+        id: pr
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          base_branch="${{ github.event.repository.default_branch }}"
+          branch_name="${{ steps.detect_changes.outputs.branch_name }}"
+          pr_number="$(gh pr list --head "$branch_name" --base "$base_branch" --state open --json number --jq '.[0].number')"
+          if [ -n "$pr_number" ]; then
+            gh pr edit "$pr_number" \
+              --title "Nightly auto-tune: ${{ needs.nightly-exhaustive.outputs.report_date }}" \
+              --body-file nightly_analysis_pr_body.md
+          else
+            gh pr create \
+              --base "$base_branch" \
+              --head "$branch_name" \
+              --title "Nightly auto-tune: ${{ needs.nightly-exhaustive.outputs.report_date }}" \
+              --body-file nightly_analysis_pr_body.md
+            pr_number="$(gh pr list --head "$branch_name" --base "$base_branch" --state open --json number --jq '.[0].number')"
+          fi
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+
+      - name: Enable auto-merge for small override changes
+        if: steps.detect_changes.outputs.has_changes == 'true' && steps.pr.outputs.pr_number != '' && fromJSON(steps.analyze.outputs.override_change_count) <= 3
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge "${{ steps.pr.outputs.pr_number }}" --auto --squash --delete-branch

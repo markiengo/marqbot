@@ -10,6 +10,9 @@ Covers:
 """
 
 import os
+import importlib.util
+import sys
+from pathlib import Path
 
 import openpyxl
 import pandas as pd
@@ -18,8 +21,41 @@ import pytest
 # conftest.py adds backend/ and scripts/ to sys.path.
 from allocator import allocate_courses
 from data_loader import _safe_bool_col, load_data
-from migrate_schema import main as migrate_main
-from migrate_parent_child_model import main as migrate_parent_child_main
+
+
+_ARCHIVE_SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts" / "archive"
+
+
+def _load_archive_main(module_name: str):
+    """Load an archived migration script lazily so nightly collection stays clean."""
+    module_path = _ARCHIVE_SCRIPTS_DIR / f"{module_name}.py"
+    if not module_path.exists():
+        raise FileNotFoundError(f"Archived script not found: {module_path}")
+
+    spec = importlib.util.spec_from_file_location(f"archive_{module_name}", module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not build import spec for {module_path}")
+
+    module = importlib.util.module_from_spec(spec)
+    archive_dir = str(_ARCHIVE_SCRIPTS_DIR)
+    added_archive_dir = False
+    if archive_dir not in sys.path:
+        sys.path.insert(0, archive_dir)
+        added_archive_dir = True
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        if added_archive_dir:
+            sys.path.remove(archive_dir)
+    return module.main
+
+
+def _migrate_main(args=None):
+    return _load_archive_main("migrate_schema")(args)
+
+
+def _migrate_parent_child_main(args=None):
+    return _load_archive_main("migrate_parent_child_model")(args)
 
 
 # -----------------------------------------------------------------------------
@@ -464,19 +500,19 @@ class TestCleanMode:
         path = _make_clean_workbook(tmp_path, include_course_sub_buckets=False)
         headers_before = _courses_headers(path)
         with pytest.raises(SystemExit):
-            migrate_main(["--clean", "--path", path])
+            _migrate_main(["--clean", "--path", path])
         assert _courses_headers(path) == headers_before
 
     def test_clean_aborts_when_course_sub_buckets_empty(self, tmp_path):
         path = _make_clean_workbook(tmp_path, course_sub_buckets_has_data=False)
         headers_before = _courses_headers(path)
         with pytest.raises(SystemExit):
-            migrate_main(["--clean", "--path", path])
+            _migrate_main(["--clean", "--path", path])
         assert _courses_headers(path) == headers_before
 
     def test_clean_creates_backup_before_delete(self, tmp_path):
         path = _make_clean_workbook(tmp_path)
-        migrate_main(["--clean", "--path", path])
+        _migrate_main(["--clean", "--path", path])
         backup = path + ".bak"
         assert os.path.exists(backup)
         assert "bucket1" in _courses_headers(backup)
@@ -490,14 +526,14 @@ class TestCleanMode:
             course_row=("FINA 3001", "something"),
         )
         headers_before = _courses_headers(path)
-        migrate_main(["--clean", "--path", path])
+        _migrate_main(["--clean", "--path", path])
         assert _courses_headers(path) == headers_before
         assert not os.path.exists(path + ".bak")
         assert "[INFO] No deprecated columns found. Nothing to remove." in capsys.readouterr().out
 
     def test_clean_dry_run_no_writes(self, tmp_path):
         path = _make_clean_workbook(tmp_path)
-        migrate_main(["--clean", "--dry-run", "--path", path])
+        _migrate_main(["--clean", "--dry-run", "--path", path])
         assert not os.path.exists(path + ".bak")
         assert "bucket1" in _courses_headers(path)
 
@@ -507,7 +543,7 @@ class TestCleanMode:
             course_headers=("course_code", "bucket1", "extra_col", "bucket2"),
             course_row=("FINA 3001", "CORE", "something", "ELECTIVE"),
         )
-        migrate_main(["--clean", "--path", path])
+        _migrate_main(["--clean", "--path", path])
         headers = _courses_headers(path)
         assert "bucket1" not in headers
         assert "bucket2" not in headers
@@ -681,7 +717,7 @@ class TestParentChildMigration:
             sub_buckets.to_excel(w, sheet_name="sub_buckets", index=False)
             courses_all_buckets.to_excel(w, sheet_name="courses_all_buckets", index=False)
 
-        migrate_parent_child_main(["--path", path])
+        _migrate_parent_child_main(["--path", path])
 
         assert os.path.exists(path + ".bak")
         xl = pd.ExcelFile(path)
@@ -728,7 +764,7 @@ class TestParentChildMigration:
             sub_buckets.to_excel(w, sheet_name="sub_buckets", index=False)
             courses_all_buckets.to_excel(w, sheet_name="courses_all_buckets", index=False)
 
-        migrate_parent_child_main(["--dry-run", "--path", path])
+        _migrate_parent_child_main(["--dry-run", "--path", path])
 
         assert not os.path.exists(path + ".bak")
         xl = pd.ExcelFile(path)
