@@ -14,31 +14,29 @@ import { OnboardingStepHeader } from "./OnboardingStepHeader";
 export function PreferencesStep() {
   const { state, dispatch } = useAppContext();
   const selectCls =
-    "w-full rounded-xl border border-border-medium bg-surface-input px-4 py-3 text-[0.95rem] text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40";
+    "w-full rounded-xl border border-[#dbcab8] bg-[#fffaf4] px-4 py-3 text-[0.95rem] text-[var(--ink-warm)] focus:outline-none focus:ring-2 focus:ring-[#c89f5e]/35";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="space-y-5">
       <OnboardingStepHeader
         eyebrow="Choose your plan"
         helper="You can change this later"
         title={
           <>
-            Tell MarqBot what <span className="text-emphasis-gold">kind of plan</span>{" "}
+            Tell MarqBot what <span className="text-[#b07b2b]">kind of plan</span>{" "}
             <span className="whitespace-nowrap">you want.</span>
           </>
         }
         description="Pick the next term, how far ahead to look, and how heavy each semester should feel."
       />
 
-      <div className="grid min-h-0 flex-1 items-stretch gap-4 lg:grid-cols-2 2xl:grid-cols-4">
-        <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)] shine-sweep">
+      <div className="grid items-stretch gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+        <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#fffdf9] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-ink-secondary">
+            <label className="text-sm font-medium text-[var(--ink-warm)]">
               What&apos;s your next semester?
             </label>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              The term you are planning for next. Not the one you are in right now.
-            </p>
+            <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">Your next semester.</p>
           </div>
           <div className="mt-auto pt-3">
             <select
@@ -57,13 +55,13 @@ export function PreferencesStep() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+        <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#f8efe2] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-ink-secondary">
+            <label className="text-sm font-medium text-[var(--ink-warm)]">
               How far ahead do you want to plan?
             </label>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Pick 1 for next term only, or go bigger if you want the long game.
+            <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
+              1 for next term, or up to 5 to plan ahead.
             </p>
           </div>
           <div className="mt-auto pt-3">
@@ -83,13 +81,13 @@ export function PreferencesStep() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+        <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#fffdf9] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-ink-secondary">
+            <label className="text-sm font-medium text-[var(--ink-warm)]">
               How many classes do you want each semester?
             </label>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Most students pick 4 or 5. Six is a fully informed choice.
+            <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
+              4-5 is typical. 6 is ambitious.
             </p>
           </div>
           <div className="mt-auto pt-3">
@@ -109,13 +107,13 @@ export function PreferencesStep() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+        <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#f8efe2] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-ink-secondary">
+            <label className="text-sm font-medium text-[var(--ink-warm)]">
               Which academic stage are you planning for?
             </label>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              This hard-locks recommendations to the course levels that match your program stage.
+            <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
+              Limits recs to courses at your program year.
             </p>
           </div>
           <div className="mt-auto pt-3">
@@ -133,7 +131,7 @@ export function PreferencesStep() {
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-xs text-ink-faint">
+            <p className="mt-2 text-xs text-[var(--ink-warm-muted)]">
               {STUDENT_STAGE_OPTIONS.find((option) => option.value === state.studentStage)?.helper}
             </p>
           </div>
@@ -144,9 +142,9 @@ export function PreferencesStep() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.2 }}
-        className="rounded-[1.5rem] border border-gold/18 bg-gold/[0.07] px-4 py-3.5 text-[0.92rem] leading-relaxed text-ink-secondary"
+        className="rounded-[1.5rem] border border-[#d9c4ac] bg-[#fff7eb] px-4 py-3.5 text-[0.95rem] leading-relaxed text-[var(--ink-warm-soft)]"
       >
-        MarqBot will rank classes that count now, unlock later work, and fit the pace you picked.
+        Recommendations will count now, unlock future courses, and stay aligned with the pace you picked.
       </motion.div>
     </div>
   );

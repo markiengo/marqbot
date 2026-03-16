@@ -29,7 +29,7 @@ export function PreferencesPanel({
   return (
     <div className="space-y-5">
       <p className="section-kicker">
-        Tune the planner inputs, then rerun.
+        Adjust inputs below.
       </p>
 
       <div className="space-y-1.5">
@@ -116,7 +116,7 @@ export function PreferencesPanel({
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium leading-tight text-ink-secondary">Include Summer Semesters</p>
-          <p className="mt-0.5 text-sm leading-tight text-ink-faint">Up to 4 courses. Summer-only offerings apply.</p>
+          <p className="mt-0.5 text-sm leading-tight text-ink-faint">Summer limit: 4 courses.</p>
         </div>
         <button
           type="button"
@@ -140,7 +140,7 @@ export function PreferencesPanel({
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium leading-tight text-ink-secondary">Honors Student</p>
-          <p className="mt-0.5 text-sm leading-tight text-ink-faint">Include honors-only options when relevant.</p>
+          <p className="mt-0.5 text-sm leading-tight text-ink-faint">Show honors courses.</p>
         </div>
         <button
           type="button"

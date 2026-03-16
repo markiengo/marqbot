@@ -11,7 +11,7 @@ interface StepIndicatorProps {
 export function StepIndicator({
   currentStep,
   totalSteps,
-  labels = ["Major", "Classes", "Plan"],
+  labels = ["Path", "Classes", "Plan"],
 }: StepIndicatorProps) {
   return (
     <div className="grid w-full grid-cols-3 gap-2.5">
@@ -26,15 +26,15 @@ export function StepIndicator({
             initial={false}
             animate={{
               y: isActive ? -2 : 0,
-              borderColor: isDone || isActive ? "rgba(255,204,0,0.2)" : "rgba(255,255,255,0.08)",
+              borderColor: isDone || isActive ? "rgba(255,204,0,0.28)" : "rgba(141,170,224,0.18)",
               backgroundColor: isActive
-                ? "rgba(255,255,255,0.07)"
+                ? "rgba(18,33,63,0.96)"
                 : isDone
-                  ? "rgba(255,204,0,0.07)"
-                  : "rgba(255,255,255,0.03)",
+                  ? "rgba(12,29,56,0.92)"
+                  : "rgba(12,29,56,0.78)",
               boxShadow: isActive
-                ? "0 10px 24px rgba(0,0,0,0.16), 0 0 24px rgba(255,204,0,0.08)"
-                : "0 6px 18px rgba(0,0,0,0.10)",
+                ? "0 14px 30px rgba(0,0,0,0.20)"
+                : "0 10px 24px rgba(0,0,0,0.14)",
             }}
             transition={{ duration: 0.24 }}
             aria-current={isActive ? "step" : undefined}
@@ -43,7 +43,7 @@ export function StepIndicator({
             <div className="flex items-center justify-between gap-1.5">
               <span
                 className={`whitespace-nowrap text-[0.6rem] font-semibold uppercase leading-none tracking-[0.16em] sm:text-[0.62rem] ${
-                  isDone || isActive ? "text-gold/90" : "text-ink-faint"
+                  isDone || isActive ? "text-gold" : "text-ink-faint"
                 }`}
               >
                 {statusLabel}
@@ -51,9 +51,9 @@ export function StepIndicator({
               <span
                 className={`flex h-[1.65rem] min-w-[1.65rem] items-center justify-center rounded-full border px-1.5 text-[0.68rem] font-semibold leading-none ${
                   isDone
-                    ? "border-gold/15 bg-gold text-navy-dark"
+                    ? "border-gold/35 bg-navy-dark text-ink-primary"
                     : isActive
-                      ? "border-gold/20 bg-gold/10 text-gold"
+                      ? "border-gold/35 bg-gold/10 text-gold"
                       : "border-white/10 bg-transparent text-ink-faint"
                 }`}
               >
@@ -69,13 +69,13 @@ export function StepIndicator({
 
             <p
               className={`mt-2.5 text-[0.88rem] font-semibold leading-tight sm:text-[0.95rem] ${
-                isDone || isActive ? "text-ink-primary" : "text-ink-secondary"
+                isDone || isActive ? "text-[var(--ink-warm)]" : "text-[var(--ink-warm-soft)]"
               }`}
             >
               {labels[i]}
             </p>
 
-            <div className="mt-3 h-[3px] overflow-hidden rounded-full bg-white/8">
+            <div className="mt-3 h-[3px] overflow-hidden rounded-full bg-border-subtle">
               <motion.div
                 initial={false}
                 animate={{
@@ -83,7 +83,7 @@ export function StepIndicator({
                   opacity: isDone || isActive ? 1 : 0.55,
                 }}
                 transition={{ duration: 0.28 }}
-                className={`h-full rounded-full ${isDone ? "bg-gold" : isActive ? "bg-mu-blue" : "bg-white/18"}`}
+                className={`h-full rounded-full ${isDone ? "bg-navy-light" : isActive ? "bg-gold" : "bg-border-medium"}`}
               />
             </div>
           </motion.div>

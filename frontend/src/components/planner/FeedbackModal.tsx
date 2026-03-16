@@ -72,7 +72,7 @@ export function FeedbackModal({ open, onClose, onSubmitted }: FeedbackModalProps
         <div className="relative space-y-2">
           <p className="section-kicker">Straight from the planner</p>
           <p className="text-sm leading-relaxed text-ink-secondary">
-            Rate the app and tell me what happened. Bugs, confusing copy, missing features, and ugly edge cases all belong here.
+            Rate the app and tell me what happened. Bug reports, feature ideas, confusing flows — all useful.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ export function FeedbackModal({ open, onClose, onSubmitted }: FeedbackModalProps
             })}
           </div>
           {rating === null && (
-            <p className="text-xs text-ink-faint">Pick a rating so I can sort signal from venting.</p>
+            <p className="text-xs text-ink-faint">Rate your experience.</p>
           )}
         </div>
 
@@ -115,7 +115,7 @@ export function FeedbackModal({ open, onClose, onSubmitted }: FeedbackModalProps
             onChange={(event) => setMessage(event.target.value)}
             rows={6}
             maxLength={FEEDBACK_MAX_MESSAGE_LENGTH}
-            placeholder="Example: the warnings felt confusing after I added a double major, or the semester recs looked wrong after I marked ACCO 1001 in progress."
+            placeholder="E.g., 'this rec seemed wrong after adding a double major'"
             className="w-full rounded-2xl border border-border-medium bg-surface-input/80 px-4 py-3 text-sm leading-relaxed text-ink-primary transition-colors focus:border-gold/30 focus:outline-none focus:ring-2 focus:ring-gold/35"
           />
           <div className="flex items-center justify-between gap-3 text-xs">

@@ -53,9 +53,9 @@ describe("OnboardingPage component flow", () => {
 
     renderWithApp(createElement(OnboardingPage), state);
 
-    expect(screen.getByText(/getting your planner ready/i)).toBeInTheDocument();
+    expect(screen.getByText(/preparing your roadmap/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/pulling course and program data so the setup starts with real rules/i),
+      screen.getByText(/loading course and program data/i),
     ).toBeInTheDocument();
   });
 
@@ -83,7 +83,7 @@ describe("OnboardingPage component flow", () => {
       await screen.findByRole("heading", { name: /add what you've already finished/i }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /next: plan/i }));
+    await user.click(screen.getByRole("button", { name: /next: preferences/i }));
     expect(
       await screen.findByRole("heading", { name: /tell marqbot what kind of plan you want/i }),
     ).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe("OnboardingPage component flow", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: /student stage/i }), "graduate");
     expect(screen.getByRole("combobox", { name: /student stage/i })).toHaveValue("graduate");
 
-    await user.click(screen.getByRole("button", { name: /show my plan/i }));
+    await user.click(screen.getByRole("button", { name: /show my roadmap/i }));
     expect(pushSpy).toHaveBeenCalledWith("/planner");
   });
 
@@ -111,6 +111,6 @@ describe("OnboardingPage component flow", () => {
     await user.click(await screen.findByRole("option", { name: /discovery/i }));
 
     expect(screen.getByRole("button", { name: /next: classes/i })).toBeDisabled();
-    expect(screen.getByText(/that program cannot stand alone/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/still needs a primary major/i).length).toBeGreaterThan(0);
   });
 });

@@ -234,6 +234,7 @@ export interface SavedPlansStore {
 }
 
 export type SavedPlanFreshness = "fresh" | "stale" | "missing";
+export type NavItemStatus = "live" | "soon";
 
 export type LoadStatus = "idle" | "loading" | "ready" | "error";
 
@@ -265,3 +266,11 @@ export interface AppState {
 }
 
 export type NavTab = "home" | "plan" | "courses" | "saved" | "ai-advisor" | "about";
+
+export interface NavItem {
+  id: NavTab;
+  label: string;
+  href: string;
+  status?: NavItemStatus;
+  badgeLabel?: string;
+}

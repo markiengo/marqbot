@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { WizardLayout } from "@/components/onboarding/WizardLayout";
 import { MajorStep } from "@/components/onboarding/MajorStep";
@@ -34,27 +34,6 @@ export default function OnboardingPage() {
     complete,
   } = useOnboarding();
 
-  useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    const prevHtmlOverflow = html.style.overflow;
-    const prevBodyOverflow = body.style.overflow;
-    const prevHtmlOverscroll = html.style.overscrollBehavior;
-    const prevBodyOverscroll = body.style.overscrollBehavior;
-
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-    html.style.overscrollBehavior = "none";
-    body.style.overscrollBehavior = "none";
-
-    return () => {
-      html.style.overflow = prevHtmlOverflow;
-      body.style.overflow = prevBodyOverflow;
-      html.style.overscrollBehavior = prevHtmlOverscroll;
-      body.style.overscrollBehavior = prevBodyOverscroll;
-    };
-  }, []);
-
   const isLoading =
     coursesLoading ||
     programsLoading ||
@@ -71,15 +50,17 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 band-blue">
-        <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(18,33,63,0.92),rgba(10,24,50,0.85))] p-8 text-center shadow-[0_24px_60px_rgba(0,0,0,0.24)]">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-gold/25 bg-gold/10 pulse-gold-soft">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
+      <div className="warm-page warm-page-noise flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
+        <div className="warm-card w-full max-w-md rounded-[2rem] p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#d7bf9f] bg-[#fff4e2]">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#b07b2b] border-t-transparent" />
           </div>
           <div className="mt-5 space-y-2">
-            <h1 className="text-2xl font-semibold text-ink-primary">Getting your planner ready.</h1>
-            <p className="text-sm leading-relaxed text-ink-muted">
-              Pulling course and program data so the setup starts with real rules.
+            <h1 className="font-[family-name:var(--font-sora)] text-2xl font-semibold text-[var(--ink-warm)]">
+              Preparing your roadmap.
+            </h1>
+            <p className="text-sm leading-relaxed text-[var(--ink-warm-soft)]">
+              Loading course and program data.
             </p>
           </div>
         </div>
@@ -89,20 +70,22 @@ export default function OnboardingPage() {
 
   if (bootstrapError) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
-        <div className="max-w-md space-y-4 rounded-2xl border border-border-subtle bg-surface-card/70 p-6 text-center">
+      <div className="warm-page warm-page-noise flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
+        <div className="warm-card w-full max-w-md rounded-[2rem] p-6 text-center">
           <div className="space-y-2">
-            <h1 className="font-[family-name:var(--font-sora)] text-xl font-semibold text-ink-primary">
-              Couldn&apos;t start setup
+            <h1 className="font-[family-name:var(--font-sora)] text-xl font-semibold text-[var(--ink-warm)]">
+              Could not start setup
             </h1>
-            <p className="text-sm text-ink-muted">
-              MarqBot needs the course and program lists before it can build anything useful.
+            <p className="text-sm text-[var(--ink-warm-soft)]">
+              MarqBot needs course and program data before it can build a plan.
             </p>
-            <p className="text-sm text-bad">{bootstrapError}</p>
+            <p className="text-sm text-[#ad4b2f]">{bootstrapError}</p>
           </div>
-          <Button variant="gold" onClick={handleRetry}>
-            Reload Setup
-          </Button>
+          <div className="mt-5 flex justify-center">
+            <Button variant="ink" onClick={handleRetry}>
+              Reload Setup
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -117,29 +100,39 @@ export default function OnboardingPage() {
     currentStep === "majors"
       ? "Next: Classes"
       : currentStep === "courses"
-        ? "Next: Plan"
+        ? "Next: Preferences"
         : "Continue";
 
   return (
     <WizardLayout stepKey={currentStep} currentStep={stepIndex} totalSteps={totalSteps}>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1">
-          {currentStep === "majors" && <MajorStep />}
-          {currentStep === "courses" && <CoursesStep onWarningChange={setPrereqWarning} />}
-          {currentStep === "preferences" && <PreferencesStep />}
-        </div>
+      <div className="space-y-5">
+        {currentStep === "majors" && <MajorStep />}
+        {currentStep === "courses" && <CoursesStep onWarningChange={setPrereqWarning} />}
+        {currentStep === "preferences" && <PreferencesStep />}
 
-        <div className="mt-4 space-y-3 border-t border-border-subtle/90 pt-4">
+        <div className="space-y-3 border-t border-[#e2d4c5] pt-5">
           {currentStep === "majors" && onlySecondary() && (
-            <div className="rounded-[1.45rem] border border-warn/20 bg-warn-light p-4 text-sm leading-relaxed text-warn">
-              That program cannot stand alone. Add a primary major like Finance or Marketing so the planner has the right spine.
+            <div className="rounded-[1.45rem] border border-[#e6c697] bg-[#fff4e0] px-4 py-4 text-sm leading-relaxed text-[#8f5e1e]">
+              That selection still needs a primary major. Add one before MarqBot builds the roadmap.
+            </div>
+          )}
+
+          {currentStep === "courses" && prereqWarning && (
+            <div className="rounded-[1.45rem] border border-[#e7c8ba] bg-[#fff3ee] px-4 py-4 text-sm leading-relaxed text-[#95513c]">
+              There is still a prereq mismatch in your course history. You can keep going, but fixing it
+              now will make the roadmap cleaner.
             </div>
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-h-[3.5rem] items-center">
               {!isFirst && (
-                <Button variant="ghost" size="lg" onClick={back} className="min-w-[8rem]">
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={back}
+                  className="min-w-[8rem] rounded-xl border border-[#decebc] bg-[#fbf5ec] text-[var(--ink-warm)] hover:bg-[#f3e7d8]"
+                >
                   Back
                 </Button>
               )}
@@ -147,20 +140,20 @@ export default function OnboardingPage() {
             <div className="flex w-full justify-end sm:w-auto">
               {isLast ? (
                 <Button
-                  variant="gold"
-                  size="md"
+                  variant="ink"
+                  size="lg"
                   onClick={handleFinish}
-                  className="w-full sm:min-w-[12rem]"
+                  className="w-full sm:min-w-[13rem]"
                 >
-                  Show My Plan
+                  Show My Roadmap
                 </Button>
               ) : (
                 <Button
-                  variant="primary"
-                  size="md"
-                  className="pulse-blue-soft w-full sm:min-w-[12rem]"
+                  variant="ink"
+                  size="lg"
+                  className="w-full sm:min-w-[13rem]"
                   onClick={next}
-                  disabled={!canProceed() || (currentStep === "courses" && prereqWarning)}
+                  disabled={!canProceed()}
                 >
                   {nextLabel}
                 </Button>

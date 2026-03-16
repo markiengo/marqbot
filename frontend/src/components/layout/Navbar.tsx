@@ -11,20 +11,26 @@ import { Button } from "@/components/shared/Button";
 export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const isLanding = pathname === "/";
+  const isPlannerRoute = pathname.startsWith("/planner");
+  const isWarmRoute =
+    pathname === "/" ||
+    pathname.startsWith("/about") ||
+    pathname.startsWith("/saved") ||
+    pathname.startsWith("/courses") ||
+    pathname.startsWith("/ai-advisor") ||
+    pathname.startsWith("/onboarding");
   const navItems = NAV_ITEMS;
 
   return (
     <nav
       className={`sticky top-0 z-40 backdrop-blur-md ${
-        isLanding
-          ? "border-b border-white/8 bg-[linear-gradient(180deg,rgba(7,16,30,0.94),rgba(7,16,30,0.78))]"
-          : "bg-surface-overlay/80 border-b-[3px] border-b-gold/20"
+        isWarmRoute
+          ? "border-b border-white/8 bg-[linear-gradient(180deg,rgba(7,16,30,0.94),rgba(7,16,30,0.80))]"
+          : "bg-surface-overlay/88 border-b border-b-gold/20"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[96rem] px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center justify-between h-16">
-          {/* Logo */}
           <Link href="/" className="relative z-10 flex items-center gap-3 shrink-0">
             <Image
               src="/assets/branding/marquette_logo.webp"
@@ -33,31 +39,51 @@ export function Navbar() {
               height={32}
               className="rounded-lg"
             />
-            <span className="font-[family-name:var(--font-sora)] font-bold text-gold text-[1.3rem]">
+            <span
+              className={`font-[family-name:var(--font-sora)] text-[1.3rem] font-bold ${
+                isWarmRoute ? "text-gold" : "text-gold"
+              }`}
+            >
               MarqBot
             </span>
           </Link>
 
-          {/* Desktop nav — absolutely centered in viewport */}
           <div className="hidden md:flex items-center gap-1 absolute inset-0 justify-center pointer-events-none">
-            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-2 py-1 pointer-events-auto shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
+            <div
+              className={`pointer-events-auto flex items-center gap-1 rounded-full px-2 py-1 shadow-[0_12px_30px_rgba(0,0,0,0.08)] ${
+                isWarmRoute
+                  ? "border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))]"
+                  : "border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))]"
+              }`}
+            >
               {navItems.map((item) => {
                 const active = pathname === item.href;
                 return (
                   <Link
                     key={item.id}
                     href={item.href}
-                    className={`relative px-3.5 py-2 rounded-xl text-[1rem] font-semibold transition-colors ${
+                    className={`relative flex items-center gap-2 rounded-xl px-3.5 py-2 text-[0.98rem] font-semibold transition-colors ${
                       active
-                        ? "text-gold"
-                        : "text-ink-muted hover:text-ink-primary hover:bg-surface-hover underline-reveal"
+                        ? isWarmRoute
+                          ? "text-gold"
+                          : "text-gold"
+                        : isWarmRoute
+                          ? "text-ink-muted hover:bg-surface-hover hover:text-ink-primary underline-reveal"
+                          : "text-ink-muted hover:bg-surface-hover hover:text-ink-primary underline-reveal"
                     }`}
                   >
-                    {item.label}
+                    <span>{item.label}</span>
+                    {item.badgeLabel && (
+                      <span className="rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold">
+                        {item.badgeLabel}
+                      </span>
+                    )}
                     {active && (
                       <motion.span
                         layoutId="nav-underline"
-                        className="absolute bottom-0.5 left-3 right-3 h-0.5 bg-gold rounded-full"
+                        className={`absolute bottom-0.5 left-3 right-3 h-0.5 rounded-full ${
+                          isWarmRoute ? "bg-gold" : "bg-gold"
+                        }`}
                       />
                     )}
                   </Link>
@@ -67,17 +93,21 @@ export function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center relative z-10">
-            {isLanding ? (
+            {isWarmRoute ? (
               <Link href="/onboarding">
                 <Button
-                  variant="gold"
+                  variant={pathname === "/" ? "ink" : "gold"}
                   size="sm"
-                  className="min-w-[148px] border border-gold/50 shadow-[0_0_16px_rgba(255,204,0,0.18)] hover:shadow-[0_0_22px_rgba(255,204,0,0.28)] transition-shadow duration-300"
+                  className={
+                    pathname === "/"
+                      ? "min-w-[156px] shadow-[0_12px_24px_rgba(43,26,7,0.12)]"
+                      : "min-w-[156px] border border-gold/50 shadow-[0_0_16px_rgba(255,204,0,0.18)] transition-shadow duration-300 hover:shadow-[0_0_22px_rgba(255,204,0,0.28)]"
+                  }
                 >
-                  Get My Plan
+                  Start Planning
                 </Button>
               </Link>
-            ) : (
+            ) : isPlannerRoute ? (
               <div className="w-8 h-8 rounded-full bg-surface-card flex items-center justify-center border border-border-subtle">
                 <Image
                   src="/assets/avatar_silhouette.svg"
@@ -87,17 +117,23 @@ export function Navbar() {
                   className="opacity-40"
                 />
               </div>
-            )}
+            ) : null}
           </div>
 
-          {/* Mobile hamburger */}
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-surface-hover cursor-pointer"
+            className={`cursor-pointer rounded-lg p-2 md:hidden ${
+              isWarmRoute ? "hover:bg-surface-hover" : "hover:bg-surface-hover"
+            }`}
             aria-label="Toggle menu"
           >
-            <svg className="w-5 h-5 text-ink-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              className={`h-5 w-5 ${isWarmRoute ? "text-ink-secondary" : "text-ink-secondary"}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               {mobileOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               ) : (
@@ -108,14 +144,17 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="md:hidden overflow-hidden border-t border-border-subtle bg-surface-overlay"
+            className={`overflow-hidden border-t md:hidden ${
+              isWarmRoute
+                ? "border-border-subtle bg-surface-overlay"
+                : "border-border-subtle bg-surface-overlay"
+            }`}
           >
             <div className="px-4 py-3 space-y-1">
               {navItems.map((item) => {
@@ -125,21 +164,30 @@ export function Navbar() {
                     key={item.id}
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    className={`block px-3 py-2.5 rounded-xl text-[1rem] font-semibold ${
+                    className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-[1rem] font-semibold ${
                       active
-                        ? "bg-gold/10 text-gold"
-                        : "text-ink-muted hover:bg-surface-hover"
+                        ? isWarmRoute
+                          ? "bg-gold/10 text-gold"
+                          : "bg-gold/10 text-gold"
+                        : isWarmRoute
+                          ? "text-ink-muted hover:bg-surface-hover"
+                          : "text-ink-muted hover:bg-surface-hover"
                     }`}
                   >
-                    {item.label}
+                    <span>{item.label}</span>
+                    {item.badgeLabel && (
+                      <span className="rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold">
+                        {item.badgeLabel}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
-              {isLanding && (
+              {isWarmRoute && (
                 <div className="pt-2">
                   <Link href="/onboarding" onClick={() => setMobileOpen(false)}>
-                    <Button variant="gold" size="md" className="w-full">
-                      Get My Plan
+                    <Button variant="ink" size="md" className="w-full">
+                      Start Planning
                     </Button>
                   </Link>
                 </div>

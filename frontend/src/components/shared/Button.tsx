@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost" | "gold";
+  variant?: "primary" | "secondary" | "ghost" | "gold" | "ink";
   size?: "sm" | "md" | "lg";
 }
 
@@ -16,6 +16,8 @@ const variants = {
     "text-ink-secondary hover:bg-surface-hover",
   gold:
     "bg-gradient-to-r from-gold via-gold-light to-gold text-navy-dark font-semibold hover:from-gold-light hover:via-gold hover:to-gold-light shadow-sm shadow-gold/20",
+  ink:
+    "bg-[linear-gradient(180deg,rgba(0,51,102,0.96),rgba(0,31,63,0.96))] text-white border border-gold/25 hover:bg-[linear-gradient(180deg,rgba(0,74,153,0.96),rgba(0,51,102,0.96))] shadow-sm shadow-black/20",
 };
 
 const sizes = {

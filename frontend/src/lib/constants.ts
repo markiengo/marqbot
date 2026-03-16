@@ -1,16 +1,16 @@
-import type { NavTab } from "./types";
+import type { NavItem } from "./types";
 
 export const STORAGE_KEY = "marqbot_session_v1";
 export const SAVED_PLANS_STORAGE_KEY = "marqbot_saved_plans_v1";
 export const PLANNER_FEEDBACK_NUDGE_STORAGE_KEY = "marqbot_planner_feedback_nudge_v1";
 export const MAX_SAVED_PLANS = 25;
 
-export const NAV_ITEMS: { id: NavTab; label: string; href: string }[] = [
+export const NAV_ITEMS: NavItem[] = [
   { id: "home", label: "Home", href: "/" },
   { id: "plan", label: "Planner", href: "/planner" },
   { id: "saved", label: "Saved", href: "/saved" },
-  { id: "courses", label: "Courses", href: "/courses" },
-  { id: "ai-advisor", label: "AI Advisor", href: "/ai-advisor" },
+  { id: "courses", label: "Courses", href: "/courses", status: "soon", badgeLabel: "Soon" },
+  { id: "ai-advisor", label: "AI Advisor", href: "/ai-advisor", status: "soon", badgeLabel: "Soon" },
   { id: "about", label: "About", href: "/about" },
 ];
 

@@ -48,26 +48,26 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
   }, [check]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="space-y-5">
       <OnboardingStepHeader
         eyebrow="Add your classes"
-        helper="Best results = accurate inputs"
+        helper="Cleaner inputs, cleaner roadmap"
         title={
           <>
-            Add what you&apos;ve <span className="text-emphasis-blue">already finished</span>.
+            Add what you&apos;ve <span className="text-[#2e6ea7]">already finished</span>.
           </>
         }
-        description="Add completed classes first, then the ones you are taking now. This is what keeps the plan honest."
+        description="Completed classes first, then the ones in progress. This is how MarqBot knows what counts now and what still depends on next term."
       />
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
-        <div className="flex flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+        <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#fffdf9] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
           <div className="space-y-1">
-            <label className="text-base font-semibold text-ink-secondary md:text-lg">
+            <label className="text-base font-semibold text-[var(--ink-warm)] md:text-lg">
               Classes you&apos;ve already finished
             </label>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Finished classes, AP, IB, and transfer credit all belong here.
+            <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
+              Completed, AP, IB, and transfer credit go here.
             </p>
           </div>
           <div className="mt-3">
@@ -85,13 +85,13 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
           </div>
         </div>
 
-        <div className="flex flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+        <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#f8efe2] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
           <div className="space-y-1">
-            <label className="text-base font-semibold text-ink-secondary md:text-lg">
+            <label className="text-base font-semibold text-[var(--ink-warm)] md:text-lg">
               Classes you&apos;re taking right now
             </label>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Current term only. If you are enrolled but not done yet, put it here.
+            <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
+              Courses you&apos;re taking now.
             </p>
           </div>
           <div className="mt-3">
@@ -115,9 +115,9 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="rounded-[1.45rem] border border-bad/20 bg-bad-light px-4 py-3.5 text-[0.9rem] text-bad"
+          className="rounded-[1.45rem] border border-[#e7c8ba] bg-[#fff3ee] px-4 py-4 text-[0.92rem] text-[#95513c]"
         >
-          <p className="mb-1 font-semibold">Prereq mismatch:</p>
+          <p className="mb-1 font-semibold">Prereq mismatch to clean up:</p>
           <ul className="list-disc list-inside space-y-0.5">
             {inconsistencies.map((issue) => (
               <li key={issue.course_code}>
@@ -127,7 +127,8 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
             ))}
           </ul>
           <p className="mt-2 text-xs opacity-80">
-            Move the prereq to completed if you already passed it, or remove the class that depends on it.
+            Move the prereq to completed, or remove the dependent course. You can continue, but the plan
+            will be cleaner if you fix it now.
           </p>
         </motion.div>
       )}

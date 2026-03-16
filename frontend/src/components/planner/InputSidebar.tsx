@@ -157,7 +157,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
       {!hideHeader && (
         <div>
           <p className="text-xs font-semibold text-gold leading-tight">
-            Match your transcript as closely as you can for cleaner results.
+            Add what you&apos;ve completed so far.
           </p>
           <h3 className="text-base md:text-lg font-bold font-[family-name:var(--font-sora)] text-white mt-2 leading-tight">
             Your profile

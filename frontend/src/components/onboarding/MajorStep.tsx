@@ -11,8 +11,8 @@ const DISC_MAJOR_ID = "MCC_DISC";
 
 const SectionLabel = ({ title, sub }: { title: string; sub?: string }) => (
   <div className="mb-1.5 flex items-baseline gap-2">
-    <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{title}</span>
-    {sub && <span className="text-xs text-ink-faint">{sub}</span>}
+    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d6a42]">{title}</span>
+    {sub && <span className="text-xs text-[var(--ink-warm-muted)]">{sub}</span>}
   </div>
 );
 
@@ -160,27 +160,27 @@ export function MajorStep() {
   }, [highlightIdx]);
 
   const inputCls =
-    "w-full rounded-xl border border-border-medium bg-surface-input px-4 py-3 text-[0.95rem] text-ink-primary placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-gold/40";
+    "w-full rounded-xl border border-[#dbcab8] bg-[#fffaf4] px-4 py-3 text-[0.95rem] text-[var(--ink-warm)] placeholder:text-[var(--ink-warm-muted)] focus:outline-none focus:ring-2 focus:ring-[#c89f5e]/35";
   const dropdownCls =
-    "absolute left-0 top-full z-[60] mt-1 max-h-[min(18rem,34vh)] w-full overflow-y-auto rounded-xl border border-border-medium bg-surface-card shadow-lg";
+    "absolute left-0 top-full z-[60] mt-1 max-h-[min(18rem,34vh)] w-full overflow-y-auto rounded-xl border border-[#dbcab8] bg-[#fffdf9] shadow-[0_16px_36px_rgba(82,56,29,0.10)]";
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="space-y-5">
       <OnboardingStepHeader
         eyebrow="Pick your program"
         helper="Required first"
         title={
           <>
-            Start with your <span className="text-emphasis-gold">major</span>.
+            Start with your <span className="text-[#b07b2b]">major</span>.
           </>
         }
-        description="Major first. Track if you have one. That is enough to start the logic."
+        description="Major first, then track if it is already part of your plan. This keeps the roadmap anchored to the right requirement set."
       />
 
-      <div className="grid min-h-0 flex-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(18rem,0.92fr)]">
-        <div className="relative z-10 flex min-h-0 flex-col overflow-visible rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(18rem,0.92fr)]">
+        <div className="relative z-10 flex flex-col overflow-visible rounded-[1.8rem] border border-[#ddd0c1] bg-[#fffdf9] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
           <SectionLabel title="Major(s)" sub={`up to ${MAX_MAJORS}`} />
-          <p className="mb-2 text-[0.92rem] leading-relaxed text-ink-muted">
-            Pick the program you are actually in. No extra backstory required.
+          <p className="mb-2 text-[0.95rem] leading-relaxed text-[var(--ink-warm-soft)]">
+            Select the programs you have actually declared.
           </p>
           <div className="mb-2.5 flex min-h-[2.35rem] flex-wrap gap-1.5">
             <AnimatePresence mode="popLayout">
@@ -196,8 +196,8 @@ export function MajorStep() {
           </div>
 
           {allRequirePrimary && (
-            <div className="mb-3 rounded-lg bg-warn-light px-2.5 py-1.5 text-xs text-warn">
-              This program needs a primary major too. Add one more before you continue.
+            <div className="mb-3 rounded-xl border border-[#e5c79c] bg-[#fff4df] px-3 py-2 text-xs leading-relaxed text-[#8f5e1e]">
+              This selection still needs a primary major. Add one before you continue.
             </div>
           )}
 
@@ -257,13 +257,13 @@ export function MajorStep() {
                       onClick={() => selectMajor(major.id)}
                       className={`w-full cursor-pointer px-4 py-3 text-left text-sm transition-colors ${
                         index === highlightIdx
-                          ? "bg-gold/15 text-gold"
-                          : "text-ink-secondary hover:bg-surface-hover"
+                          ? "bg-[#fff1dc] text-[#8f5e1e]"
+                          : "text-[var(--ink-warm-soft)] hover:bg-[#f7eee2]"
                       }`}
                     >
                       {major.label}
                       {major.requires_primary_major && (
-                        <span className="ml-2 text-xs text-ink-faint">(needs a primary major)</span>
+                        <span className="ml-2 text-xs text-[var(--ink-warm-muted)]">(needs a primary major)</span>
                       )}
                     </button>
                   ))}
@@ -271,7 +271,7 @@ export function MajorStep() {
               )}
 
               {isOpen && query && filtered.length === 0 && (
-                <div className="absolute left-0 top-full z-[60] mt-1 w-full rounded-xl border border-border-medium bg-surface-card px-3 py-2.5 text-xs text-ink-faint shadow-lg">
+                <div className="absolute left-0 top-full z-[60] mt-1 w-full rounded-xl border border-[#dbcab8] bg-[#fffdf9] px-3 py-2.5 text-xs text-[var(--ink-warm-muted)] shadow-[0_16px_36px_rgba(82,56,29,0.10)]">
                   No majors found for &ldquo;{query}&rdquo;
                 </div>
               )}
@@ -279,11 +279,11 @@ export function MajorStep() {
           )}
         </div>
 
-        <div className="grid min-h-0 gap-4">
-          <div className="flex min-h-0 flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]">
+        <div className="grid gap-4">
+          <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#f8efe2] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
             <SectionLabel title="Track / Concentration" sub="optional" />
-            <p className="mb-2.5 text-[0.92rem] leading-relaxed text-ink-muted">
-              Only add this if it is officially part of your program.
+            <p className="mb-2.5 text-[0.95rem] leading-relaxed text-[var(--ink-warm-soft)]">
+              Only add this if it is already real on your side too.
             </p>
 
             <div className="mb-2.5 flex min-h-[2.35rem] flex-wrap gap-1.5">
@@ -317,7 +317,7 @@ export function MajorStep() {
             </select>
 
             {effectiveTrackRuleWarning && (
-              <div className="mt-2 rounded-xl bg-bad-light p-3 text-xs text-bad">
+              <div className="mt-2 rounded-xl border border-[#e7c8ba] bg-[#fff3ee] p-3 text-xs leading-relaxed text-[#95513c]">
                 {effectiveTrackRuleWarning}
               </div>
             )}
@@ -327,10 +327,10 @@ export function MajorStep() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.16 }}
-          className="flex items-center rounded-[1.6rem] border border-mu-blue/18 bg-mu-blue/10 px-4 py-3.5 text-[0.92rem] leading-relaxed text-ink-secondary"
-        >
-          Basics now. Fine-tuning later.
-        </motion.div>
+            className="flex items-center rounded-[1.6rem] border border-[#d9c4ac] bg-[#fff7eb] px-4 py-3.5 text-[0.95rem] leading-relaxed text-[var(--ink-warm-soft)]"
+          >
+            Pick the spine of the plan now. You can still refine details later inside the planner.
+          </motion.div>
         </div>
       </div>
 
@@ -339,10 +339,10 @@ export function MajorStep() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.22 }}
-          className="rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,43,0.76),rgba(255,255,255,0.02))] p-[clamp(1rem,1.6vw,1.35rem)]"
+          className="rounded-[1.45rem] border border-[#ddd0c1] bg-[#fffaf4] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]"
         >
           <SectionLabel title="Discovery Theme" sub="optional" />
-          <p className="mb-2.5 text-[0.92rem] leading-relaxed text-ink-muted">
+          <p className="mb-2.5 text-[0.95rem] leading-relaxed text-[var(--ink-warm-soft)]">
             Pick this only if you already know it. You can change it later.
           </p>
           <select
