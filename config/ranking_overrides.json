@@ -1,6 +1,255 @@
 {
   "version": 1,
-  "last_updated": "",
+  "last_updated": "2026-03-16",
   "bucket_priority_boosts": {},
-  "failure_history": {}
+  "failure_history": {
+    "ACCO_MAJOR::ACCO-CHOOSE-2": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, AIM_IB_TRACK::AIM-PCIB-REQ-CORE, +5 more.",
+      "last_failure_kind": "",
+      "affected_combos": 4
+    },
+    "ACCO_MAJOR::ACCO-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, AIM_IB_TRACK::AIM-PCIB-REQ-CORE, +5 more.",
+      "last_failure_kind": "",
+      "affected_combos": 4
+    },
+    "AIM_FINTECH_TRACK::AIM-FINTECH-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_FINTECH_TRACK::AIM-FINTECH-REQ-CORE.",
+      "last_failure_kind": "",
+      "affected_combos": 2
+    },
+    "AIM_IB_TRACK::AIM-PCIB-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, AIM_IB_TRACK::AIM-PCIB-REQ-CORE, +5 more.",
+      "last_failure_kind": "",
+      "affected_combos": 8
+    },
+    "AIM_MAJOR::AIM-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, AIM_IB_TRACK::AIM-PCIB-REQ-CORE, +5 more.",
+      "last_failure_kind": "",
+      "affected_combos": 14
+    },
+    "BECO_MAJOR::BECO-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: BCC::BCC_REQUIRED, BECO_MAJOR::BECO-REQ-CORE, INSY_MAJOR::INSY-CHOOSE-2, +4 more.",
+      "last_failure_kind": "",
+      "affected_combos": 1
+    },
+    "BUAN_MAJOR::BUAN-ADV": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_IB_TRACK::AIM-PCIB-REQ-CORE, AIM_MAJOR::AIM-REQ-CORE, BUAN_MAJOR::BUAN-ADV, +3 more.",
+      "last_failure_kind": "",
+      "affected_combos": 5
+    },
+    "BUAN_MAJOR::BUAN-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_IB_TRACK::AIM-PCIB-REQ-CORE, AIM_MAJOR::AIM-REQ-CORE, BCC::BCC_REQUIRED, +5 more.",
+      "last_failure_kind": "",
+      "affected_combos": 5
+    },
+    "CB_TRACK::COMMBANK-CHOOSE-1": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, AIM_IB_TRACK::AIM-PCIB-REQ-CORE, +5 more.",
+      "last_failure_kind": "",
+      "affected_combos": 3
+    },
+    "CB_TRACK::COMMBANK-CHOOSE-2": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, AIM_IB_TRACK::AIM-PCIB-REQ-CORE, +8 more.",
+      "last_failure_kind": "",
+      "affected_combos": 1
+    },
+    "CB_TRACK::COMMBANK-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, AIM_IB_TRACK::AIM-PCIB-REQ-CORE, +5 more.",
+      "last_failure_kind": "",
+      "affected_combos": 3
+    },
+    "FIN_MAJOR::CHOOSE-2": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, AIM_IB_TRACK::AIM-PCIB-REQ-CORE, +9 more.",
+      "last_failure_kind": "",
+      "affected_combos": 4
+    },
+    "FIN_MAJOR::FINA-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, AIM_IB_TRACK::AIM-PCIB-REQ-CORE, +6 more.",
+      "last_failure_kind": "",
+      "affected_combos": 8
+    },
+    "FP_TRACK::FINPLAN-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, FP_TRACK::FINPLAN-REQ-CORE, +3 more.",
+      "last_failure_kind": "",
+      "affected_combos": 5
+    },
+    "HURE_LEAD_TRACK::BUSLEAD-CHOOSE-2": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_MAJOR::AIM-REQ-CORE, BCC::BCC_REQUIRED, HURE_LEAD_TRACK::BUSLEAD-CHOOSE-2, +9 more.",
+      "last_failure_kind": "",
+      "affected_combos": 4
+    },
+    "HURE_LEAD_TRACK::BUSLEAD-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_MAJOR::AIM-REQ-CORE, BCC::BCC_REQUIRED, HURE_LEAD_TRACK::BUSLEAD-CHOOSE-2, +9 more.",
+      "last_failure_kind": "",
+      "affected_combos": 5
+    },
+    "HURE_MAJOR::HURE-CHOOSE-3": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, FP_TRACK::FINPLAN-REQ-CORE, +3 more.",
+      "last_failure_kind": "",
+      "affected_combos": 8
+    },
+    "HURE_MAJOR::HURE-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, FP_TRACK::FINPLAN-REQ-CORE, +3 more.",
+      "last_failure_kind": "",
+      "affected_combos": 9
+    },
+    "INBU_MAJOR::INBU-EXP-GLOBAL-1": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_MAJOR::AIM-REQ-CORE, BCC::BCC_REQUIRED, INBU_MAJOR::INBU-EXP-GLOBAL-1, +6 more.",
+      "last_failure_kind": "",
+      "affected_combos": 1
+    },
+    "INBU_MAJOR::INBU-FUNCTIONAL-CHOOSE-3": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_MAJOR::AIM-REQ-CORE, BCC::BCC_REQUIRED, INBU_MAJOR::INBU-EXP-GLOBAL-1, +6 more.",
+      "last_failure_kind": "",
+      "affected_combos": 1
+    },
+    "INBU_MAJOR::INBU-STUDY-ABROAD-1": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_MAJOR::AIM-REQ-CORE, BCC::BCC_REQUIRED, INBU_MAJOR::INBU-EXP-GLOBAL-1, +6 more.",
+      "last_failure_kind": "",
+      "affected_combos": 1
+    },
+    "INSY_MAJOR::INSY-CHOOSE-2": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_MAJOR::AIM-REQ-CORE, BCC::BCC_REQUIRED, INBU_MAJOR::INBU-EXP-GLOBAL-1, +6 more.",
+      "last_failure_kind": "",
+      "affected_combos": 5
+    },
+    "INSY_MAJOR::INSY-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: INSY_MAJOR::INSY-REQ-CORE.",
+      "last_failure_kind": "",
+      "affected_combos": 6
+    },
+    "MARK_MAJOR::MARK-CHOOSE-3": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-REQ-CORE, MARK_MAJOR::MARK-CHOOSE-3, MARK_MAJOR::MARK-REQ-CORE, +2 more.",
+      "last_failure_kind": "",
+      "affected_combos": 4
+    },
+    "MARK_MAJOR::MARK-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-REQ-CORE, MARK_MAJOR::MARK-REQ-CORE, MCC::MCC_CULM, +1 more.",
+      "last_failure_kind": "",
+      "affected_combos": 6
+    },
+    "MARK_PRSL_TRACK::PRSL-CHOOSE-2": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_IB_TRACK::AIM-PCIB-REQ-CORE, AIM_MAJOR::AIM-REQ-CORE, BUAN_MAJOR::BUAN-ADV, +3 more.",
+      "last_failure_kind": "",
+      "affected_combos": 3
+    },
+    "MARK_PRSL_TRACK::PRSL-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_IB_TRACK::AIM-PCIB-REQ-CORE, AIM_MAJOR::AIM-REQ-CORE, BUAN_MAJOR::BUAN-ADV, +5 more.",
+      "last_failure_kind": "",
+      "affected_combos": 4
+    },
+    "OSCM_MAJOR::OSCM-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_MAJOR::AIM-REQ-CORE, MCC::MCC_CULM, OSCM_MAJOR::OSCM-REQ-CORE.",
+      "last_failure_kind": "",
+      "affected_combos": 4
+    },
+    "REAL_MAJOR::REAL-CHOOSE-1": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: AIM_IB_TRACK::AIM-PCIB-REQ-CORE, AIM_MAJOR::AIM-REQ-CORE, BCC::BCC_REQUIRED, +6 more.",
+      "last_failure_kind": "",
+      "affected_combos": 1
+    },
+    "REAL_MAJOR::REAL-REQ-CORE": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, FP_TRACK::FINPLAN-REQ-CORE, +4 more.",
+      "last_failure_kind": "",
+      "affected_combos": 5
+    },
+    "REAL_REAP_TRACK::REAP-APPLIED-REQ": {
+      "consecutive_failures": 1,
+      "last_seen": "2026-03-16",
+      "classification": "ALGORITHM",
+      "last_reason": "The student still had unfinished requirement buckets by semester 8: ACCO_MAJOR::ACCO-CHOOSE-2, ACCO_MAJOR::ACCO-REQ-CORE, FP_TRACK::FINPLAN-REQ-CORE, +4 more.",
+      "last_failure_kind": "",
+      "affected_combos": 1
+    }
+  }
 }
