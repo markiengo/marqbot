@@ -53,9 +53,9 @@ describe("OnboardingPage component flow", () => {
 
     renderWithApp(createElement(OnboardingPage), state);
 
-    expect(screen.getByText(/preparing your roadmap/i)).toBeInTheDocument();
+    expect(screen.getByText(/loading your data/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/loading course and program data/i),
+      screen.getByText(/pulling 5,300\+ courses/i),
     ).toBeInTheDocument();
   });
 
@@ -70,7 +70,7 @@ describe("OnboardingPage component flow", () => {
 
     renderWithApp(createElement(OnboardingPage), state);
 
-    const nextToClasses = screen.getByRole("button", { name: /next: classes/i });
+    const nextToClasses = screen.getByRole("button", { name: /next: log your lore/i });
     expect(nextToClasses).toBeDisabled();
 
     await user.type(screen.getByPlaceholderText(/search majors/i), "fin");
@@ -83,7 +83,7 @@ describe("OnboardingPage component flow", () => {
       await screen.findByRole("heading", { name: /add what you've already finished/i }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /next: preferences/i }));
+    await user.click(screen.getByRole("button", { name: /next: set the pace/i }));
     expect(
       await screen.findByRole("heading", { name: /tell marqbot what kind of plan you want/i }),
     ).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe("OnboardingPage component flow", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: /student stage/i }), "graduate");
     expect(screen.getByRole("combobox", { name: /student stage/i })).toHaveValue("graduate");
 
-    await user.click(screen.getByRole("button", { name: /show my roadmap/i }));
+    await user.click(screen.getByRole("button", { name: /show my plan/i }));
     expect(pushSpy).toHaveBeenCalledWith("/planner");
   });
 
@@ -110,7 +110,7 @@ describe("OnboardingPage component flow", () => {
     await user.type(screen.getByPlaceholderText(/search majors/i), "disc");
     await user.click(await screen.findByRole("option", { name: /discovery/i }));
 
-    expect(screen.getByRole("button", { name: /next: classes/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /next: log your lore/i })).toBeDisabled();
     expect(screen.getAllByText(/still needs a primary major/i).length).toBeGreaterThan(0);
   });
 });

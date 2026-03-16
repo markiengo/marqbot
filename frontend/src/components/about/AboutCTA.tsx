@@ -83,14 +83,14 @@ export function AboutCTA() {
               {...viewAnim(12, 0.14)}
               className="mx-auto mt-4 max-w-[36rem] font-[family-name:var(--font-sora)] text-[2rem] font-bold leading-tight text-white sm:text-[2.6rem]"
             >
-              Found a bug? Have an idea? Just want to vent about CheckMarq?
+              Found a bug? Have a feature idea? Need to vent?
             </motion.h2>
 
             <motion.p
               {...viewAnim(10, 0.22)}
               className="mx-auto mt-4 max-w-[34rem] text-[0.98rem] leading-relaxed text-ink-muted sm:text-[1.05rem]"
             >
-              I read everything. Bug reports, feature ideas, or just telling me a prereq is wrong, all useful, all welcome.
+              Bug reports, feature ideas, prereq corrections -- all of it is useful. I read everything.
             </motion.p>
 
             <motion.p
@@ -143,7 +143,7 @@ export function AboutCTA() {
             </div>
 
             <p className="mt-8 text-sm leading-relaxed text-ink-muted">
-              Pro tip: include the course code and what you expected to happen. Screenshots are chef&apos;s kiss.
+              Pro tip: include the course code and what you expected to happen. Screenshots are an automatic W.
             </p>
 
             <AnchorLine variant="fade" className="mt-8" />

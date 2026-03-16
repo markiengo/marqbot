@@ -13,25 +13,25 @@ interface WizardLayoutProps {
 const stepMeta = {
   majors: {
     eyebrow: "Step 1 of 3",
-    title: "Pick your path.",
+    title: "Pick your main quest.",
     body: "Start with the major you are actually in. Add tracks only when they are real.",
   },
   courses: {
     eyebrow: "Step 2 of 3",
-    title: "Add your history.",
+    title: "Log your lore.",
     body: "Completed and in-progress courses keep the roadmap grounded in what you have already done.",
   },
   preferences: {
     eyebrow: "Step 3 of 3",
     title: "Set the pace.",
-    body: "Choose the next term, how far ahead you want to look, and how full each semester should feel.",
+    body: "Choose the next term, how far ahead you want to look, and and how ambitious you're feeling.",
   },
 } as const;
 
 const quickHits = [
-  { value: "3 steps", label: "finite setup" },
-  { value: "Edit later", label: "not locked in" },
-  { value: "Real rules", label: "planner logic" },
+  { value: "3 steps", label: "that's it" },
+  { value: "Edit later", label: "nothing is permanent" },
+  { value: "Real rules", label: "not vibes" },
 ];
 
 export function WizardLayout({
@@ -93,7 +93,7 @@ export function WizardLayout({
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ type: "spring", stiffness: 220, damping: 24 }}
                 className="warm-card rounded-[2rem] p-5 sm:p-6 lg:p-7"
               >
                 {children}

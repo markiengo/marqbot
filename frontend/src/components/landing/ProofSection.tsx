@@ -7,7 +7,7 @@ import { AnchorLine } from "@/components/shared/AnchorLine";
 const cards = [
   {
     title: "Built on real Marquette data",
-    body: "5,300+ course records and 1,500+ requirement links are wired into the engine.",
+    body: "5,300+ course records and 1,500+ requirement links. Wired in, not vibed in.",
   },
   {
     title: "Made for Business students",
@@ -15,7 +15,7 @@ const cards = [
   },
   {
     title: "Same inputs, same plan",
-    body: "The ranking is rules-based. No randomness. No hand-waving. No fake confidence.",
+    body: "Rules-based ranking. No randomness, no hand-waving, no main character energy.",
   },
 ];
 
@@ -39,7 +39,7 @@ export function ProofSection() {
           transition={{ duration: 0.4 }}
           className="text-sm font-semibold uppercase tracking-widest text-gold"
         >
-          Why you can trust it
+          Why this isn&apos;t guesswork
         </motion.p>
         <motion.h2
           initial={{ opacity: 0, y: 12 }}
@@ -47,7 +47,7 @@ export function ProofSection() {
           transition={{ duration: 0.45, delay: 0.08 }}
           className="mt-4 max-w-[42rem] text-[2.7rem] font-bold leading-tight text-white sm:text-[3.6rem]"
         >
-          It is using
+          Built on
           <span className="text-gold"> the actual rules.</span>
         </motion.h2>
         <motion.p
@@ -97,7 +97,7 @@ export function ProofSection() {
                 initial={{ opacity: 0, scale: 0.94 }}
                 animate={inView ? { opacity: 1, scale: 1 } : {}}
                 transition={{ duration: 0.4, delay: 0.56 + index * 0.08 }}
-                className="rounded-[1.4rem] border border-white/8 bg-white/[0.04] p-5 text-center shine-sweep"
+                className="rounded-[1.4rem] border border-white/8 bg-white/[0.04] p-5 text-center shine-sweep hover-ripple"
               >
                 <div className="text-5xl font-bold leading-none text-gold">{stat.value}</div>
                 <div className="mt-3 text-sm text-slate-400">{stat.label}</div>
@@ -110,7 +110,7 @@ export function ProofSection() {
               <span className="font-semibold text-gold">Planning tool.</span> Not official advising.
             </div>
             <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-300">
-              <span className="font-semibold text-gold">Double-check with your advisor</span> before registration gets ideas.
+              <span className="font-semibold text-gold">Double-check with your advisor</span> before registration week gets you.
             </div>
             <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-300">
               <span className="font-semibold text-gold">Built by a Marquette student.</span> It knows the difference between Raynor stress and O&apos;Brien stress.

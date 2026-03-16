@@ -11,7 +11,7 @@ interface StepIndicatorProps {
 export function StepIndicator({
   currentStep,
   totalSteps,
-  labels = ["Path", "Classes", "Plan"],
+  labels = ["Path", "Lore", "Pace"],
 }: StepIndicatorProps) {
   return (
     <div className="grid w-full grid-cols-3 gap-2.5">
@@ -25,7 +25,8 @@ export function StepIndicator({
             key={i}
             initial={false}
             animate={{
-              y: isActive ? -2 : 0,
+              y: isActive ? -4 : 0,
+              scale: isActive ? 1.04 : 1,
               borderColor: isDone || isActive ? "rgba(255,204,0,0.28)" : "rgba(141,170,224,0.18)",
               backgroundColor: isActive
                 ? "rgba(18,33,63,0.96)"
@@ -36,7 +37,7 @@ export function StepIndicator({
                 ? "0 14px 30px rgba(0,0,0,0.20)"
                 : "0 10px 24px rgba(0,0,0,0.14)",
             }}
-            transition={{ duration: 0.24 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
             aria-current={isActive ? "step" : undefined}
             className="min-w-0 rounded-[1.15rem] border px-3.5 py-3 text-left"
           >

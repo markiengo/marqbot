@@ -8,19 +8,24 @@ Format per release:
 
 ---
 
-## [v2.4.4] - 2026-03-15
+## [v2.4.4] - 2026-03-16
 
 ### Changes
 
-- Fixed nightly collection crashes caused by archived migration imports: `test_schema_migration.py` now loads archived migration scripts lazily, so `pytest -m nightly` no longer dies during collection on missing `migrate_schema` modules.
+- Full frontend language revamp: rewrote copy across 25+ components for max humor per the branding guide — landing, about, onboarding, planner, saved plans, placeholder pages.
+- Added spring physics animations (hero cards, wizard steps, buttons, modals, mobile menu) and micro-interactions (parallax orbs, tooltip bounce, hover ripple, animated stat counters).
+- New CSS keyframes and utility classes: `spring-up`, `tooltip-bounce`, `ripple-out`, `parallax-slow`, `parallax-fast`, `count-pop`, `.hover-ripple`, `.flip-card`.
+- New hooks: `useConfetti` (gold/blue particle burst on CTA clicks) and `useAnimatedCounter` (scroll-triggered count-up for stats).
+- All new animations respect `prefers-reduced-motion: reduce`.
+- Fixed nightly collection crashes caused by archived migration imports.
 - Added structured nightly JSON output alongside the Markdown report, with new report sections for priority fixes, CSV investigation guidance, and failures grouped by program.
 - Added nightly auto-tune analysis via `scripts/analyze_nightly.py`, plus checked-in `config/ranking_overrides.json` and `config/data_investigation_queue.json` for deterministic follow-up actions.
 - Updated the nightly GitHub Actions workflow to upload the JSON sidecar, run the analyzer after scheduled/manual sweeps, and open auto-tune PRs for config-only changes.
 - Fixed track-parent lookup for program helpers so track baselines use `parent_major_id` correctly instead of producing false setup failures for AIM tracks.
-- Updated current docs to explain the JSON sidecar, config-driven nightly tuning, and the new local analyzer command.
 
 ### Design Decisions
 
+- Copy tone targets campus humor without stacking slang or mixing campus refs with slang on the same line. No humor in error or warning states.
 - Nightly self-improvement is limited to checked-in config changes, not direct CSV edits or arbitrary code edits.
 - Auto-tuned changes should land through PRs rather than direct commits to `main`, so nightly behavior changes stay reviewable and reversible.
 - Nightly collection should not fail just because a non-nightly archived migration test imports tooling that has been moved out of the active script path.

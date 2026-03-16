@@ -51,7 +51,7 @@ export function LandingFinalCTA() {
               transition={{ duration: 0.5, delay: 0.12 }}
               className="mx-auto max-w-[16ch] text-[2.8rem] font-bold leading-tight text-white md:text-[4rem]"
             >
-              Your registration tab has asked
+              CheckMarq has asked
               <br />
               <span className="text-gold">enough of you.</span>
             </motion.h2>
@@ -62,7 +62,7 @@ export function LandingFinalCTA() {
               transition={{ duration: 0.45, delay: 0.22 }}
               className="mx-auto mt-5 mb-10 max-w-[42rem] text-[1.15rem] leading-relaxed text-slate-300 sm:text-[1.35rem]"
             >
-              Map out the rest of your semesters in a couple minutes. Then close the extra tabs and move on.
+              Map out the rest of your semesters in a few minutes. Close the tabs. Touch grass.
             </motion.p>
 
             <motion.div
@@ -84,14 +84,14 @@ export function LandingFinalCTA() {
             </motion.div>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm text-slate-400">
-              <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft">
+              <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft tooltip-bounce">
                 No account required
               </span>
-              <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft-delay">
+              <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft-delay tooltip-bounce">
                 5,300+ courses tracked
               </span>
-              <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft">
-                Double-check with your advisor
+              <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft tooltip-bounce">
+                Still double-check with your advisor
               </span>
             </div>
 

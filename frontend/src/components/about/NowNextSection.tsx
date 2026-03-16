@@ -43,13 +43,13 @@ export function NowNextSection() {
             {...viewAnim(14, 0.08)}
             className="font-[family-name:var(--font-sora)] text-[2rem] font-bold leading-tight text-white md:text-[2.8rem]"
           >
-            Here are the stuff I have on my to-dos.
+            Here&apos;s what&apos;s on the roadmap.
           </motion.h2>
           <motion.p
             {...viewAnim(10, 0.16)}
             className="mx-auto max-w-[38rem] text-[0.98rem] leading-relaxed text-ink-muted sm:text-[1.05rem]"
           >
-            The backlog is longer than my transcript. These four are winning right now.
+            The backlog is longer than my transcript. These four are winning the priority fight.
           </motion.p>
         </div>
 
@@ -61,7 +61,7 @@ export function NowNextSection() {
               key={card.title}
               {...viewAnim(22, 0.12 * index)}
               whileHover={reduce ? undefined : { y: -6, scale: 1.018 }}
-              className="glass-card card-glow-hover relative overflow-hidden rounded-[1.75rem] p-7"
+              className="glass-card card-glow-hover hover-ripple relative overflow-hidden rounded-[1.75rem] p-7"
             >
               <div className="absolute top-0 left-1/2 h-[2px] w-12 -translate-x-1/2 rounded-full bg-gold/70" />
               <div

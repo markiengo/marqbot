@@ -20,7 +20,7 @@ interface FeedbackModalProps {
 
 const RATING_OPTIONS = [
   { value: 1, label: "1", hint: "rough" },
-  { value: 2, label: "2", hint: "shaky" },
+  { value: 2, label: "2", hint: "mid" },
   { value: 3, label: "3", hint: "solid" },
   { value: 4, label: "4", hint: "great" },
   { value: 5, label: "5", hint: "clutch" },
@@ -107,7 +107,7 @@ export function FeedbackModal({ open, onClose, onSubmitted }: FeedbackModalProps
 
         <div className="relative space-y-2">
           <label htmlFor="feedback-message" className="section-kicker">
-            What should I know?
+            What happened?
           </label>
           <textarea
             id="feedback-message"

@@ -8,17 +8,17 @@ const steps = [
   {
     number: "01",
     title: "Pick your programs.",
-    body: "Add the major, track, and extras you have actually declared.",
+    body: "Major, track, and whatever else you've actually declared. No fiction.",
   },
   {
     number: "02",
     title: "Add your classes.",
-    body: "Mark what is done and what is still in progress.",
+    body: "Mark what's done, what's in progress. MarqBot handles the rest.",
   },
   {
     number: "03",
     title: "Get your full plan.",
-    body: "See your next semesters ranked by real requirement logic.",
+    body: "See your next semesters ranked by actual rules. Not vibes.",
   },
 ];
 
@@ -64,7 +64,7 @@ export function HowItWorksClear() {
           >
             Three steps.
             <br />
-            <span className="text-emphasis-blue">No bulletin archaeology.</span>
+            <span className="text-emphasis-blue">The setup is shorter than the PREP module.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -72,7 +72,7 @@ export function HowItWorksClear() {
             transition={{ duration: 0.4, delay: 0.16 }}
             className="mt-4 max-w-[44rem] text-[1.08rem] leading-relaxed text-slate-400 sm:text-[1.22rem]"
           >
-            The setup is short. The sorting logic is not.
+            Short enough to finish between classes. The sorting logic behind it is not.
           </motion.p>
         </div>
 
@@ -123,7 +123,7 @@ export function HowItWorksClear() {
             <h3 className="mt-4 text-[2rem] font-bold leading-tight text-white">
               Rules first.
               <br />
-              <span className="text-gold">Jokes second.</span>
+              <span className="text-gold">Attitude second.</span>
             </h3>
             <div className="mt-6 space-y-3">
               {checks.map((check, index) => (
@@ -139,7 +139,7 @@ export function HowItWorksClear() {
               ))}
             </div>
             <p className="mt-6 text-sm leading-relaxed text-slate-400">
-              If a class is a bad move, it drops out of the list. Simple.
+              If a class doesn&apos;t work yet, it drops. No dramatic exit, it just leaves.
             </p>
           </motion.div>
         </div>

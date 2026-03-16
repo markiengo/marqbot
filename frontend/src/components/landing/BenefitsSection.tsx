@@ -8,19 +8,19 @@ const benefits = [
   {
     kicker: "Take now",
     title: "See what you can actually take.",
-    body: "Stop building a perfect semester around a class CheckMarq will not let you touch yet.",
+    body: "Stop planning around a class CheckMarq will just reject. It's not bluffing.",
     accent: "gold",
   },
   {
     kicker: "Catch early",
     title: "Spot bottlenecks before they spiral.",
-    body: "Some courses quietly block half your future in O'Brien. MarqBot surfaces those early so they do not run your timeline.",
+    body: "Some courses quietly gate half your future. MarqBot surfaces those early so they don't run your timeline.",
     accent: "blue",
   },
   {
     kicker: "Track it all",
     title: "Core, major, track, MCC, minors.",
-    body: "See every requirement bucket, what is done, what is in progress, and what is left. One place.",
+    body: "Every requirement bucket in one place. What's done, what's in progress, what's still lurking.",
     accent: "gold",
   },
 ];
@@ -50,7 +50,7 @@ export function BenefitsSection() {
             transition={{ duration: 0.35 }}
             className="text-sm font-semibold uppercase tracking-widest text-gold"
           >
-            Why students use it
+            Why it&apos;s worth the five minutes
           </motion.p>
           <motion.h2
             initial={{ opacity: 0, y: 14 }}
@@ -58,7 +58,7 @@ export function BenefitsSection() {
             transition={{ duration: 0.45, delay: 0.08 }}
             className="mt-4 text-[2.8rem] font-bold leading-tight text-white sm:text-[3.7rem]"
           >
-            Less guessing.
+            Less bulletin archaeology.
             <br />
             <span className="text-gold">More clear next moves.</span>
           </motion.h2>
@@ -68,7 +68,7 @@ export function BenefitsSection() {
             transition={{ duration: 0.4, delay: 0.16 }}
             className="mt-4 text-[1.1rem] leading-relaxed text-slate-400 sm:text-[1.25rem]"
           >
-            Pick cleaner next moves faster. Skip the five-tab bulletin dig and the late-night Raynor spreadsheet.
+            Skip the five-tab dig. Your Raynor spreadsheet can finally rest.
           </motion.p>
         </div>
 

@@ -417,6 +417,105 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-ink-accent-blue);
 }
 
+/* ── Spring & micro-interaction keyframes ────────────────────── */
+@keyframes spring-up {
+  0% { opacity: 0; transform: translateY(28px) scale(0.97); }
+  50% { opacity: 1; transform: translateY(-6px) scale(1.01); }
+  70% { transform: translateY(3px) scale(0.998); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes tooltip-bounce {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
+  50% { transform: translateY(2px); }
+  70% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes ripple-out {
+  0% { transform: scale(0.6); opacity: 0.4; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes parallax-slow {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(12px, -8px) rotate(1deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes parallax-fast {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(-10px, 6px) rotate(-1.5deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes count-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.spring-up {
+  animation: spring-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tooltip-bounce {
+  animation: tooltip-bounce 0.5s ease-in-out;
+}
+
+.parallax-slow {
+  animation: parallax-slow 10s ease-in-out infinite;
+}
+
+.parallax-fast {
+  animation: parallax-fast 6s ease-in-out infinite;
+}
+
+.hover-ripple {
+  position: relative;
+  overflow: hidden;
+}
+.hover-ripple::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 2px solid rgba(255, 204, 0, 0.3);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.hover-ripple:hover::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.flip-card {
+  perspective: 1000px;
+}
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-style: preserve-3d;
+}
+.flip-card:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: inherit;
+}
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
 /* Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .bg-orbs::before,
@@ -1119,6 +1218,18 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
     opacity: 1 !important;
   }
   .underline-reveal::after {
+    transition: none !important;
+  }
+  .spring-up,
+  .tooltip-bounce,
+  .parallax-slow,
+  .parallax-fast {
+    animation: none !important;
+  }
+  .hover-ripple::after {
+    transition: none !important;
+  }
+  .flip-card-inner {
     transition: none !important;
   }
 }

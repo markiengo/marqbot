@@ -246,7 +246,7 @@ describe("Planner feedback nudge", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /feedback form/i }));
     fireEvent.click(screen.getByRole("button", { name: /rate marqbot 4 out of 5/i }));
-    fireEvent.change(screen.getByLabelText(/what should i know/i), {
+    fireEvent.change(screen.getByLabelText(/what happened/i), {
       target: {
         value: "The planner warning copy was confusing after I added my finance major.",
       },

@@ -180,7 +180,7 @@ export function MajorStep() {
         <div className="relative z-10 flex flex-col overflow-visible rounded-[1.8rem] border border-[#ddd0c1] bg-[#fffdf9] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
           <SectionLabel title="Major(s)" sub={`up to ${MAX_MAJORS}`} />
           <p className="mb-2 text-[0.95rem] leading-relaxed text-[var(--ink-warm-soft)]">
-            Select the programs you have actually declared.
+            Add what you&apos;ve actually declared. Not what you&apos;re vibing with.
           </p>
           <div className="mb-2.5 flex min-h-[2.35rem] flex-wrap gap-1.5">
             <AnimatePresence mode="popLayout">
@@ -283,7 +283,7 @@ export function MajorStep() {
           <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#f8efe2] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
             <SectionLabel title="Track / Concentration" sub="optional" />
             <p className="mb-2.5 text-[0.95rem] leading-relaxed text-[var(--ink-warm-soft)]">
-              Only add this if it is already real on your side too.
+              Only add this if it&apos;s real. Aspirational tracks don&apos;t count yet.
             </p>
 
             <div className="mb-2.5 flex min-h-[2.35rem] flex-wrap gap-1.5">
@@ -343,7 +343,7 @@ export function MajorStep() {
         >
           <SectionLabel title="Discovery Theme" sub="optional" />
           <p className="mb-2.5 text-[0.95rem] leading-relaxed text-[var(--ink-warm-soft)]">
-            Pick this only if you already know it. You can change it later.
+            Pick this only if you already know it. No pressure.
           </p>
           <select
             value={state.discoveryTheme || ""}

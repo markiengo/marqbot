@@ -74,7 +74,7 @@ export function Navbar() {
                   >
                     <span>{item.label}</span>
                     {item.badgeLabel && (
-                      <span className="rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold">
+                      <span className="rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold tooltip-bounce">
                         {item.badgeLabel}
                       </span>
                     )}
@@ -150,6 +150,7 @@ export function Navbar() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 220, damping: 24 }}
             className={`overflow-hidden border-t md:hidden ${
               isWarmRoute
                 ? "border-border-subtle bg-surface-overlay"
@@ -176,7 +177,7 @@ export function Navbar() {
                   >
                     <span>{item.label}</span>
                     {item.badgeLabel && (
-                      <span className="rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold">
+                      <span className="rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold tooltip-bounce">
                         {item.badgeLabel}
                       </span>
                     )}

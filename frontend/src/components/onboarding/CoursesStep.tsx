@@ -67,7 +67,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               Classes you&apos;ve already finished
             </label>
             <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
-              Completed, AP, IB, and transfer credit go here.
+              AP, IB, transfer credit -- all of it goes here.
             </p>
           </div>
           <div className="mt-3">
@@ -91,7 +91,7 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
               Classes you&apos;re taking right now
             </label>
             <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
-              Courses you&apos;re taking now.
+              Whatever you&apos;re enrolled in right now.
             </p>
           </div>
           <div className="mt-3">

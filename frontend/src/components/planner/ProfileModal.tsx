@@ -26,7 +26,7 @@ export function ProfileModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} size="planner-detail" title="Profile and Planner Settings">
+    <Modal open={open} onClose={onClose} size="planner-detail" title="Profile & Settings">
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left: Profile */}
         <div className="flex-1 min-w-0">

@@ -13,24 +13,24 @@ export type AboutContactLink = {
 
 export const ABOUT_HERO_COPY = {
   eyebrow: "About",
-  headline: "The student behind MarqBot.",
-  body: "I'm Markie. I built this because no one should need six browser tabs, two email threads, and a prayer to figure out what to take next semester.",
+  headline: "The student behind the planner.",
+  body: "I'm Markie. I built this because no one should need six tabs, two emails, and a small existential crisis to figure out what to take next semester.",
 } as const;
 
 export const ABOUT_INTRO_LABELS = [
   "freshman",
   "insy major",
   "builder",
-  "probably in raynor rn",
+  "lowkey lives in raynor",
 ] as const;
 
 export const ABOUT_INTRO_COPY = {
   title: "Hey, I'm Markie.",
   paragraphOne:
-    "I'm a freshman studying Information Systems at Marquette. I started MarqBot after losing an entire Sunday to the bulletin, CheckMarq, and a chain of advisor emails — all to answer one question about one class. That felt like a personal attack from the registrar.",
+    "I'm a freshman studying Information Systems at Marquette. I started MarqBot after losing an entire Sunday to the bulletin, CheckMarq, and a chain of advisor emails — all to answer one question about one class. The system won that round.",
   paragraphTwo:
-    "So I built the tool I wish existed: real rules, clear tradeoffs, and zero late-night fights with CheckMarq. Most of it was written in Raynor the week before registration, fueled by questionable amounts of coffee.",
-  note: "This started out as a \"quick side project\". I've learned those don't really exist.",
+    "So I built the tool I wish existed: real rules, clear tradeoffs, and zero late-night fights with CheckMarq. Most of it was written in Raynor the week before registration, The coffee-to-code ratio was concerning.",
+  note: "This started as a \"quick side project.\" That was a lie and I fell for it.",
 } as const;
 
 export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
@@ -38,7 +38,7 @@ export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
     eyebrow: "Building now",
     title: "Full policy documentation",
     body:
-      "Mapping out the edge-case policies Marquette actually enforces. The goal: fewer surprise blockers and fewer \"wait, since when?\" moments at the advisor's office.",
+      "Mapping out the edge-case policies Marquette actually enforces. The goal: fewer surprise blockers and fewer \"wait, since when?\" moments during Advising Week.",
   },
   {
     eyebrow: "Next up",
@@ -50,13 +50,13 @@ export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
     eyebrow: "Planned",
     title: "AI Advisor chatbot",
     body:
-      "A chat layer where you can ask degree questions in plain English — with your courses, major, and progress already loaded. Like texting your advisor, except it responds at 2 a.m.",
+      "A chat layer where you can ask degree questions in plain English — with your courses, major, and progress already loaded. Like texting your advisor, except it responds at 2 a.m. from Club Raynor.",
   },
   {
     eyebrow: "From you",
     title: "Bug reports and ideas",
     body:
-      "Some of the best fixes came from students finding the exact edge case I missed. If something looks wrong, hit Feedback or DM me. You're doing QA and I appreciate it deeply.",
+      "Some of the best fixes came from students finding the exact edge case I missed. If something looks wrong, hit Feedback or DM me. You're doing QA and I genuinely appreciate it. That's a W.",
   },
 ];
 

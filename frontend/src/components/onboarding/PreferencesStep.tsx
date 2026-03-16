@@ -87,7 +87,7 @@ export function PreferencesStep() {
               How many classes do you want each semester?
             </label>
             <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
-              4-5 is typical. 6 is ambitious.
+              4-5 is normal. 6 is unhinged.
             </p>
           </div>
           <div className="mt-auto pt-3">
@@ -113,7 +113,7 @@ export function PreferencesStep() {
               Which academic stage are you planning for?
             </label>
             <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
-              Limits recs to courses at your program year.
+              Keeps recs at your level. No boss fights too early.
             </p>
           </div>
           <div className="mt-auto pt-3">

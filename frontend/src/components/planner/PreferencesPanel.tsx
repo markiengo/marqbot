@@ -29,7 +29,7 @@ export function PreferencesPanel({
   return (
     <div className="space-y-5">
       <p className="section-kicker">
-        Adjust inputs below.
+        Tweak the settings.
       </p>
 
       <div className="space-y-1.5">

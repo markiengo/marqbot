@@ -26,7 +26,7 @@ export function Footer() {
                 MarqBot
               </p>
               <p className="mt-2 max-w-md text-sm leading-relaxed text-ink-secondary">
-                Student-built planning for Marquette Business students. Real rules, clearer next moves, less registration archaeology.
+                Student-built degree planning. Real rules, clear next moves, zero tab-induced anxiety.
               </p>
             </div>
           </div>
@@ -44,7 +44,7 @@ export function Footer() {
         </div>
         <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-5 text-sm text-ink-faint md:flex-row md:items-center md:justify-between">
           <p>Built for Marquette Business students. Not an official Marquette University product.</p>
-          <p>Double-check registration choices with your advisor and CheckMarq.</p>
+          <p>Always double-check with your advisor and CheckMarq before registration.</p>
         </div>
       </div>
     </footer>

@@ -7,7 +7,7 @@ import { Button } from "@/components/shared/Button";
 const topCourse = {
   code: "ACCO 3001",
   title: "Intermediate Accounting I",
-  detail: "Starts a real sequence before the prereq chain gets dramatic.",
+  detail: "Starts a real sequence before the prereq chain gets ideas.",
   tags: ["Counts now", "Unlocks ACCO 4020", "Open this term"],
 };
 
@@ -15,16 +15,16 @@ const nextCourses = [
   {
     code: "BULA 3001",
     title: "Legal and Ethical Environment of Business",
-    detail: "Real requirement. No filler behavior.",
+    detail: "Real requirement. Not a side quest.",
   },
   {
     code: "FINA 3001",
     title: "Intro to Finance",
-    detail: "Opens a longer run before junior year gets ideas.",
+    detail: "Opens a longer chain. Handle it before it handles you.",
   },
 ];
 
-const previewSignal = "Counts now. Unlocks later. Shows its work.";
+const previewSignal = "Counts now. Unlocks later. No hand-waving.";
 
 export function LandingHeroSimple() {
   return (
@@ -38,14 +38,14 @@ export function LandingHeroSimple() {
           }}
         />
         <div
-          className="absolute left-[6%] top-[8%] h-[28rem] w-[28rem] rounded-full"
+          className="absolute left-[6%] top-[8%] h-[28rem] w-[28rem] rounded-full parallax-slow"
           style={{
             background: "radial-gradient(circle, rgba(255,204,0,0.08) 0%, transparent 70%)",
             filter: "blur(40px)",
           }}
         />
         <div
-          className="absolute -right-20 top-24 h-[24rem] w-[24rem] rounded-full"
+          className="absolute -right-20 top-24 h-[24rem] w-[24rem] rounded-full parallax-fast"
           style={{
             background: "radial-gradient(circle, rgba(0,114,206,0.18) 0%, transparent 72%)",
             filter: "blur(52px)",
@@ -147,7 +147,7 @@ export function LandingHeroSimple() {
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.18 }}
+            transition={{ type: "spring", stiffness: 180, damping: 22 }}
             className="relative mx-auto w-full max-w-[36rem] lg:mr-0 xl:-ml-4"
           >
             <div className="absolute -inset-8 rounded-[2.5rem] bg-[radial-gradient(circle_at_20%_20%,rgba(255,204,0,0.12),transparent_34%),radial-gradient(circle_at_85%_15%,rgba(0,114,206,0.18),transparent_38%)] opacity-80 blur-2xl" />

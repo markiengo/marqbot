@@ -126,7 +126,7 @@ export function PlaceholderPage({
           <div className="relative z-10">
             <p className="warm-kicker text-xs uppercase tracking-[0.18em] text-gold">Preview</p>
             <h2 className="mt-3 font-[family-name:var(--font-sora)] text-2xl font-semibold text-ink-primary">
-              What this page is meant to become.
+              What this page will be.
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-ink-secondary">
               This route stays in the nav so you can see where MarqBot is heading. It is not fully useful yet, so the safest move right now is still the planner.

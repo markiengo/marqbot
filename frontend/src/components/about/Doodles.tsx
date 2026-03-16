@@ -95,6 +95,77 @@ const MARKS = [
     path: "M6 34C10 14 28 6 42 12M42 12l-8-6M42 12l-4 8",
     viewBox: "0 0 50 40",
   },
+  // ── Code / tech marks ──
+  {
+    id: "curly-braces",
+    top: "38%", right: "5%",
+    size: 56,
+    rotate: -4,
+    color: "rgba(255,204,0,0.12)",
+    // Hand-drawn curly braces { }
+    path: "M8 8c-4 0-6 4-6 8v4c0 3-2 4-2 4s2 1 2 4v4c0 4 2 8 6 8M48 8c4 0 6 4 6 8v4c0 3 2 4 2 4s-2 1-2 4v4c0 4-2 8-6 8",
+    viewBox: "0 0 56 44",
+  },
+  {
+    id: "angle-brackets",
+    top: "18%", left: "3%",
+    size: 52,
+    rotate: 6,
+    color: "rgba(0,114,206,0.12)",
+    // Hand-drawn </> tag
+    path: "M16 6L4 20l12 14M36 6l12 14-12 14M24 4l-4 34",
+    viewBox: "0 0 52 42",
+  },
+  {
+    id: "terminal-prompt",
+    top: "68%", right: "4%",
+    size: 60,
+    rotate: -2,
+    color: "rgba(255,204,0,0.11)",
+    // Terminal $ _ prompt
+    path: "M4 28l8-8-8-8M18 28h16M40 28h6",
+    viewBox: "0 0 52 36",
+  },
+  {
+    id: "db-cylinder",
+    top: "50%", left: "2%",
+    size: 40,
+    rotate: 3,
+    color: "rgba(0,114,206,0.10)",
+    // Database cylinder
+    path: "M8 10c0-4 5.5-7 12-7s12 3 12 7M8 10v20c0 4 5.5 7 12 7s12-3 12-7V10M8 18c0 3.5 5.5 6 12 6s12-2.5 12-6",
+    viewBox: "0 0 40 42",
+  },
+  {
+    id: "flowchart-diamond",
+    top: "34%", left: "4%",
+    size: 48,
+    rotate: 0,
+    color: "rgba(255,204,0,0.09)",
+    // Flowchart diamond with arrow
+    path: "M24 4l14 14-14 14L10 18Zm0 32v10M24 46l-4-4M24 46l4-4",
+    viewBox: "0 0 48 54",
+  },
+  {
+    id: "todo-comment",
+    top: "42%", right: "8%",
+    size: 64,
+    rotate: -5,
+    color: "rgba(0,114,206,0.11)",
+    // Hand-drawn // TODO text
+    path: "M4 14l4-8M4 6l4 8M12 14l4-8M12 6l4 8M24 10h32M24 18h28",
+    viewBox: "0 0 64 24",
+  },
+  {
+    id: "semicolon",
+    top: "72%", left: "6%",
+    size: 24,
+    rotate: 8,
+    color: "rgba(255,204,0,0.11)",
+    // Hand-drawn semicolon ;
+    path: "M12 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM14 16c0 2-1 4-3 6",
+    viewBox: "0 0 24 26",
+  },
 ] as const;
 
 export function Doodles() {
@@ -117,6 +188,7 @@ export function Doodles() {
             key={m.id}
             viewBox={m.viewBox}
             style={pos}
+            className={parseFloat(m.top) < 50 ? "parallax-slow" : "parallax-fast"}
             initial={reduce ? { opacity: 0.6 } : { opacity: 0, rotate: m.rotate - 8 }}
             whileInView={reduce ? undefined : { opacity: 0.6, rotate: m.rotate }}
             viewport={{ once: true, margin: "-40px" }}

@@ -57,10 +57,10 @@ export default function OnboardingPage() {
           </div>
           <div className="mt-5 space-y-2">
             <h1 className="font-[family-name:var(--font-sora)] text-2xl font-semibold text-[var(--ink-warm)]">
-              Preparing your roadmap.
+              Loading your data.
             </h1>
             <p className="text-sm leading-relaxed text-[var(--ink-warm-soft)]">
-              Loading course and program data.
+              Pulling 5,300+ courses. One sec.
             </p>
           </div>
         </div>
@@ -98,9 +98,9 @@ export default function OnboardingPage() {
 
   const nextLabel =
     currentStep === "majors"
-      ? "Next: Classes"
+      ? "Next: Log Your Lore"
       : currentStep === "courses"
-        ? "Next: Preferences"
+        ? "Next: Set The Pace"
         : "Continue";
 
   return (
@@ -145,7 +145,7 @@ export default function OnboardingPage() {
                   onClick={handleFinish}
                   className="w-full sm:min-w-[13rem]"
                 >
-                  Show My Roadmap
+                  Show My Plan
                 </Button>
               ) : (
                 <Button

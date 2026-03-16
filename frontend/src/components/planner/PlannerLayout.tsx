@@ -47,12 +47,12 @@ const rankingExplainerItems = [
   {
     id: "1",
     title: "Can you take it now?",
-    detail: "If a class is locked, it drops out of the list.",
+    detail: "If a class is locked, it's out. No negotiation.",
   },
   {
     id: "2",
     title: "Is it an important class?",
-    detail: "Core and major requirements go before extra coverage.",
+    detail: "Core and major requirements outrank the side quests.",
   },
   {
     id: "3",
@@ -62,17 +62,17 @@ const rankingExplainerItems = [
   {
     id: "4",
     title: "Does it open more doors?",
-    detail: "If one class unlocks several later classes, it moves up.",
+    detail: "If one class unlocks several others, it moves up. Plot armor.",
   },
   {
     id: "5",
     title: "Does it check two boxes?",
-    detail: "A class that helps more than one requirement gets a boost.",
+    detail: "A class that checks two boxes gets a boost. Efficiency is aura.",
   },
   {
     id: "6",
     title: "Is it too hard too soon?",
-    detail: "Earlier students get more foundation classes first.",
+    detail: "Earlier students get foundation classes first. No boss fights too soon.",
   },
   {
     id: "7",
@@ -82,7 +82,7 @@ const rankingExplainerItems = [
   {
     id: "8",
     title: "Does it fit your main path?",
-    detail: "Major requirements beat later BCC work, and track work stays behind the core path.",
+    detail: "Major requirements beat BCC work. Main quest before side quests.",
   },
 ] as const;
 
@@ -565,7 +565,7 @@ export function PlannerLayout() {
               </p>
               <div className="flex items-center justify-between gap-2 mt-2">
                 <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
-                  Here&apos;s what to take next.
+                  Your next moves.
                 </h3>
                 <button
                   type="button"
@@ -602,7 +602,7 @@ export function PlannerLayout() {
                 </div>
                 <div>
                   <h2 className="text-[0.88rem] font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                    Add your profile to get recommendations.
+                    No profile loaded.
                   </h2>
                   <p className="text-sm text-ink-faint mt-1 max-w-sm mx-auto">
                     Open the profile panel, pick your program, add completed courses, then run the planner.
@@ -633,7 +633,7 @@ export function PlannerLayout() {
                     Planner is ready.
                   </h2>
                   <p className="text-sm text-ink-faint mt-1">
-                    Hit &ldquo;Get My Plan&rdquo; when you want a ranked next-term view.
+                    Hit Get My Plan for a ranked view of your next term.
                   </p>
                 </div>
               </motion.div>
@@ -644,7 +644,7 @@ export function PlannerLayout() {
                 <Skeleton className="h-14 rounded-xl" />
                 <Skeleton className="h-14 rounded-xl" />
                 <Skeleton className="h-14 rounded-xl" />
-                <p className="text-xs text-ink-faint text-center mt-2">Running the rules. One sec.</p>
+                <p className="text-xs text-ink-faint text-center mt-2">Crunching 5,300+ courses. One sec.</p>
               </div>
             )}
 
