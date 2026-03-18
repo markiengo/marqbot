@@ -7,7 +7,7 @@ MarqBot is a degree-planning tool for Marquette University business students. It
 ## What it does
 
 ### Course Recommendations
-You tell MarqBot your major, track, and what you've already taken. It recommends the best courses for your next 1-4 semesters based on your remaining requirements and what you're eligible for. For now, course offerings are treated as always available while the offering data is being cleaned up.
+You tell MarqBot your major, track, and what you've already taken. It recommends the best courses for your next 1-8 semesters based on your remaining requirements, what you're eligible for, and your chosen scheduling style (Grinder, Explorer, or Mixer). For now, course offerings are treated as always available while the offering data is being cleaned up.
 
 ### Progress Tracking
 A visual dashboard shows how far along you are in each requirement area: your major, your track (if any), the Business Core (BCC), and the Marquette Core (MCC).
@@ -25,7 +25,7 @@ Students can send a rating plus open-text feedback from inside the planner. The 
 
 ## Who it's for
 
-College of Business students at Marquette, starting with a small pilot of finance students. It supports 7 majors (Finance, Accounting, AIM, Business Analytics, HR, Supply Chain, Information Systems) and 6 optional tracks/concentrations.
+College of Business students at Marquette. It supports 11 majors (Finance, Accounting, AIM, Business Administration, Business Economics, Business Analytics, Human Resource Management, International Business, Information Systems, Marketing, Operations & Supply Chain Management), 7 business tracks (AIM CFA, AIM FinTech, AIM IB, Commercial Banking, Financial Planning, Business Leadership, Professional Selling), 5 MCC Discovery themes, and 6 minors (Business Administration, Entrepreneurship, Human Resources, Information Systems, Marketing, Supply Chain Management).
 
 ---
 

@@ -1,6 +1,6 @@
 # Test Structure
 
-Last updated: 2026-03-17
+Last updated: 2026-03-18
 
 Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
@@ -8,9 +8,9 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
 | What to run | Command | Tests |
 |---|---|---:|
-| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 596 |
-| **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | 15 |
-| **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly -q` | 750 sampled + nightly-only catalog audits |
+| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 604 |
+| **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | ~45 |
+| **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly -q` | 2250 sampled + nightly-only catalog audits |
 | **Frontend** | `cd frontend; npm run test` | 99 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
@@ -35,8 +35,8 @@ Nightly is now the home for data-sensitive catalog acceptance checks that are ex
 | `test_allocator.py` | 26 | Allocation routing, min-level, double-count policy |
 | `test_data_integrity.py` | 34 | CSV schema, FK integrity, prereq graph sanity |
 | `test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
-| `test_dead_end_fast.py` | ~67 total | Mixed file: PR smoke checks plus nightly-only catalog dead-end and graduation baselines |
-| `test_dead_end_nightly.py` | 750 default | Focused sampled nightly sweep with prereq-hardened seeded histories and semester-8 completion checks |
+| `test_dead_end_fast.py` | ~201 total | Mixed file: PR smoke checks plus nightly-only catalog dead-end and graduation baselines; every case runs 3x (once per scheduling style: grinder, explorer, mixer) |
+| `test_dead_end_nightly.py` | 2250 default | Focused sampled nightly sweep with prereq-hardened seeded histories and semester-8 completion checks; each scenario runs across all 3 scheduling styles |
 | `test_dead_end_nightly_helpers.py` | 4 | Nightly sampler, seeded-history builder, budget guard, and report-format regression tests |
 | `test_eligibility.py` | 42 | Eligibility filters, restrictions, bridge courses, can-take helpers |
 | `test_equivalencies.py` | 25 | Equivalency maps, prereq satisfaction, NDC blocking, schema checks |
@@ -48,7 +48,7 @@ Nightly is now the home for data-sensitive catalog acceptance checks that are ex
 | `test_recommendation_quality.py` | 37 | Cross-major recommendation invariants, multi-semester quality |
 | `test_regression_profiles.py` | 39 | Realistic student-profile regressions |
 | `test_schema_migration.py` | 38 | Schema migration, loader compatibility, clean-mode |
-| `test_semester_recommender.py` | 26 | Ranking heuristics, concurrent picks, caps, standing recovery |
+| `test_semester_recommender.py` | 34 | Ranking heuristics, concurrent picks, caps, standing recovery, scheduling style archetypes |
 | `test_server_can_take.py` | 15 | `/can-take` endpoint contract |
 | `test_server_data_reload.py` | 3 | Hot-reload safety |
 | `test_server_security.py` | 6 | Health, security headers, rate limiting |
@@ -64,6 +64,19 @@ Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 ### Student Stage Support
 
 `PlanCase` (in `dead_end_utils.py`) and payload builders (`recommend_payload`, `payload_for_major` in `helpers.py`) accept an optional `student_stage` parameter (`"undergrad"`, `"graduate"`, `"doctoral"`, or `None`). When `None` (the default), the stage hard gate is skipped and all course levels are eligible. All existing tests omit this field to preserve backward-compatible behavior. Dedicated student-stage filtering tests live in `test_eligibility.py`, `test_recommend_api_contract.py`, and `test_server_can_take.py`.
+
+### Scheduling Style (Archetype) Support
+
+`PlanCase` accepts an optional `scheduling_style` parameter (`"grinder"`, `"explorer"`, `"mixer"`, or `None`). This remaps the 7-tier bucket hierarchy before ranking, changing which course categories get recommended first. `"grinder"` is the identity map (default behavior). `"explorer"` promotes discovery/gen-ed courses. `"mixer"` interleaves discovery with core coursework.
+
+**How archetypes integrate into the nightly suite:**
+
+- `test_dead_end_fast.py`: Every baseline case (single-major, single-track, curated combos, graduation-by-8) is expanded 3x via `_expand_with_scheduling_styles()`. Each `PlanCase` variant gets a `scheduling_style` field and a label suffix `::style=grinder|explorer|mixer`. This triples the fast PR guardrail cases (~67 base x 3 = ~201 total).
+- `test_dead_end_nightly.py` + `nightly_support.py`: Inside `build_nightly_suite()`, each sampled scenario + profile + selection-variant combo is expanded across all 3 styles. The case budget was raised from 750 to 2250. Label format: `{scenario}/{profile}/v{n}::style={style}`.
+- `test_semester_recommender.py`: 4 dedicated unit tests verify grinder=default, explorer promotes discovery over major, mixer promotes discovery vs grinder, and invalid styles fall back to grinder.
+- `simulate_terms()` in `dead_end_utils.py` passes `scheduling_style` to `run_recommendation_semester()`, so every nightly simulation runs with the correct archetype.
+
+The key safety property: all 3 scheduling styles must still graduate a fresh student within 8 semesters. If explorer defers BCC so far that a prereq chain can't complete in time, the nightly sweep catches it.
 
 ## Frontend Test Files
 
