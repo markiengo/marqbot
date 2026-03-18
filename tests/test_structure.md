@@ -1,6 +1,6 @@
 # Test Structure
 
-Last updated: 2026-03-12
+Last updated: 2026-03-17
 
 Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
@@ -8,10 +8,10 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
 | What to run | Command | Tests |
 |---|---|---:|
-| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 590 |
+| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 596 |
 | **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | 15 |
 | **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly -q` | 750 sampled + nightly-only catalog audits |
-| **Frontend** | `cd frontend; npm run test` | 89 |
+| **Frontend** | `cd frontend; npm run test` | 99 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
 Nightly is now the home for data-sensitive catalog acceptance checks that are expected to drive course/major patch decisions from the report, not PR gating.
@@ -52,7 +52,8 @@ Nightly is now the home for data-sensitive catalog acceptance checks that are ex
 | `test_server_can_take.py` | 15 | `/can-take` endpoint contract |
 | `test_server_data_reload.py` | 3 | Hot-reload safety |
 | `test_server_security.py` | 6 | Health, security headers, rate limiting |
-| `test_tier_invariants.py` | 6 | Stable recommendation tier ordering |
+| `test_nightly_analyze.py` | 6 | Nightly auto-tune analyzer: feasibility audit, concentration detector, ledger regression/boost-resistance |
+| `test_tier_invariants.py` | 7 | Stable recommendation tier ordering |
 | `test_track_aware.py` | 68 | Track allocation, aliases, merged progress; AIM catalog audits now run nightly-only |
 | `test_unlocks.py` | 9 | Reverse prereq map, blocker warnings |
 | `test_validate_prereqs_endpoint.py` | 8 | `/validate-prereqs` endpoint contract |
@@ -81,7 +82,8 @@ Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 | `savedPlans.test.ts` | 9 | Yes | Plan persistence, freshness |
 | `studentStage.test.ts` | 3 | Yes | Stage inference, explicit vs inferred, history conflict flags |
 | `utils.test.ts` | 9 | Yes | Bucket labels, note formatting |
-| `frontend/tests/coursesStep.dom.test.ts` | 1 | Yes | Planner DOM warning flow |
+| `frontend/tests/courseHistoryImportParser.test.ts` | 7 | Yes | Local OCR parser: golden fixture, row matching, grade classification |
+| `frontend/tests/coursesStep.dom.test.ts` | 4 | Yes | Screenshot import flow, prereq warnings, parsed-row apply |
 | `frontend/tests/multiSelect.dom.test.ts` | 2 | Yes | Picker DOM interactions |
 | `frontend/tests/onboardingPage.dom.test.ts` | 3 | Yes | Onboarding DOM flow |
 | `frontend/tests/profileModal.dom.test.ts` | 2 | Yes | Profile modal submit/error flow |

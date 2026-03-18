@@ -6,8 +6,8 @@ Verifies the stable tier assignments:
   Tier 2: BCC
   Tier 3: major buckets
   Tier 4: track/minor buckets
-  Tier 5: MCC_ESSV2 and MCC_WRIT
-  Tier 6: Discovery and MCC_CULM
+  Tier 5: MCC_ESSV2, MCC_WRIT, and MCC_CULM
+  Tier 6: Discovery
 """
 
 from semester_recommender import _bucket_hierarchy_tier_v2
@@ -68,17 +68,15 @@ def test_track_and_minor_buckets_are_tier_4():
     assert _tier(minor) == 4
 
 
-def test_essv2_and_writ_are_tier_5():
-    for child in ["MCC_ESSV2", "MCC_WRIT"]:
+def test_essv2_writ_and_culm_are_tier_5():
+    for child in ["MCC_ESSV2", "MCC_WRIT", "MCC_CULM"]:
         cand = {"fills_buckets": [f"MCC::{child}"], "primary_bucket": f"MCC::{child}", "primary_parent_bucket_id": child}
         assert _tier(cand) == 5, f"{child} should be Tier 5"
 
 
-def test_discovery_and_culm_are_tier_6():
+def test_discovery_is_tier_6():
     discovery = {"fills_buckets": ["MCC::MCC_DISC_CB_SSC"], "primary_bucket": "MCC::MCC_DISC_CB_SSC", "primary_parent_bucket_id": "MCC_DISC_CB"}
-    culm = {"fills_buckets": ["MCC::MCC_CULM"], "primary_bucket": "MCC::MCC_CULM", "primary_parent_bucket_id": "MCC_CULM"}
     assert _tier(discovery) == 6
-    assert _tier(culm) == 6
 
 
 def test_foundation_beats_bcc_and_major():
