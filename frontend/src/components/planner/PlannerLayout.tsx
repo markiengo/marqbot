@@ -795,6 +795,7 @@ export function PlannerLayout() {
             ? data?.current_assumption_notes
             : undefined
         }
+        rawCourseCodes={courseListModal === "completed" ? state.completed : undefined}
         onCourseClick={(code) => { setCourseListModal(null); setCourseDetailCode(code); }}
       />
       <SavePlanModal

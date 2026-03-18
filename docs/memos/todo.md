@@ -16,7 +16,7 @@
 - feedback form inside app
 - ~~work on the "upload PDF / upload screenshot" feature~~ done (v2.4.5 — browser-only OCR via tesseract.js)
 - configure UI from iPhone perspective
-- more intuitive UI with tutorials
+- ~~more intuitive UI with tutorials~~ done (v2.4.7 — modal tutorial for screenshot import, vertical step indicator)
 - add a mascot? marqbot vibe
 
 ## user-feedbacks - dump it here, consider the trade-offs, and decide later

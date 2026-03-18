@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { motion } from "motion/react";
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Modal } from "@/components/shared/Modal";
 import type { Course } from "@/lib/types";
 
@@ -12,6 +12,7 @@ interface CourseListModalProps {
   courseCodes: Set<string>;
   courses: Course[];
   assumptionNotes?: string[] | null;
+  rawCourseCodes?: Set<string>;
   onCourseClick?: (courseCode: string) => void;
 }
 
@@ -22,18 +23,17 @@ export function CourseListModal({
   courseCodes,
   courses,
   assumptionNotes,
+  rawCourseCodes,
   onCourseClick,
 }: CourseListModalProps) {
+  const [assumptionsOn, setAssumptionsOn] = useState(true);
+
   const courseMap = useMemo(() => {
     const m = new Map<string, Course>();
     for (const c of courses) m.set(c.course_code, c);
     return m;
   }, [courses]);
 
-  const sorted = useMemo(
-    () => [...courseCodes].sort((a, b) => a.localeCompare(b)),
-    [courseCodes],
-  );
   const notes = useMemo(
     () => (assumptionNotes || []).map((note) => note.trim()).filter(Boolean),
     [assumptionNotes],
@@ -47,28 +47,70 @@ export function CourseListModal({
     [notes, scopeNote],
   );
 
+  const hasAssumptions = notes.length > 0 && rawCourseCodes !== undefined;
+  const activeCodes = hasAssumptions && !assumptionsOn ? rawCourseCodes : courseCodes;
+
+  const sorted = useMemo(
+    () => [...activeCodes].sort((a, b) => a.localeCompare(b)),
+    [activeCodes],
+  );
+
   return (
-    <Modal open={open} onClose={onClose} size="default" title={`${title} (${courseCodes.size})`}>
+    <Modal open={open} onClose={onClose} size="default" title={`${title} (${activeCodes.size})`}>
       <div className="space-y-5">
-        {notes.length > 0 && (
-          <div className="rounded-xl border border-gold/20 bg-gold/8 px-4 py-3">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-gold">
-              Assumptions Applied
+        {hasAssumptions && (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-ink-muted">
+              Prereq assumptions
             </p>
-            <div className="mt-2 space-y-2">
-              {detailNotes.map((note) => (
-                <p key={note} className="text-sm text-ink-secondary leading-relaxed">
-                  {note}
-                </p>
-              ))}
-              {scopeNote && (
-                <p className="text-xs text-ink-faint leading-relaxed">
-                  {scopeNote}
-                </p>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => setAssumptionsOn((prev) => !prev)}
+              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                assumptionsOn
+                  ? "border-gold/30 bg-gold/10 text-gold"
+                  : "border-border-medium bg-surface-card text-ink-faint"
+              }`}
+            >
+              <span
+                className={`inline-block h-2 w-2 rounded-full transition-colors ${
+                  assumptionsOn ? "bg-gold" : "bg-ink-faint/40"
+                }`}
+              />
+              {assumptionsOn ? "On" : "Off"}
+            </button>
           </div>
         )}
+
+        <AnimatePresence initial={false}>
+          {assumptionsOn && notes.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-xl border border-gold/20 bg-gold/8 px-4 py-3">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-gold">
+                  Assumptions Applied
+                </p>
+                <div className="mt-2 space-y-2">
+                  {detailNotes.map((note) => (
+                    <p key={note} className="text-sm text-ink-secondary leading-relaxed">
+                      {note}
+                    </p>
+                  ))}
+                  {scopeNote && (
+                    <p className="text-xs text-ink-faint leading-relaxed">
+                      {scopeNote}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {sorted.length === 0 ? (
           <p className="text-[1.05rem] text-ink-faint italic">No courses in this list yet.</p>

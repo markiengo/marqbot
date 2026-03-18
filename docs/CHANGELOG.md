@@ -8,6 +8,29 @@ Format per release:
 
 ---
 
+## [v2.4.7] - 2026-03-18
+
+### Changes
+
+- Added visual modal tutorial for screenshot import onboarding — 3-step carousel with annotated screenshot example, mock review rows, and apply preview instead of inline text walkthrough.
+- Replaced import status text with an animated progress bar showing Upload / Preparing / Reading / Done stages with spring-animated fill and matched/total count.
+- Changed match section layout from 1-per-line to 2-column grid for completed and in-progress course rows.
+- Audited and replaced all off-palette hardcoded hex colors in `CourseHistoryImport.tsx` with Marquette design tokens (mu-blue, gold, ink-accent-blue, ok, warn, bad).
+- Changed onboarding step indicator from horizontal 3-column grid to vertical stacked layout with larger text.
+- Shortened copy on Courses and AI Advisor placeholder pages; switched bullet layout from 2-column to vertical stack.
+- Updated brand copy: "The student behind the planner" → "The student behind MarqBot", "already taken" → "right now", step labels "Lore" → "Progress" / "Step" → "Next".
+- Rewrote "How MarqBot uses your courses" modal with dry humor per branding guide v3.
+- Added assumptions on/off toggle to Credits Completed modal — lets students see which courses MarqBot inferred via prereq chains vs what they entered.
+- Increased text sizes ~10% in course explanation and tutorial modals, ~25% in step indicator labels, ~30% in placeholder page bullet panes.
+
+### Design Decisions
+
+- Modal tutorial over inline walkthrough: students can see exactly what to screenshot (with the real coursehistory.jpg annotated) without being overwhelmed by text on first load.
+- Assumptions toggle: students wanted to understand what MarqBot added vs what they entered. Toggle defaults to ON; OFF shows only user-entered courses with assumption notes hidden.
+- Palette audit at 70% strictness: base hues must come from the Marquette palette tokens, but alpha/opacity variants of palette colors are acceptable for states and overlays.
+
+---
+
 ## [v2.4.6] - 2026-03-17
 
 ### Changes
