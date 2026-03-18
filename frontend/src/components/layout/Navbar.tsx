@@ -165,7 +165,7 @@ export function Navbar() {
                     key={item.id}
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-[1rem] font-semibold ${
+                    className={`flex items-center justify-between rounded-xl px-3 py-2.5 min-h-[44px] text-[1rem] font-semibold ${
                       active
                         ? isWarmRoute
                           ? "bg-gold/10 text-gold"

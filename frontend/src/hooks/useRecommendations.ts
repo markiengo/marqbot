@@ -37,6 +37,7 @@ export function useRecommendations() {
       if (state.includeSummer) payload.include_summer = true;
       if (state.isHonorsStudent) payload.is_honors_student = true;
       payload.student_stage = state.studentStage;
+      payload.scheduling_style = state.schedulingStyle;
 
       const data: RecommendationResponse = await postRecommend(payload);
       if (id !== reqId.current) return null; // stale
@@ -55,7 +56,7 @@ export function useRecommendations() {
     } finally {
       if (id === reqId.current) setLoading(false);
     }
-  }, [state.completed, state.inProgress, state.targetSemester, state.semesterCount, state.maxRecs, state.includeSummer, state.isHonorsStudent, state.studentStage, state.selectedMajors, state.selectedTracks, state.selectedMinors, state.discoveryTheme, dispatch]);
+  }, [state.completed, state.inProgress, state.targetSemester, state.semesterCount, state.maxRecs, state.includeSummer, state.isHonorsStudent, state.schedulingStyle, state.studentStage, state.selectedMajors, state.selectedTracks, state.selectedMinors, state.discoveryTheme, dispatch]);
 
   return {
     data: state.lastRecommendationData,

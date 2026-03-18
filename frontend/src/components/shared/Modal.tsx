@@ -131,7 +131,7 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
             className={`relative modal-aurora backdrop-blur-[20px] rounded-2xl border border-border-card shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(141,170,224,0.06),0_0_60px_rgba(255,204,0,0.04),0_0_120px_rgba(0,114,206,0.03)] ${sizeClasses[size]} overflow-y-auto z-10`}
           >
             {title && (
-              <div className="relative flex items-center justify-between px-8 pt-7 pb-4 border-b border-border-subtle">
+              <div className="relative flex items-center justify-between px-4 pt-5 pb-3 sm:px-8 sm:pt-7 sm:pb-4 border-b border-border-subtle">
                 <div className="absolute top-0 left-[5%] right-[5%] h-[2px] bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
                 <div className="flex items-center gap-4">
                   <h3
@@ -155,7 +155,7 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
                 </button>
               </div>
             )}
-            <div className="p-8">{children}</div>
+            <div className="p-4 sm:p-8">{children}</div>
           </motion.div>
         </motion.div>
       )}

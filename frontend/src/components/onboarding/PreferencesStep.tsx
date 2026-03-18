@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import {
@@ -8,11 +9,15 @@ import {
   MAX_RECS_OPTIONS,
 } from "@/lib/constants";
 import { STUDENT_STAGE_OPTIONS } from "@/lib/studentStage";
-import type { StudentStage } from "@/lib/types";
+import { SCHEDULING_STYLE_OPTIONS } from "@/lib/schedulingStyle";
+import type { StudentStage, SchedulingStyle } from "@/lib/types";
 import { OnboardingStepHeader } from "./OnboardingStepHeader";
+import { Modal } from "@/components/shared/Modal";
+import { BuildExplainerContent } from "@/lib/BuildExplainerContent";
 
 export function PreferencesStep() {
   const { state, dispatch } = useAppContext();
+  const [buildInfoOpen, setBuildInfoOpen] = useState(false);
   const selectCls =
     "onboarding-input onboarding-select w-full rounded-xl px-4 py-3 text-[0.95rem]";
 
@@ -120,12 +125,51 @@ export function PreferencesStep() {
             </p>
           </div>
         </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.32 }}
+          className="onboarding-panel flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]"
+        >
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-ink-primary">What&apos;s your build?</label>
+              <button
+                type="button"
+                onClick={() => setBuildInfoOpen(true)}
+                className="flex h-[18px] w-[18px] items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-[10px] font-bold text-gold transition-all hover:bg-gold/20 hover:border-gold/50"
+                aria-label="What do the build options mean?"
+              >
+                ?
+              </button>
+            </div>
+            <p className="mt-0.5 text-xs text-ink-muted">
+              Controls which classes get recommended first.
+            </p>
+          </div>
+          <div className="mt-auto pt-3">
+            <select
+              aria-label="Scheduling style"
+              value={state.schedulingStyle}
+              onChange={(e) => dispatch({ type: "SET_SCHEDULING_STYLE", payload: e.target.value as SchedulingStyle })}
+              className={selectCls}
+            >
+              {SCHEDULING_STYLE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-ink-muted">
+              {SCHEDULING_STYLE_OPTIONS.find((o) => o.value === state.schedulingStyle)?.helper}
+            </p>
+          </div>
+        </motion.div>
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.32 }}
+        transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.40 }}
         className="grid gap-4 lg:grid-cols-2"
       >
         <label className="onboarding-panel flex cursor-pointer items-center justify-between gap-4 rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]">
@@ -170,6 +214,21 @@ export function PreferencesStep() {
           </div>
         </label>
       </motion.div>
+
+      <Modal
+        open={buildInfoOpen}
+        onClose={() => setBuildInfoOpen(false)}
+        title="Pick Your Build"
+        titleClassName="!text-[clamp(1.3rem,2.6vw,1.8rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
+      >
+        <BuildExplainerContent
+          currentStyle={state.schedulingStyle}
+          onSelect={(style) => {
+            dispatch({ type: "SET_SCHEDULING_STYLE", payload: style });
+            setBuildInfoOpen(false);
+          }}
+        />
+      </Modal>
     </div>
   );
 }

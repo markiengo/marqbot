@@ -81,6 +81,7 @@ export function normalizeSavedPlanInputs(inputs: Partial<SavedPlanInputs> | null
     semesterCount: String(inputs?.semesterCount || DEFAULT_SEMESTER_COUNT).trim() || DEFAULT_SEMESTER_COUNT,
     maxRecs: String(inputs?.maxRecs || DEFAULT_MAX_RECS).trim() || DEFAULT_MAX_RECS,
     includeSummer: Boolean(inputs?.includeSummer),
+    schedulingStyle: (inputs?.schedulingStyle as "grinder" | "explorer" | "mixer") || "grinder",
     studentStage: normalizedStudentStage || inferStudentStageFromCourseCodes([...completed, ...inProgress]),
     studentStageIsExplicit:
       typeof inputs?.studentStageIsExplicit === "boolean"

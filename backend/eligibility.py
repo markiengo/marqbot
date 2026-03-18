@@ -254,6 +254,30 @@ def _evaluate_college_restriction(
     return True, f"Restricted to {label} college students.", False
 
 
+def _evaluate_admitted_program(
+    text: str,
+    selected_program_ids: list[str],
+) -> tuple[bool, str | None, bool]:
+    """Check if student's programs satisfy an admitted-program requirement.
+
+    Returns (blocked, reason, satisfied) following the same contract as
+    ``_evaluate_major_restriction`` / ``_evaluate_college_restriction``.
+    """
+    raw_text = str(text or "").strip()
+    if not raw_text:
+        return False, None, False
+
+    selected_bases = _program_base_ids(selected_program_ids)
+    required_bases = _extract_enforceable_major_bases(raw_text)
+    if not required_bases:
+        # Text present but we can't parse enforceable program codes — keep the
+        # warning visible so the student still sees a heads-up.
+        return False, None, False
+    if selected_bases & required_bases:
+        return False, None, True
+    return False, None, False
+
+
 def _evaluate_soft_restrictions(
     row,
     soft_tags: list[str],
@@ -285,6 +309,14 @@ def _evaluate_soft_restrictions(
             return True, reason, cleared_tags
         if satisfied:
             cleared_tags.add("college_restriction")
+
+    if "admitted_program" in soft_tags:
+        _blocked, _reason, satisfied = _evaluate_admitted_program(
+            row.get("soft_prereq_admitted_program", ""),
+            normalized_program_ids,
+        )
+        if satisfied:
+            cleared_tags.add("admitted_program")
 
     return False, None, cleared_tags
 

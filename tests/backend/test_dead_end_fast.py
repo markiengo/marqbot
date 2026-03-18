@@ -23,6 +23,7 @@ from dead_end_utils import (
     classify_dead_end,
     simulate_terms,
 )
+from semester_recommender import VALID_SCHEDULING_STYLES
 from helpers import (
     CANONICAL_PRIMARY,
     active_programs,
@@ -188,6 +189,27 @@ def _generate_state_variants(label: str, base_case: PlanCase):
 # ── Build parametrized dead-end cases ──────────────────────────────────────
 
 
+def _expand_with_scheduling_styles(cases: list[tuple[str, PlanCase]]) -> list[tuple[str, PlanCase]]:
+    """For each case, produce one variant per scheduling style."""
+    expanded = []
+    for label, case in cases:
+        for style in sorted(VALID_SCHEDULING_STYLES):
+            styled_case = PlanCase(
+                declared_majors=case.declared_majors,
+                track_ids=case.track_ids,
+                declared_minors=case.declared_minors,
+                completed_courses=case.completed_courses,
+                in_progress_courses=case.in_progress_courses,
+                target_semester_primary=case.target_semester_primary,
+                include_summer=case.include_summer,
+                max_recommendations=case.max_recommendations,
+                student_stage=case.student_stage,
+                scheduling_style=style,
+            )
+            expanded.append((f"{label}::style={style}", styled_case))
+    return expanded
+
+
 def _collect_fast_cases():
     all_cases = []
 
@@ -199,7 +221,8 @@ def _collect_fast_cases():
     for label, base in CURATED_COMBOS:
         all_cases.extend(_generate_state_variants(label, base))
 
-    return all_cases
+    # Expand all cases across scheduling styles
+    return _expand_with_scheduling_styles(all_cases)
 
 
 _FAST_CASES = _collect_fast_cases()
@@ -400,7 +423,7 @@ def _graduation_cases():
     return cases
 
 
-_GRAD_CASES = _graduation_cases()
+_GRAD_CASES = _expand_with_scheduling_styles(_graduation_cases())
 
 
 @pytest.mark.parametrize(

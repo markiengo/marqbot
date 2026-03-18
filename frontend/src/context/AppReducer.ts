@@ -1,4 +1,4 @@
-import type { AppState, Course, ProgramsData, RecommendationResponse, SessionSnapshot, StudentStage } from "@/lib/types";
+import type { AppState, Course, ProgramsData, RecommendationResponse, SchedulingStyle, SessionSnapshot, StudentStage } from "@/lib/types";
 import { resolveStudentStageSelection, syncStudentStageWithHistory } from "@/lib/studentStage";
 
 import {
@@ -32,6 +32,7 @@ export type AppAction =
   | { type: "SET_MAX_RECS"; payload: string }
   | { type: "SET_INCLUDE_SUMMER"; payload: boolean }
   | { type: "SET_HONORS_STUDENT"; payload: boolean }
+  | { type: "SET_SCHEDULING_STYLE"; payload: SchedulingStyle }
   | { type: "SET_STUDENT_STAGE"; payload: StudentStage }
   | { type: "SET_CAN_TAKE_QUERY"; payload: string }
   | { type: "SET_NAV_TAB"; payload: string }
@@ -58,6 +59,7 @@ export const initialState: AppState = {
   maxRecs: DEFAULT_MAX_RECS,
   includeSummer: false,
   isHonorsStudent: false,
+  schedulingStyle: "grinder" as SchedulingStyle,
   studentStage: "undergrad",
   studentStageIsExplicit: false,
   canTakeQuery: "",
@@ -100,6 +102,7 @@ interface NormalizedSessionPayload {
   maxRecs: string;
   includeSummer: boolean;
   isHonorsStudent: boolean;
+  schedulingStyle: AppState["schedulingStyle"];
   studentStage: AppState["studentStage"];
   studentStageIsExplicit: boolean;
   canTakeQuery: string;
@@ -171,6 +174,7 @@ function normalizeSessionSnapshot(
     maxRecs: snap.maxRecs || DEFAULT_MAX_RECS,
     includeSummer: snap.includeSummer ?? false,
     isHonorsStudent: snap.isHonorsStudent ?? false,
+    schedulingStyle: (snap.schedulingStyle as SchedulingStyle) || "grinder",
     studentStage: studentStageSelection.studentStage,
     studentStageIsExplicit: studentStageSelection.studentStageIsExplicit,
     canTakeQuery: snap.canTake || "",
@@ -412,6 +416,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case "SET_HONORS_STUDENT":
       return { ...state, isHonorsStudent: action.payload };
+
+    case "SET_SCHEDULING_STYLE":
+      return { ...state, schedulingStyle: action.payload, lastRecommendationData: null };
 
     case "SET_STUDENT_STAGE":
       return {

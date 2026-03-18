@@ -9,7 +9,7 @@ import { CourseCard } from "./CourseCard";
 import { Tag } from "@/components/shared/Tag";
 import { groupProgressByTierWithMajors, sortBucketsByTier } from "@/lib/rendering";
 import { getSemesterQuip } from "@/lib/quips";
-import { BucketProgressGrid } from "./BucketProgressGrid";
+import { BucketSectionTabs } from "./BucketSectionTabs";
 import { BucketCourseModal } from "./BucketCourseModal";
 import { bucketLabel, esc } from "@/lib/utils";
 
@@ -272,40 +272,13 @@ export function SemesterModal({
                 {semester.projection_note && (
                   <p className="text-[0.92rem] text-ink-faint">{esc(semester.projection_note)}</p>
                 )}
-                <div className="space-y-5">
-                  {groupProgressByTierWithMajors(semesterProgress, programLabelMap, programOrder).map((section) => (
-                    <div key={section.sectionKey} className="space-y-3">
-                      <h4 className="text-[0.98rem] font-bold text-mu-blue uppercase tracking-wider border-b border-border-subtle/30 pb-1">
-                        {section.label}
-                      </h4>
-                      {section.subGroups ? (
-                        <div className="space-y-4">
-                          {section.subGroups.map((group) => (
-                            <div key={group.parentId} className="space-y-2.5">
-                              <p className="text-[0.8rem] font-semibold text-ink-secondary uppercase tracking-wider pl-1">
-                                {group.label}
-                              </p>
-                              <BucketProgressGrid
-                                entries={group.entries}
-                                programLabelMap={programLabelMap}
-                                animate={false}
-                                stripParentPrefix
-                                onBucketClick={openBucketDetail}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <BucketProgressGrid
-                          entries={section.entries}
-                          programLabelMap={programLabelMap}
-                          animate={false}
-                          onBucketClick={openBucketDetail}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <BucketSectionTabs
+                  sections={groupProgressByTierWithMajors(semesterProgress, programLabelMap, programOrder)}
+                  programLabelMap={programLabelMap}
+                  animate={false}
+                  onBucketClick={openBucketDetail}
+                  layoutId="semester-projected-sections"
+                />
               </div>
               </>
             )}

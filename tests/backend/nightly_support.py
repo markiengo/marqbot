@@ -25,7 +25,7 @@ from helpers import (
     expected_nightly_case_count,
     sample_nightly_scenarios,
 )
-from semester_recommender import _credits_to_standing, run_recommendation_semester
+from semester_recommender import _credits_to_standing, run_recommendation_semester, VALID_SCHEDULING_STYLES
 
 
 @dataclass(frozen=True)
@@ -471,11 +471,12 @@ def build_nightly_suite(
 ) -> NightlySuite:
     pool = build_nightly_scenario_pool()
     sampled = sample_nightly_scenarios(seed, sample_size=sample_size)
+    style_count = len(VALID_SCHEDULING_STYLES)
     expected_tests = expected_nightly_case_count(
         scenario_count=len(sampled),
         profile_count=len(NIGHTLY_PROFILES),
         selection_variants=selection_variants,
-    )
+    ) * style_count
     if expected_tests > case_budget:
         raise AssertionError(
             f"Nightly case budget exceeded: expected {expected_tests} > budget {case_budget}."
@@ -499,27 +500,29 @@ def build_nightly_suite(
                 seed=f"{seed}:{scenario.label}:{profile.label}",
             )
             for variant_index, seeded in enumerate(variants, 1):
-                case = PlanCase(
-                    declared_majors=list(base_case.declared_majors),
-                    track_ids=list(base_case.track_ids),
-                    declared_minors=list(base_case.declared_minors),
-                    completed_courses=list(seeded.completed_courses),
-                    in_progress_courses=[],
-                    target_semester_primary=start_term,
-                    include_summer=base_case.include_summer,
-                    max_recommendations=base_case.max_recommendations,
-                )
-                cases.append(
-                    NightlyCaseSpec(
-                        label=f"{scenario.label}/{profile.label}/v{variant_index}",
-                        scenario_label=scenario.label,
-                        profile_label=profile.label,
-                        selection_variant=variant_index,
-                        seeded_semesters=seeded.actual_semesters,
-                        case=case,
-                        invalid_reason=seeded.invalid_reason,
+                for style in sorted(VALID_SCHEDULING_STYLES):
+                    case = PlanCase(
+                        declared_majors=list(base_case.declared_majors),
+                        track_ids=list(base_case.track_ids),
+                        declared_minors=list(base_case.declared_minors),
+                        completed_courses=list(seeded.completed_courses),
+                        in_progress_courses=[],
+                        target_semester_primary=start_term,
+                        include_summer=base_case.include_summer,
+                        max_recommendations=base_case.max_recommendations,
+                        scheduling_style=style,
                     )
-                )
+                    cases.append(
+                        NightlyCaseSpec(
+                            label=f"{scenario.label}/{profile.label}/v{variant_index}::style={style}",
+                            scenario_label=scenario.label,
+                            profile_label=profile.label,
+                            selection_variant=variant_index,
+                            seeded_semesters=seeded.actual_semesters,
+                            case=case,
+                            invalid_reason=seeded.invalid_reason,
+                        )
+                    )
 
     return NightlySuite(
         cases=tuple(cases),

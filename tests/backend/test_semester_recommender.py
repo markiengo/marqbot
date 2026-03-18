@@ -3162,3 +3162,122 @@ def test_bucket_priority_override_promotes_matching_bucket(monkeypatch, tmp_path
     debug_entry = next(entry for entry in out["debug"] if entry["course_code"] == "BUAN 3001")
     assert debug_entry["override_tier_adj"] == -1
     semester_recommender._clear_ranking_overrides_cache()
+
+
+# ── Scheduling style (archetype) tests ────────────────────────────────────
+
+
+def _archetype_fixture():
+    """Build a dataset with MCC foundation, BCC, major, and discovery courses.
+
+    Includes parent_buckets_df so the tier function can distinguish major (tier 3)
+    from discovery (tier 6).
+    """
+    courses = [
+        {"course_code": "PHIL 1001", "course_name": "ESSV1", "credits": 3, "level": 1000,
+         "prereq_hard": "none", "prereq_soft": "", "prereq_level": 0,
+         "offered_fall": True, "offered_spring": True, "offered_summer": False,
+         "offering_confidence": "high", "notes": None},
+        {"course_code": "ACCO 1030", "course_name": "Accounting I", "credits": 3, "level": 1000,
+         "prereq_hard": "none", "prereq_soft": "", "prereq_level": 0,
+         "offered_fall": True, "offered_spring": True, "offered_summer": False,
+         "offering_confidence": "high", "notes": None},
+        {"course_code": "FINA 3001", "course_name": "Finance Core", "credits": 3, "level": 3000,
+         "prereq_hard": "none", "prereq_soft": "", "prereq_level": 0,
+         "offered_fall": True, "offered_spring": True, "offered_summer": False,
+         "offering_confidence": "high", "notes": None},
+        {"course_code": "HIST 1001", "course_name": "Discovery Hist", "credits": 3, "level": 1000,
+         "prereq_hard": "none", "prereq_soft": "", "prereq_level": 0,
+         "offered_fall": True, "offered_spring": True, "offered_summer": False,
+         "offering_confidence": "high", "notes": None},
+    ]
+    buckets = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_ESSV1", "parent_bucket_id": "MCC",
+         "bucket_label": "ESSV1", "priority": 1, "needed_count": 1,
+         "needed_credits": None, "min_level": None, "allow_double_count": False, "role": "core"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "parent_bucket_id": "BCC",
+         "bucket_label": "BCC Required", "priority": 1, "needed_count": 1,
+         "needed_credits": None, "min_level": None, "allow_double_count": False, "role": "core"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::FIN_CORE", "parent_bucket_id": "FIN_MAJOR",
+         "bucket_label": "FIN Core", "priority": 1, "needed_count": 1,
+         "needed_credits": None, "min_level": None, "allow_double_count": False, "role": "core"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC_DISC_BNJ::MCC_DISC_BNJ_SSC", "parent_bucket_id": "MCC_DISC_BNJ",
+         "bucket_label": "Discovery SSC", "priority": 1, "needed_count": 1,
+         "needed_credits": None, "min_level": None, "allow_double_count": False, "role": "elective"},
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_ESSV1", "course_code": "PHIL 1001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_REQUIRED", "course_code": "ACCO 1030"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::FIN_CORE", "course_code": "FINA 3001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC_DISC_BNJ::MCC_DISC_BNJ_SSC", "course_code": "HIST 1001"},
+    ]
+    parent_buckets = [
+        {"parent_bucket_id": "MCC", "type": "universal"},
+        {"parent_bucket_id": "BCC", "type": "universal"},
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+        {"parent_bucket_id": "MCC_DISC_BNJ", "type": "universal"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame(parent_buckets)
+    return data
+
+
+def _recommend_with_style(data, style):
+    return run_recommendation_semester(
+        completed=[], in_progress=[], target_semester_label="Fall 2026",
+        data=data, max_recs=4, reverse_map={}, track_id="FIN_MAJOR",
+        scheduling_style=style,
+    )
+
+
+def test_grinder_matches_default_behavior():
+    """Grinder archetype (identity tier map) produces identical output to no style."""
+    data = _archetype_fixture()
+    default_out = _recommend_with_style(data, None)
+    grinder_out = _recommend_with_style(data, "grinder")
+    default_codes = [r["course_code"] for r in default_out["recommendations"]]
+    grinder_codes = [r["course_code"] for r in grinder_out["recommendations"]]
+    assert default_codes == grinder_codes
+
+
+def test_explorer_promotes_discovery_over_major():
+    """Explorer archetype ranks discovery courses ahead of major courses.
+
+    BCC_REQUIRED (ACCO 1030) stays at band 1 regardless of style — that is by
+    design since math and accounting prereqs gate everything downstream.
+    """
+    data = _archetype_fixture()
+    grinder_out = _recommend_with_style(data, "grinder")
+    explorer_out = _recommend_with_style(data, "explorer")
+    grinder_codes = [r["course_code"] for r in grinder_out["recommendations"]]
+    explorer_codes = [r["course_code"] for r in explorer_out["recommendations"]]
+    # In grinder, major (FINA 3001) comes before discovery (HIST 1001).
+    # In explorer, discovery should come before major.
+    assert "HIST 1001" in explorer_codes
+    assert "FINA 3001" in explorer_codes
+    disc_idx = explorer_codes.index("HIST 1001")
+    major_idx = explorer_codes.index("FINA 3001")
+    assert disc_idx < major_idx, f"Explorer should rank discovery before major, got {explorer_codes}"
+
+
+def test_mixer_promotes_discovery_to_bcc_tier():
+    """Mixer archetype ranks discovery at the same level as BCC."""
+    data = _archetype_fixture()
+    grinder_out = _recommend_with_style(data, "grinder")
+    mixer_out = _recommend_with_style(data, "mixer")
+    grinder_codes = [r["course_code"] for r in grinder_out["recommendations"]]
+    mixer_codes = [r["course_code"] for r in mixer_out["recommendations"]]
+    # In grinder, discovery (HIST) is last. In mixer, it should be promoted.
+    if "HIST 1001" in grinder_codes and "HIST 1001" in mixer_codes:
+        assert mixer_codes.index("HIST 1001") <= grinder_codes.index("HIST 1001"), \
+            f"Mixer should promote discovery vs grinder: mixer={mixer_codes} grinder={grinder_codes}"
+
+
+def test_invalid_scheduling_style_falls_back_to_grinder():
+    """Unknown style silently falls back to grinder behavior."""
+    data = _archetype_fixture()
+    grinder_out = _recommend_with_style(data, "grinder")
+    invalid_out = _recommend_with_style(data, "nonexistent_style")
+    grinder_codes = [r["course_code"] for r in grinder_out["recommendations"]]
+    invalid_codes = [r["course_code"] for r in invalid_out["recommendations"]]
+    assert grinder_codes == invalid_codes

@@ -113,9 +113,8 @@ def test_nightly_report_uses_plain_english_sections_and_appendix_logs():
     assert "## Data Investigation Checklist" in report
     assert "## Failures by Program" in report
     assert "## Biggest Patterns" in report
-    assert "## Appendix" in report
-    assert "### Student Profile Logs" in report
-    assert "#### Student 1" in report
+    assert "## Representative Cases" in report
+    assert "#### Case 1" in report
     assert "- status: dead end + not graduated by semester 8" in report
     assert "ELIGIBILITY_GAP" not in report
     assert "All sampled student plans completed without reported issues." not in report

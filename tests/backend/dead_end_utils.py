@@ -43,6 +43,7 @@ class PlanCase:
     include_summer: bool = False
     max_recommendations: int = 6
     student_stage: str | None = None
+    scheduling_style: str | None = None
 
 
 @dataclass
@@ -187,6 +188,7 @@ def simulate_terms(case: PlanCase, num_terms: int = 9) -> list[dict]:
                 current_standing=current_standing,
                 chain_depths=chain_depths,
                 student_stage=case.student_stage,
+                scheduling_style=case.scheduling_style,
             )
         else:
             sem = run_recommendation_semester(
@@ -201,6 +203,7 @@ def simulate_terms(case: PlanCase, num_terms: int = 9) -> list[dict]:
                 current_standing=current_standing,
                 chain_depths=chain_depths,
                 student_stage=case.student_stage,
+                scheduling_style=case.scheduling_style,
             )
 
         semesters.append(sem)

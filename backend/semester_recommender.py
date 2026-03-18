@@ -45,6 +45,13 @@ _NEUTRAL_DISCOVERY_DEPTS = {
 
 _STANDING_LABELS = {1: "Freshman", 2: "Sophomore", 3: "Junior", 4: "Senior"}
 _BCC_PREFIX = "BCC_"
+_SCHEDULING_STYLE_TIER_MAPS: dict[str, dict[int, int]] = {
+    "grinder":  {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7},
+    "explorer": {1: 1, 2: 4, 3: 5, 4: 6, 5: 2, 6: 2, 7: 7},
+    "mixer":    {1: 1, 2: 2, 3: 3, 4: 4, 5: 2, 6: 2, 7: 7},
+}
+_DEFAULT_SCHEDULING_STYLE = "grinder"
+VALID_SCHEDULING_STYLES = frozenset(_SCHEDULING_STYLE_TIER_MAPS)
 _MATH_SUBJECT_PREFIX = "MATH"
 _MAX_RANKING_OVERRIDE_BOOST = 2
 _RANKING_OVERRIDES_PATH = os.path.abspath(
@@ -1174,6 +1181,7 @@ def run_recommendation_semester(
     is_honors_student: bool = False,
     selected_program_ids: list[str] | None = None,
     student_stage: str | None = None,
+    scheduling_style: str | None = None,
 ) -> dict:
     """Run the full recommendation pipeline for a single semester."""
     if completed_only_standing is None:
@@ -1454,6 +1462,11 @@ def run_recommendation_semester(
             tagged["discovery_foundation_penalty"] = 0
             tagged["discovery_affinity_penalty"] = 0
         tagged["override_tier_adj"] = _override_tier_adj(tagged, ranking_overrides)
+        _style_map = _SCHEDULING_STYLE_TIER_MAPS.get(
+            scheduling_style or _DEFAULT_SCHEDULING_STYLE,
+            _SCHEDULING_STYLE_TIER_MAPS[_DEFAULT_SCHEDULING_STYLE],
+        )
+        tagged["ranking_tier"] = _style_map.get(tagged["ranking_tier"], tagged["ranking_tier"])
         tagged["effective_ranking_tier"] = tagged["ranking_tier"] + tagged["override_tier_adj"]
         scored_non_manual_sem.append(tagged)
     ranked_sem = sorted(

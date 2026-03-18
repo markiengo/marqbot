@@ -269,7 +269,7 @@ def active_representatives(kind: str, candidates: list[str], limit: int) -> list
 
 NIGHTLY_SAMPLE_SIZE = 30
 NIGHTLY_SELECTION_VARIANTS = 5
-NIGHTLY_CASE_BUDGET = 750
+NIGHTLY_CASE_BUDGET = 2250  # 750 base × 3 scheduling styles
 
 
 @dataclass(frozen=True)
