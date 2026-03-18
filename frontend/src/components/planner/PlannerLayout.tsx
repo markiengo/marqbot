@@ -16,10 +16,11 @@ import { SavePlanModal } from "@/components/saved/SavePlanModal";
 import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
 import { CourseListModal } from "./CourseListModal";
 import { FeedbackModal } from "./FeedbackModal";
+import { MajorGuideModal, rankingExplainerItems } from "./MajorGuideModal";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
-import { postRecommend } from "@/lib/api";
+import { postRecommend, loadProgramBuckets } from "@/lib/api";
 import {
   getPlannerFeedbackCooldownUntil,
   PLANNER_FEEDBACK_DISMISS_COOLDOWN_MS,
@@ -34,7 +35,7 @@ import { buildRecommendationWarnings, getProgramLabelMap, sanitizeRecommendation
 import { getCurrentCourseLists } from "@/lib/progressSources";
 import { buildSavedPlanInputsFromAppState } from "@/lib/savedPlans";
 import { getStudentStageHistoryConflict, studentStageLabel, studentStageLevelLabel } from "@/lib/studentStage";
-import type { RecommendedCourse, RecommendationResponse, SemesterData } from "@/lib/types";
+import type { RecommendedCourse, RecommendationResponse, SemesterData, ProgramBucketTree } from "@/lib/types";
 
 function formatPlanDate(date: Date): string {
   const year = date.getFullYear();
@@ -43,48 +44,12 @@ function formatPlanDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-const rankingExplainerItems = [
-  {
-    id: "1",
-    title: "Can you take it now?",
-    detail: "If a class is locked, it's out. No negotiation.",
-  },
-  {
-    id: "2",
-    title: "Is it an important class?",
-    detail: "Core and major requirements outrank the side quests.",
-  },
-  {
-    id: "3",
-    title: "Does it help right away?",
-    detail: "A class that counts now beats one that only helps later.",
-  },
-  {
-    id: "4",
-    title: "Does it open more doors?",
-    detail: "If one class unlocks several others, it moves up. Plot armor.",
-  },
-  {
-    id: "5",
-    title: "Does it check two boxes?",
-    detail: "A class that checks two boxes gets a boost. Efficiency matters.",
-  },
-  {
-    id: "6",
-    title: "Is it too hard too soon?",
-    detail: "Earlier students get foundation classes first. Advanced courses come later.",
-  },
-  {
-    id: "7",
-    title: "Does it need a partner?",
-    detail: "If two classes work better together, MarqBot tries to keep them together.",
-  },
-  {
-    id: "8",
-    title: "Does it fit your main path?",
-    detail: "Major requirements beat BCC work. Main quest before side quests.",
-  },
-] as const;
+/* Universal program IDs that every business student uses */
+const UNIVERSAL_PROGRAM_IDS = [
+  "BCC_CORE", "MCC_CULM", "MCC_DISC", "MCC_ESSV2", "MCC_FOUNDATION", "MCC_WRIT",
+];
+
+const MAJOR_GUIDE_SEEN_KEY = "marqbot_major_guide_seen";
 
 export function PlannerLayout() {
   const { state, dispatch } = useAppContext();
@@ -94,6 +59,8 @@ export function PlannerLayout() {
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [semesterModalIdx, setSemesterModalIdx] = useState<number | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [majorGuideOpen, setMajorGuideOpen] = useState(false);
+  const [majorGuideData, setMajorGuideData] = useState<ProgramBucketTree[]>([]);
   const [explainerOpen, setExplainerOpen] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
@@ -106,7 +73,6 @@ export function PlannerLayout() {
   const [semEditLoading, setSemEditLoading] = useState(false);
   const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
   const [courseListModal, setCourseListModal] = useState<"completed" | "in-progress" | null>(null);
-  const closeExplainer = useCallback(() => setExplainerOpen(false), []);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
   const plannerMountedAtRef = useRef(Date.now());
@@ -217,6 +183,43 @@ export function PlannerLayout() {
     setFeedbackSuccess(true);
     setFeedbackCtaExpanded(false);
   }, []);
+
+  // ── Major Guide ──────────────────────────────────────────────────
+  const majorGuideSeen = useRef(
+    typeof window !== "undefined" && localStorage.getItem(MAJOR_GUIDE_SEEN_KEY) === "true"
+  );
+
+  const openMajorGuide = useCallback(async (fallbackToRecs = false) => {
+    const programIds = [
+      ...state.selectedMajors,
+      ...state.selectedTracks,
+      ...state.selectedMinors,
+      ...UNIVERSAL_PROGRAM_IDS,
+    ];
+    try {
+      const trees = await loadProgramBuckets(programIds);
+      setMajorGuideData(trees);
+      setMajorGuideOpen(true);
+    } catch {
+      // Only fall back to recs when called from "Get My Plan" flow
+      if (fallbackToRecs) fetchRecommendations();
+    }
+  }, [state.selectedMajors, state.selectedTracks, state.selectedMinors, fetchRecommendations]);
+
+  const handleGetMyPlan = useCallback(() => {
+    if (!majorGuideSeen.current) {
+      openMajorGuide(true);
+    } else {
+      fetchRecommendations();
+    }
+  }, [openMajorGuide, fetchRecommendations]);
+
+  const handleGuideFinish = useCallback(() => {
+    majorGuideSeen.current = true;
+    localStorage.setItem(MAJOR_GUIDE_SEEN_KEY, "true");
+    setMajorGuideOpen(false);
+    fetchRecommendations();
+  }, [fetchRecommendations]);
 
   const programLabelMap = data?.selection_context
     ? getProgramLabelMap(data.selection_context)
@@ -341,6 +344,7 @@ export function PlannerLayout() {
         target_semester_count: 1,
         max_recommendations: 15,
         student_stage: state.studentStage,
+        scheduling_style: state.schedulingStyle,
       };
       if (majors.length > 0) payload.declared_majors = majors;
       const editTrackIds = [...state.selectedTracks];
@@ -410,6 +414,7 @@ export function PlannerLayout() {
       target_semester_count: remainingCount,
       max_recommendations: Number(state.maxRecs) || 3,
       student_stage: state.studentStage,
+      scheduling_style: state.schedulingStyle,
     };
     if (majors.length > 0) payload.declared_majors = majors;
     const rerunTrackIds = [...state.selectedTracks];
@@ -447,9 +452,13 @@ export function PlannerLayout() {
         <div className="px-3 sm:px-4 py-2 mb-2 rounded-xl surface-depth-2 shine-sweep flex flex-wrap items-center justify-between gap-2 accent-top-gradient">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <span className="text-xs sm:text-sm text-ink-faint shrink-0">Planning for:</span>
-            <span className="text-xs sm:text-sm font-semibold font-[family-name:var(--font-sora)] text-gold truncate">
+            <button
+              type="button"
+              onClick={() => openMajorGuide()}
+              className="text-xs sm:text-sm font-semibold font-[family-name:var(--font-sora)] text-gold truncate hover:underline underline-offset-2 decoration-gold/50 transition-all cursor-pointer"
+            >
               {primaryProgramLabel}
-            </span>
+            </button>
             {majorLabels.length > 0 && trackLabels.length > 0 && (
               <span className="hidden sm:inline text-sm text-ink-secondary truncate">
                 &bull; {trackLabels.join(" & ")}
@@ -467,7 +476,7 @@ export function PlannerLayout() {
               </svg>
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Button
               variant="secondary"
               size="sm"
@@ -483,7 +492,7 @@ export function PlannerLayout() {
             <Button
               variant="gold"
               size="sm"
-              onClick={fetchRecommendations}
+              onClick={handleGetMyPlan}
               disabled={loading || !hasProgram}
               className="shrink-0 shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
             >
@@ -673,6 +682,8 @@ export function PlannerLayout() {
         programOrder={programOrder}
         declaredMajors={[...state.selectedMajors]}
         onCourseClick={setCourseDetailCode}
+        rawCompleted={state.completed}
+        rawInProgress={state.inProgress}
       />
       <SemesterModal
         open={semesterModalIdx !== null && modalSemester !== null}
@@ -704,9 +715,15 @@ export function PlannerLayout() {
         error={error}
         onSubmitRecommendations={fetchRecommendations}
       />
+      <MajorGuideModal
+        open={majorGuideOpen}
+        onClose={() => setMajorGuideOpen(false)}
+        programs={majorGuideData}
+        onFinish={handleGuideFinish}
+      />
       <Modal
         open={explainerOpen}
-        onClose={closeExplainer}
+        onClose={() => setExplainerOpen(false)}
         title="How MarqBot Ranks Courses"
         titleClassName="!text-[clamp(1.55rem,3.2vw,2.2rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
         size="planner-detail"
@@ -720,7 +737,7 @@ export function PlannerLayout() {
               First, MarqBot removes classes you cannot take yet. Then it sorts what is left by requirement value and unlock potential.
             </p>
           </div>
-          <ol className="grid list-none grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <ol className="grid list-none grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
             {rankingExplainerItems.map((item, idx) => (
               <li
                 key={item.id}

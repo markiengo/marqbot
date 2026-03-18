@@ -3,8 +3,8 @@
 import { useState, useCallback } from "react";
 import { useAppContext } from "@/context/AppContext";
 
-export type OnboardingStep = "majors" | "courses" | "preferences";
-const STEPS: OnboardingStep[] = ["majors", "courses", "preferences"];
+export type OnboardingStep = "majors" | "courses" | "preferences" | "roadmap";
+const STEPS: OnboardingStep[] = ["majors", "courses", "preferences", "roadmap"];
 
 export function useOnboarding() {
   const { state, dispatch } = useAppContext();
@@ -35,6 +35,8 @@ export function useOnboarding() {
         return true; // courses are optional
       case "preferences":
         return !!state.targetSemester;
+      case "roadmap":
+        return true; // always can proceed from roadmap
       default:
         return false;
     }

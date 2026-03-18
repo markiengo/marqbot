@@ -1,5 +1,5 @@
 # Recommendation Algorithm
-Last updated: March 17, 2026
+Last updated: March 18, 2026
 Status: `current behavior (parent/child + split prereq model)`
 
 ## Student Explanation
@@ -111,6 +111,25 @@ The tier determines which requirement group a course serves. Lower tier = higher
 | 6 | Discovery | `MCC_DISC_*` (Discovery themes) | Exploratory requirements with wide course pools. Scheduled last. |
 
 Within a tier, the remaining keys break ties: direct-fill courses beat bridge courses, deeper prereq chains are prioritized to unblock future semesters, courses filling multiple buckets score higher, and lower course levels are preferred to build foundations first.
+
+### Scheduling Style (Archetypes)
+
+The tier hierarchy above is the default ("Grinder") behavior. Students can choose a scheduling style that remaps the tier assignments before ranking. The remapping happens after `_tier_for_bucket_v2()` computes the base tier and before the ranking sort key is built. The entire recommender pipeline (eligibility, selection, greedy loop) stays untouched.
+
+| Style | Description | Tier Remapping |
+|-------|-------------|----------------|
+| **Grinder** (default) | Core and major classes first, discovery later. | Identity — no change. |
+| **Explorer** | Discovery and gen-eds first, major stuff later. | Discovery/Late MCC → 2, BCC → 4, Major → 5, Track → 6 |
+| **Mixer** | Balanced mix each semester. | Discovery/Late MCC → 2, everything else unchanged |
+
+Key behaviors preserved across all styles:
+- MCC Foundation stays tier 1 — those courses gate everything.
+- `BCC_REQUIRED` courses (math, ACCO 1030) stay at band 1 via `_ranking_band()` regardless of tier — they are structural prerequisites.
+- `_MAX_PER_BUCKET_PER_SEM = 2` prevents any single category from dominating.
+- Prerequisite chains, standing gates, and maturity guards apply identically.
+
+The `scheduling_style` parameter is passed via the `/recommend` API as `scheduling_style` and defaults to `"grinder"` when omitted or invalid.
+
 6. Select greedily with:
    - bucket cap (`2`) with auto-relaxation (`BCC_REQUIRED` allows up to `3`)
    - program-balance deferral (threshold `2`)
@@ -167,3 +186,37 @@ When `debug=true`, each ranked candidate includes:
 
 Additional diagnostic fields may still appear in debug output for troubleshooting, but they are not necessarily active sort keys.
 Note: `chain_depth` in debug is sourced from the same chain-depth map used by ranking.
+
+## Read-Only Endpoints
+
+### `GET /api/program-buckets`
+Returns the bucket tree structure for a set of program IDs. This endpoint reads static CSV data only — no recommendation engine, no allocation, no eligibility checks.
+
+**Request**: `?programs=FIN_MAJOR,BCC_CORE,MCC_CULM`
+
+**Response shape**:
+```json
+{
+  "programs": [
+    {
+      "program_id": "FIN_MAJOR",
+      "program_label": "Finance",
+      "type": "major",
+      "buckets": [
+        {
+          "bucket_id": "fina-req-core",
+          "label": "Finance Core Requirements",
+          "requirement_mode": "required",
+          "courses_required": 3,
+          "credits_required": null,
+          "course_count": 3,
+          "min_level": null,
+          "sample_courses": ["FINA 3001", "FINA 4001", "FINA 4011"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Data source: joins `parent_buckets_df` + `child_buckets_df` + course counts from `master_bucket_courses`. Up to 3 sample courses per bucket. Used by the Major Guide modal and onboarding step 4.

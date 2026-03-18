@@ -214,6 +214,7 @@ export interface SessionSnapshot {
   maxRecs: string;
   includeSummer?: boolean;
   isHonorsStudent?: boolean;
+  schedulingStyle?: import("./schedulingStyle").SchedulingStyle;
   studentStage?: StudentStage;
   studentStageIsExplicit?: boolean;
   canTake: string;
@@ -238,6 +239,7 @@ export interface SavedPlanInputs {
   semesterCount: string;
   maxRecs: string;
   includeSummer: boolean;
+  schedulingStyle?: import("./schedulingStyle").SchedulingStyle;
   studentStage: StudentStage;
   studentStageIsExplicit?: boolean;
 }
@@ -265,6 +267,7 @@ export type SavedPlanFreshness = "fresh" | "stale" | "missing";
 export type NavItemStatus = "live" | "soon";
 
 export type LoadStatus = "idle" | "loading" | "ready" | "error";
+export type { SchedulingStyle } from "./schedulingStyle";
 
 export interface AppState {
   courses: Course[];
@@ -284,6 +287,7 @@ export interface AppState {
   maxRecs: string;
   includeSummer: boolean;
   isHonorsStudent: boolean;
+  schedulingStyle: import("./schedulingStyle").SchedulingStyle;
   studentStage: StudentStage;
   studentStageIsExplicit: boolean;
   canTakeQuery: string;
@@ -291,6 +295,24 @@ export interface AppState {
   onboardingComplete: boolean;
   lastRecommendationData: RecommendationResponse | null;
   lastRequestedCount: number;
+}
+
+export interface BucketSlot {
+  bucket_id: string;
+  label: string;
+  requirement_mode: "required" | "choose_n" | "credits_pool";
+  courses_required: number | null;
+  credits_required: number | null;
+  course_count: number;
+  min_level: number | null;
+  sample_courses: string[];
+}
+
+export interface ProgramBucketTree {
+  program_id: string;
+  program_label: string;
+  type: "major" | "track" | "minor" | "universal";
+  buckets: BucketSlot[];
 }
 
 export type NavTab = "home" | "plan" | "courses" | "saved" | "ai-advisor" | "about";

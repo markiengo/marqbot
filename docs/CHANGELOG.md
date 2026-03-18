@@ -8,6 +8,27 @@ Format per release:
 
 ---
 
+## [v2.5.0] - 2026-03-18
+
+### Changes
+
+- Added Major Guide: a grouped-column bucket education view showing all degree requirements at a glance. Programs (majors, tracks, BCC, MCC) display as side-by-side columns with expandable bucket cards inside each.
+- Added tutorial language to the guide explaining what buckets are, what Required/Choose N/Credit Pool mean, and how double-counting works.
+- Added onboarding step 4 ("Your Buckets") so students see their degree structure before reaching the planner for the first time. Completing onboarding marks the guide as seen.
+- Added `GET /api/program-buckets` backend endpoint returning the bucket tree for any set of program IDs. Read-only, no recommendation engine involved.
+- Clicking the program label (e.g. "Accounting & Marketing") in the planner header now opens the Major Guide. Underlines on hover.
+- Restored the standalone "How ranking works" button in the recommendations panel.
+- Redesigned scheduling style picker (Build Explainer) from a flat table to color-coded cards with gradient washes and radio selection.
+- Reworked onboarding step indicator: 4 steps ("Pick Major", "Add Courses", "Set Pace", "Your Buckets"), labels in gold, removed "Done"/"Current" tags and progress bars.
+
+### Design Decisions
+
+- Grouped columns over force-directed graphs or bubble SVGs: NNGroup research shows area is not a preattentive attribute — text in cards is far more readable than text crammed into circles. Columns let students see all programs at once without stepping through one at a time.
+- Tutorial language follows branding.md: clear before clever, medium humor budget for planner explainer surfaces, no slang in structural UI.
+- Onboarding step 4 sets `marqbot_major_guide_seen` in localStorage so the planner does not re-show the guide on first "Get My Plan" click.
+
+---
+
 ## [v2.4.7] - 2026-03-18
 
 ### Changes

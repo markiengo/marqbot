@@ -34,6 +34,7 @@ from student_stage import (
 )
 from semester_recommender import (
     SEM_RE,
+    VALID_SCHEDULING_STYLES,
     normalize_semester_label,
     default_followup_semester,
     default_followup_semester_with_summer,
@@ -2069,6 +2070,86 @@ def get_programs():
     })
 
 
+@app.route("/program-buckets", methods=["GET"])
+def get_program_buckets():
+    """Return bucket tree structure for given program IDs."""
+    _refresh_data_if_needed()
+    if not _data:
+        return jsonify({"error": "Data not loaded"}), 500
+
+    raw_ids = request.args.get("programs", "")
+    program_ids = [pid.strip() for pid in raw_ids.split(",") if pid.strip()]
+    if not program_ids:
+        return jsonify({"programs": []})
+
+    parent_buckets_df = _data.get("parent_buckets_df", pd.DataFrame())
+    child_buckets_df = _data.get("child_buckets_df", pd.DataFrame())
+    master_bucket_courses_df = _data.get("master_bucket_courses_df", pd.DataFrame())
+
+    # Build course-count and sample-courses lookup per child bucket
+    child_course_counts = {}
+    child_sample_courses = {}
+    if len(master_bucket_courses_df) > 0:
+        for (parent_id, child_id), group in master_bucket_courses_df.groupby(
+            ["parent_bucket_id", "child_bucket_id"]
+        ):
+            key = (str(parent_id), str(child_id))
+            codes = group["course_code"].dropna().astype(str).tolist()
+            child_course_counts[key] = len(codes)
+            child_sample_courses[key] = codes[:3]
+
+    programs_payload = []
+    for pid in program_ids:
+        if len(parent_buckets_df) == 0:
+            continue
+        parent_row = parent_buckets_df[
+            parent_buckets_df["parent_bucket_id"].astype(str).str.strip() == pid
+        ]
+        if parent_row.empty:
+            continue
+        parent_row = parent_row.iloc[0]
+        active = parent_row.get("active", True)
+        if str(active).strip().lower() in ("false", "0", "no"):
+            continue
+
+        program_label = str(parent_row.get("parent_bucket_label", pid)).strip() or pid
+        program_type = str(parent_row.get("type", "major")).strip() or "major"
+
+        buckets_payload = []
+        if len(child_buckets_df) > 0:
+            children = child_buckets_df[
+                child_buckets_df["parent_bucket_id"].astype(str).str.strip() == pid
+            ]
+            for _, crow in children.iterrows():
+                child_id = str(crow.get("child_bucket_id", "")).strip()
+                if not child_id:
+                    continue
+                key = (pid, child_id)
+                req_mode = str(crow.get("requirement_mode", "required")).strip()
+                courses_req = crow.get("courses_required")
+                credits_req = crow.get("credits_required")
+                min_level_val = crow.get("min_level")
+                buckets_payload.append({
+                    "bucket_id": child_id,
+                    "label": str(crow.get("child_bucket_label", child_id)).strip() or child_id,
+                    "requirement_mode": req_mode,
+                    "courses_required": int(courses_req) if pd.notna(courses_req) else None,
+                    "credits_required": int(credits_req) if pd.notna(credits_req) else None,
+                    "course_count": child_course_counts.get(key, 0),
+                    "min_level": int(min_level_val) if pd.notna(min_level_val) else None,
+                    "sample_courses": child_sample_courses.get(key, []),
+                })
+
+        programs_payload.append({
+            "program_id": pid,
+            "program_label": program_label,
+            "type": program_type,
+            "buckets": buckets_payload,
+        })
+
+    return jsonify({"programs": programs_payload})
+
+
 @app.route("/feedback", methods=["POST"])
 def feedback_endpoint():
     client_ip = _client_ip()
@@ -2238,6 +2319,9 @@ def recommend():
         completed_input + in_progress_input,
         effective_data.get("courses_df"),
     )
+    scheduling_style = body.get("scheduling_style") or None
+    if scheduling_style and scheduling_style not in VALID_SCHEDULING_STYLES:
+        scheduling_style = None
 
     # Build a course→credits lookup for standing projection.
     _credits_lookup = _course_credit_lookup(effective_data)
@@ -2363,6 +2447,7 @@ def recommend():
                 is_honors_student=is_honors_student,
                 selected_program_ids=selection.get("restriction_program_ids"),
                 student_stage=student_stage,
+                scheduling_style=scheduling_style,
             )
         else:
             completed_only_standing = _credits_to_standing(
@@ -2384,6 +2469,7 @@ def recommend():
                 is_honors_student=is_honors_student,
                 selected_program_ids=selection.get("restriction_program_ids"),
                 student_stage=student_stage,
+                scheduling_style=scheduling_style,
             )
         semesters_payload.append(semester_payload)
         # Accumulate recommended course credits for the next semester's standing projection.
@@ -2597,6 +2683,7 @@ app.add_url_rule("/api/health", endpoint="api_health", view_func=health_endpoint
 app.add_url_rule("/api/courses", endpoint="api_courses", view_func=get_courses, methods=["GET"])
 app.add_url_rule("/api/programs", endpoint="api_programs", view_func=get_programs, methods=["GET"])
 app.add_url_rule("/api/feedback", endpoint="api_feedback", view_func=feedback_endpoint, methods=["POST"])
+app.add_url_rule("/api/program-buckets", endpoint="api_program_buckets", view_func=get_program_buckets, methods=["GET"])
 app.add_url_rule("/api/recommend", endpoint="api_recommend", view_func=recommend, methods=["POST"])
 app.add_url_rule("/api/can-take", endpoint="api_can_take", view_func=can_take_endpoint, methods=["POST"])
 app.add_url_rule("/api/validate-prereqs", endpoint="api_validate_prereqs", view_func=validate_prereqs_endpoint, methods=["POST"])

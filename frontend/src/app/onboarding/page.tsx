@@ -6,6 +6,7 @@ import { WizardLayout } from "@/components/onboarding/WizardLayout";
 import { MajorStep } from "@/components/onboarding/MajorStep";
 import { CoursesStep } from "@/components/onboarding/CoursesStep";
 import { PreferencesStep } from "@/components/onboarding/PreferencesStep";
+import { RoadmapStep } from "@/components/onboarding/RoadmapStep";
 import { Button } from "@/components/shared/Button";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useCourses } from "@/hooks/useCourses";
@@ -93,6 +94,8 @@ export default function OnboardingPage() {
 
   const handleFinish = () => {
     complete();
+    // Mark guide as seen so the planner doesn't show it again
+    localStorage.setItem("marqbot_major_guide_seen", "true");
     router.push("/planner");
   };
 
@@ -101,7 +104,9 @@ export default function OnboardingPage() {
       ? "Next: Add Courses"
       : currentStep === "courses"
         ? "Next: Preferences"
-        : "Continue";
+        : currentStep === "preferences"
+          ? "Next: Your Roadmap"
+          : "Continue";
 
   return (
     <WizardLayout stepKey={currentStep} currentStep={stepIndex} totalSteps={totalSteps}>
@@ -109,6 +114,7 @@ export default function OnboardingPage() {
         {currentStep === "majors" && <MajorStep />}
         {currentStep === "courses" && <CoursesStep onWarningChange={setPrereqWarning} />}
         {currentStep === "preferences" && <PreferencesStep />}
+        {currentStep === "roadmap" && <RoadmapStep />}
 
         <div className="space-y-3 border-t border-border-subtle pt-5">
           {currentStep === "majors" && onlySecondary() && (

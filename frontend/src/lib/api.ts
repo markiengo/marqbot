@@ -1,6 +1,7 @@
 import type {
   Course,
   ProgramsData,
+  ProgramBucketTree,
   RecommendationResponse,
   CanTakeResponse,
   FeedbackPayload,
@@ -50,6 +51,15 @@ export async function loadPrograms(): Promise<ProgramsData> {
     default_track_id: data.default_track_id ?? "",
     bucket_labels,
   };
+}
+
+export async function loadProgramBuckets(programIds: string[]): Promise<ProgramBucketTree[]> {
+  const ids = programIds.filter(Boolean).join(",");
+  if (!ids) return [];
+  const res = await fetch(`${API_BASE}/api/program-buckets?programs=${encodeURIComponent(ids)}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load program buckets: ${res.status}`);
+  const data = await res.json();
+  return data.programs ?? [];
 }
 
 export async function postRecommend(

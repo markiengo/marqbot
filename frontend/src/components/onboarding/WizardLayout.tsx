@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { StepIndicator } from "./StepIndicator";
 
 interface WizardLayoutProps {
-  stepKey: "majors" | "courses" | "preferences";
+  stepKey: "majors" | "courses" | "preferences" | "roadmap";
   currentStep: number;
   totalSteps: number;
   children: React.ReactNode;
@@ -12,19 +12,24 @@ interface WizardLayoutProps {
 
 const stepMeta = {
   majors: {
-    eyebrow: "Step 1 of 3",
+    eyebrow: "Step 1 of 4",
     title: "Pick your major.",
     body: "Start with what you've declared. Add tracks if they're official.",
   },
   courses: {
-    eyebrow: "Step 2 of 3",
+    eyebrow: "Step 2 of 4",
     title: "Add your courses.",
     body: "What you've finished and what you're taking now.",
   },
   preferences: {
-    eyebrow: "Step 3 of 3",
+    eyebrow: "Step 3 of 4",
     title: "Set your preferences.",
     body: "Next term, planning horizon, and course load.",
+  },
+  roadmap: {
+    eyebrow: "Step 4 of 4",
+    title: "Know your buckets.",
+    body: "Your degree is split into requirement buckets. This is what you're working toward.",
   },
 } as const;
 
