@@ -166,6 +166,77 @@ const MARKS = [
     path: "M12 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM14 16c0 2-1 4-3 6",
     viewBox: "0 0 24 26",
   },
+  // ── Extra code / tech marks ──
+  {
+    id: "git-branch",
+    top: "14%", right: "3%",
+    size: 44,
+    rotate: -8,
+    color: "rgba(255,204,0,0.11)",
+    // Git branch with two diverging commits
+    path: "M12 4v28M12 18c6-8 20-8 26 0M38 18v14M12 4a3 3 0 1 1 0-.1M12 32a3 3 0 1 0 0 .1M38 32a3 3 0 1 0 0 .1",
+    viewBox: "0 0 50 40",
+  },
+  {
+    id: "hashtag",
+    top: "28%", right: "7%",
+    size: 32,
+    rotate: 5,
+    color: "rgba(0,114,206,0.11)",
+    // Hand-drawn # symbol
+    path: "M10 4l-2 24M22 4l-2 24M4 10h24M2 18h24",
+    viewBox: "0 0 30 30",
+  },
+  {
+    id: "fat-arrow",
+    top: "58%", right: "6%",
+    size: 56,
+    rotate: -3,
+    color: "rgba(255,204,0,0.10)",
+    // Hand-drawn => arrow function
+    path: "M4 10l12 10-12 10M24 20h24M48 20l-6-5M48 20l-6 5",
+    viewBox: "0 0 56 36",
+  },
+  {
+    id: "bug-icon",
+    top: "80%", left: "8%",
+    size: 36,
+    rotate: 12,
+    color: "rgba(0,114,206,0.10)",
+    // Hand-drawn bug with legs
+    path: "M18 10c5 0 9 4 9 10s-4 12-9 12-9-6-9-12 4-10 9-10ZM18 10v-4M12 14l-6-3M24 14l6-3M10 20H4M26 20h6M12 26l-5 4M24 26l5 4",
+    viewBox: "0 0 36 36",
+  },
+  {
+    id: "stack-layers",
+    top: "64%", left: "5%",
+    size: 44,
+    rotate: -4,
+    color: "rgba(255,204,0,0.09)",
+    // Three stacked parallelograms (layers/stack)
+    path: "M22 8L4 16l18 8 18-8ZM4 22l18 8 18-8M4 28l18 8 18-8",
+    viewBox: "0 0 44 40",
+  },
+  {
+    id: "cursor-blink",
+    top: "48%", left: "6%",
+    size: 28,
+    rotate: 0,
+    color: "rgba(0,114,206,0.12)",
+    // Text cursor |
+    path: "M8 4h12M14 4v24M8 28h12",
+    viewBox: "0 0 28 32",
+  },
+  {
+    id: "merge-arrows",
+    top: "86%", right: "8%",
+    size: 48,
+    rotate: 6,
+    color: "rgba(0,114,206,0.10)",
+    // Two lines merging into one (git merge)
+    path: "M8 4l16 16M40 4L24 20M24 20v16M24 36l-4-5M24 36l4-5",
+    viewBox: "0 0 48 42",
+  },
 ] as const;
 
 export function Doodles() {

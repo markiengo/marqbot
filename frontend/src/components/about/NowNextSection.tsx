@@ -3,7 +3,11 @@
 import { motion, useReducedMotion } from "motion/react";
 import { AnchorLine } from "@/components/shared/AnchorLine";
 import styles from "./about.module.css";
-import { ABOUT_BUILD_CARDS } from "./aboutContent";
+import {
+  ABOUT_BUILD_CARDS,
+  ABOUT_KNOWN_ISSUES,
+  ABOUT_RECENT_CHANGES,
+} from "./aboutContent";
 
 export function NowNextSection() {
   const reduce = useReducedMotion();
@@ -45,15 +49,100 @@ export function NowNextSection() {
           >
             Here&apos;s what&apos;s on the roadmap.
           </motion.h2>
-          <motion.p
-            {...viewAnim(10, 0.16)}
-            className="mx-auto max-w-[38rem] text-[0.98rem] leading-relaxed text-ink-muted sm:text-[1.05rem]"
-          >
-            The backlog is longer than my transcript. These four are winning the priority fight.
-          </motion.p>
         </div>
 
         <AnchorLine variant="gold" className="mb-12" />
+
+        {/* Recently shipped */}
+        <div className="mb-10 space-y-3">
+          <motion.p
+            {...viewAnim(8)}
+            className="section-kicker"
+          >
+            Recently shipped
+          </motion.p>
+          <motion.h3
+            {...viewAnim(12, 0.06)}
+            className="font-[family-name:var(--font-sora)] text-[1.6rem] font-bold text-white md:text-[1.9rem]"
+          >
+            What just dropped.
+          </motion.h3>
+          <motion.p
+            {...viewAnim(10, 0.12)}
+            className="max-w-[34rem] text-[0.95rem] leading-relaxed text-ink-muted"
+          >
+            New stuff that actually made it out of the backlog.
+          </motion.p>
+        </div>
+
+        <div className="grid gap-7 sm:grid-cols-2 mb-14">
+          {ABOUT_RECENT_CHANGES.map((card, index) => (
+            <motion.article
+              key={card.title}
+              {...viewAnim(22, 0.12 * index)}
+              whileHover={reduce ? undefined : { y: -6, scale: 1.018 }}
+              className="glass-card card-glow-hover hover-ripple relative overflow-hidden rounded-[1.75rem] p-7"
+            >
+              <div className="absolute top-0 left-1/2 h-[2px] w-12 -translate-x-1/2 rounded-full bg-gold/70" />
+              <div
+                className="absolute inset-0 rounded-[1.75rem] pointer-events-none opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                style={{
+                  background: "radial-gradient(ellipse at 50% 0%, rgba(255, 204, 0, 0.06) 0%, transparent 70%)",
+                }}
+              />
+              <p className="section-kicker relative z-[1] !text-[11px]">{card.eyebrow}</p>
+              <h3 className="relative z-[1] mt-5 font-[family-name:var(--font-sora)] text-[1.28rem] font-semibold text-white">
+                {card.title}
+              </h3>
+              <p className="relative z-[1] mt-3 text-[1rem] leading-relaxed text-ink-muted">{card.body}</p>
+            </motion.article>
+          ))}
+        </div>
+
+        <AnchorLine variant="gold" className="mb-12" />
+
+        {/* In-progress fixes */}
+        <div className="mb-10 space-y-3">
+          <motion.p
+            {...viewAnim(8)}
+            className="section-kicker"
+          >
+            In progress
+          </motion.p>
+          <motion.h3
+            {...viewAnim(12, 0.06)}
+            className="font-[family-name:var(--font-sora)] text-[1.6rem] font-bold text-white md:text-[1.9rem]"
+          >
+            Still cooking.
+          </motion.h3>
+          <motion.p
+            {...viewAnim(10, 0.12)}
+            className="max-w-[34rem] text-[0.95rem] leading-relaxed text-ink-muted"
+          >
+            Known issues I&apos;m actively working on.
+          </motion.p>
+        </div>
+
+        {/* Known issue + soft-prereqs explainer */}
+        <motion.div
+          {...viewAnim(18)}
+          whileHover={reduce ? undefined : { y: -6, scale: 1.018 }}
+          className="glass-card card-glow-hover hover-ripple relative overflow-hidden rounded-[1.75rem] border-l-[3px] border-l-amber-400/60 p-7 sm:p-9 mb-10"
+        >
+          <p className="section-kicker !text-[11px]">{ABOUT_KNOWN_ISSUES.eyebrow}</p>
+          <h3 className="mt-4 font-[family-name:var(--font-sora)] text-[1.2rem] font-semibold text-white">
+            {ABOUT_KNOWN_ISSUES.title}
+          </h3>
+          <p className="mt-3 text-[0.98rem] leading-relaxed text-ink-muted">
+            {ABOUT_KNOWN_ISSUES.body}
+          </p>
+          <h4 className="mt-5 font-[family-name:var(--font-sora)] text-[1rem] font-semibold text-gold">
+            {ABOUT_KNOWN_ISSUES.subheading}
+          </h4>
+          <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-muted">
+            {ABOUT_KNOWN_ISSUES.detail}
+          </p>
+        </motion.div>
 
         <div className="grid gap-7 sm:grid-cols-2">
           {ABOUT_BUILD_CARDS.map((card, index) => (

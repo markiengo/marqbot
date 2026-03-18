@@ -33,12 +33,37 @@ export const ABOUT_INTRO_COPY = {
   note: "This started as a \"quick side project.\" That was a lie and I fell for it.",
 } as const;
 
+export const ABOUT_KNOWN_ISSUES = {
+  eyebrow: "Work in progress",
+  title: "Sequenced-course recommendations",
+  body:
+    "MarqBot can sometimes suggest advanced language or theology courses to students who haven't taken the earlier classes in that sequence. I'm actively building out coverage to catch these and filter them from recommendations.",
+  subheading: "What are soft-prereqs?",
+  detail:
+    "Many courses have implied requirements the bulletin never lists. SPAN 2013 has no official prerequisite, but it obviously expects SPAN 1001 and 1002. MarqBot calls these \"soft-prereqs\" — and until they're mapped, a student who's never taken Spanish might get SPAN 2013 suggested just because it fills a bucket. If you spot one of these, hit Feedback — it helps me find the gaps faster.",
+} as const;
+
+export const ABOUT_RECENT_CHANGES: AboutBuildCard[] = [
+  {
+    eyebrow: "New",
+    title: "Screenshot import",
+    body:
+      "Upload a CheckMarq screenshot and MarqBot reads your course history locally — no typing, no external servers. OCR runs entirely in your browser. The era of manual entry is over.",
+  },
+  {
+    eyebrow: "New",
+    title: "Your Build",
+    body:
+      "Pick Grinder, Explorer, or Mixer to control how MarqBot prioritizes your recommendations. Prerequisites still run the show — your build just changes the order around them.",
+  },
+];
+
 export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
   {
     eyebrow: "Building now",
     title: "Full policy documentation",
     body:
-      "Mapping out the edge-case policies Marquette actually enforces. The goal: fewer surprise blockers and fewer \"wait, since when?\" moments during Advising Week.",
+      "Some courses have hidden rules the bulletin doesn't make obvious — like the CFA AIM track requiring a Finance major, or certain upper-levels being restricted to specific colleges. I'm documenting these so MarqBot can flag them before you find out the hard way during registration.",
   },
   {
     eyebrow: "Next up",
