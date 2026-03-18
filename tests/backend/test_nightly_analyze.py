@@ -112,7 +112,7 @@ def test_analyze_nightly_promotes_algorithm_bucket_after_streak(tmp_path):
         "bucket_priority_boosts": {},
         "failure_history": {
             "FIN_MAJOR::FIN_CORE": {
-                "consecutive_failures": 2,
+                "consecutive_failures": 0,
                 "last_seen": "2026-03-15",
             }
         },

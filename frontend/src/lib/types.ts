@@ -158,6 +158,34 @@ export interface FeedbackResponse {
   submitted_at: string;
 }
 
+export type ImportStatus = "idle" | "uploading" | "parsing" | "parsed" | "failed";
+
+export type ImportRowStatus = "completed" | "in_progress" | "ignored" | "unmatched";
+
+export interface ImportRow {
+  course_code?: string;
+  source_text: string;
+  term: string;
+  status: ImportRowStatus;
+  confidence: number;
+  suggested_matches?: string[];
+  reason?: string;
+}
+
+export interface ImportResult {
+  completed_matches: ImportRow[];
+  in_progress_matches: ImportRow[];
+  unmatched_rows: ImportRow[];
+  ignored_rows: ImportRow[];
+  summary: {
+    completed_count: number;
+    in_progress_count: number;
+    unmatched_count: number;
+    ignored_count: number;
+    total_rows: number;
+  };
+}
+
 export interface CanTakeResponse {
   can_take: boolean | null;
   requested_course: string;

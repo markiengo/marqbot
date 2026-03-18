@@ -26,6 +26,7 @@ export type AppAction =
   | { type: "REMOVE_COMPLETED"; payload: string }
   | { type: "ADD_IN_PROGRESS"; payload: string }
   | { type: "REMOVE_IN_PROGRESS"; payload: string }
+  | { type: "IMPORT_COURSES"; payload: { completed: string[]; inProgress: string[] } }
   | { type: "SET_TARGET_SEMESTER"; payload: string }
   | { type: "SET_SEMESTER_COUNT"; payload: string }
   | { type: "SET_MAX_RECS"; payload: string }
@@ -367,6 +368,32 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           courses: state.courses,
         }),
         inProgress: next,
+        lastRecommendationData: null,
+      };
+    }
+
+    case "IMPORT_COURSES": {
+      const nextCompleted = new Set(state.completed);
+      const nextIp = new Set(state.inProgress);
+      for (const code of action.payload.completed) {
+        nextIp.delete(code);
+        nextCompleted.add(code);
+      }
+      for (const code of action.payload.inProgress) {
+        nextCompleted.delete(code);
+        nextIp.add(code);
+      }
+      return {
+        ...state,
+        ...syncStudentStageWithHistory({
+          studentStage: state.studentStage,
+          studentStageIsExplicit: state.studentStageIsExplicit,
+          completed: nextCompleted,
+          inProgress: nextIp,
+          courses: state.courses,
+        }),
+        completed: nextCompleted,
+        inProgress: nextIp,
         lastRecommendationData: null,
       };
     }

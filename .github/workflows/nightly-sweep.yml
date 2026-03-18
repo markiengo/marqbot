@@ -88,6 +88,8 @@ jobs:
     name: Nightly Focused Sweep
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     timeout-minutes: 360
     outputs:
       report_date: ${{ steps.report_meta.outputs.report_date }}
@@ -167,6 +169,8 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: nightly-exhaustive
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     timeout-minutes: 30
     permissions:
       contents: write

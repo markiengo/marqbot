@@ -32,6 +32,7 @@ from student_stage import (
     infer_student_stage_from_courses,
     normalize_student_stage,
 )
+from import_service import register_import_routes
 from semester_recommender import (
     SEM_RE,
     normalize_semester_label,
@@ -317,6 +318,13 @@ def _refresh_data_if_needed() -> None:
         _reload_data_if_changed()
     except Exception as exc:
         print(f"[WARN] Data reload check failed: {exc}", file=sys.stderr)
+
+
+register_import_routes(
+    app,
+    lambda: _data,
+    refresh_data_if_needed=_refresh_data_if_needed,
+)
 
 
 # ── Input validation ───────────────────────────────────────────────────────────

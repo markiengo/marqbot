@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { MultiSelect } from "@/components/shared/MultiSelect";
 import { OnboardingStepHeader } from "./OnboardingStepHeader";
+import { CourseHistoryImport } from "./CourseHistoryImport";
 import { postValidatePrereqs } from "@/lib/api";
 
 interface CoursesStepProps {
@@ -59,6 +60,8 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
         }
         description="Completed classes first, then the ones in progress. This is how MarqBot knows what counts now and what still depends on next term."
       />
+
+      <CourseHistoryImport />
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
         <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#fffdf9] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">

@@ -447,9 +447,16 @@ def _selection_bucket_ids(candidate: dict) -> list[str]:
 
 def _override_tier_adj(candidate: dict, overrides: dict) -> int:
     boosts = overrides.get("bucket_priority_boosts") or {}
+    if not boosts:
+        return 0
+    parent_id = str(candidate.get("primary_parent_bucket_id", "") or "").strip().upper()
     adjustment = 0
     for bucket_id in _selection_bucket_ids(candidate):
-        adjustment = min(adjustment, int(boosts.get(str(bucket_id).strip().upper(), 0) or 0))
+        key = str(bucket_id).strip().upper()
+        boost = int(boosts.get(key, 0) or 0)
+        if not boost and parent_id:
+            boost = int(boosts.get(f"{parent_id}::{key}", 0) or 0)
+        adjustment = min(adjustment, boost)
     return max(-_MAX_RANKING_OVERRIDE_BOOST, min(0, adjustment))
 
 

@@ -299,7 +299,7 @@ def _get_required_major(track_id: str) -> str | None:
     """Get required_major for a track (e.g. AIM_CFA requires FIN)."""
     rows = program_rows()
     row = rows.get(track_id, {})
-    val = str(row.get("required_major", "") or "").strip()
+    val = str(row.get("required_major_id", "") or row.get("required_major", "") or "").strip()
     return val if val else None
 
 

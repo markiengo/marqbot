@@ -317,9 +317,9 @@ def _load_overrides(path: Path) -> dict:
 
 
 def _desired_boost(consecutive_failures: int) -> int:
-    if consecutive_failures >= 5:
-        return -2
     if consecutive_failures >= 3:
+        return -2
+    if consecutive_failures >= 1:
         return -1
     return 0
 
