@@ -7,7 +7,7 @@ import { AnchorLine } from "@/components/shared/AnchorLine";
 const cards = [
   {
     title: "Built on real Marquette data",
-    body: "5,300+ course records and 1,500+ requirement links. Wired in, not vibed in.",
+    body: "5,300+ course records and 1,500+ requirement links. All verified against the bulletin.",
   },
   {
     title: "Made for Business students",

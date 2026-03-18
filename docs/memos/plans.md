@@ -357,9 +357,9 @@ The suite is healthiest if it stays heavy on invariants and light on brittle sna
 
 # Plan 2: AI Advisor Feature
 
-**Status**: Planned
-**Target version**: v2.3.0
-**Date**: 2026-03-04
+**Status**: Deprioritized -- `/ai-advisor` page exists as placeholder but feature has not shipped. Focus shifted to nightly autotune and planner accuracy.
+**Target version**: v2.3.0 (original, now deferred)
+**Date**: 2026-03-04 (original target)
 
 ---
 

@@ -8,6 +8,45 @@ Format per release:
 
 ---
 
+## [v2.4.6] - 2026-03-17
+
+### Changes
+
+- Moved MCC Culminating Course (MCC_CULM) from tier 6 (lowest) to tier 5 (MCC Late), fixing 514 of 584 "not graduated" nightly failures caused by the planner never scheduling CORE 4929 before semester 8.
+- Condensed nightly report from 750 individual student logs (~385KB) to ~10 representative cases with a test methodology header explaining sampling, profiles, and pass/fail criteria. Full data remains in the JSON snapshot.
+- Upgraded GitHub Actions `upload-artifact` and `download-artifact` from v4 to v5, removing Node.js 20 deprecation warnings.
+- Added three new autotune capabilities to `scripts/analyze_nightly.py`:
+  - **Feasibility Auditor**: flags program combos requiring more than 48 courses as infeasible by curriculum design.
+  - **Concentration Detector**: flags any bucket causing >15% of failures with a targeted recommendation.
+  - **Resolved-Issue Ledger** (`config/autotune_ledger.json`): tracks past fixes to detect regressions and boost-resistant buckets.
+
+### Design Decisions
+
+- MCC_CULM tier change: the culminating course was starved at tier 6 because discovery buckets (also tier 6) have wider course pools and consumed the remaining slots. Moving it to tier 5 keeps it deferred below major/track work but ensures it schedules before discovery.
+- Report condensing: 750 student logs were unreadable. Representative cases are selected for diversity across failure types, unsatisfied buckets, and program combos.
+- Feasibility audit uses per-family course counting: since every parent bucket has a unique `double_count_family_id`, requirements within the same family cannot overlap. Summing per-family gives the true minimum unique courses needed.
+
+---
+
+## [v2.4.5] - 2026-03-17
+
+### Changes
+
+- Moved course-history screenshot parsing from backend (GPT-4o vision) to browser-only OCR using tesseract.js. No data leaves the student's device.
+- Added local parser with canvas preprocessing, header/row reconstruction, wrapped-title merging, footer skipping, and department-code fuzzy matching.
+- Removed backend `/api/import-course-history` route, `backend/import_service.py`, and associated backend tests.
+- Added golden OCR fixture and parser tests (`courseHistoryImportParser.test.ts`) covering 11 completed / 10 in-progress / 1 unmatched / 2 ignored rows.
+- Updated `CourseHistoryImport.tsx` status copy for local parsing stages (`preprocessing`, `parsing`).
+- Updated `ImportStatus` type to replace `uploading` with `preprocessing`.
+
+### Design Decisions
+
+- Local OCR eliminates the OpenAI API dependency for import, removing per-import cost and the `OPENAI_API_KEY` requirement for this feature.
+- tesseract.js worker is lazily initialized and reused across retries to avoid repeated WASM startup.
+- Canvas preprocessing (grayscale, contrast boost, thresholding) improves OCR accuracy on CheckMarq's table layout.
+
+---
+
 ## [v2.4.4] - 2026-03-16
 
 ### Changes

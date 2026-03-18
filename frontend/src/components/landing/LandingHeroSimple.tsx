@@ -102,9 +102,7 @@ export function LandingHeroSimple() {
               transition={{ duration: 0.5, delay: 0.22 }}
               className="mx-auto mt-5 max-w-[42rem] text-[1.14rem] leading-relaxed text-slate-300 sm:text-[1.28rem] lg:mx-0"
             >
-              MarqBot ranks the classes that actually move your plan.
-              <br className="hidden sm:block" />
-              Raynor does not need another six-tab crisis.
+              MarqBot reads the degree rules and tells you what to take next.
             </motion.p>
 
             <motion.div

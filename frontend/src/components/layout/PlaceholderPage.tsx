@@ -86,11 +86,11 @@ export function PlaceholderPage({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.52 }}
-                className="grid gap-3 sm:grid-cols-2"
+                className="grid gap-2.5"
               >
                 {bullets.map((bullet, index) => (
-                  <li key={bullet} className="warm-card-muted rounded-[1.35rem] px-4 py-3 text-sm leading-relaxed text-ink-secondary">
-                    <span className="mr-2 font-[family-name:var(--font-sora)] text-gold">{index + 1}.</span>
+                  <li key={bullet} className="warm-card-muted rounded-[1.55rem] px-5 py-5 text-[1.05rem] leading-relaxed text-ink-secondary sm:text-[1.15rem]">
+                    <span className="mr-2.5 font-[family-name:var(--font-sora)] text-[1.2rem] font-semibold text-gold sm:text-[1.3rem]">{index + 1}.</span>
                     {bullet}
                   </li>
                 ))}
@@ -126,10 +126,10 @@ export function PlaceholderPage({
           <div className="relative z-10">
             <p className="warm-kicker text-xs uppercase tracking-[0.18em] text-gold">Preview</p>
             <h2 className="mt-3 font-[family-name:var(--font-sora)] text-2xl font-semibold text-ink-primary">
-              What this page will be.
+              Coming up.
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-ink-secondary">
-              This route stays in the nav so you can see where MarqBot is heading. It is not fully useful yet, so the safest move right now is still the planner.
+              This page is in progress. Use the planner for now.
             </p>
             <div className="mt-6 overflow-hidden rounded-[1.4rem] border border-white/10 bg-surface-card/80">
               {coverImage ? (

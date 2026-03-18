@@ -1005,6 +1005,44 @@ class NightlyFailureCollector:
             key=lambda item: (-item["total_failures"], item["friendly_label"]),
         )[:8]
 
+    def _select_representative_cases(self, max_cases: int = 10) -> list[dict]:
+        """Pick up to *max_cases* diverse representative records."""
+        if not self.records:
+            return []
+
+        selected: list[dict] = []
+        selected_keys: set[str] = set()
+
+        def _add(record: dict) -> None:
+            key = record["label"]
+            if key not in selected_keys and len(selected) < max_cases:
+                selected_keys.add(key)
+                selected.append(record)
+
+        # 1. One per unique status type
+        seen_statuses: set[str] = set()
+        for record in self.records:
+            status = record["status"]
+            if status not in seen_statuses:
+                seen_statuses.add(status)
+                _add(record)
+
+        # 2. One per top-5 unsatisfied bucket (prefer different scenarios)
+        bucket_counts: Counter[str] = Counter()
+        for record in self.records:
+            for bucket in record.get("unsatisfied_buckets") or []:
+                bucket_counts[str(bucket)] += 1
+        seen_scenarios: set[str] = {r["scenario_label"] for r in selected}
+        for bucket, _count in bucket_counts.most_common(5):
+            for record in self.records:
+                if bucket in (record.get("unsatisfied_buckets") or []):
+                    if record["scenario_label"] not in seen_scenarios or len(selected) < max_cases:
+                        seen_scenarios.add(record["scenario_label"])
+                        _add(record)
+                        break
+
+        return selected
+
     def to_snapshot(self, *, report_date: str | None = None) -> dict:
         from datetime import date as _date
 
@@ -1261,32 +1299,85 @@ class NightlyFailureCollector:
         else:
             lines.append("- No sample groups were available to summarize.")
 
-        lines.extend(["", "## Appendix", "", "### Run Details"])
-        lines.extend([
-            f"- Sampled plan groups: {len(self.sampled_scenario_labels)} of {self.total_possible_scenarios}",
-            f"- Student profiles per group: {suite['profiles_per_scenario']}",
-            f"- Course-history variants per profile: {suite['selection_variants']}",
-            f"- Planned samples: {suite['expected_tests']}",
-            f"- Evaluated samples: {self.total_tests}",
-            f"- Samples with no reported issues: {totals['passed_tests']}",
-            f"- Samples with reported issues: {len(self.records)}",
-            f"- Samples that could not be evaluated: {self.invalid_cases}",
-            f"- Nightly catalog baseline checks run: {self.supplemental_checks}",
-            f"- Nightly catalog baseline issues: {len(self.supplemental_records)}",
-            f"- Seed: `{suite['seed'] or 'unknown'}`",
-        ])
+        # --- Compute pass rate and failure breakdown for insights ---
+        pass_rate = (
+            f"{totals['passed_tests'] / self.total_tests * 100:.1f}%"
+            if self.total_tests > 0 else "N/A"
+        )
+        status_counts = totals.get("status_counts", {})
+        status_breakdown = []
+        for status_label, count in sorted(status_counts.items(), key=lambda x: -x[1]):
+            status_breakdown.append(f"  - {status_label}: {count}")
 
-        if not self.records and not self.supplemental_records:
-            lines.extend(["", "### Student Profile Logs", "", "No student profile logs were recorded for this run."])
+        lines.extend([
+            "",
+            "## Test Methodology",
+            "",
+            "### How students are picked",
+            "",
+            f"The nightly sweep draws {len(self.sampled_scenario_labels)} program combos "
+            f"out of {self.total_possible_scenarios} possible combinations, using a date-seeded RNG "
+            f"(seed `{suite['seed'] or 'unknown'}`) so runs are reproducible.",
+            "Each combo represents a realistic student declaration: a set of majors, tracks, and minors "
+            "that a student could actually enroll in.",
+            "",
+            "### How course histories are built",
+            "",
+            f"For each combo, {suite['profiles_per_scenario']} student profiles are generated "
+            "at different stages of progress:",
+            "- **foundation** (1 seeded semester): a student who just started",
+            "- **early** (2 semesters): through their first year",
+            "- **mid** (3 semesters): beginning upper-division work",
+            "- **late** (4 semesters): well into their major",
+            "- **capstone** (5 semesters): approaching graduation",
+            "",
+            f"Each profile is tested with {suite['selection_variants']} randomly-varied course-history "
+            "selections to avoid overfitting to one specific path. "
+            f"This produces {suite['expected_tests']} total test cases.",
+            "",
+            "### How pass/fail is determined",
+            "",
+            "The planner recommends up to 6 courses per semester for 8 semesters (48 courses total). "
+            "A case **passes** if every active requirement bucket is satisfied by the end of semester 8. "
+            "A case **fails** if any bucket remains open, the planner hits a dead end with no valid courses, "
+            "or the seeded history could not be built (invalid combo).",
+            "",
+            "## Run Details",
+            "",
+            f"- Seed: `{suite['seed'] or 'unknown'}`",
+            f"- Sampled plan groups: {len(self.sampled_scenario_labels)} of {self.total_possible_scenarios}",
+            f"- Profiles per group: {suite['profiles_per_scenario']} | Variants per profile: {suite['selection_variants']}",
+            f"- Total cases: {self.total_tests} of {suite['expected_tests']} planned",
+            f"- Pass rate: {totals['passed_tests']} passed ({pass_rate})",
+            f"- Issues: {len(self.records)} | Invalid: {self.invalid_cases}",
+            f"- Catalog baseline checks: {self.supplemental_checks} run, {len(self.supplemental_records)} issues",
+            f"- Runtime: {snapshot['runtime']['minutes']}m {snapshot['runtime']['seconds']}s",
+        ])
+        if status_breakdown:
+            lines.append("- Failure breakdown:")
+            lines.extend(status_breakdown)
+
+        representative = self._select_representative_cases()
+        if not representative and not self.supplemental_records:
+            lines.extend(["", "## Representative Cases", "", "No cases were recorded for this run."])
             return "\n".join(lines)
 
-        lines.extend(["", "### Student Profile Logs", ""])
-        for index, record in enumerate(self.records, 1):
+        lines.extend([
+            "",
+            "## Representative Cases",
+            "",
+            f"Showing {len(representative)} representative cases out of {len(self.records)} total. "
+            "Cases are selected for diversity across failure types, unsatisfied buckets, and program combos. "
+            "Full data is in the JSON snapshot.",
+            "",
+        ])
+        for index, record in enumerate(representative, 1):
             tracks = ", ".join(record["track_ids"]) if record["track_ids"] else "none"
             minors = ", ".join(record["declared_minors"]) if record["declared_minors"] else "none"
             courses = ", ".join(record["completed_courses"]) if record["completed_courses"] else "none"
+            unsatisfied = record.get("unsatisfied_buckets") or []
             lines.extend([
-                f"#### Student {index}",
+                f"#### Case {index}",
                 f"- combo: {record['scenario_label']}",
                 f"- profile: {record['profile_label']} ({record['seeded_semesters']} seeded semesters)",
                 f"- selection: variant {record['selection_variant']}",
@@ -1297,23 +1388,28 @@ class NightlyFailureCollector:
                 f"- courses taken: {courses}",
                 f"- fail at: {record['fail_at']}",
                 f"- reason: {record['reason']}",
-                "",
             ])
+            if unsatisfied:
+                lines.append(
+                    "- open buckets: "
+                    + ", ".join(_friendly_bucket_label(b) for b in unsatisfied)
+                )
+            lines.append("")
         if self.supplemental_records:
-            lines.extend(["### Catalog Baseline Logs", ""])
-            for index, record in enumerate(self.supplemental_records, 1):
-                tracks = ", ".join(record["track_ids"]) if record["track_ids"] else "none"
-                minors = ", ".join(record["declared_minors"]) if record["declared_minors"] else "none"
-                courses = ", ".join(record["completed_courses"]) if record["completed_courses"] else "none"
+            lines.extend(["## Catalog Baseline Logs", ""])
+            shown_supplemental = self.supplemental_records[:5]
+            if len(self.supplemental_records) > 5:
+                lines.append(
+                    f"Showing {len(shown_supplemental)} of {len(self.supplemental_records)} "
+                    "catalog issues. Full data is in the JSON snapshot."
+                )
+                lines.append("")
+            for index, record in enumerate(shown_supplemental, 1):
                 lines.extend([
                     f"#### Catalog Issue {index}",
                     f"- label: {record['label']}",
                     f"- kind: {record['issue_kind']}",
-                    f"- majors: {', '.join(record['declared_majors']) or 'none'}",
-                    f"- track: {tracks}",
-                    f"- minors: {minors}",
                     f"- scenario: {record['scenario_label']}",
-                    f"- courses taken: {courses}",
                     f"- reason: {record['reason']}",
                 ])
                 if record["unsatisfied_buckets"]:
@@ -1321,8 +1417,6 @@ class NightlyFailureCollector:
                         "- buckets: "
                         + ", ".join(_friendly_bucket_label(bucket) for bucket in record["unsatisfied_buckets"])
                     )
-                for detail in record["details"]:
-                    lines.append(f"- detail: {detail}")
                 lines.append("")
         return "\n".join(lines)
 

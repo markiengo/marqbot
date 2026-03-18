@@ -9,16 +9,19 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { CoursesStep } from "../src/components/onboarding/CoursesStep";
 import { renderWithApp, makeAppState } from "./testUtils";
-import { postImportCourseHistory, postValidatePrereqs } from "@/lib/api";
+import { postValidatePrereqs } from "@/lib/api";
+import { parseCourseHistoryScreenshot } from "@/lib/courseHistoryImport";
 
+vi.mock("@/lib/courseHistoryImport", () => ({
+  parseCourseHistoryScreenshot: vi.fn(),
+}));
 vi.mock("@/lib/api", () => ({
-  postImportCourseHistory: vi.fn(),
   postValidatePrereqs: vi.fn(),
 }));
 
 describe("CoursesStep prereq validation", () => {
   beforeEach(() => {
-    vi.mocked(postImportCourseHistory).mockReset();
+    vi.mocked(parseCourseHistoryScreenshot).mockReset();
     vi.mocked(postValidatePrereqs).mockReset();
     vi.mocked(postValidatePrereqs).mockResolvedValue({ inconsistencies: [] });
   });
@@ -66,12 +69,16 @@ describe("CoursesStep prereq validation", () => {
 
     expect(screen.getByText(/screenshot import/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /upload screenshot/i })).toBeInTheDocument();
-    expect(screen.getByText(/review what marqbot matched/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^how it works$/i })).toBeInTheDocument();
+
+    const importShell = screen.getByText(/screenshot import/i).closest("section");
+    expect(importShell).not.toBeNull();
+    expect((importShell as HTMLElement).className).toContain("onboarding-panel");
   });
 
   test("reviews parsed rows and applies imported courses into onboarding state", async () => {
     const user = userEvent.setup();
-    vi.mocked(postImportCourseHistory).mockResolvedValue({
+    vi.mocked(parseCourseHistoryScreenshot).mockResolvedValue({
       completed_matches: [
         {
           course_code: "ACCO 1030",
@@ -147,7 +154,7 @@ describe("CoursesStep prereq validation", () => {
 
   test("shows an inline failure state when screenshot import fails", async () => {
     const user = userEvent.setup();
-    vi.mocked(postImportCourseHistory).mockRejectedValue(new Error("Parser offline"));
+    vi.mocked(parseCourseHistoryScreenshot).mockRejectedValue(new Error("Parser offline"));
 
     const state = makeAppState({
       courses: [
@@ -162,6 +169,6 @@ describe("CoursesStep prereq validation", () => {
     await user.upload(fileInput, file);
 
     expect(await screen.findByText(/parser offline/i)).toBeInTheDocument();
-    expect(screen.getByText(/retry or keep entering classes manually/i)).toBeInTheDocument();
+    expect(screen.getByText(/retry or add courses manually/i)).toBeInTheDocument();
   });
 });

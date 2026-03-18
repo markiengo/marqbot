@@ -18,7 +18,7 @@ const steps = [
   {
     number: "03",
     title: "Get your full plan.",
-    body: "See your next semesters ranked by actual rules. Not vibes.",
+    body: "See your next semesters ranked by actual degree rules.",
   },
 ];
 
@@ -64,7 +64,7 @@ export function HowItWorksClear() {
           >
             Three steps.
             <br />
-            <span className="text-emphasis-blue">The setup is shorter than the PREP module.</span>
+            <span className="text-emphasis-blue">MarqBot makes sure you graduate.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 10 }}

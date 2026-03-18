@@ -13,7 +13,7 @@ export type AboutContactLink = {
 
 export const ABOUT_HERO_COPY = {
   eyebrow: "About",
-  headline: "The student behind the planner.",
+  headline: "The student behind MarqBot.",
   body: "I'm Markie. I built this because no one should need six tabs, two emails, and a small existential crisis to figure out what to take next semester.",
 } as const;
 

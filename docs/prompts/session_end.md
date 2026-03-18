@@ -11,22 +11,8 @@ Keep user-facing writing simple enough for a student to understand.
 - Never push the `local` branch.
 
 ## 2) Update the right docs
-### Always consider
-- `docs/CHANGELOG.md`
-  - Add a new top entry for user-visible changes.
-- `README.md`
-  - Update if setup, commands, pages, or user workflow changed.
-- `data/data_model.md`
-  - Update if data shape, buckets, or program modeling changed.
-- `.claude/CLAUDE.md`
-  - Add important repo rules, user preferences, or decisions from the session.
 
-### Markdown sweep
-- Check all `*.md` files for stale paths, commands, workflow names, test guidance, and push rules.
-- Update markdown files that act like current instructions or current project docs.
-- Do not churn historical records just to modernize wording:
-  - leave changelog/history notes alone unless they are being used as current guidance
-  - leave planning memos alone unless they now mislead current work
+Run `/documenter` — it handles the full markdown sweep, cross-references all docs against each other and the codebase, and asks before making changes.
 
 ### Important push rule
 - `docs/` is pushable now.

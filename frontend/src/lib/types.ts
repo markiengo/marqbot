@@ -158,7 +158,7 @@ export interface FeedbackResponse {
   submitted_at: string;
 }
 
-export type ImportStatus = "idle" | "uploading" | "parsing" | "parsed" | "failed";
+export type ImportStatus = "idle" | "preprocessing" | "parsing" | "parsed" | "failed";
 
 export type ImportRowStatus = "completed" | "in_progress" | "ignored" | "unmatched";
 

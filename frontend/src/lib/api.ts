@@ -3,7 +3,6 @@ import type {
   ProgramsData,
   RecommendationResponse,
   CanTakeResponse,
-  ImportResult,
   FeedbackPayload,
   FeedbackResponse,
 } from "./types";
@@ -77,23 +76,6 @@ export async function postValidatePrereqs(
     body: JSON.stringify(payload),
   });
   if (!res.ok) return { inconsistencies: [] };
-  return res.json();
-}
-
-export async function postImportCourseHistory(file: File): Promise<ImportResult> {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const res = await fetch(`${API_BASE}/api/import-course-history`, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.error?.message || `Course history import failed: ${res.status}`);
-  }
-
   return res.json();
 }
 

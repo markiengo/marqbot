@@ -52,14 +52,14 @@ export default function OnboardingPage() {
     return (
       <div className="warm-page warm-page-noise flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
         <div className="warm-card w-full max-w-md rounded-[2rem] p-8 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#d7bf9f] bg-[#fff4e2]">
+          <div className="onboarding-pill onboarding-pill-gold mx-auto flex h-14 w-14 items-center justify-center rounded-full">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#b07b2b] border-t-transparent" />
           </div>
           <div className="mt-5 space-y-2">
-            <h1 className="font-[family-name:var(--font-sora)] text-2xl font-semibold text-[var(--ink-warm)]">
+            <h1 className="font-[family-name:var(--font-sora)] text-2xl font-semibold text-ink-primary">
               Loading your data.
             </h1>
-            <p className="text-sm leading-relaxed text-[var(--ink-warm-soft)]">
+            <p className="text-sm leading-relaxed text-ink-secondary">
               Pulling 5,300+ courses. One sec.
             </p>
           </div>
@@ -73,13 +73,13 @@ export default function OnboardingPage() {
       <div className="warm-page warm-page-noise flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
         <div className="warm-card w-full max-w-md rounded-[2rem] p-6 text-center">
           <div className="space-y-2">
-            <h1 className="font-[family-name:var(--font-sora)] text-xl font-semibold text-[var(--ink-warm)]">
+            <h1 className="font-[family-name:var(--font-sora)] text-xl font-semibold text-ink-primary">
               Could not start setup
             </h1>
-            <p className="text-sm text-[var(--ink-warm-soft)]">
+            <p className="text-sm text-ink-secondary">
               MarqBot needs course and program data before it can build a plan.
             </p>
-            <p className="text-sm text-[#ad4b2f]">{bootstrapError}</p>
+            <p className="text-sm text-[#ffb7c0]">{bootstrapError}</p>
           </div>
           <div className="mt-5 flex justify-center">
             <Button variant="ink" onClick={handleRetry}>
@@ -98,9 +98,9 @@ export default function OnboardingPage() {
 
   const nextLabel =
     currentStep === "majors"
-      ? "Next: Log Your Lore"
+      ? "Next: Add Courses"
       : currentStep === "courses"
-        ? "Next: Set The Pace"
+        ? "Next: Preferences"
         : "Continue";
 
   return (
@@ -110,15 +110,15 @@ export default function OnboardingPage() {
         {currentStep === "courses" && <CoursesStep onWarningChange={setPrereqWarning} />}
         {currentStep === "preferences" && <PreferencesStep />}
 
-        <div className="space-y-3 border-t border-[#e2d4c5] pt-5">
+        <div className="space-y-3 border-t border-border-subtle pt-5">
           {currentStep === "majors" && onlySecondary() && (
-            <div className="rounded-[1.45rem] border border-[#e6c697] bg-[#fff4e0] px-4 py-4 text-sm leading-relaxed text-[#8f5e1e]">
+            <div className="onboarding-panel-gold rounded-[1.45rem] px-4 py-4 text-sm leading-relaxed text-ink-primary">
               That selection still needs a primary major. Add one before MarqBot builds the roadmap.
             </div>
           )}
 
           {currentStep === "courses" && prereqWarning && (
-            <div className="rounded-[1.45rem] border border-[#e7c8ba] bg-[#fff3ee] px-4 py-4 text-sm leading-relaxed text-[#95513c]">
+            <div className="onboarding-panel-danger rounded-[1.45rem] px-4 py-4 text-sm leading-relaxed text-[#ffd5dc]">
               There is still a prereq mismatch in your course history. You can keep going, but fixing it
               now will make the roadmap cleaner.
             </div>
@@ -131,7 +131,7 @@ export default function OnboardingPage() {
                   variant="ghost"
                   size="lg"
                   onClick={back}
-                  className="min-w-[8rem] rounded-xl border border-[#decebc] bg-[#fbf5ec] text-[var(--ink-warm)] hover:bg-[#f3e7d8]"
+                  className="onboarding-ghost-button min-w-[8rem] rounded-xl"
                 >
                   Back
                 </Button>

@@ -81,6 +81,14 @@ def _load_catalog_tables(
 
     parent_df["parent_bucket_id"] = parent_df["parent_bucket_id"].map(_normalize_upper)
     parent_df["type"] = parent_df.get("type", pd.Series(dtype=str)).map(lambda v: _normalize_text(v).lower())
+    if "double_count_family_id" not in parent_df.columns:
+        parent_df["double_count_family_id"] = parent_df["parent_bucket_id"]
+    parent_df["double_count_family_id"] = parent_df["double_count_family_id"].map(
+        lambda v: _normalize_upper(v) if _normalize_text(v) else ""
+    )
+    missing_family = parent_df["double_count_family_id"] == ""
+    if missing_family.any():
+        parent_df.loc[missing_family, "double_count_family_id"] = parent_df.loc[missing_family, "parent_bucket_id"]
 
     courses_df["course_code"] = courses_df["course_code"].map(_normalize_upper)
     courses_df["credits_num"] = courses_df.get("credits", pd.Series(dtype=str)).map(_coerce_float)
@@ -94,6 +102,10 @@ def _load_catalog_tables(
         row["parent_bucket_id"]: row.get("type", "")
         for _, row in parent_df.iterrows()
     }
+    parent_family_lookup = {
+        row["parent_bucket_id"]: row.get("double_count_family_id", row["parent_bucket_id"])
+        for _, row in parent_df.iterrows()
+    }
     course_lookup = {
         row["course_code"]: row
         for _, row in courses_df.iterrows()
@@ -102,8 +114,10 @@ def _load_catalog_tables(
     return {
         "child_lookup": child_lookup,
         "parent_type_lookup": parent_type_lookup,
+        "parent_family_lookup": parent_family_lookup,
         "master_df": master_df,
         "course_lookup": course_lookup,
+        "child_df": child_df,
     }
 
 
@@ -435,6 +449,217 @@ def _update_overrides(
     return updated_payload, override_changes
 
 
+_COURSE_BUDGET = 48  # 8 semesters x 6 courses
+
+
+def _feasibility_audit(report_data: dict, tables: dict) -> list[dict]:
+    """For each failing scenario, estimate minimum unique courses needed.
+
+    Returns a list of combos that exceed the 48-course budget after
+    accounting for double-count family overlap.
+    """
+    child_df = tables["child_df"]
+    master_df = tables["master_df"]
+    family_lookup = tables["parent_family_lookup"]
+
+    # Collect distinct failing scenarios and their parent bucket IDs.
+    scenario_parents: dict[str, set[str]] = {}
+    for record in report_data.get("records") or []:
+        label = _normalize_text(record.get("scenario_label"))
+        if not label:
+            continue
+        if "invalid seeded history" in _normalize_text(record.get("status")).lower():
+            continue
+        for bucket_id in record.get("unsatisfied_buckets") or []:
+            parent_id, _ = _parse_bucket_id(_normalize_bucket_id(bucket_id))
+            if parent_id:
+                scenario_parents.setdefault(label, set()).add(parent_id)
+
+    # Also include parents that PASSED — we need the full picture.
+    # Use the scenario's declared_majors/tracks to infer all active parents.
+    scenario_programs: dict[str, set[str]] = {}
+    for record in report_data.get("records") or []:
+        label = _normalize_text(record.get("scenario_label"))
+        if not label:
+            continue
+        programs = set()
+        for major in record.get("declared_majors") or []:
+            programs.add(_normalize_upper(major))
+        for track in record.get("track_ids") or []:
+            programs.add(_normalize_upper(track))
+        scenario_programs.setdefault(label, set()).update(programs)
+
+    # Merge: all parents for a scenario = declared programs + failing bucket parents.
+    for label in scenario_parents:
+        scenario_parents[label].update(scenario_programs.get(label, set()))
+
+    # Add universals (BCC, MCC) that every student needs.
+    universal_parents = {
+        pid for pid, ptype in tables["parent_type_lookup"].items()
+        if ptype == "universal"
+    }
+
+    results = []
+    for label, parent_ids in sorted(scenario_parents.items()):
+        all_parents = parent_ids | universal_parents
+
+        # Sum courses_required from non-pool child buckets for each parent.
+        naive_total = 0
+        parent_course_sets: dict[str, set[str]] = {}
+        for parent_id in all_parents:
+            parent_children = child_df[child_df["parent_bucket_id"] == parent_id]
+            mapped = master_df[master_df["parent_bucket_id"] == parent_id]
+            parent_course_sets[parent_id] = set(mapped["course_code"].tolist())
+            for _, row in parent_children.iterrows():
+                mode = _normalize_text(row.get("requirement_mode")).lower()
+                if mode in ("required", "choose_n"):
+                    count = _coerce_float(row.get("courses_required"))
+                    if count is not None and count > 0:
+                        naive_total += int(count)
+
+        # Estimate minimum unique courses per family group.
+        # Within the same double-count family, courses cannot be shared,
+        # so we sum requirements per family. The student's minimum unique
+        # course count is the sum of per-family requirements (since
+        # cross-family courses can double-count).
+        family_requirements: dict[str, int] = {}
+        for parent_id in all_parents:
+            family = family_lookup.get(parent_id, parent_id)
+            parent_children = child_df[child_df["parent_bucket_id"] == parent_id]
+            for _, row in parent_children.iterrows():
+                mode = _normalize_text(row.get("requirement_mode")).lower()
+                if mode in ("required", "choose_n"):
+                    count = _coerce_float(row.get("courses_required"))
+                    if count is not None and count > 0:
+                        family_requirements[family] = (
+                            family_requirements.get(family, 0) + int(count)
+                        )
+        min_courses = sum(family_requirements.values())
+        overlap_savings = naive_total - min_courses
+        if min_courses > _COURSE_BUDGET:
+            results.append({
+                "scenario_label": label,
+                "naive_total": naive_total,
+                "overlap_savings": overlap_savings,
+                "min_courses": min_courses,
+                "budget": _COURSE_BUDGET,
+                "deficit": min_courses - _COURSE_BUDGET,
+                "verdict": "INFEASIBLE",
+            })
+        elif min_courses > _COURSE_BUDGET - 4:
+            results.append({
+                "scenario_label": label,
+                "naive_total": naive_total,
+                "overlap_savings": overlap_savings,
+                "min_courses": min_courses,
+                "budget": _COURSE_BUDGET,
+                "deficit": min_courses - _COURSE_BUDGET,
+                "verdict": "BORDERLINE",
+            })
+
+    return sorted(results, key=lambda r: (-r["min_courses"], r["scenario_label"]))
+
+
+def _detect_concentration(active_issues: dict[str, dict], tables: dict) -> list[dict]:
+    """Flag buckets that account for >50% of all failures."""
+    total_occurrences = sum(issue["occurrences"] for issue in active_issues.values())
+    if total_occurrences == 0:
+        return []
+
+    findings = []
+    for bucket_id, issue in sorted(
+        active_issues.items(),
+        key=lambda item: -item[1]["occurrences"],
+    ):
+        share = issue["occurrences"] / total_occurrences
+        if share < 0.15:
+            continue
+        capacity = issue.get("capacity") or _bucket_capacity(bucket_id, tables)
+        parent_type = capacity.get("parent_type", "")
+        mapped_count = capacity.get("mapped_course_count", 0)
+        courses_required = capacity.get("courses_required")
+
+        recommendation = (
+            f"`{bucket_id}` accounts for {share:.0%} of all failures "
+            f"({issue['occurrences']} of {total_occurrences})."
+        )
+        if parent_type == "universal" and mapped_count and mapped_count <= 2:
+            recommendation += (
+                f" It is a universal bucket with only {mapped_count} mapped course(s)."
+                " Consider promoting it to a higher scheduling tier."
+            )
+        elif courses_required and mapped_count and mapped_count < (courses_required or 0):
+            recommendation += (
+                f" It requires {int(courses_required)} courses but only"
+                f" {mapped_count} are mapped. Check master_bucket_courses.csv."
+            )
+        else:
+            recommendation += (
+                " The planner may be structurally deprioritizing this bucket."
+                " Review its tier placement in semester_recommender.py."
+            )
+
+        findings.append({
+            "bucket_id": bucket_id,
+            "occurrences": issue["occurrences"],
+            "total_failures": total_occurrences,
+            "share": round(share, 3),
+            "affected_combos": issue["affected_combos"],
+            "classification": issue["classification"],
+            "recommendation": recommendation,
+        })
+
+    return findings
+
+
+def _check_ledger(
+    ledger_path: Path,
+    active_issues: dict[str, dict],
+    failure_history: dict,
+) -> list[dict]:
+    """Check the resolved-issue ledger for regressions and boost-resistant buckets."""
+    ledger = _load_json(ledger_path, {"version": 1, "entries": []})
+    entries = ledger.get("entries") or []
+    resolved_by_bucket = {
+        _normalize_bucket_id(e.get("bucket_id", "")): e
+        for e in entries
+        if e.get("date_resolved")
+    }
+
+    warnings = []
+    for bucket_id, issue in active_issues.items():
+        key = _normalize_bucket_id(bucket_id)
+        # Regression check: bucket was resolved but is failing again.
+        if key in resolved_by_bucket:
+            prev = resolved_by_bucket[key]
+            warnings.append({
+                "bucket_id": key,
+                "kind": "REGRESSION",
+                "message": (
+                    f"`{key}` was resolved on {prev.get('date_resolved', '?')} "
+                    f"via {prev.get('resolution', '?')} but is failing again "
+                    f"({issue['occurrences']} occurrences). "
+                    f"Previous fix: {prev.get('detail', 'unknown')}."
+                ),
+            })
+
+        # Boost-resistant check: >5 consecutive failures despite boosts.
+        history = failure_history.get(key, {})
+        streak = int(history.get("consecutive_failures", 0) or 0)
+        if streak > 5 and issue["classification"] == "ALGORITHM":
+            warnings.append({
+                "bucket_id": key,
+                "kind": "BOOST_RESISTANT",
+                "message": (
+                    f"`{key}` has failed {streak} consecutive nights despite priority "
+                    f"boosts. Boost alone is not solving this — needs structural review "
+                    f"(tier placement, mapped courses, or prerequisite chains)."
+                ),
+            })
+
+    return warnings
+
+
 def _build_pr_body(summary: dict) -> str:
     lines = [
         f"# Nightly Auto-Tune Summary ({summary['report_date']})",
@@ -468,6 +693,28 @@ def _build_pr_body(summary: dict) -> str:
             )
         lines.append("")
 
+    if summary.get("concentration_findings"):
+        lines.append("## Concentration Findings")
+        for finding in summary["concentration_findings"]:
+            lines.append(f"- {finding['recommendation']}")
+        lines.append("")
+
+    if summary.get("infeasible_combos"):
+        lines.append("## Feasibility Audit")
+        for combo in summary["infeasible_combos"]:
+            lines.append(
+                f"- **{combo['verdict']}**: `{combo['scenario_label']}` "
+                f"needs ~{combo['min_courses']} courses (budget {combo['budget']}, "
+                f"deficit {combo['deficit']:+d})"
+            )
+        lines.append("")
+
+    if summary.get("ledger_warnings"):
+        lines.append("## Ledger Warnings")
+        for warning in summary["ledger_warnings"]:
+            lines.append(f"- [{warning['kind']}] {warning['message']}")
+        lines.append("")
+
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -480,6 +727,7 @@ def analyze_report(
     courses_path: Path,
     overrides_path: Path,
     queue_path: Path,
+    ledger_path: Path | None = None,
     dry_run: bool = False,
 ) -> dict:
     report_data = _load_json(report_path, {})
@@ -508,6 +756,21 @@ def analyze_report(
     if not dry_run:
         _write_json(overrides_path, updated_overrides)
         _write_json(queue_path, updated_queue)
+
+    # --- New: feasibility audit ---
+    infeasible_combos = _feasibility_audit(report_data, tables)
+
+    # --- New: concentration detector ---
+    concentration_findings = _detect_concentration(active_issues, tables)
+
+    # --- New: ledger regression / boost-resistant check ---
+    ledger_warnings = []
+    if ledger_path is not None:
+        ledger_warnings = _check_ledger(
+            ledger_path,
+            active_issues,
+            updated_overrides.get("failure_history", {}),
+        )
 
     top_algorithm_buckets = [
         {
@@ -541,6 +804,9 @@ def analyze_report(
         "queue_count": len(updated_queue),
         "top_algorithm_buckets": top_algorithm_buckets,
         "top_data_buckets": top_data_buckets,
+        "infeasible_combos": infeasible_combos,
+        "concentration_findings": concentration_findings,
+        "ledger_warnings": ledger_warnings,
         "dry_run": dry_run,
     }
     summary["pr_body"] = _build_pr_body(summary)
@@ -556,6 +822,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     repo_root = _repo_root()
+    ledger_path = repo_root / "config" / "autotune_ledger.json"
     summary = analyze_report(
         report_path=Path(args.report).resolve(),
         child_buckets_path=repo_root / "data" / "child_buckets.csv",
@@ -564,6 +831,7 @@ def main(argv=None):
         courses_path=repo_root / "data" / "courses.csv",
         overrides_path=repo_root / "config" / "ranking_overrides.json",
         queue_path=repo_root / "config" / "data_investigation_queue.json",
+        ledger_path=ledger_path if ledger_path.exists() else None,
         dry_run=args.dry_run,
     )
 

@@ -67,12 +67,12 @@ const rankingExplainerItems = [
   {
     id: "5",
     title: "Does it check two boxes?",
-    detail: "A class that checks two boxes gets a boost. Efficiency is aura.",
+    detail: "A class that checks two boxes gets a boost. Efficiency matters.",
   },
   {
     id: "6",
     title: "Is it too hard too soon?",
-    detail: "Earlier students get foundation classes first. No boss fights too soon.",
+    detail: "Earlier students get foundation classes first. Advanced courses come later.",
   },
   {
     id: "7",

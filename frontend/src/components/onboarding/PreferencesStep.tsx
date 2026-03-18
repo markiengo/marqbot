@@ -14,106 +14,90 @@ import { OnboardingStepHeader } from "./OnboardingStepHeader";
 export function PreferencesStep() {
   const { state, dispatch } = useAppContext();
   const selectCls =
-    "w-full rounded-xl border border-[#dbcab8] bg-[#fffaf4] px-4 py-3 text-[0.95rem] text-[var(--ink-warm)] focus:outline-none focus:ring-2 focus:ring-[#c89f5e]/35";
+    "onboarding-input onboarding-select w-full rounded-xl px-4 py-3 text-[0.95rem]";
 
   return (
     <div className="space-y-5">
       <OnboardingStepHeader
-        eyebrow="Choose your plan"
+        eyebrow="Plan settings"
         helper="You can change this later"
         title={
           <>
-            Tell MarqBot what <span className="text-[#b07b2b]">kind of plan</span>{" "}
-            <span className="whitespace-nowrap">you want.</span>
+            How should MarqBot <span className="text-gold-light">plan</span>?
           </>
         }
-        description="Pick the next term, how far ahead to look, and how heavy each semester should feel."
+        description="Next term, planning horizon, and course load per semester."
       />
 
-      <div className="grid items-stretch gap-4 lg:grid-cols-2 2xl:grid-cols-4">
-        <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#fffdf9] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-[var(--ink-warm)]">
-              What&apos;s your next semester?
-            </label>
-            <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">Your next semester.</p>
-          </div>
-          <div className="mt-auto pt-3">
-            <select
-              value={state.targetSemester}
-              onChange={(event) =>
-                dispatch({ type: "SET_TARGET_SEMESTER", payload: event.target.value })
-              }
-              className={selectCls}
-            >
-              {SEMESTER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+      <div className="grid items-stretch gap-4 lg:grid-cols-2">
+        {([
+          {
+            panel: "onboarding-panel",
+            label: "What\u2019s your next semester?",
+            hint: "Your next semester.",
+            value: state.targetSemester,
+            action: "SET_TARGET_SEMESTER" as const,
+            options: SEMESTER_OPTIONS,
+            delay: 0,
+          },
+          {
+            panel: "onboarding-panel-soft",
+            label: "How far ahead do you want to plan?",
+            hint: "1 for next term, or up to 5 to plan ahead.",
+            value: state.semesterCount,
+            action: "SET_SEMESTER_COUNT" as const,
+            options: SEMESTER_COUNT_OPTIONS,
+            delay: 0.08,
+          },
+          {
+            panel: "onboarding-panel",
+            label: "Classes per semester?",
+            hint: "4-5 is typical. 6 is a heavy load.",
+            value: state.maxRecs,
+            action: "SET_MAX_RECS" as const,
+            options: MAX_RECS_OPTIONS,
+            delay: 0.16,
+          },
+        ] as const).map((item) => (
+          <motion.div
+            key={item.action}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 24, delay: item.delay }}
+            className={`${item.panel} flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]`}
+          >
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-ink-primary">{item.label}</label>
+              <p className="mt-0.5 text-xs text-ink-muted">{item.hint}</p>
+            </div>
+            <div className="mt-auto pt-3">
+              <select
+                value={item.value}
+                onChange={(event) => dispatch({ type: item.action, payload: event.target.value })}
+                className={selectCls}
+              >
+                {item.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </motion.div>
+        ))}
 
-        <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#f8efe2] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.24 }}
+          className="onboarding-panel-soft flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]"
+        >
           <div className="space-y-1">
-            <label className="text-sm font-medium text-[var(--ink-warm)]">
-              How far ahead do you want to plan?
+            <label className="text-sm font-medium text-ink-primary">
+              Academic stage
             </label>
-            <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
-              1 for next term, or up to 5 to plan ahead.
-            </p>
-          </div>
-          <div className="mt-auto pt-3">
-            <select
-              value={state.semesterCount}
-              onChange={(event) =>
-                dispatch({ type: "SET_SEMESTER_COUNT", payload: event.target.value })
-              }
-              className={selectCls}
-            >
-              {SEMESTER_COUNT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#fffdf9] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-[var(--ink-warm)]">
-              How many classes do you want each semester?
-            </label>
-            <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
-              4-5 is normal. 6 is unhinged.
-            </p>
-          </div>
-          <div className="mt-auto pt-3">
-            <select
-              value={state.maxRecs}
-              onChange={(event) =>
-                dispatch({ type: "SET_MAX_RECS", payload: event.target.value })
-              }
-              className={selectCls}
-            >
-              {MAX_RECS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex flex-col rounded-[1.8rem] border border-[#ddd0c1] bg-[#f8efe2] p-[clamp(1rem,1.6vw,1.35rem)] shadow-[0_14px_30px_rgba(83,56,30,0.05)]">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-[var(--ink-warm)]">
-              Which academic stage are you planning for?
-            </label>
-            <p className="mt-0.5 text-xs text-[var(--ink-warm-muted)]">
-              Keeps recs at your level. No boss fights too early.
+            <p className="mt-0.5 text-xs text-ink-muted">
+              Keeps recommendations appropriate for your year.
             </p>
           </div>
           <div className="mt-auto pt-3">
@@ -131,20 +115,60 @@ export function PreferencesStep() {
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-xs text-[var(--ink-warm-muted)]">
+            <p className="mt-2 text-xs text-ink-muted">
               {STUDENT_STAGE_OPTIONS.find((option) => option.value === state.studentStage)?.helper}
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.2 }}
-        className="rounded-[1.5rem] border border-[#d9c4ac] bg-[#fff7eb] px-4 py-3.5 text-[0.95rem] leading-relaxed text-[var(--ink-warm-soft)]"
+        transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.32 }}
+        className="grid gap-4 lg:grid-cols-2"
       >
-        Recommendations will count now, unlock future courses, and stay aligned with the pace you picked.
+        <label className="onboarding-panel flex cursor-pointer items-center justify-between gap-4 rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]">
+          <div className="space-y-1">
+            <span className="text-sm font-medium text-ink-primary">
+              Are you an honors student?
+            </span>
+            <p className="text-xs text-ink-muted">
+              Unlocks honors sections in recommendations.
+            </p>
+          </div>
+          <div className="relative shrink-0">
+            <input
+              type="checkbox"
+              checked={state.isHonorsStudent}
+              onChange={(e) => dispatch({ type: "SET_HONORS_STUDENT", payload: e.target.checked })}
+              className="peer sr-only"
+            />
+            <div className="h-7 w-12 rounded-full border border-border-subtle bg-[rgba(22,43,80,0.5)] transition-colors peer-checked:border-gold/40 peer-checked:bg-[rgba(255,204,0,0.18)]" />
+            <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-ink-muted transition-all peer-checked:left-[1.375rem] peer-checked:bg-gold-light" />
+          </div>
+        </label>
+
+        <label className="onboarding-panel-soft flex cursor-pointer items-center justify-between gap-4 rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]">
+          <div className="space-y-1">
+            <span className="text-sm font-medium text-ink-primary">
+              Do you take summer classes?
+            </span>
+            <p className="text-xs text-ink-muted">
+              Includes summer terms in your plan.
+            </p>
+          </div>
+          <div className="relative shrink-0">
+            <input
+              type="checkbox"
+              checked={state.includeSummer}
+              onChange={(e) => dispatch({ type: "SET_INCLUDE_SUMMER", payload: e.target.checked })}
+              className="peer sr-only"
+            />
+            <div className="h-7 w-12 rounded-full border border-border-subtle bg-[rgba(22,43,80,0.5)] transition-colors peer-checked:border-gold/40 peer-checked:bg-[rgba(255,204,0,0.18)]" />
+            <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-ink-muted transition-all peer-checked:left-[1.375rem] peer-checked:bg-gold-light" />
+          </div>
+        </label>
       </motion.div>
     </div>
   );

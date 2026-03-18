@@ -13,26 +13,21 @@ interface WizardLayoutProps {
 const stepMeta = {
   majors: {
     eyebrow: "Step 1 of 3",
-    title: "Pick your main quest.",
-    body: "Start with the major you are actually in. Add tracks only when they are real.",
+    title: "Pick your major.",
+    body: "Start with what you've declared. Add tracks if they're official.",
   },
   courses: {
     eyebrow: "Step 2 of 3",
-    title: "Log your lore.",
-    body: "Completed and in-progress courses keep the roadmap grounded in what you have already done.",
+    title: "Add your courses.",
+    body: "What you've finished and what you're taking now.",
   },
   preferences: {
     eyebrow: "Step 3 of 3",
-    title: "Set the pace.",
-    body: "Choose the next term, how far ahead you want to look, and and how ambitious you're feeling.",
+    title: "Set your preferences.",
+    body: "Next term, planning horizon, and course load.",
   },
 } as const;
 
-const quickHits = [
-  { value: "3 steps", label: "that's it" },
-  { value: "Edit later", label: "nothing is permanent" },
-  { value: "Real rules", label: "not vibes" },
-];
 
 export function WizardLayout({
   stepKey,
@@ -47,12 +42,12 @@ export function WizardLayout({
       <div className="mx-auto max-w-[96rem]">
         <div className="grid gap-5 xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)] xl:items-start">
           <aside className="warm-card-muted rounded-[2rem] p-5 sm:p-6 xl:sticky xl:top-28">
-            <div className="rounded-[1.5rem] border border-[#decdbb] bg-[#fff8ef] px-5 py-5">
+            <div className="onboarding-panel-gold rounded-[1.5rem] px-5 py-5">
               <p className="warm-kicker">{meta.eyebrow}</p>
-              <h3 className="mt-4 max-w-[10ch] font-[family-name:var(--font-sora)] text-[2rem] font-semibold leading-[0.98] tracking-[-0.04em] text-[var(--ink-warm)]">
+              <h3 className="mt-4 max-w-[10ch] font-[family-name:var(--font-sora)] text-[2rem] font-semibold leading-[0.98] tracking-[-0.04em] text-ink-primary">
                 {meta.title}
               </h3>
-              <p className="mt-4 text-sm leading-relaxed text-[var(--ink-warm-soft)] sm:text-base">
+              <p className="mt-4 text-sm leading-relaxed text-ink-secondary sm:text-base">
                 {meta.body}
               </p>
             </div>
@@ -61,30 +56,15 @@ export function WizardLayout({
               <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-              {quickHits.map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-[1.25rem] border border-[#ddd0c0] bg-[#fffaf4] px-4 py-4"
-                >
-                  <p className="text-lg font-semibold tracking-[-0.03em] text-[var(--ink-warm)]">
-                    {item.value}
-                  </p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--ink-warm-muted)]">
-                    {item.label}
-                  </p>
-                </div>
-              ))}
-            </div>
           </aside>
 
           <div className="space-y-4">
-            <div className="rounded-[1.55rem] border border-[#decdba] bg-[#fff9f1] px-4 py-4 xl:hidden">
+            <div className="onboarding-panel-soft rounded-[1.55rem] px-4 py-4 xl:hidden">
               <p className="warm-kicker">{meta.eyebrow}</p>
-              <h3 className="mt-3 font-[family-name:var(--font-sora)] text-[1.5rem] font-semibold leading-tight tracking-[-0.03em] text-[var(--ink-warm)]">
+              <h3 className="mt-3 font-[family-name:var(--font-sora)] text-[1.5rem] font-semibold leading-tight tracking-[-0.03em] text-ink-primary">
                 {meta.title}
               </h3>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--ink-warm-soft)]">{meta.body}</p>
+              <p className="mt-3 text-sm leading-relaxed text-ink-secondary">{meta.body}</p>
             </div>
 
             <AnimatePresence mode="wait">

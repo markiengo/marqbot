@@ -14,7 +14,7 @@
 
 ## medium priority
 - feedback form inside app
-- work on the "upload PDF / upload screenshot" feature <> consider the trade-off for the auto-assume function
+- ~~work on the "upload PDF / upload screenshot" feature~~ done (v2.4.5 — browser-only OCR via tesseract.js)
 - configure UI from iPhone perspective
 - more intuitive UI with tutorials
 - add a mascot? marqbot vibe

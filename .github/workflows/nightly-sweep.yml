@@ -88,8 +88,6 @@ jobs:
     name: Nightly Focused Sweep
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     timeout-minutes: 360
     outputs:
       report_date: ${{ steps.report_meta.outputs.report_date }}
@@ -149,7 +147,7 @@ jobs:
           fi
 
       - name: Upload nightly report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: nightly-sweep-report-${{ steps.report_meta.outputs.report_date }}
           path: |
@@ -169,8 +167,6 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: nightly-exhaustive
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     timeout-minutes: 30
     permissions:
       contents: write
@@ -188,7 +184,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Download nightly report artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: nightly-sweep-report-${{ needs.nightly-exhaustive.outputs.report_date }}
           path: tests/nightly_reports

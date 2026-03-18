@@ -33,6 +33,7 @@ const basePrograms = {
   ],
   tracks: [
     { id: "FIN_ANALYTICS_TRACK", label: "Finance Analytics", parent_major_id: "FIN_MAJOR" },
+    { id: "DISC_BUSINESS", label: "Business Analytics", parent_major_id: "MCC_DISC" },
   ],
   minors: [],
   default_track_id: "FIN_MAJOR",
@@ -70,7 +71,7 @@ describe("OnboardingPage component flow", () => {
 
     renderWithApp(createElement(OnboardingPage), state);
 
-    const nextToClasses = screen.getByRole("button", { name: /next: log your lore/i });
+    const nextToClasses = screen.getByRole("button", { name: /next: add courses/i });
     expect(nextToClasses).toBeDisabled();
 
     await user.type(screen.getByPlaceholderText(/search majors/i), "fin");
@@ -80,20 +81,40 @@ describe("OnboardingPage component flow", () => {
 
     await user.click(nextToClasses);
     expect(
-      await screen.findByRole("heading", { name: /add what you've already finished/i }),
+      await screen.findByRole("heading", { name: /add what you have right now/i }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /next: set the pace/i }));
-    expect(
-      await screen.findByRole("heading", { name: /tell marqbot what kind of plan you want/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: /student stage/i })).toHaveValue("undergrad");
+    await user.click(screen.getByRole("button", { name: /next: preferences/i }));
+    const studentStageSelect = await screen.findByRole("combobox", { name: /student stage/i });
+    expect(studentStageSelect).toHaveValue("undergrad");
+    expect(studentStageSelect.className).toContain("onboarding-input");
+    expect(studentStageSelect.className).toContain("onboarding-select");
 
-    await user.selectOptions(screen.getByRole("combobox", { name: /student stage/i }), "graduate");
-    expect(screen.getByRole("combobox", { name: /student stage/i })).toHaveValue("graduate");
+    await user.selectOptions(studentStageSelect, "graduate");
+    expect(studentStageSelect).toHaveValue("graduate");
 
     await user.click(screen.getByRole("button", { name: /show my plan/i }));
     expect(pushSpy).toHaveBeenCalledWith("/planner");
+  });
+
+  test("uses onboarding dark select styling for native dropdowns", async () => {
+    const user = userEvent.setup();
+    const state = makeAppState({
+      courses: baseCourses,
+      programs: basePrograms,
+      coursesLoadStatus: "ready",
+      programsLoadStatus: "ready",
+    });
+
+    renderWithApp(createElement(OnboardingPage), state);
+
+    // Select a major first so the discovery theme dropdown becomes visible
+    await user.type(screen.getByPlaceholderText(/search majors/i), "fin");
+    await user.click(await screen.findByRole("option", { name: /^finance$/i }));
+
+    const discoveryThemeSelect = await screen.findByDisplayValue("No theme selected");
+    expect(discoveryThemeSelect.className).toContain("onboarding-input");
+    expect(discoveryThemeSelect.className).toContain("onboarding-select");
   });
 
   test("blocks progress when only a secondary program is selected", async () => {
@@ -110,7 +131,7 @@ describe("OnboardingPage component flow", () => {
     await user.type(screen.getByPlaceholderText(/search majors/i), "disc");
     await user.click(await screen.findByRole("option", { name: /discovery/i }));
 
-    expect(screen.getByRole("button", { name: /next: log your lore/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /next: add courses/i })).toBeDisabled();
     expect(screen.getAllByText(/still needs a primary major/i).length).toBeGreaterThan(0);
   });
 });

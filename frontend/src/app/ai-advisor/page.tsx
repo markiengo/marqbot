@@ -7,18 +7,17 @@ export default function AiAdvisorPage() {
     <PlaceholderPage
       eyebrow="Soon"
       title="AI Advisor"
-      description="Ask degree questions in plain English. Your courses, major, and progress are already loaded."
-      detail="This needs the same discipline as the planner itself: answers should stay grounded in visible rules and clear caveats, No confident guessing. No main character energy."
+      description="Ask degree questions in plain English. Your plan is already loaded."
       bullets={[
-        "Explain why a course is recommended or blocked",
-        "Answer requirement questions against your current plan",
-        "Stay honest about uncertainty and advisor double-checks",
+        "Why a course is recommended or blocked",
+        "Check requirements against your current plan",
+        "Honest about what it doesn't know",
       ]}
       coverImage="/assets/covers/screen_aiadvisor_cover.jpg"
       primaryHref="/planner"
       primaryLabel="Back to Planner"
       secondaryHref="/about"
-      secondaryLabel="Read the product direction"
+      secondaryLabel="Product direction"
     />
   );
 }

@@ -1,0 +1,30 @@
+
+> frontend@1.0.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.16.0.104:3000
+- Experiments (use with caution):
+  ⨯ turbopackFileSystemCacheForDev
+
+✓ Starting...
+Creating turbopack project {
+  dir: 'C:\\Users\\marki\\OneDrive\\harvey mode\\coolsies\\marqbot\\frontend',
+  testMode: true
+}
+✓ Ready in 438ms
+ GET / 200 in 2.4s (compile: 2.2s, render: 139ms)
+ GET / 200 in 34ms (compile: 4ms, render: 30ms)
+ GET /courses 200 in 421ms (compile: 407ms, render: 13ms)
+ GET /ai-advisor 200 in 322ms (compile: 311ms, render: 11ms)
+ GET /about 200 in 589ms (compile: 569ms, render: 20ms)
+ GET /ai-advisor 200 in 12ms (compile: 3ms, render: 9ms)
+ GET /about 200 in 16ms (compile: 3ms, render: 13ms)
+ GET / 200 in 32ms (compile: 2ms, render: 30ms)
+ GET / 200 in 14ms (compile: 3ms, render: 10ms)
+ GET /planner 200 in 374ms (compile: 360ms, render: 14ms)
+ GET /planner 200 in 25ms (compile: 6ms, render: 20ms)
+✓ Compiled in 570ms
+✓ Compiled in 50ms
+✓ Compiled in 52ms

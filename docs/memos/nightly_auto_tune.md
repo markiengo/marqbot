@@ -17,18 +17,27 @@ Both are uploaded as a GitHub Actions artifact and retained for 14 days.
 
 ### 2. Nightly Auto-Tune
 
-Downloads the JSON sidecar and feeds it to `scripts/analyze_nightly.py`. The analyzer can update two config files:
+Downloads the JSON sidecar and feeds it to `scripts/analyze_nightly.py`. The analyzer can update two config files and reads a third:
 
 | File | Purpose |
 |------|---------|
-| `config/ranking_overrides.json` | Per-course score adjustments that shift where a course lands in the recommendation list |
-| `config/data_investigation_queue.json` | Courses flagged for manual review (catalog discrepancies, missing prereqs, etc.) |
+| `config/ranking_overrides.json` | Per-bucket priority boosts that shift where courses land in the recommendation list |
+| `config/data_investigation_queue.json` | Buckets flagged for manual review (catalog discrepancies, missing prereqs, etc.) |
+| `config/autotune_ledger.json` | Read-only log of past resolved issues — used to detect regressions and boost-resistant buckets |
 
 If either file changes, the job:
 
 1. Creates a branch named `nightly-tuning/YYYY-MM-DD`
 2. Opens (or updates) a pull request against `main`
 3. If the override change count is small (3 or fewer), enables auto-merge so the fix lands without manual intervention
+
+### Smart analysis (added 2026-03-17)
+
+Beyond the streak-based priority boosts, the analyzer now runs three additional checks:
+
+- **Feasibility Auditor**: For each failing scenario, estimates minimum unique courses needed per double-count family. Combos requiring more than 48 courses are flagged as `INFEASIBLE` so the autotune stops wasting boost slots on mathematically impossible paths.
+- **Concentration Detector**: If a single bucket accounts for >15% of all failure occurrences, the PR body flags it with a targeted recommendation (e.g., review tier placement, check mapped course count).
+- **Resolved-Issue Ledger**: Reads `config/autotune_ledger.json` to detect regressions (a previously-fixed bucket failing again) and boost-resistant buckets (>5 consecutive nights failing despite -2 boost — needs structural review, not more boosts).
 
 ## What it does NOT touch
 
@@ -67,6 +76,9 @@ schedule (3 AM ET)
 │  ─────────────────   │
 │  → ranking_overrides │
 │  → investigation_q   │
+│  → reads ledger.json │
+│  → feasibility audit │
+│  → concentration det │
 │  → Open PR if diff   │
 │  → Auto-merge if ≤3  │
 └─────────────────────┘
