@@ -20,6 +20,13 @@ from allocator import (
 from unlocks import get_blocking_warnings
 from eligibility import get_eligible_courses, parse_term
 from prereq_parser import prereq_course_codes
+from scheduling_styles import (
+    StyleConfig,
+    get_style_config,
+    classify_candidate as _classify_candidate,
+    style_select,
+    VALID_SCHEDULING_STYLES,
+)
 
 
 SEM_RE = re.compile(r"^(Spring|Summer|Fall)\s+(\d{4})$", re.IGNORECASE)
@@ -45,13 +52,9 @@ _NEUTRAL_DISCOVERY_DEPTS = {
 
 _STANDING_LABELS = {1: "Freshman", 2: "Sophomore", 3: "Junior", 4: "Senior"}
 _BCC_PREFIX = "BCC_"
-_SCHEDULING_STYLE_TIER_MAPS: dict[str, dict[int, int]] = {
-    "grinder":  {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7},
-    "explorer": {1: 1, 2: 4, 3: 5, 4: 6, 5: 2, 6: 2, 7: 7},
-    "mixer":    {1: 1, 2: 2, 3: 3, 4: 4, 5: 2, 6: 2, 7: 7},
-}
-_DEFAULT_SCHEDULING_STYLE = "grinder"
-VALID_SCHEDULING_STYLES = frozenset(_SCHEDULING_STYLE_TIER_MAPS)
+# Approximate semesters remaining by standing — used for style-aware BCC
+# deferral decisions (explorer only defers BCC when runway >= 4).
+_STANDING_TO_SEMESTERS_REMAINING = {1: 7, 2: 5, 3: 3, 4: 1}
 _MATH_SUBJECT_PREFIX = "MATH"
 _MAX_RANKING_OVERRIDE_BOOST = 2
 _RANKING_OVERRIDES_PATH = os.path.abspath(
@@ -751,27 +754,40 @@ def _bcc_priority_rank(candidate: dict, bucket_parent_map: dict[str, str]) -> in
     return 2 if has_bcc else 3
 
 
-def _ranking_band(candidate: dict, bucket_parent_map: dict[str, str]) -> int:
-    """
-    Actual selection order is slightly stricter than the semantic tier labels.
+def _ranking_band(
+    candidate: dict,
+    bucket_parent_map: dict[str, str],
+    style: StyleConfig | None = None,
+    semesters_remaining: int = 8,
+) -> int:
+    """Map a candidate to a ranking band (0-8) for the primary sort key.
 
-    We still expose tier metadata as:
-      1) MCC foundation
-      2) BCC
-      3) major
-      4) track/minor
-      5) late MCC
-      6) discovery/culm
+    Bands control the coarse selection order.  Lower band = selected first.
 
-    But direct BCC_REQUIRED work and its critical math/bridge unlockers should
-    surface ahead of other foundation work so freshmen do not drift math and
-    business-core prerequisites too far to the right.
+      Band 0 — Priority core bridge candidates (e.g. MATH 1200 unlocking
+               MATH 1400 -> BCC chain).  Always first, every style.
+      Band 1 — BCC_REQUIRED courses with high BCC priority rank.  This band
+               keeps accounting/math prereqs on track for freshmen.
+               **Explorer can demote this to band 2** when the student has
+               >= 4 semesters of runway, letting MCC foundation and discovery
+               courses surface earlier.
+      Band 2-7 — Mapped linearly from the effective ranking tier (1-6).
+      Band 8 — Unknown/fallback.
+
+    The scheduling style only affects band 1: explorer's ``relax_bcc_band``
+    flag allows BCC_REQUIRED to drop one band when there is enough runway.
+    All other bands are style-independent.
     """
+    # Band 0: priority core bridge candidates are non-negotiable.
     if _is_priority_core_bridge_candidate(candidate):
         return 0
 
     bcc_rank = _bcc_priority_rank(candidate, bucket_parent_map)
     if bcc_rank <= 1:
+        # Explorer: demote band-1 BCC to band 2 when the student has enough
+        # remaining semesters to still complete BCC prereq chains on time.
+        if style and style.relax_bcc_band and semesters_remaining >= 4:
+            return 2
         return 1
 
     tier = int(candidate.get("ranking_tier", 99) or 99)
@@ -1183,9 +1199,33 @@ def run_recommendation_semester(
     student_stage: str | None = None,
     scheduling_style: str | None = None,
 ) -> dict:
-    """Run the full recommendation pipeline for a single semester."""
+    """Run the full recommendation pipeline for a single semester.
+
+    The pipeline has nine phases:
+      1. Allocation — determine which buckets still need courses.
+      2. Eligibility — filter to courses offered this term with met prereqs.
+      3. Standing & summer gates — exclude standing-blocked courses and apply
+         summer caps.  Standing-recovery path handles dead-end rescue.
+      4. Scoring setup — build parent/bucket maps, progress state, WRIT
+         tracking, and core prereq blocker set.
+      5. Tier assignment & style application — assign each candidate a base
+         tier from the bucket hierarchy, then remap through the active
+         scheduling style's tier map.
+      6. Multi-key sort — produce the ranked candidate list used by selection.
+      7. Style-aware greedy selection — three-pass slot reservation system
+         (mandatory bridge -> style reservations -> greedy fill).
+      8. Same-semester concurrent follow-up — pick courses that needed a
+         same-semester prereq that was selected in pass 7.
+      9. Rescue pass — force-assign to any mapped bucket when all passes
+         produced nothing but unsatisfied buckets remain.
+    """
     if completed_only_standing is None:
         completed_only_standing = current_standing
+
+    # Resolve the scheduling style to a StyleConfig with slot reservations,
+    # tier map, and band relaxation settings.
+    style = get_style_config(scheduling_style)
+    semesters_remaining = _STANDING_TO_SEMESTERS_REMAINING.get(current_standing, 7)
 
     selection_program_ids = list(
         selected_program_ids
@@ -1193,6 +1233,10 @@ def run_recommendation_semester(
         or data.get("restriction_program_ids", [])
     )
 
+    # ── Phase 1: Allocation ───────────────────────────────────────────
+    # Walk the student's completed + in-progress courses through the bucket
+    # tree to determine which buckets still need courses and how many slots
+    # remain in each.
     term = parse_term(target_semester_label)
     alloc = allocate_courses(
         completed,
@@ -1206,6 +1250,10 @@ def run_recommendation_semester(
         runtime_indexes=data.get("runtime_indexes"),
     )
 
+    # ── Phase 2: Eligibility ──────────────────────────────────────────
+    # Filter the full course catalog to courses the student can actually take
+    # this term: prerequisites met, not already completed/in-progress, mapped
+    # to at least one unsatisfied bucket, and offered this term.
     eligible_sem = get_eligible_courses(
         data["courses_df"],
         completed,
@@ -1227,6 +1275,10 @@ def run_recommendation_semester(
         student_stage=student_stage,
     )
 
+    # ── Phase 3: Standing gates & summer filters ─────────────────────
+    # Remove courses the student cannot take yet (standing too low) and
+    # apply summer-specific caps.  If nothing survives and requirements
+    # remain, attempt standing-recovery (filler courses to gain credits).
     def _passes_standing_gate(candidate: dict) -> bool:
         min_standing = candidate.get("min_standing") or 0
         if min_standing <= current_standing:
@@ -1254,7 +1306,10 @@ def run_recommendation_semester(
     non_manual_sem = [c for c in eligible_sem if not c.get("manual_review")]
     eligible_count_sem = len(non_manual_sem)
 
-    # Build maps once and reuse throughout this request
+    # ── Phase 4: Scoring setup ────────────────────────────────────────
+    # Build lookup maps, progress state, WRIT tracking, and the core prereq
+    # blocker set.  These are computed once and reused by the ranking and
+    # selection phases.
     parent_type_map = _build_parent_type_map(data)
     bucket_track_required_map = _build_bucket_track_required_map(data, track_id)
     bucket_parent_map = _build_bucket_parent_map(data, track_id)
@@ -1401,9 +1456,10 @@ def run_recommendation_semester(
             "projection_note": _PROJECTION_NOTE,
         }
 
-    # Build core_prereq_blockers: prereqs of remaining courses in unsatisfied
-    # non-universal required/choose_n buckets.  These courses need to be
-    # scheduled early so the courses they unlock can still fit in 8 semesters.
+    # ── Phase 4b: Core prereq blocker identification ─────────────────
+    # Find courses that are prerequisites of remaining required courses in
+    # non-universal (major/track) buckets.  These must be scheduled early so
+    # the courses they unlock can still fit within 8 semesters.
     core_remaining_sem: list[str] = []
     for bid, rem_info in alloc["remaining"].items():
         slots = rem_info.get("slots_remaining", 0)
@@ -1430,18 +1486,25 @@ def run_recommendation_semester(
         bucket_parent_map,
         parent_type_map,
     )
+    # ── Phase 5: Tier assignment & style application ─────────────────
+    # Assign each candidate a base tier from the bucket hierarchy (1-7),
+    # then remap through the active style's tier map.  The base tier is
+    # preserved as ``base_tier`` for candidate classification (bridge /
+    # discovery / core) in the selection phase.
     ranking_overrides = _load_ranking_overrides()
     scored_non_manual_sem: list[dict] = []
     for cand in non_manual_sem:
         if _blocked_by_writ_lifetime_limit(cand):
             continue
         tagged = dict(cand)
-        tagged["ranking_tier"] = _bucket_hierarchy_tier_v2(
+        base_tier = _bucket_hierarchy_tier_v2(
             tagged,
             parent_type_map,
             bucket_track_required_map,
             bucket_parent_map,
         )
+        tagged["base_tier"] = base_tier
+        tagged["ranking_tier"] = base_tier
         current_unmet_buckets = _current_unmet_bucket_ids(tagged, alloc["remaining"])
         is_discovery_driven = _is_discovery_driven(
             tagged,
@@ -1462,17 +1525,19 @@ def run_recommendation_semester(
             tagged["discovery_foundation_penalty"] = 0
             tagged["discovery_affinity_penalty"] = 0
         tagged["override_tier_adj"] = _override_tier_adj(tagged, ranking_overrides)
-        _style_map = _SCHEDULING_STYLE_TIER_MAPS.get(
-            scheduling_style or _DEFAULT_SCHEDULING_STYLE,
-            _SCHEDULING_STYLE_TIER_MAPS[_DEFAULT_SCHEDULING_STYLE],
-        )
-        tagged["ranking_tier"] = _style_map.get(tagged["ranking_tier"], tagged["ranking_tier"])
+        # Apply the style's tier remap (e.g. explorer promotes tiers 5,6 to 2).
+        tagged["ranking_tier"] = style.tier_map.get(base_tier, base_tier)
         tagged["effective_ranking_tier"] = tagged["ranking_tier"] + tagged["override_tier_adj"]
         scored_non_manual_sem.append(tagged)
+
+    # ── Phase 6: Multi-key sort ────────────────────────────────────────
+    # Produce the ranked candidate list.  The sort key has 13 positions;
+    # lower values = higher priority.  _ranking_band is the dominant key,
+    # with style-aware BCC deferral (explorer only).
     ranked_sem = sorted(
         scored_non_manual_sem,
         key=lambda c: (
-            _ranking_band(c, bucket_parent_map),
+            _ranking_band(c, bucket_parent_map, style=style, semesters_remaining=semesters_remaining),
             c.get("effective_ranking_tier", c.get("ranking_tier", 99)),
             _bcc_priority_rank(c, bucket_parent_map),
             0 if c.get("is_core_prereq_blocker") else 1,
@@ -1638,69 +1703,86 @@ def run_recommendation_semester(
             if code not in available_codes
         ]
 
-    # ---------- Main greedy pass ----------
-    # Walk one ranked list, respecting prerequisites, real bucket capacity,
-    # bridge ordering, and dedupe. No separate balance or quota layer.
-    for cand in ranked_sem:
-        if len(selected_sem) >= max_recs:
-            if debug:
-                skipped_reasons[cand["course_code"]] = "max_recs reached"
-            break
+    # ── Phase 7: Style-aware greedy selection ─────────────────────────
+    # Three-pass slot reservation system:
+    #   Pass 1 (mandatory): accept all band-0 bridge candidates.
+    #   Pass 2 (reservation): fill style-specific discovery/core slot targets.
+    #   Pass 3 (greedy fill): fill remaining slots in ranked order.
+    # All passes respect the same gate checks: WRIT limit, same-semester
+    # prereqs, maturity guard, bucket capacity, and bridge deferral.
+
+    def _can_select(cand: dict, already_selected_codes: set[str]) -> tuple[bool, list[str]]:
+        """Gate check wrapper for style_select.
+
+        Returns (can_accept, assigned_buckets).  Encapsulates all the
+        existing skip-logic so style_select does not need to know about
+        WRIT limits, maturity guards, bridge deferral, etc.
+        """
+        if cand["course_code"] in already_selected_codes:
+            return False, []
         if cand["course_code"] in selected_codes_set:
-            continue
+            return False, []
         if _blocked_by_writ_lifetime_limit(
             cand,
             selected_writ_courses=selected_writ_courses,
         ):
-            if debug:
-                skipped_reasons[cand["course_code"]] = "WRIT lifetime limit"
-            continue
-        unresolved_same_sem = _missing_same_semester_prereqs(cand)
-        if unresolved_same_sem:
-            if debug:
-                skipped_reasons[cand["course_code"]] = (
-                    "waiting on same-semester concurrent course(s): "
-                    + ", ".join(unresolved_same_sem)
-                )
-            continue
+            return False, []
+        unresolved = _missing_same_semester_prereqs(cand)
+        if unresolved:
+            return False, []
         if _maturity_guard_blocks(
             cand,
             enforce_bucket_cap=False,
-            excluded_codes={c["course_code"] for c in selected_sem},
+            excluded_codes={c["course_code"] for c in selected_sem} | already_selected_codes,
         ):
-            if debug:
-                skipped_reasons[cand["course_code"]] = "freshman maturity guard deferred advanced course"
-            continue
-
+            return False, []
         assigned_buckets = _assignable_buckets_for_candidate(
             cand,
             enforce_bucket_cap=False,
         )
         is_bridge_pick = _is_bridge_candidate(cand)
         if not assigned_buckets and not is_bridge_pick:
-            if debug:
-                skipped_reasons[cand["course_code"]] = "no assignable buckets (capacity full)"
-            continue
+            return False, []
         if (
             is_bridge_pick
             and _should_defer_bridge_for_direct_fill(cand)
             and _has_available_direct_fill_candidate(
                 enforce_bucket_cap=False,
-                excluded_codes={c["course_code"] for c in selected_sem} | {cand["course_code"]},
+                excluded_codes={c["course_code"] for c in selected_sem} | already_selected_codes | {cand["course_code"]},
             )
         ):
-            if debug:
-                skipped_reasons[cand["course_code"]] = "bridge deferred while direct-fill options remain"
-            continue
+            return False, []
         if is_bridge_pick and not _bridge_candidate_has_open_target(cand):
-            if debug:
-                skipped_reasons[cand["course_code"]] = "bridge targets already covered"
-            continue
+            return False, []
+        return True, assigned_buckets
 
+    def _style_accept(cand: dict, assigned_buckets: list[str]) -> None:
+        """Accept wrapper that also expands equivalencies into selected_codes_set."""
         _accept_candidate(cand, assigned_buckets)
         selected_codes_set.update(_expand_with_equivalents({cand["course_code"]}))
 
-    # ---------- Same-semester concurrent follow-up ----------
+    def _style_classify(cand: dict) -> str:
+        """Classify a candidate for slot reservation purposes."""
+        band = _ranking_band(cand, bucket_parent_map, style=style, semesters_remaining=semesters_remaining)
+        return _classify_candidate(
+            cand,
+            is_discovery_driven=bool(cand.get("is_discovery_driven")),
+            ranking_band=band,
+        )
+
+    style_select(
+        ranked_sem,
+        style,
+        max_recs,
+        accept_fn=_style_accept,
+        can_select_fn=_can_select,
+        classify_fn=_style_classify,
+    )
+
+    # ── Phase 8: Same-semester concurrent follow-up ──────────────────
+    # Pick courses that required a same-semester corequisite which was
+    # selected in phase 7.  These were skipped earlier because their
+    # corequisite wasn't yet in the selected set.
     if len(selected_sem) < max_recs:
         selected_codes_set = _expand_with_equivalents({c["course_code"] for c in selected_sem})
         for cand in ranked_sem:
@@ -1743,7 +1825,7 @@ def run_recommendation_semester(
             _accept_candidate(cand, assigned_buckets)
             selected_codes_set.update(_expand_with_equivalents({cand["course_code"]}))
 
-    # ---------- Rescue pass ----------
+    # ── Phase 9: Rescue pass ─────────────────────────────────────────
     # When all passes produced nothing, force-assign to any mapped bucket.
     if not selected_sem:
         has_unsatisfied = any(v > 0 for v in virtual_remaining.values())

@@ -112,19 +112,32 @@ The tier determines which requirement group a course serves. Lower tier = higher
 
 Within a tier, the remaining keys break ties: direct-fill courses beat bridge courses, deeper prereq chains are prioritized to unblock future semesters, courses filling multiple buckets score higher, and lower course levels are preferred to build foundations first.
 
-### Scheduling Style (Archetypes)
+### Scheduling Style (Builds)
 
-The tier hierarchy above is the default ("Grinder") behavior. Students can choose a scheduling style that remaps the tier assignments before ranking. The remapping happens after `_tier_for_bucket_v2()` computes the base tier and before the ranking sort key is built. The entire recommender pipeline (eligibility, selection, greedy loop) stays untouched.
+Students choose a scheduling style ("build") that controls how the recommender balances core requirements vs discovery/gen-ed courses within each semester. The mechanism has two layers:
 
-| Style | Description | Tier Remapping |
-|-------|-------------|----------------|
-| **Grinder** (default) | Core and major classes first, discovery later. | Identity — no change. |
-| **Explorer** | Discovery and gen-eds first, major stuff later. | Discovery/Late MCC → 2, BCC → 4, Major → 5, Track → 6 |
-| **Mixer** | Balanced mix each semester. | Discovery/Late MCC → 2, everything else unchanged |
+1. **Tier remapping** — each style remaps the base tier (1-7) before the sort key is built, influencing rank order.
+2. **Slot reservations** — each style declares minimum discovery and core slots per semester, enforced by a three-pass selection loop in `scheduling_styles.py`.
 
-Key behaviors preserved across all styles:
+Configuration lives in `backend/scheduling_styles.py` as `StyleConfig` dataclasses.
+
+| Style | Slot Reservations | Tier Remapping | Band Behavior |
+|-------|-------------------|----------------|---------------|
+| **Grinder** (default) | None. Core first, discovery fills gaps. | Identity — no change. | Standard. |
+| **Explorer** | 2 discovery slots reserved per semester. | Discovery/Late MCC → 2, BCC → 4, Major → 5, Track → 6 | BCC demoted from band 1 → 2 when student has ≥ 4 semesters remaining. |
+| **Mixer** | 1 discovery + 2 core slots reserved; interleaved picks. | Discovery/Late MCC → 2, everything else unchanged | Standard. |
+
+**Three-pass selection loop** (replaces old single greedy pass):
+1. **Mandatory pass** — accept all band-0 bridge candidates (non-negotiable prereq unlockers).
+2. **Reservation pass** — fill style-specific slot targets. Explorer scans for 2 discovery picks; mixer alternates core/discovery. Grinder skips this pass.
+3. **Greedy fill** — fill remaining slots from the ranked list in order (old behavior).
+
+All passes respect the same gate checks: WRIT limit, same-semester prereqs, maturity guard, bucket capacity, and bridge deferral. Reservations are best-effort — if only 1 discovery course is eligible but the style wants 2, it takes 1 and moves on.
+
+Key safety behaviors preserved across all styles:
 - MCC Foundation stays tier 1 — those courses gate everything.
-- `BCC_REQUIRED` courses (math, ACCO 1030) stay at band 1 via `_ranking_band()` regardless of tier — they are structural prerequisites.
+- Band-0 priority bridge candidates are always selected first.
+- Explorer's BCC deferral only activates with ≥ 4 semesters of runway (freshmen/sophomores). Seniors get standard BCC priority.
 - `_MAX_PER_BUCKET_PER_SEM = 2` prevents any single category from dominating.
 - Prerequisite chains, standing gates, and maturity guards apply identically.
 

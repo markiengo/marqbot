@@ -54,7 +54,7 @@ export const ABOUT_RECENT_CHANGES: AboutBuildCard[] = [
     eyebrow: "New",
     title: "Your Build",
     body:
-      "Pick Grinder, Explorer, or Mixer to control how MarqBot prioritizes your recommendations. Prerequisites still run the show — your build just changes the order around them.",
+      "Pick Grinder, Explorer, or Mixer to control how MarqBot balances core and discovery courses each semester. Explorer reserves two discovery slots. Mixer alternates. Prerequisites still run the show.",
   },
 ];
 

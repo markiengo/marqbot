@@ -8,7 +8,7 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
 | What to run | Command | Tests |
 |---|---|---:|
-| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 604 |
+| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 608 |
 | **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | ~45 |
 | **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly -q` | 2250 sampled + nightly-only catalog audits |
 | **Frontend** | `cd frontend; npm run test` | 99 |
@@ -48,7 +48,7 @@ Nightly is now the home for data-sensitive catalog acceptance checks that are ex
 | `test_recommendation_quality.py` | 37 | Cross-major recommendation invariants, multi-semester quality |
 | `test_regression_profiles.py` | 39 | Realistic student-profile regressions |
 | `test_schema_migration.py` | 38 | Schema migration, loader compatibility, clean-mode |
-| `test_semester_recommender.py` | 34 | Ranking heuristics, concurrent picks, caps, standing recovery, scheduling style archetypes |
+| `test_semester_recommender.py` | 38 | Ranking heuristics, concurrent picks, caps, standing recovery, scheduling style archetypes |
 | `test_server_can_take.py` | 15 | `/can-take` endpoint contract |
 | `test_server_data_reload.py` | 3 | Hot-reload safety |
 | `test_server_security.py` | 6 | Health, security headers, rate limiting |
@@ -67,13 +67,17 @@ Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 
 ### Scheduling Style (Archetype) Support
 
-`PlanCase` accepts an optional `scheduling_style` parameter (`"grinder"`, `"explorer"`, `"mixer"`, or `None`). This remaps the 7-tier bucket hierarchy before ranking, changing which course categories get recommended first. `"grinder"` is the identity map (default behavior). `"explorer"` promotes discovery/gen-ed courses. `"mixer"` interleaves discovery with core coursework.
+`PlanCase` accepts an optional `scheduling_style` parameter (`"grinder"`, `"explorer"`, `"mixer"`, or `None`). Styles use a two-layer mechanism: tier remapping (sort-key influence) plus slot reservations (enforced during selection). Configuration lives in `backend/scheduling_styles.py` as `StyleConfig` dataclasses with `min_discovery_slots`, `min_core_slots`, `interleave`, `tier_map`, and `relax_bcc_band` fields.
+
+- `"grinder"` (default): No reservations. Core-first, discovery fills gaps.
+- `"explorer"`: Reserves 2 discovery slots per semester. Demotes BCC from band 1 to 2 when the student has ≥ 4 semesters of runway.
+- `"mixer"`: Reserves 1 discovery + 2 core slots and interleaves picks.
 
 **How archetypes integrate into the nightly suite:**
 
 - `test_dead_end_fast.py`: Every baseline case (single-major, single-track, curated combos, graduation-by-8) is expanded 3x via `_expand_with_scheduling_styles()`. Each `PlanCase` variant gets a `scheduling_style` field and a label suffix `::style=grinder|explorer|mixer`. This triples the fast PR guardrail cases (~67 base x 3 = ~201 total).
 - `test_dead_end_nightly.py` + `nightly_support.py`: Inside `build_nightly_suite()`, each sampled scenario + profile + selection-variant combo is expanded across all 3 styles. The case budget was raised from 750 to 2250. Label format: `{scenario}/{profile}/v{n}::style={style}`.
-- `test_semester_recommender.py`: 4 dedicated unit tests verify grinder=default, explorer promotes discovery over major, mixer promotes discovery vs grinder, and invalid styles fall back to grinder.
+- `test_semester_recommender.py`: 8 dedicated unit tests verify grinder=default, explorer reserves discovery slots, explorer differs from grinder, mixer guarantees core+discovery mix, mixer differs from grinder, invalid styles fall back to grinder, and all styles respect max_recs.
 - `simulate_terms()` in `dead_end_utils.py` passes `scheduling_style` to `run_recommendation_semester()`, so every nightly simulation runs with the correct archetype.
 
 The key safety property: all 3 scheduling styles must still graduate a fresh student within 8 semesters. If explorer defers BCC so far that a prereq chain can't complete in time, the nightly sweep catches it.
