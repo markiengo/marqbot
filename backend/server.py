@@ -333,6 +333,13 @@ def _add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "same-origin"
 
+    # Cache hashed Next.js assets aggressively; HTML pages are no-cache.
+    path = request.path or ""
+    if "/_next/static/" in path:
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path.endswith((".js", ".css")):
+        response.headers["Cache-Control"] = "public, max-age=86400"
+
     started = getattr(g, "_request_start_time", None)
     if started is not None:
         duration_ms = (time.perf_counter() - started) * 1000.0
