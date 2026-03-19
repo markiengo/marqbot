@@ -53,6 +53,7 @@ export function buildFeedbackPayload(
         max_recs: String(state.maxRecs || "").trim(),
         include_summer: Boolean(state.includeSummer),
         is_honors_student: Boolean(state.isHonorsStudent),
+        scheduling_style: state.schedulingStyle,
         student_stage: state.studentStage,
         active_nav_tab: String(state.activeNavTab || "").trim(),
         onboarding_complete: Boolean(state.onboardingComplete),

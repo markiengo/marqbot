@@ -133,6 +133,7 @@ export interface FeedbackSessionSnapshot {
   max_recs: string;
   include_summer: boolean;
   is_honors_student: boolean;
+  scheduling_style: import("./schedulingStyle").SchedulingStyle;
   student_stage: StudentStage;
   active_nav_tab: string;
   onboarding_complete: boolean;

@@ -315,6 +315,7 @@ export function buildSavedPlanInputsFromAppState(state: AppState): SavedPlanInpu
     semesterCount: state.semesterCount,
     maxRecs: state.maxRecs,
     includeSummer: state.includeSummer,
+    schedulingStyle: state.schedulingStyle,
     studentStage: state.studentStage,
     studentStageIsExplicit: state.studentStageIsExplicit,
   });
@@ -328,6 +329,7 @@ export function buildSessionSnapshotFromSavedPlan(plan: SavedPlanRecord): Sessio
     semesterCount: plan.inputs.semesterCount,
     maxRecs: plan.inputs.maxRecs,
     includeSummer: plan.inputs.includeSummer,
+    schedulingStyle: plan.inputs.schedulingStyle,
     studentStage: plan.inputs.studentStage,
     studentStageIsExplicit: plan.inputs.studentStageIsExplicit,
     canTake: "",
@@ -358,5 +360,6 @@ export function buildRecommendPayloadFromSavedPlanInputs(inputs: SavedPlanInputs
   if (normalized.discoveryTheme) payload.discovery_theme = normalized.discoveryTheme;
   if (normalized.includeSummer) payload.include_summer = true;
   payload.student_stage = normalized.studentStage;
+  payload.scheduling_style = normalized.schedulingStyle;
   return payload;
 }
