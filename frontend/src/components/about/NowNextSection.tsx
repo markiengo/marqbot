@@ -26,6 +26,8 @@ export function NowNextSection() {
 
   return (
     <section className="relative overflow-hidden py-24 band-blue band-fade-top">
+      {/* Gradient mesh layer */}
+      <div className={styles.sectionMesh} />
       <div
         className={`${styles.sectionGlow} left-[12%] top-[24%] h-[16rem] w-[16rem]`}
         style={{ background: "rgba(255,204,0,0.05)" }}
@@ -33,6 +35,15 @@ export function NowNextSection() {
       <div
         className={`${styles.sectionGlow} right-[8%] bottom-[14%] h-[18rem] w-[18rem]`}
         style={{ background: "rgba(24,68,160,0.12)" }}
+      />
+      {/* Additional depth orbs */}
+      <div
+        className={`${styles.sectionGlow} left-[40%] top-[8%] h-[22rem] w-[22rem]`}
+        style={{ background: "rgba(0,51,102,0.06)" }}
+      />
+      <div
+        className={`${styles.sectionGlow} right-[25%] bottom-[5%] h-[14rem] w-[14rem]`}
+        style={{ background: "rgba(255,204,0,0.04)" }}
       />
 
       <div className="relative z-10 mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">

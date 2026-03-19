@@ -110,19 +110,7 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Film grain overlay for depth — sits over body, under content */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.028;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
-  mix-blend-mode: overlay;
-}
+/* Film grain removed — was 2.8% opacity but forced GPU compositing every frame */
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
@@ -166,24 +154,25 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 50%;
   pointer-events: none;
   z-index: -1;
-  animation: orb-drift 20s ease-in-out infinite alternate;
+  will-change: transform;
+  animation: orb-drift 30s ease-in-out infinite alternate;
 }
 .bg-orbs::before {
   top: -10%;
   left: -10%;
-  width: 50vw;
-  height: 50vw;
+  width: 40vw;
+  height: 40vw;
   background: radial-gradient(circle, rgba(0, 51, 102, 0.35) 0%, transparent 70%);
-  filter: blur(80px);
+  filter: blur(50px);
 }
 .bg-orbs::after {
   bottom: -15%;
   right: -10%;
-  width: 45vw;
-  height: 45vw;
+  width: 35vw;
+  height: 35vw;
   background: radial-gradient(circle, rgba(255, 204, 0, 0.12) 0%, transparent 70%);
-  filter: blur(80px);
-  animation-delay: -10s;
+  filter: blur(50px);
+  animation-delay: -15s;
 }
 @keyframes orb-drift {
   0% { transform: translate(0, 0) scale(1); }
@@ -391,10 +380,12 @@ h1, h2, h3, h4, h5, h6 {
 
 .pulse-gold-soft {
   animation: pulse-gold 3.4s ease-in-out infinite;
+  will-change: box-shadow;
 }
 
 .pulse-blue-soft {
   animation: pulse-blue 3.8s ease-in-out infinite;
+  will-change: box-shadow;
 }
 
 .shine-sweep {
@@ -723,17 +714,14 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
 
 /* ── Planner atmospheric enhancements ─────────────────────────── */
 
-/* Glass card — frosted glass effect for planner cards */
+/* Glass card — opaque approximation of frosted glass (no backdrop-filter) */
 .glass-card {
-  background: linear-gradient(145deg, rgba(18, 33, 63, 0.70), rgba(22, 43, 80, 0.55));
+  background: linear-gradient(145deg, rgba(18, 33, 63, 0.88), rgba(22, 43, 80, 0.78));
   border: 1px solid rgba(141, 170, 224, 0.14);
-  backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.18),
     0 8px 24px rgba(0, 0, 0, 0.10),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Card with hover glow — gold glow bloom on hover */
@@ -744,11 +732,8 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
   border-color: rgba(255, 204, 0, 0.30);
   background: linear-gradient(145deg, rgba(20, 37, 68, 0.80), rgba(26, 48, 88, 0.65));
   box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.22),
-    0 12px 32px rgba(0, 0, 0, 0.14),
-    0 0 24px rgba(255, 204, 0, 0.12),
-    0 0 48px rgba(255, 204, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 8px 24px rgba(0, 0, 0, 0.18),
+    0 0 28px rgba(255, 204, 0, 0.10);
 }
 
 /* KPI tile glow states */
@@ -757,30 +742,24 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
 }
 .kpi-glow-ok:hover {
   box-shadow:
-    0 0 12px rgba(30, 159, 97, 0.25),
-    0 0 24px rgba(30, 159, 97, 0.10),
     0 2px 8px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    0 0 16px rgba(30, 159, 97, 0.20);
 }
 .kpi-glow-gold {
   transition: box-shadow 300ms ease;
 }
 .kpi-glow-gold:hover {
   box-shadow:
-    0 0 12px rgba(255, 204, 0, 0.25),
-    0 0 24px rgba(255, 204, 0, 0.10),
     0 2px 8px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    0 0 16px rgba(255, 204, 0, 0.20);
 }
 .kpi-glow-bad {
   transition: box-shadow 300ms ease;
 }
 .kpi-glow-bad:hover {
   box-shadow:
-    0 0 12px rgba(199, 59, 69, 0.25),
-    0 0 24px rgba(199, 59, 69, 0.10),
     0 2px 8px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    0 0 16px rgba(199, 59, 69, 0.20);
 }
 
 /* Semester tab active glow */
@@ -790,8 +769,7 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
     linear-gradient(145deg, rgba(18, 33, 63, 0.85), rgba(22, 43, 80, 0.70));
   border: 1.5px solid rgba(255, 204, 0, 0.35) !important;
   box-shadow:
-    0 0 16px rgba(255, 204, 0, 0.12),
-    0 0 32px rgba(255, 204, 0, 0.06),
+    0 0 20px rgba(255, 204, 0, 0.10),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
@@ -945,19 +923,17 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
 }
 .breathe-glow {
   animation: breathe 2.8s ease-in-out infinite;
+  will-change: opacity;
 }
 
-/* ── Frosted glass panel variant (stronger effect) ───────────── */
+/* ── Frosted glass panel variant (opaque, no backdrop-filter) ── */
 .frosted-panel {
-  background: linear-gradient(145deg, rgba(7, 18, 39, 0.88), rgba(12, 29, 56, 0.78));
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  background: linear-gradient(145deg, rgba(7, 18, 39, 0.95), rgba(12, 29, 56, 0.92));
   border: 1px solid rgba(141, 170, 224, 0.16);
   box-shadow:
     0 4px 8px rgba(0, 0, 0, 0.22),
     0 16px 48px rgba(0, 0, 0, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.10);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 /* ── Smooth underline reveal on hover ────────────────────────── */
@@ -1349,5 +1325,24 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
   }
   .flip-card-inner {
     transition: none !important;
+  }
+}
+
+/* ── Large-screen scaling (1920px+ / 30" monitors) ────────────── */
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px;
+  }
+  .planner-shell {
+    padding: 20px;
+  }
+  .planner-columns {
+    gap: 24px;
+  }
+  .planner-panel {
+    padding: 20px;
+  }
+  .planner-roadmap-grid {
+    grid-template-columns: minmax(22rem, 28rem) minmax(22rem, 30rem) minmax(0, 1fr);
   }
 }

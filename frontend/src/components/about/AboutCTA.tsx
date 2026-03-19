@@ -54,19 +54,27 @@ export function AboutCTA() {
         };
 
   return (
-    <section className="py-24 band-blue-gold band-fade-top">
+    <section className="relative py-24 band-blue-gold band-fade-top overflow-hidden">
+      {/* Section-level gradient mesh */}
+      <div className={styles.sectionMesh} />
       <div className="mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
         <motion.div
           {...viewAnim(24)}
           className="relative overflow-hidden rounded-3xl glass-card px-8 py-12 text-center shadow-[0_8px_40px_rgba(0,0,0,0.28),0_0_60px_rgba(255,204,0,0.04)] md:px-12"
         >
+          {/* Aurora gradient behind card content */}
+          <div className={styles.ctaAurora} />
           <div
-            className={`${styles.sectionGlow} -left-10 -top-12 h-52 w-52`}
-            style={{ background: "rgba(255,204,0,0.07)" }}
+            className={`${styles.sectionGlow} -left-16 -top-16 h-72 w-72`}
+            style={{ background: "rgba(255,204,0,0.08)" }}
           />
           <div
-            className={`${styles.sectionGlow} -bottom-8 -right-6 h-44 w-44`}
-            style={{ background: "rgba(24,68,160,0.12)" }}
+            className={`${styles.sectionGlow} -bottom-12 -right-10 h-64 w-64`}
+            style={{ background: "rgba(24,68,160,0.14)" }}
+          />
+          <div
+            className={`${styles.sectionGlow} left-[40%] top-[60%] h-48 w-48`}
+            style={{ background: "rgba(0,51,102,0.06)" }}
           />
 
           <div className="relative z-10">
