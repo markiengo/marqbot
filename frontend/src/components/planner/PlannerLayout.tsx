@@ -16,7 +16,7 @@ import { SavePlanModal } from "@/components/saved/SavePlanModal";
 import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
 import { CourseListModal } from "./CourseListModal";
 import { FeedbackModal } from "./FeedbackModal";
-import { MajorGuideModal, rankingExplainerItems } from "./MajorGuideModal";
+import { MajorGuideModal, rankingExplainerItems, tierLadder } from "./MajorGuideModal";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
@@ -729,15 +729,16 @@ export function PlannerLayout() {
         size="planner-detail"
       >
         <div className="space-y-4 text-base text-ink-secondary">
-          <div className="rounded-2xl border border-gold/20 bg-[linear-gradient(135deg,rgba(255,204,0,0.12),rgba(255,204,0,0.03))] px-4 py-3 sm:px-5">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-gold/90">
+          <div className="rounded-2xl border border-gold/20 bg-[linear-gradient(135deg,rgba(255,204,0,0.12),rgba(255,204,0,0.03))] px-4 py-3 sm:px-5 relative overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 60% at 90% 50%, rgba(255,204,0,0.06), transparent)" }} aria-hidden />
+            <p className="relative text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-gold/90">
               Fast Read
             </p>
-            <p className="mt-1 text-[0.98rem] leading-relaxed text-ink-primary sm:text-[1.02rem]">
-              First, MarqBot removes classes you cannot take yet. Then it sorts what is left by requirement value and unlock potential.
+            <p className="relative mt-1 text-[0.98rem] leading-relaxed text-ink-primary sm:text-[1.02rem]">
+              MarqBot removes what you can&rsquo;t take, ranks the rest by requirement priority and unlock potential, then fills your semester with guardrails.
             </p>
           </div>
-          <ol className="grid list-none grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+          <ol className="grid list-none grid-cols-1 gap-3 sm:grid-cols-2">
             {rankingExplainerItems.map((item, idx) => (
               <li
                 key={item.id}
@@ -759,19 +760,43 @@ export function PlannerLayout() {
               </li>
             ))}
           </ol>
-          <div className="rounded-2xl border border-border-subtle/60 bg-surface-card/45 px-4 py-3 sm:px-5">
-            <p className="text-[0.92rem] leading-relaxed text-ink-faint">
-              MarqBot assumes you pass the classes in your plan. If your classes change, run it again.
+          {/* Tier ladder */}
+          <div className="rounded-2xl border border-border-card bg-surface-card/40 px-4 py-3.5 sm:px-5 space-y-2.5">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-ink-faint">Priority tiers (highest first)</p>
+            <div className="space-y-1">
+              {tierLadder.map((t, i) => (
+                <div key={t.tier} className="flex items-center gap-2.5">
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[0.7rem] font-bold tabular-nums"
+                    style={{
+                      background: `rgba(255,204,0,${0.18 - i * 0.025})`,
+                      color: i < 2 ? "rgba(255,204,0,1)" : "rgba(255,204,0,0.7)",
+                      border: `1px solid rgba(255,204,0,${0.25 - i * 0.035})`,
+                    }}
+                  >
+                    {t.tier}
+                  </span>
+                  <div className="min-w-0 flex items-baseline gap-1.5 flex-wrap">
+                    <span className="text-[0.88rem] font-semibold text-ink-primary leading-snug">{t.label}</span>
+                    <span className="text-[0.78rem] text-ink-faint leading-snug">&mdash; {t.desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[0.82rem] text-ink-faint leading-relaxed pt-1">
+              Within a tier, courses that unblock deeper prereq chains, fill multiple buckets, or sit at a lower course level are picked first.
             </p>
-            <p className="mt-2 text-[0.92rem] leading-relaxed text-ink-muted">
-              This is rule-based, not guesswork. Some catalog rows are still messy, so when the data is unclear, MarqBot plays it safe. Full picture{" "}
+          </div>
+          <div className="rounded-2xl border border-border-subtle/60 bg-surface-card/45 px-4 py-3 sm:px-5">
+            <p className="text-[0.92rem] leading-relaxed text-ink-muted">
+              Deterministic rules, not guesswork.{" "}
               <a
                 href="https://github.com/markiengo/marqbot/blob/main/docs/algorithm.md"
                 target="_blank"
                 rel="noreferrer"
                 className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"
               >
-                here
+                Full technical breakdown here
               </a>
               .
             </p>

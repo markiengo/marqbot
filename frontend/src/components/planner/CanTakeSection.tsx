@@ -190,12 +190,12 @@ export function CanTakeSection({
               href="/about"
               className="inline-flex min-h-[3rem] flex-1 items-center justify-center rounded-[22px] border border-border-medium bg-surface-card/70 px-4 py-3 text-sm font-medium text-ink-primary transition-colors hover:border-gold/25 hover:bg-surface-hover"
             >
-              Contact Markie
+              Contact Me
             </Link>
             <motion.button
               type="button"
               onClick={onFeedbackOpen}
-              aria-label="Feedback form"
+              aria-label="Feedback"
               whileHover={reduceMotion ? undefined : { y: -1 }}
               className={`inline-flex min-h-[3rem] flex-1 items-center justify-center rounded-[22px] border px-4 py-3 text-sm font-semibold transition-all cursor-pointer ${
                 feedbackExpanded
@@ -203,7 +203,7 @@ export function CanTakeSection({
                   : "border-border-medium bg-surface-card/70 text-ink-primary hover:border-gold/25 hover:bg-surface-hover"
               }`}
             >
-              Feedback form
+              Feedback
             </motion.button>
           </div>
         </motion.div>

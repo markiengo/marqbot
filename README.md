@@ -51,7 +51,9 @@ cd ..
 - Track validation: `.\.venv\Scripts\python.exe scripts/validate_track.py --all`
 - Nightly analyzer dry run: `.\.venv\Scripts\python.exe scripts/analyze_nightly.py --report tests/nightly_reports/YYYY-MM-DD.json --dry-run`
 
-## Nightly Workflow
+## For Developers
+
+### Nightly Workflow
 
 The scheduled nightly workflow runs the focused planner sweep, writes both a Markdown report and a JSON sidecar, and uploads them as one GitHub Actions artifact.
 
@@ -61,7 +63,7 @@ After that, a second nightly job analyzes the JSON report. It can open a PR that
 
 Those auto-tuned changes are limited to checked-in config. They do not edit the CSV catalog for you. CSV fixes and bulletin checks still stay manual.
 
-## Environment
+### Environment
 
 - `DATA_PATH`: optional CSV-directory or workbook override
 - `FLASK_DEBUG`: optional local backend debug toggle
@@ -82,19 +84,17 @@ Those auto-tuned changes are limited to checked-in config. They do not edit the 
 
 ## How It Works
 
-MarqBot uses a deterministic recommendation engine that ranks courses by requirement priority, prerequisite chain depth, and bucket coverage. No randomness, no AI, same inputs always produce the same plan.
+MarqBot runs a deterministic recommendation engine — no AI, no randomness. Same inputs always produce the same plan.
 
-The planner is currently saved-plan aware and feedback aware:
-- saved plans live in browser localStorage
-- feedback submissions go to the backend and can be stored as JSONL via `FEEDBACK_PATH`
+1. **Filter** — removes courses you can't take yet (prereqs, standing, already completed)
+2. **Rank by priority tier** — MCC Foundation → Business Core → Major → Track/Minor → MCC Late → Discovery
+3. **Pick with guardrails** — fills your semester in ranked order, with caps to keep things balanced
 
-Current recommendation behavior notes:
-- honors students can receive honors-section equivalents without duplicate base-course clutter
-- seasonal offering data is loaded, but recommendations currently treat courses as available every term while offering cleanup continues
+Your scheduling style (Grinder, Explorer, or Mixer) adjusts how core vs discovery courses are balanced each semester.
 
-For full details, see [docs/algorithm.md](docs/algorithm.md).
+For the full technical breakdown, see [docs/algorithm.md](docs/algorithm.md).
 
-## Data Model
+### Data Model
 
 MarqBot's course catalog, prerequisites, offerings, and requirement structure are defined in CSV files under `data/`. The loader assembles these into a runtime course overlay and a parent/child requirement graph.
 

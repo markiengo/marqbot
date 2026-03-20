@@ -8,14 +8,10 @@ import type { ProgramBucketTree, BucketSlot } from "@/lib/types";
 
 /* ── Ranking rules (shared with PlannerLayout) ────────────────────── */
 export const rankingExplainerItems = [
-  { id: "1", title: "Can you take it now?", detail: "If a class is locked, it\u2019s out. No negotiation." },
-  { id: "2", title: "Is it an important class?", detail: "Core and major requirements outrank the side quests." },
-  { id: "3", title: "Does it help right away?", detail: "A class that counts now beats one that only helps later." },
-  { id: "4", title: "Does it open more doors?", detail: "If one class unlocks several others, it moves up. Plot armor." },
-  { id: "5", title: "Does it check two boxes?", detail: "A class that checks two boxes gets a boost. Efficiency matters." },
-  { id: "6", title: "Is it too hard too soon?", detail: "Earlier students get foundation classes first. Advanced courses come later." },
-  { id: "7", title: "Does it need a partner?", detail: "If two classes work better together, MarqBot tries to keep them together." },
-  { id: "8", title: "Does it fit your main path?", detail: "Major requirements beat BCC work. Main quest before side quests." },
+  { id: "1", title: "Filter first", detail: "If you can\u2019t take it yet \u2014 prereqs, standing, already done \u2014 it\u2019s gone. No exceptions." },
+  { id: "2", title: "Rank by requirement tier", detail: "Every eligible course maps to a priority tier based on what it fulfills. Foundation and business core come before electives and discovery." },
+  { id: "3", title: "Reward what unlocks more", detail: "Courses that unblock future requirements or count toward multiple buckets get a boost. No shortcuts, no guesswork." },
+  { id: "4", title: "Adjust for your build", detail: "Your scheduling style shifts the balance \u2014 grinder front-loads core, explorer mixes in discovery earlier, mixer splits the difference." },
 ] as const;
 
 /* ── Types ────────────────────────────────────────────────────────── */
@@ -285,6 +281,16 @@ function AllProgramsBoard({ programs }: { programs: ProgramBucketTree[] }) {
   );
 }
 
+/* ── Tier ladder data ─────────────────────────────────────────────── */
+export const tierLadder = [
+  { tier: 1, label: "MCC Foundation", desc: "Core curriculum that gates everything else" },
+  { tier: 2, label: "Business Core (BCC)", desc: "Shared prereqs that unlock major courses" },
+  { tier: 3, label: "Major", desc: "Direct degree requirements" },
+  { tier: 4, label: "Track / Minor", desc: "Supplementary program requirements" },
+  { tier: 5, label: "MCC Late", desc: "Upper-division core (writing, culminating)" },
+  { tier: 6, label: "Discovery", desc: "Exploratory themes with wide course pools" },
+] as const;
+
 /* ── Ranking Step ─────────────────────────────────────────────────── */
 function RankingStep() {
   return (
@@ -293,18 +299,18 @@ function RankingStep() {
         <h3 className="text-xl sm:text-2xl font-bold font-[family-name:var(--font-sora)] text-gradient-gold">
           How MarqBot Ranks Courses
         </h3>
-        <p className="text-[0.88rem] text-ink-faint">Eight rules, applied in order. Here&rsquo;s what they mean.</p>
+        <p className="text-[0.88rem] text-ink-faint">Four steps, applied in order. Here&rsquo;s how it works.</p>
       </div>
 
       <div className="rounded-2xl border border-gold/20 bg-[linear-gradient(135deg,rgba(255,204,0,0.09),rgba(255,204,0,0.03))] px-4 py-3 sm:px-5 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 60% at 90% 50%, rgba(255,204,0,0.06), transparent)" }} aria-hidden />
         <p className="relative text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-gold/80 mb-1">Fast Read</p>
         <p className="relative text-[0.96rem] leading-relaxed text-ink-primary">
-          First, MarqBot removes classes you cannot take yet. Then it sorts what is left by requirement value and unlock potential.
+          MarqBot removes what you can&rsquo;t take, ranks the rest by requirement priority and unlock potential, then fills your semester with guardrails.
         </p>
       </div>
 
-      <ol className="grid list-none grid-cols-1 gap-2.5 sm:grid-cols-2">
+      <ol className="grid list-none grid-cols-1 gap-2.5">
         {rankingExplainerItems.map((item, idx) => (
           <motion.li
             key={item.id}
@@ -326,16 +332,44 @@ function RankingStep() {
         ))}
       </ol>
 
+      {/* Tier ladder */}
+      <div className="rounded-xl border border-border-card bg-surface-card/40 px-4 py-3.5 space-y-2.5">
+        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-ink-faint">Priority tiers (highest first)</p>
+        <div className="space-y-1">
+          {tierLadder.map((t, i) => (
+            <div key={t.tier} className="flex items-center gap-2.5">
+              <span
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[0.7rem] font-bold tabular-nums"
+                style={{
+                  background: `rgba(255,204,0,${0.18 - i * 0.025})`,
+                  color: i < 2 ? "rgba(255,204,0,1)" : "rgba(255,204,0,0.7)",
+                  border: `1px solid rgba(255,204,0,${0.25 - i * 0.035})`,
+                }}
+              >
+                {t.tier}
+              </span>
+              <div className="min-w-0 flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-[0.88rem] font-semibold text-ink-primary leading-snug">{t.label}</span>
+                <span className="text-[0.78rem] text-ink-faint leading-snug">&mdash; {t.desc}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-[0.8rem] text-ink-faint leading-relaxed pt-1">
+          Within a tier, courses that unblock deeper prereq chains, fill multiple buckets, or sit at a lower course level are picked first.
+        </p>
+      </div>
+
       <div className="rounded-xl border border-border-subtle/50 bg-surface-card/35 px-4 py-2.5">
         <p className="text-[0.9rem] leading-relaxed text-ink-faint">
-          Rules, not vibes.{" "}
+          Deterministic rules, not guesswork.{" "}
           <a
             href="https://github.com/markiengo/marqbot/blob/main/docs/algorithm.md"
             target="_blank"
             rel="noreferrer"
             className="text-gold underline underline-offset-2 hover:text-gold-light transition-colors"
           >
-            Full picture here
+            Full technical breakdown here
           </a>
           .
         </p>

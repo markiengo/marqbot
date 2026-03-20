@@ -14,7 +14,6 @@ export type AboutContactLink = {
 export const ABOUT_HERO_COPY = {
   eyebrow: "About",
   headline: "The student behind MarqBot.",
-  body: "I'm Markie. I built this because no one should need six tabs, two emails, and a small existential crisis to figure out what to take next semester.",
 } as const;
 
 export const ABOUT_INTRO_LABELS = [
@@ -25,11 +24,13 @@ export const ABOUT_INTRO_LABELS = [
 ] as const;
 
 export const ABOUT_INTRO_COPY = {
-  title: "Hey, I'm Markie.",
+  title: "Hey there, I\u2019m Markie.",
   paragraphOne:
-    "I'm a freshman studying Information Systems at Marquette. I started MarqBot after losing an entire Sunday to the bulletin, CheckMarq, and a chain of advisor emails — all to answer one question about one class. The system won that round.",
+    "I built this because no one should need six tabs, two emails, and a small existential crisis to figure out what to take next semester. I\u2019m a freshman studying Information Systems at Marquette. I started MarqBot after losing an entire Sunday to the bulletin, CheckMarq, and a chain of advisor emails \u2014 all to answer one question about one class. The system won that round.",
   paragraphTwo:
-    "So I built the tool I wish existed: real rules, clear tradeoffs, and zero late-night fights with CheckMarq. Most of it was written in Raynor the week before registration, The coffee-to-code ratio was concerning.",
+    "So I built MarqBot \u2014 the tool I wish existed. If you\u2019re interested in how it works, read ",
+  paragraphTwoLinkText: "here",
+  paragraphTwoLinkHref: "https://github.com/markiengo/marqbot",
   note: "This started as a \"quick side project.\" That was a lie and I fell for it.",
 } as const;
 
@@ -38,9 +39,9 @@ export const ABOUT_KNOWN_ISSUES = {
   title: "Sequenced-course recommendations",
   body:
     "MarqBot can sometimes suggest advanced language or theology courses to students who haven't taken the earlier classes in that sequence. I'm actively building out coverage to catch these and filter them from recommendations.",
-  subheading: "What are soft-prereqs?",
+  subheading: "Why does MarqBot sometimes suggest something weird?",
   detail:
-    "Many courses have implied requirements the bulletin never lists. SPAN 2013 has no official prerequisite, but it obviously expects SPAN 1001 and 1002. MarqBot calls these \"soft-prereqs\" — and until they're mapped, a student who's never taken Spanish might get SPAN 2013 suggested just because it fills a bucket. If you spot one of these, hit Feedback — it helps me find the gaps faster.",
+    "Some courses have requirements the bulletin doesn\u2019t list clearly \u2014 instructor consent, college restrictions, advanced language proficiency, or implied sequences. MarqBot doesn\u2019t catch all of these yet. If you see a recommendation that doesn\u2019t make sense, hit Feedback so I can close the gap.",
 } as const;
 
 export const ABOUT_RECENT_CHANGES: AboutBuildCard[] = [

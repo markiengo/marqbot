@@ -101,13 +101,6 @@ export function AboutCTA() {
               Bug reports, feature ideas, prereq corrections -- all of it is useful. I read everything.
             </motion.p>
 
-            <motion.p
-              {...viewAnim(10, 0.25)}
-              className="mx-auto mt-3 max-w-[34rem] text-sm leading-relaxed text-ink-secondary"
-            >
-              Fastest route: hit the Feedback button inside the planner. If CheckMarq and MarqBot disagree, definitely send it, one of us is wrong and I&apos;d rather know.
-            </motion.p>
-
             <motion.div
               {...viewAnim(10, 0.28)}
               className="mt-8 flex flex-wrap items-center justify-center gap-3"

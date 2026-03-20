@@ -62,13 +62,6 @@ export function AboutHero() {
             <span className="text-emphasis-gold">MarqBot</span>
             {headlineTail}
           </motion.h1>
-
-          <motion.p
-            {...anim(14, 0.16)}
-            className="mx-auto mt-6 max-w-[36rem] text-[1rem] leading-relaxed text-ink-muted sm:text-[1.08rem]"
-          >
-            {ABOUT_HERO_COPY.body}
-          </motion.p>
         </div>
 
         {/* ── Founder card: photo sidebar + intro ─────────────── */}
@@ -127,6 +120,14 @@ export function AboutHero() {
 
               <p className="mt-4 max-w-[39rem] text-[0.98rem] leading-relaxed text-ink-secondary sm:text-[1.03rem]">
                 {ABOUT_INTRO_COPY.paragraphTwo}
+                <a
+                  href={ABOUT_INTRO_COPY.paragraphTwoLinkHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"
+                >
+                  {ABOUT_INTRO_COPY.paragraphTwoLinkText}
+                </a>.
               </p>
 
               <div className="mt-6 inline-flex glass-card rounded-2xl px-4 py-3 max-w-fit">

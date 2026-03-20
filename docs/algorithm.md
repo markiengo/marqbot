@@ -1,9 +1,9 @@
 # Recommendation Algorithm
-Last updated: March 18, 2026
+Last updated: March 20, 2026
 Status: `current behavior (parent/child + split prereq model)`
 
-## Student Explanation
-"We recommend the courses that close your highest-priority unmet requirements soonest, while avoiding risky picks."
+## In Plain English
+"MarqBot removes what you can't take, ranks the rest by how important they are to your degree, and fills your semester — no guesswork."
 
 ## Data Inputs
 | Area | Files | Purpose |
@@ -98,50 +98,38 @@ If the bulletin prerequisite logic cannot be encoded safely into the supported p
    - course level (lower first)
    - `course_code` (lexical tiebreak)
 
-### Tier Hierarchy
-The tier determines which requirement group a course serves. Lower tier = higher priority.
+### Priority Tiers
+Courses are ranked by which requirement they fulfill. Higher tier = picked first.
 
-| Tier | Group | Buckets | Rationale |
-|------|-------|---------|-----------|
-| 1 | MCC Foundation | `MCC_CORE`, `MCC_ESSV1` | Core curriculum that gates everything else. Must be completed early. |
-| 2 | BCC (Business Core) | `BCC_REQUIRED`, `BCC_*` | Shared business prerequisites that unlock all major-specific courses. |
-| 3 | Major | Any bucket under a `type=major` parent | Direct degree requirements. Default tier when parent type is unknown. |
-| 4 | Track / Minor | Any bucket under a `type=track` or `type=minor` parent | Supplementary program requirements, recommended after major core is underway. |
-| 5 | MCC Late | `MCC_ESSV2`, `MCC_WRIT`, `MCC_CULM` | Upper-division MCC requirements including the culminating course. Deferred so students build credits first but scheduled before discovery. |
-| 6 | Discovery | `MCC_DISC_*` (Discovery themes) | Exploratory requirements with wide course pools. Scheduled last. |
+| Tier | What it covers | Why it's prioritized |
+|------|---------------|---------------------|
+| 1 | MCC Foundation (core curriculum) | Gates everything else — must be done early |
+| 2 | Business Core (BCC) | Shared prereqs that unlock all major courses |
+| 3 | Major requirements | Direct degree requirements |
+| 4 | Track / Minor | Supplementary program requirements |
+| 5 | MCC Late (writing, culminating) | Upper-division core — deferred until you have credits |
+| 6 | Discovery themes | Exploratory courses with wide pools — scheduled last |
 
-Within a tier, the remaining keys break ties: direct-fill courses beat bridge courses, deeper prereq chains are prioritized to unblock future semesters, courses filling multiple buckets score higher, and lower course levels are preferred to build foundations first.
+Within a tier, courses that unblock deeper prereq chains, fill multiple buckets, or sit at a lower course level are picked first.
 
-### Scheduling Style (Builds)
+### Scheduling Styles
 
-Students choose a scheduling style ("build") that controls how the recommender balances core requirements vs discovery/gen-ed courses within each semester. The mechanism has two layers:
+Your style controls how MarqBot balances core requirements and discovery each semester. Prerequisites still come first regardless of style.
 
-1. **Tier remapping** — each style remaps the base tier (1-7) before the sort key is built, influencing rank order.
-2. **Slot reservations** — each style declares minimum discovery and core slots per semester, enforced by a three-pass selection loop in `scheduling_styles.py`.
+| Style | What it does |
+|-------|-------------|
+| **Grinder** (default) | Core and major requirements first. Discovery fills gaps. Best for internship readiness. |
+| **Explorer** | Reserves 2 discovery slots per semester so you can explore early. Core prereqs still happen on time. |
+| **Mixer** | Alternates core and discovery picks for balanced semesters. At least 1 discovery + 2 core per term. |
 
-Configuration lives in `backend/scheduling_styles.py` as `StyleConfig` dataclasses.
+Switch anytime — only the recommendation order changes, not your transcript.
 
-| Style | Slot Reservations | Tier Remapping | Band Behavior |
-|-------|-------------------|----------------|---------------|
-| **Grinder** (default) | None. Core first, discovery fills gaps. | Identity — no change. | Standard. |
-| **Explorer** | 2 discovery slots reserved per semester. | Discovery/Late MCC → 2, BCC → 4, Major → 5, Track → 6 | BCC demoted from band 1 → 2 when student has ≥ 4 semesters remaining. |
-| **Mixer** | 1 discovery + 2 core slots reserved; interleaved picks. | Discovery/Late MCC → 2, everything else unchanged | Standard. |
+Under the hood, each style uses tier remapping and slot reservations enforced by a three-pass selection loop (`scheduling_styles.py`):
+1. **Mandatory pass** — accept band-0 bridge candidates (prereq unlockers that can't wait).
+2. **Reservation pass** — fill style-specific slot targets (explorer: 2 discovery; mixer: 1 discovery + 2 core; grinder: skip).
+3. **Greedy fill** — fill remaining slots in ranked order.
 
-**Three-pass selection loop** (replaces old single greedy pass):
-1. **Mandatory pass** — accept all band-0 bridge candidates (non-negotiable prereq unlockers).
-2. **Reservation pass** — fill style-specific slot targets. Explorer scans for 2 discovery picks; mixer alternates core/discovery. Grinder skips this pass.
-3. **Greedy fill** — fill remaining slots from the ranked list in order (old behavior).
-
-All passes respect the same gate checks: WRIT limit, same-semester prereqs, maturity guard, bucket capacity, and bridge deferral. Reservations are best-effort — if only 1 discovery course is eligible but the style wants 2, it takes 1 and moves on.
-
-Key safety behaviors preserved across all styles:
-- MCC Foundation stays tier 1 — those courses gate everything.
-- Band-0 priority bridge candidates are always selected first.
-- Explorer's BCC deferral only activates with ≥ 4 semesters of runway (freshmen/sophomores). Seniors get standard BCC priority.
-- `_MAX_PER_BUCKET_PER_SEM = 2` prevents any single category from dominating.
-- Prerequisite chains, standing gates, and maturity guards apply identically.
-
-The `scheduling_style` parameter is passed via the `/recommend` API as `scheduling_style` and defaults to `"grinder"` when omitted or invalid.
+All passes respect the same gate checks: WRIT limit, same-semester prereqs, maturity guard, bucket capacity, and bridge deferral. The `scheduling_style` parameter defaults to `"grinder"` when omitted.
 
 6. Select greedily with:
    - bucket cap (`2`) with auto-relaxation (`BCC_REQUIRED` allows up to `3`)

@@ -10,22 +10,22 @@ export const SCHEDULING_STYLE_OPTIONS: {
   {
     value: "grinder",
     label: "Grinder",
-    helper: "Lock in. Core and major classes first, discovery later.",
-    detail: "Prioritizes business core and major requirements. Discovery only fills in when core slots are full. The fastest path to finishing your major.",
+    helper: "Core and major requirements first. Best for internship readiness.",
+    detail: "Prioritizes business core and major requirements so you hit key milestones early. Discovery fills in once core slots are covered. Most students pick this — it\u2019s the fastest path to internship eligibility and major completion.",
     isDefault: true,
   },
   {
     value: "explorer",
     label: "Explorer",
-    helper: "Side quest mode. Gen-eds and discovery early, major stuff later.",
-    detail: "Reserves two slots each semester for discovery and gen-eds so you can explore before committing to the major grind. Core prereqs still happen on time.",
+    helper: "Discovery and gen-eds earlier. Good if you\u2019re still figuring things out.",
+    detail: "Reserves two slots each semester for discovery and gen-ed courses so you can explore interests before locking into the major grind. Core prereqs still happen on time — you won\u2019t fall behind.",
     isDefault: false,
   },
   {
     value: "mixer",
     label: "Mixer",
-    helper: "A little of everything. Keeps each semester balanced.",
-    detail: "Alternates between core and discovery picks so every semester has variety. At least one discovery course and two core courses guaranteed.",
+    helper: "Balanced semesters. A bit of core, a bit of discovery every term.",
+    detail: "Alternates between core and discovery picks so every semester has variety. Guarantees at least one discovery course and two core courses per term. A good middle ground if you want steady progress without all-core semesters.",
     isDefault: false,
   },
 ];
