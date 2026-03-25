@@ -2,25 +2,24 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "motion/react";
-import { AnchorLine } from "@/components/shared/AnchorLine";
 
 const benefits = [
   {
     kicker: "Take now",
     title: "See what you can actually take.",
-    body: "Stop planning around a class CheckMarq will just reject. It's not bluffing.",
+    body: "No more planning around a class CheckMarq will reject.",
     accent: "gold",
   },
   {
     kicker: "Catch early",
     title: "Spot bottlenecks before they spiral.",
-    body: "Some courses quietly gate half your future. MarqBot surfaces those early so they don't run your timeline.",
+    body: "Some courses quietly gate half your future. MarqBot surfaces those early.",
     accent: "blue",
   },
   {
     kicker: "Track it all",
     title: "Core, major, track, MCC, minors.",
-    body: "Every requirement bucket in one place. What's done, what's in progress, what's still lurking.",
+    body: "Every requirement bucket in one place.",
     accent: "gold",
   },
 ];
@@ -30,7 +29,7 @@ export function BenefitsSection() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative overflow-hidden py-24 band-blue band-fade-top">
+    <section ref={ref} className="relative overflow-hidden py-14 band-blue band-fade-top">
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div
           className="absolute top-12 left-[10%] h-[20rem] w-[20rem] rounded-full blur-[110px]"
@@ -48,48 +47,33 @@ export function BenefitsSection() {
             initial={{ opacity: 0, y: 8 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.35 }}
-            className="text-sm font-semibold uppercase tracking-widest text-gold"
+            className="text-xs font-semibold uppercase tracking-widest text-gold"
           >
-            Why it&apos;s worth the five minutes
+            Why it helps
           </motion.p>
           <motion.h2
             initial={{ opacity: 0, y: 14 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.45, delay: 0.08 }}
-            className="mt-4 text-[2.8rem] font-bold leading-tight text-white sm:text-[3.7rem]"
+            className="mt-3 text-[1.8rem] font-bold leading-tight text-white sm:text-[2.4rem]"
           >
-            Less bulletin archaeology.
-            <br />
-            <span className="text-gold">More clear next moves.</span>
+            Less <span className="text-gold">anxiety.</span> More <span className="text-emphasis-blue">clarity.</span>
           </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.4, delay: 0.16 }}
-            className="mt-4 text-[1.1rem] leading-relaxed text-slate-400 sm:text-[1.25rem]"
-          >
-            Skip the five-tab dig. Your Raynor spreadsheet can finally rest.
-          </motion.p>
         </div>
 
-        <AnchorLine variant="gold" className="mt-12 mb-12" />
-
-        <div className="grid gap-7 md:grid-cols-3">
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
           {benefits.map((benefit, index) => (
             <motion.div
               key={benefit.title}
               initial={{ opacity: 0, y: 28 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: 0.24 + index * 0.12 }}
-              whileHover={{ y: -10, scale: 1.02 }}
-              className={`group relative overflow-hidden rounded-[1.9rem] border p-7 ${
-                benefit.accent === "gold" ? "pulse-gold-soft" : "pulse-blue-soft"
-              }`}
+              transition={{ duration: 0.5, delay: 0.18 + index * 0.1 }}
+              whileHover={{ y: -6, scale: 1.02 }}
+              className="group relative overflow-hidden rounded-[1.4rem] border p-5"
               style={{
                 background: "linear-gradient(145deg, rgba(15,35,70,0.88), rgba(10,24,50,0.72))",
                 borderColor:
                   benefit.accent === "gold" ? "rgba(255,204,0,0.18)" : "rgba(0,114,206,0.22)",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
               }}
             >
               <div
@@ -102,28 +86,19 @@ export function BenefitsSection() {
                 }}
               />
               <div className="relative">
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                      benefit.accent === "gold"
-                        ? "bg-gold/12 text-gold"
-                        : "bg-blue-400/10 text-[#8ec8ff]"
-                    }`}
-                  >
-                    {benefit.kicker}
-                  </span>
-                  <motion.div
-                    animate={{ y: [0, -6, 0] }}
-                    transition={{ duration: 3 + index, repeat: Infinity, ease: "easeInOut" }}
-                    className={`h-3 w-3 rounded-full ${
-                      benefit.accent === "gold" ? "bg-gold" : "bg-[#8ec8ff]"
-                    }`}
-                  />
-                </div>
-                <h3 className="mt-6 text-[1.55rem] font-semibold leading-tight text-white">
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                    benefit.accent === "gold"
+                      ? "bg-gold/12 text-gold"
+                      : "bg-blue-400/10 text-[#8ec8ff]"
+                  }`}
+                >
+                  {benefit.kicker}
+                </span>
+                <h3 className="mt-4 text-base font-semibold leading-tight text-white">
                   {benefit.title}
                 </h3>
-                <p className="mt-4 text-base leading-relaxed text-slate-300">
+                <p className="mt-2 text-sm leading-relaxed text-slate-300">
                   {benefit.body}
                 </p>
               </div>

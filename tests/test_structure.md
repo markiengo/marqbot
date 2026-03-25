@@ -121,8 +121,8 @@ One unified workflow: `.github/workflows/nightly-sweep.yml`
 | Trigger | Jobs that run |
 |---|---|
 | **Pull request** | Backend Regression, Planner Fast Guardrail, Frontend Tests |
-| **Schedule** (07:00 UTC; about 3:00 AM New York during daylight saving time) | Nightly Focused Sweep, Nightly Auto-Tune |
-| **Manual** (`workflow_dispatch`) | Nightly Focused Sweep, Nightly Auto-Tune |
+| **Schedule** | ~~Nightly Focused Sweep, Nightly Auto-Tune~~ — **disabled 2026-03-24** while the codebase is under heavy daily changes. Re-enable in the workflow file when the codebase stabilises. |
+| **Manual** (`workflow_dispatch`) | Nightly Focused Sweep (Auto-Tune job is also disabled — set `if: false` back to `github.event_name != 'pull_request'` to restore) |
 
 For the scheduled/manual nightly jobs, catalog-data assertion failures are treated as reportable review items, not release-blocking CI failures. The sweep stays green on pytest exit code `1` as long as the report artifact is produced; runner/internal pytest errors still fail the workflow. After a successful sweep, the auto-tune job reads the JSON sidecar, updates `config/ranking_overrides.json` plus `config/data_investigation_queue.json`, and opens a PR. Small override changes (`<= 3` bucket override edits) are set to auto-merge.
 

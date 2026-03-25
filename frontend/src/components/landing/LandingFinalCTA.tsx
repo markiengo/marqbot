@@ -11,13 +11,13 @@ export function LandingFinalCTA() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="py-24 band-blue-gold band-fade-top">
+    <section ref={ref} className="py-14 band-blue-gold band-fade-top">
       <div className="mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.55 }}
-          className="relative overflow-hidden rounded-3xl border px-10 py-[4.5rem] text-center md:px-[4.5rem]"
+          className="relative overflow-hidden rounded-2xl border px-8 py-12 text-center md:px-12"
           style={{
             background:
               "linear-gradient(135deg, rgba(15,35,70,0.92) 0%, rgba(10,24,50,0.80) 50%, rgba(14,28,58,0.88) 100%)",
@@ -43,26 +43,24 @@ export function LandingFinalCTA() {
           />
 
           <div className="relative">
-            <AnchorLine variant="gold" className="mb-9" />
+            <AnchorLine variant="gold" className="mb-6" />
 
             <motion.h2
               initial={{ opacity: 0, y: 14 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.12 }}
-              className="mx-auto max-w-[16ch] text-[2.8rem] font-bold leading-tight text-white md:text-[4rem]"
+              className="mx-auto max-w-[20ch] text-[1.8rem] font-bold leading-tight text-white sm:text-[2.4rem]"
             >
-              CheckMarq has asked
-              <br />
-              <span className="text-gold">enough of you.</span>
+              Plan your semesters. <span className="text-gold">Close the tabs.</span>
             </motion.h2>
 
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.45, delay: 0.22 }}
-              className="mx-auto mt-5 mb-10 max-w-[42rem] text-[1.15rem] leading-relaxed text-slate-300 sm:text-[1.35rem]"
+              className="mx-auto mt-4 mb-7 max-w-[36rem] text-sm leading-relaxed text-slate-300 sm:text-base"
             >
-              Map out the rest of your semesters in a few minutes. Close the tabs. Touch grass.
+              Takes a few minutes. No account needed.
             </motion.p>
 
             <motion.div
@@ -83,19 +81,11 @@ export function LandingFinalCTA() {
               </Link>
             </motion.div>
 
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm text-slate-400">
-              <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft tooltip-bounce">
-                No account required
-              </span>
-              <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft-delay tooltip-bounce">
-                5,300+ courses tracked
-              </span>
-              <span className="rounded-full border border-white/8 px-3 py-1.5 float-soft tooltip-bounce">
-                Still double-check with your advisor
-              </span>
-            </div>
+            <p className="mt-6 text-xs text-slate-400">
+              Double-check with your advisor before registration.
+            </p>
 
-            <AnchorLine variant="fade" className="mt-10" />
+            <AnchorLine variant="fade" className="mt-8" />
           </div>
         </motion.div>
       </div>

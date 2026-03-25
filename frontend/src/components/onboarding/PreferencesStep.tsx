@@ -28,7 +28,7 @@ export function PreferencesStep() {
         helper="You can change this later"
         title={
           <>
-            How should MarqBot <span className="text-gold-light">plan</span>?
+            How should MarqBot <span className="text-[#8ec8ff]">plan</span>?
           </>
         }
         description="Next term, planning horizon, and course load per semester."

@@ -8,6 +8,24 @@ Format per release:
 
 ---
 
+## [v2.5.1] - 2026-03-24
+
+### Changes
+
+- Disabled nightly cron schedule and auto-tune PR job while the codebase is under heavy daily changes. The sweep still runs on `workflow_dispatch` if needed.
+- Redesigned landing page: removed ProofSection, tightened copy across Hero, Benefits, How It Works, and Final CTA sections.
+- Replaced `ABOUT_RECENT_CHANGES` and `ABOUT_BUILD_CARDS` with a unified `ABOUT_TIMELINE` array using `shipped | building | planned` status tags. About page now renders a single timeline instead of separate "recent" and "roadmap" sections.
+- Trimmed About page copy: shorter Known Issues block, condensed AboutCTA, and streamlined NowNextSection layout.
+- Updated onboarding PreferencesStep, SavedPlansLibraryPage, and PlaceholderPage copy and layout.
+- Added `.scrollbar-hide` CSS utility for horizontal-scroll containers.
+
+### Design Decisions
+
+- Nightly pause: auto-tune diffs were going stale before review, and `nightly-tuning/*` branches added noise. Manual `workflow_dispatch` remains available for on-demand sweeps.
+- Unified timeline: two separate card arrays (`RECENT_CHANGES` + `BUILD_CARDS`) created redundant rendering paths. A single `ABOUT_TIMELINE` with status enum is simpler to maintain and display.
+
+---
+
 ## [v2.5.0] - 2026-03-18
 
 ### Changes

@@ -2,9 +2,13 @@
 
 MarqBot runs a single GitHub Actions workflow called **Nightly Sweep** that doubles as both a PR gate and a self-improving nightly pipeline. This memo explains the nightly side.
 
+## Current status
+
+> **Paused as of 2026-03-24.** The cron schedule and auto-tune job are disabled while the codebase is under heavy daily changes. The sweep still runs on `workflow_dispatch`. See the comments in `.github/workflows/nightly-sweep.yml` for how to re-enable.
+
 ## How it works
 
-Every night at 3 AM Eastern (07:00 UTC), the workflow triggers two jobs in sequence:
+When enabled, the workflow triggers two jobs in sequence at 3 AM Eastern (07:00 UTC):
 
 ### 1. Nightly Focused Sweep
 

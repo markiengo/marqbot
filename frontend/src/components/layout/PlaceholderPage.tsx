@@ -31,51 +31,84 @@ export function PlaceholderPage({
   secondaryLabel = "Why it exists",
 }: PlaceholderPageProps) {
   return (
-    <div className="warm-page warm-page-noise relative min-h-[calc(100vh-4rem)] overflow-hidden px-4 py-12 sm:px-6 lg:px-10">
-      <div className="mx-auto grid max-w-[96rem] items-center gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(18rem,0.78fr)]">
-        <div className="warm-card relative overflow-hidden rounded-[2rem] p-8 sm:p-10">
-          <div className="absolute right-6 top-6 h-20 w-20 rounded-full bg-gold/10 blur-2xl" />
-          <div className="relative z-10 space-y-6">
-        <motion.span
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-              className="warm-kicker inline-flex rounded-full border border-gold/20 bg-gold/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-gold"
-        >
-              {eyebrow}
-        </motion.span>
+    <div
+      className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-4 py-12 sm:px-6 lg:px-10"
+      style={{
+        background:
+          "radial-gradient(ellipse 60% 30% at 50% 0%, rgba(24,68,160,0.18), transparent), radial-gradient(ellipse 50% 25% at 80% 50%, rgba(255,204,0,0.06), transparent), linear-gradient(140deg, #071227, #0c1d38 50%, #0d203e)",
+      }}
+    >
+      {/* Cover image as vivid background */}
+      {coverImage && (
+        <div className="pointer-events-none absolute inset-0">
+          <Image
+            src={coverImage}
+            alt=""
+            fill
+            className="object-cover opacity-60"
+            priority
+          />
+          <div className="absolute inset-0 bg-[#071227]/40" />
+        </div>
+      )}
 
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-              className="max-w-[11ch] font-[family-name:var(--font-sora)] text-4xl font-bold leading-[0.94] tracking-[-0.03em] text-ink-primary sm:text-5xl md:text-6xl"
-        >
-          {title}
-        </motion.h1>
-
-        <motion.div
-          initial={{ opacity: 0, scaleX: 0 }}
-          animate={{ opacity: 1, scaleX: 1 }}
-          transition={{ duration: 0.4, delay: 0.35 }}
-              className="h-1 w-16 rounded-full bg-gold"
+      {/* Subtle atmospheric glows — kept light so the background image shows */}
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="absolute left-[8%] top-[12%] h-[18rem] w-[18rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(255,204,0,0.05) 0%, transparent 70%)", filter: "blur(40px)" }}
         />
+        <div
+          className="absolute right-[6%] bottom-[20%] h-[20rem] w-[20rem] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(0,114,206,0.08) 0%, transparent 72%)", filter: "blur(52px)" }}
+        />
+      </div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-              className="max-w-xl text-lg leading-relaxed text-ink-secondary"
-        >
-          {description}
-        </motion.p>
+      {/* Centered content card */}
+      <div className="relative z-10 w-full max-w-[38rem]">
+        <div className="relative overflow-hidden rounded-[1.6rem] border border-white/15 bg-[linear-gradient(145deg,rgba(10,24,50,0.88),rgba(8,19,39,0.82))] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.40)] backdrop-blur-xl sm:p-8">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.06),transparent_40%)]" />
+          <div className="relative z-10 space-y-5 text-center">
+            <motion.span
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="inline-block rounded-full border border-gold/25 bg-gold/8 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-gold"
+            >
+              {eyebrow}
+            </motion.span>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="font-[family-name:var(--font-sora)] text-3xl font-bold leading-[0.95] tracking-tight text-white sm:text-4xl"
+            >
+              {title}
+            </motion.h1>
+
+            <motion.div
+              initial={{ opacity: 0, scaleX: 0 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              transition={{ duration: 0.4, delay: 0.28 }}
+              className="mx-auto h-0.5 w-12 rounded-full bg-gold"
+            />
+
+            <motion.p
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.32 }}
+              className="mx-auto max-w-md text-sm leading-relaxed text-slate-300 sm:text-base"
+            >
+              {description}
+            </motion.p>
 
             {detail && (
               <motion.p
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.46 }}
-                className="max-w-xl text-base leading-relaxed text-ink-faint"
+                transition={{ duration: 0.45, delay: 0.38 }}
+                className="mx-auto max-w-md text-sm leading-relaxed text-slate-400"
               >
                 {detail}
               </motion.p>
@@ -83,65 +116,48 @@ export function PlaceholderPage({
 
             {bullets.length > 0 && (
               <motion.ul
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.52 }}
-                className="grid gap-2.5"
+                transition={{ duration: 0.45, delay: 0.42 }}
+                className="grid gap-2 text-left"
               >
                 {bullets.map((bullet, index) => (
-                  <li key={bullet} className="warm-card-muted rounded-[1.55rem] px-5 py-5 text-[1.05rem] leading-relaxed text-ink-secondary sm:text-[1.15rem]">
-                    <span className="mr-2.5 font-[family-name:var(--font-sora)] text-[1.2rem] font-semibold text-gold sm:text-[1.3rem]">{index + 1}.</span>
+                  <li
+                    key={bullet}
+                    className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 text-base leading-relaxed text-slate-200"
+                  >
+                    <span className="mr-2 font-semibold text-gold">{index + 1}.</span>
                     {bullet}
                   </li>
                 ))}
               </motion.ul>
             )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-              className="flex flex-col items-start gap-3 sm:flex-row"
-        >
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.48 }}
+              className="flex flex-col items-center justify-center gap-3 sm:flex-row"
+            >
               <Link href={primaryHref}>
-                <Button variant="ink" size="lg">
+                <Button
+                  variant="gold"
+                  size="lg"
+                  className="min-w-[170px] border border-gold/60 shadow-[0_0_28px_rgba(255,204,0,0.24)]"
+                >
                   {primaryLabel}
-            </Button>
-          </Link>
+                </Button>
+              </Link>
               <Link href={secondaryHref}>
                 <Button
                   variant="secondary"
                   size="lg"
-                  className="border-border-medium bg-surface-card text-ink-primary hover:bg-surface-hover"
+                  className="min-w-[170px] border-white/14 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(0,114,206,0.10))] text-white shadow-[0_0_26px_rgba(0,114,206,0.14)] hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.10),rgba(0,114,206,0.14))]"
                 >
                   {secondaryLabel}
-            </Button>
-          </Link>
-        </motion.div>
-          </div>
-        </div>
-
-        <div className="warm-card relative overflow-hidden rounded-[2rem] p-5 sm:p-6">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(0,114,206,0.12),transparent_32%)]" />
-          <div className="relative z-10">
-            <p className="warm-kicker text-xs uppercase tracking-[0.18em] text-gold">Preview</p>
-            <h2 className="mt-3 font-[family-name:var(--font-sora)] text-2xl font-semibold text-ink-primary">
-              Coming up.
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-ink-secondary">
-              This page is in progress. Use the planner for now.
-            </p>
-            <div className="mt-6 overflow-hidden rounded-[1.4rem] border border-white/10 bg-surface-card/80">
-              {coverImage ? (
-                <div className="relative aspect-[4/3]">
-                  <Image src={coverImage} alt="" fill className="object-cover" priority />
-                </div>
-              ) : (
-                <div className="flex aspect-[4/3] items-center justify-center bg-[linear-gradient(135deg,rgba(12,29,56,0.92),rgba(22,43,80,0.78))] px-6 text-center text-sm text-ink-secondary">
-                  Future product preview
-                </div>
-              )}
-            </div>
+                </Button>
+              </Link>
+            </motion.div>
           </div>
         </div>
       </div>

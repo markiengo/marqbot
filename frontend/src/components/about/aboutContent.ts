@@ -11,6 +11,13 @@ export type AboutContactLink = {
   icon: "email" | "github" | "linkedin" | "instagram";
 };
 
+export type TimelineEntry = {
+  status: "shipped" | "building" | "planned";
+  title: string;
+  body: string;
+  detail: string;
+};
+
 export const ABOUT_HERO_COPY = {
   eyebrow: "About",
   headline: "The student behind MarqBot.",
@@ -31,60 +38,54 @@ export const ABOUT_INTRO_COPY = {
     "So I built MarqBot \u2014 the tool I wish existed. If you\u2019re interested in how it works, read ",
   paragraphTwoLinkText: "here",
   paragraphTwoLinkHref: "https://github.com/markiengo/marqbot",
-  note: "This started as a \"quick side project.\" That was a lie and I fell for it.",
+  note: "This started as a \u201cquick side project.\u201d That was a lie and I fell for it.",
 } as const;
 
 export const ABOUT_KNOWN_ISSUES = {
   eyebrow: "Work in progress",
   title: "Sequenced-course recommendations",
   body:
-    "MarqBot can sometimes suggest advanced language or theology courses to students who haven't taken the earlier classes in that sequence. I'm actively building out coverage to catch these and filter them from recommendations.",
-  subheading: "Why does MarqBot sometimes suggest something weird?",
+    "MarqBot sometimes suggests advanced courses to students who haven\u2019t taken the earlier classes in that sequence. Actively fixing.",
   detail:
-    "Some courses have requirements the bulletin doesn\u2019t list clearly \u2014 instructor consent, college restrictions, advanced language proficiency, or implied sequences. MarqBot doesn\u2019t catch all of these yet. If you see a recommendation that doesn\u2019t make sense, hit Feedback so I can close the gap.",
+    "Some courses have requirements the bulletin doesn\u2019t list clearly \u2014 instructor consent, college restrictions, or implied sequences. MarqBot doesn\u2019t catch all of these yet. If you see something off, hit Feedback so I can close the gap.",
 } as const;
 
-export const ABOUT_RECENT_CHANGES: AboutBuildCard[] = [
+export const ABOUT_TIMELINE: TimelineEntry[] = [
   {
-    eyebrow: "New",
-    title: "Screenshot import",
-    body:
-      "Upload a CheckMarq screenshot and MarqBot reads your course history locally — no typing, no external servers. OCR runs entirely in your browser. The era of manual entry is over.",
+    status: "building",
+    title: "Sequenced-course fixes",
+    body: "Catching courses that skip the line.",
+    detail: "MarqBot sometimes suggests advanced courses to students who haven\u2019t taken the earlier classes in that sequence. Some courses have requirements the bulletin doesn\u2019t list clearly \u2014 instructor consent, college restrictions, or implied sequences. If you see something off, hit Feedback so I can close the gap.",
   },
   {
-    eyebrow: "New",
-    title: "Your Build",
-    body:
-      "Pick Grinder, Explorer, or Mixer to control how MarqBot balances core and discovery courses each semester. Explorer reserves two discovery slots. Mixer alternates. Prerequisites still run the show.",
+    status: "building",
+    title: "Full policy documentation",
+    body: "Hidden rules, documented before they surprise you.",
+    detail: "Some courses have rules the bulletin doesn\u2019t make obvious \u2014 like the CFA AIM track requiring a Finance major, or certain upper-levels being restricted to specific colleges. Documenting these so MarqBot catches them first.",
+  },
+  {
+    status: "building",
+    title: "Semester offering awareness",
+    body: "No more suggesting spring-only classes in fall.",
+    detail: "Right now MarqBot doesn\u2019t always know when a course is offered. Soon it\u2019ll check the semester before recommending \u2014 so you stop planning around a class that doesn\u2019t exist this term.",
+  },
+  {
+    status: "planned",
+    title: "AI Advisor chatbot",
+    body: "Ask degree questions in plain English.",
+    detail: "A chat layer where your courses, major, and progress are already loaded. Ask \u201cwhy is this course recommended?\u201d or \u201cwhat happens if I drop this?\u201d \u2014 like texting your advisor at 2 a.m. from Club Raynor.",
+  },
+  {
+    status: "planned",
+    title: "Bug reports and ideas",
+    body: "Your edge cases make the tool better.",
+    detail: "Some of the best fixes came from students finding the exact scenario I missed. If something looks wrong, hit Feedback or DM me. You\u2019re doing QA and I genuinely appreciate it.",
   },
 ];
 
-export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [
-  {
-    eyebrow: "Building now",
-    title: "Full policy documentation",
-    body:
-      "Some courses have hidden rules the bulletin doesn't make obvious — like the CFA AIM track requiring a Finance major, or certain upper-levels being restricted to specific colleges. I'm documenting these so MarqBot can flag them before you find out the hard way during registration.",
-  },
-  {
-    eyebrow: "Next up",
-    title: "Semester offering awareness",
-    body:
-      "Right now MarqBot doesn't always know when a course is offered. Soon it'll stop confidently suggesting classes that only exist in the spring. We've all been hurt before.",
-  },
-  {
-    eyebrow: "Planned",
-    title: "AI Advisor chatbot",
-    body:
-      "A chat layer where you can ask degree questions in plain English — with your courses, major, and progress already loaded. Like texting your advisor, except it responds at 2 a.m. from Club Raynor.",
-  },
-  {
-    eyebrow: "From you",
-    title: "Bug reports and ideas",
-    body:
-      "Some of the best fixes came from students finding the exact edge case I missed. If something looks wrong, hit Feedback or DM me. You're doing QA and I genuinely appreciate it. That's a W.",
-  },
-];
+// Legacy exports kept for any remaining references
+export const ABOUT_RECENT_CHANGES: AboutBuildCard[] = [];
+export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [];
 
 export const ABOUT_CONTACT_LINKS: AboutContactLink[] = [
   {

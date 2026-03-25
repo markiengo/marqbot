@@ -59,7 +59,7 @@ export function AboutHero() {
             className="font-[family-name:var(--font-sora)] text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl md:text-6xl"
           >
             {headlineLead}
-            <span className="text-emphasis-gold">MarqBot</span>
+            <span className="text-emphasis-blue">MarqBot</span>
             {headlineTail}
           </motion.h1>
         </div>

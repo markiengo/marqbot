@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/shared/Button";
+import { Modal } from "@/components/shared/Modal";
 import { useCourses } from "@/hooks/useCourses";
 import { usePrograms } from "@/hooks/usePrograms";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
@@ -24,6 +25,7 @@ interface PlanCardProps {
 
 function PlanCard({ plan, freshness, programs, onDelete, index }: PlanCardProps & { index: number }) {
   const reduce = useReducedMotion();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const programLine = buildSavedPlanProgramLine(plan, programs);
   const freshnessCopy = getSavedPlanFreshnessCopy(freshness);
 
@@ -82,7 +84,7 @@ function PlanCard({ plan, freshness, programs, onDelete, index }: PlanCardProps 
             <Button
               variant="ghost"
               size="sm"
-              onClick={onDelete}
+              onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
               className="text-bad hover:bg-bad-light/25"
             >
               Delete
@@ -90,6 +92,46 @@ function PlanCard({ plan, freshness, programs, onDelete, index }: PlanCardProps 
           </div>
         </div>
       </div>
+
+      <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <div className="space-y-5">
+          {/* Red danger zone header */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-bad/15">
+              <svg className="h-5 w-5 text-bad" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-[family-name:var(--font-sora)] text-lg font-semibold text-ink-primary">
+                Delete this plan?
+              </h3>
+              <p className="mt-0.5 text-sm text-ink-faint">This can&apos;t be undone.</p>
+            </div>
+          </div>
+
+          {/* Plan name callout with red accent */}
+          <div className="rounded-xl border border-bad/20 bg-bad/[0.06] px-4 py-3">
+            <p className="text-sm text-ink-secondary">
+              <span className="font-semibold text-bad">{plan.name}</span> will be permanently deleted.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <Button variant="secondary" size="sm" onClick={() => setConfirmOpen(false)}>
+              Keep Plan
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { setConfirmOpen(false); onDelete(); }}
+              className="border-bad/50 bg-bad/15 text-bad hover:border-bad/70 hover:bg-bad/25"
+            >
+              Yes, Delete Plan
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </motion.article>
   );
 }

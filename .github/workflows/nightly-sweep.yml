@@ -2,10 +2,12 @@ name: Nightly Sweep
 
 on:
   pull_request:
-  schedule:
-    # Single nightly run at 07:00 UTC.
-    # This is 3:00 AM in New York during daylight saving time.
-    - cron: "0 7 * * *"
+  # DISABLED 2026-03-24: Nightly schedule paused while the codebase is under
+  # heavy daily changes — the auto-tune diffs become stale before they can be
+  # reviewed, and the nightly-tuning/* branches add noise to the repo.
+  # Re-enable the two lines below when the codebase stabilises.
+  # schedule:
+  #   - cron: "0 7 * * *"
   workflow_dispatch:
 
 env:
@@ -167,7 +169,11 @@ jobs:
 
   nightly-analyze:
     name: Nightly Auto-Tune
-    if: github.event_name != 'pull_request'
+    # DISABLED 2026-03-24: Auto-tune creates nightly-tuning/* branches and PRs
+    # that pile up while the codebase is changing daily. The nightly-exhaustive
+    # sweep still runs on workflow_dispatch if you need a report — this job
+    # just skips the branch/PR creation step until re-enabled.
+    if: false  # was: github.event_name != 'pull_request'
     needs: nightly-exhaustive
     runs-on: ubuntu-latest
     timeout-minutes: 30

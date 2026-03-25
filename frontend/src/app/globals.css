@@ -1346,3 +1346,12 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); line-height: 1.2; }
     grid-template-columns: minmax(22rem, 28rem) minmax(22rem, 30rem) minmax(0, 1fr);
   }
 }
+
+/* ── Scrollbar hide utility ──────────────────────────────── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
