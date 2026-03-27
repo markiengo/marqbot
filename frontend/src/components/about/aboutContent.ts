@@ -53,15 +53,9 @@ export const ABOUT_KNOWN_ISSUES = {
 export const ABOUT_TIMELINE: TimelineEntry[] = [
   {
     status: "building",
-    title: "Sequenced-course fixes",
-    body: "Catching courses that skip the line.",
-    detail: "MarqBot sometimes suggests advanced courses to students who haven\u2019t taken the earlier classes in that sequence. Some courses have requirements the bulletin doesn\u2019t list clearly \u2014 instructor consent, college restrictions, or implied sequences. If you see something off, hit Feedback so I can close the gap.",
-  },
-  {
-    status: "building",
-    title: "Full policy documentation",
-    body: "Hidden rules, documented before they surprise you.",
-    detail: "Some courses have rules the bulletin doesn\u2019t make obvious \u2014 like the CFA AIM track requiring a Finance major, or certain upper-levels being restricted to specific colleges. Documenting these so MarqBot catches them first.",
+    title: "Soft-prereqs",
+    body: "Hidden sequences and policy rules, caught earlier.",
+    detail: "MarqBot sometimes suggests advanced courses before the earlier classes in a sequence, or misses soft rules the bulletin doesn\u2019t make obvious \u2014 instructor consent, college restrictions, major-only tracks, and similar edge cases. Rolling those into the recommendation logic so they get caught before they surprise you.",
   },
   {
     status: "building",
@@ -87,15 +81,15 @@ export const ABOUT_TIMELINE: TimelineEntry[] = [
 export const ABOUT_RECENT_CHANGES: AboutBuildCard[] = [
   {
     eyebrow: "new",
-    title: "Planner performance cleanup",
+    title: "Adaptive reduced-effects mode",
     body:
-      "Reduced planner rerenders, lighter session persistence, and faster modal opens when you check degree progress or course details.",
+      "MarqBot now keeps the richer look on capable machines and automatically falls back to a lighter planner, onboarding, and modal rendering path on weaker browsers. You can also override it in planner preferences.",
   },
   {
     eyebrow: "new",
-    title: "Lower-power browser pass",
+    title: "Smarter bucket counting",
     body:
-      "Cut always-on page effects and lazy-loaded screenshot OCR so the site does less work before you even ask it to build a plan.",
+      "Required buckets now beat broad elective pools when the same course could fill both. If two finished classes overfill one slot, MarqBot can still reuse the extra one in electives when the rules allow it.",
   },
 ];
 export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [];

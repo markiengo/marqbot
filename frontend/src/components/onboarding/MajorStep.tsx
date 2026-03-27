@@ -6,6 +6,7 @@ import { useAppContext } from "@/context/AppContext";
 import { Chip } from "@/components/shared/Chip";
 import { OnboardingStepHeader } from "./OnboardingStepHeader";
 import { MAX_MAJORS } from "@/lib/constants";
+import { majorMatchesQuery } from "@/lib/programSearch";
 
 const DISC_MAJOR_ID = "MCC_DISC";
 
@@ -95,8 +96,7 @@ export function MajorStep() {
 
   const filtered = majors.filter(
     (major) =>
-      !state.selectedMajors.has(major.id) &&
-      major.label.toLowerCase().includes(query.toLowerCase()),
+      !state.selectedMajors.has(major.id) && majorMatchesQuery(major, query),
   );
 
   const selectMajor = useCallback(

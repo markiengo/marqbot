@@ -8,10 +8,11 @@ import type { ProgramBucketTree, BucketSlot } from "@/lib/types";
 
 /* ── Ranking rules (shared with PlannerLayout) ────────────────────── */
 export const rankingExplainerItems = [
-  { id: "1", title: "Filter first", detail: "If you can\u2019t take it yet \u2014 prereqs, standing, already done \u2014 it\u2019s gone. No exceptions." },
-  { id: "2", title: "Rank by requirement tier", detail: "Every eligible course maps to a priority tier based on what it fulfills. Foundation and business core come before electives and discovery." },
-  { id: "3", title: "Reward what unlocks more", detail: "Courses that unblock future requirements or count toward multiple buckets get a boost. No shortcuts, no guesswork." },
-  { id: "4", title: "Adjust for your build", detail: "Your scheduling style shifts the balance \u2014 grinder front-loads core, explorer mixes in discovery earlier, mixer splits the difference." },
+  { id: "1", title: "Filter first", detail: "If you can\u2019t take it yet, it\u2019s out. Prereqs, standing, and already-finished courses get filtered first." },
+  { id: "2", title: "Rank by requirement tier", detail: "Every eligible course lands in a priority tier. MCC foundation and business core beat electives and discovery." },
+  { id: "3", title: "Respect bucket rules", detail: "Required buckets beat elective pools when the rules collide. If two courses cover the same slot, MarqBot keeps one there and can slide the extra one into electives when allowed." },
+  { id: "4", title: "Reward what unlocks more", detail: "After the bucket rules are settled, courses that unlock more later or still help more than one allowed bucket move up." },
+  { id: "5", title: "Adjust for your build", detail: "Your scheduling style shifts the balance. Grinder front-loads core, explorer mixes in discovery earlier, and mixer splits the difference." },
 ] as const;
 
 /* ── Types ────────────────────────────────────────────────────────── */
@@ -265,7 +266,7 @@ function AllProgramsBoard({ programs }: { programs: ProgramBucketTree[] }) {
           </div>
         </div>
         <p className="text-[0.86rem] text-ink-faint leading-relaxed">
-          Some courses count for more than one bucket. MarqBot handles the double-counting rules automatically &mdash; if a class fills two buckets, it gets a ranking boost.
+          Some courses can help more than one bucket, but not every overlap is allowed. MarqBot handles the counting rules automatically.
         </p>
       </div>
 
@@ -299,14 +300,14 @@ function RankingStep() {
         <h3 className="text-xl sm:text-2xl font-bold font-[family-name:var(--font-sora)] text-gradient-gold">
           How MarqBot Ranks Courses
         </h3>
-        <p className="text-[0.88rem] text-ink-faint">Four steps, applied in order. Here&rsquo;s how it works.</p>
+        <p className="text-[0.88rem] text-ink-faint">Five steps, applied in order. Here&rsquo;s how it works.</p>
       </div>
 
       <div className="rounded-2xl border border-gold/20 bg-[linear-gradient(135deg,rgba(255,204,0,0.09),rgba(255,204,0,0.03))] px-4 py-3 sm:px-5 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 60% at 90% 50%, rgba(255,204,0,0.06), transparent)" }} aria-hidden />
         <p className="relative text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-gold/80 mb-1">Fast Read</p>
         <p className="relative text-[0.96rem] leading-relaxed text-ink-primary">
-          MarqBot removes what you can&rsquo;t take, ranks the rest by requirement priority and unlock potential, then fills your semester with guardrails.
+          MarqBot filters out what you can&rsquo;t take, respects the bucket-counting rules, then ranks the rest by priority and unlock potential.
         </p>
       </div>
 
@@ -356,7 +357,7 @@ function RankingStep() {
           ))}
         </div>
         <p className="text-[0.8rem] text-ink-faint leading-relaxed pt-1">
-          Within a tier, courses that unblock deeper prereq chains, fill multiple buckets, or sit at a lower course level are picked first.
+          Within a tier, courses that unblock deeper prereq chains, still help more than one allowed bucket, or sit at a lower course level are picked first.
         </p>
       </div>
 

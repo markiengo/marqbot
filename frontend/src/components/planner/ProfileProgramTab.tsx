@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { Chip } from "@/components/shared/Chip";
 import { MAX_MAJORS } from "@/lib/constants";
+import { majorMatchesQuery } from "@/lib/programSearch";
 
 const DISC_MAJOR_ID = "MCC_DISC";
 
@@ -86,7 +87,7 @@ export function ProfileProgramTab() {
   const [trackRuleWarning, setTrackRuleWarning] = useState<string | null>(null);
 
   const filtered = majors.filter(
-    (m) => !state.selectedMajors.has(m.id) && m.label.toLowerCase().includes(query.toLowerCase()),
+    (m) => !state.selectedMajors.has(m.id) && majorMatchesQuery(m, query),
   );
 
   const selectMajor = useCallback(

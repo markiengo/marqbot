@@ -187,7 +187,7 @@ export function RoadmapStep() {
         </div>
 
         <p className="text-[1.01rem] text-ink-faint">
-          Some courses fill more than one bucket. MarqBot handles the double-count rules for you.
+          Some courses can help more than one bucket, but not every overlap is allowed. MarqBot handles the counting rules automatically.
         </p>
       </div>
 

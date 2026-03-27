@@ -40,7 +40,7 @@ function FlipCard({
       transition={{ duration: 0.45, delay: 0.08 * index }}
       whileHover={isFlipped ? undefined : { y: -4 }}
       animate={{ opacity: isDimmed ? 0.35 : 1 }}
-      className="min-w-[220px] flex-1 cursor-pointer"
+      className="h-full min-w-0 cursor-pointer"
       onClick={onFlip}
     >
       <div
@@ -48,7 +48,7 @@ function FlipCard({
           isFlipped
             ? "bg-[linear-gradient(145deg,rgba(14,30,58,0.98),rgba(10,24,50,0.95))] shadow-[0_8px_32px_rgba(0,0,0,0.24)]"
             : "bg-[linear-gradient(145deg,rgba(10,24,50,0.96),rgba(8,19,39,0.90))] shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
-        } p-5 transition-shadow duration-300`}
+        } flex h-full flex-col p-5 transition-shadow duration-300`}
       >
         <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.03),transparent_60%)]" />
 
@@ -120,8 +120,10 @@ export function NowNextSection() {
   const buildingEntries = ABOUT_TIMELINE.filter((e) => e.status === "building");
   const plannedEntries = ABOUT_TIMELINE.filter((e) => e.status === "planned");
 
-  // Global index so only one card is flipped across both lanes
-  const allEntries = [...buildingEntries, ...plannedEntries];
+  const laneGridClass = (count: number) =>
+    count <= 2
+      ? "grid gap-4 md:grid-cols-2"
+      : "grid gap-4 md:grid-cols-2 xl:grid-cols-3";
 
   const handleFlip = useCallback(
     (globalIdx: number) => {
@@ -178,7 +180,7 @@ export function NowNextSection() {
             <div className="h-px flex-1 bg-[#8ec8ff]/10" />
           </div>
 
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+          <div className={laneGridClass(buildingEntries.length)}>
             {buildingEntries.map((entry, laneIdx) => {
               const globalIdx = laneIdx;
               return (
@@ -206,7 +208,7 @@ export function NowNextSection() {
             <div className="h-px flex-1 bg-gold/10" />
           </div>
 
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+          <div className={laneGridClass(plannedEntries.length)}>
             {plannedEntries.map((entry, laneIdx) => {
               const globalIdx = buildingEntries.length + laneIdx;
               return (

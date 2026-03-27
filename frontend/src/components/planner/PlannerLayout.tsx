@@ -236,14 +236,6 @@ export function PlannerLayout() {
     }
   }, [state.selectedMajors, state.selectedTracks, state.selectedMinors, fetchRecommendations]);
 
-  const handleGetMyPlan = useCallback(() => {
-    if (!majorGuideSeen.current) {
-      openMajorGuide(true);
-    } else {
-      fetchRecommendations();
-    }
-  }, [openMajorGuide, fetchRecommendations]);
-
   const handleGuideFinish = useCallback(() => {
     majorGuideSeen.current = true;
     localStorage.setItem(MAJOR_GUIDE_SEEN_KEY, "true");
@@ -531,32 +523,16 @@ export function PlannerLayout() {
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <Button
-              variant="secondary"
+              variant="gold"
               size="sm"
               onClick={() => {
                 setSaveError(null);
                 setSaveModalOpen(true);
               }}
               disabled={!savedPlansReady || !canSavePlan}
-              className="shrink-0"
+              className="shrink-0 bg-gold text-navy hover:bg-gold-light shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
             >
               Save Plan
-            </Button>
-            <Button
-              variant="gold"
-              size="sm"
-              onClick={handleGetMyPlan}
-              disabled={loading || !hasProgram}
-              className="shrink-0 shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
-                  Loading...
-                </span>
-              ) : (
-                "Get My Plan"
-              )}
             </Button>
           </div>
         </div>
@@ -695,7 +671,7 @@ export function PlannerLayout() {
                     Planner is ready.
                   </h2>
                   <p className="text-sm text-ink-faint mt-1">
-                    Hit Get My Plan for a ranked view of your next term.
+                    Open Edit Profile to refresh recommendations, then save the version you want to keep here.
                   </p>
                 </div>
               </motion.div>
@@ -788,7 +764,7 @@ export function PlannerLayout() {
               Fast Read
             </p>
             <p className="relative mt-1 text-[0.98rem] leading-relaxed text-ink-primary sm:text-[1.02rem]">
-              MarqBot removes what you can&rsquo;t take, ranks the rest by requirement priority and unlock potential, then fills your semester with guardrails.
+              MarqBot filters out what you can&rsquo;t take, respects the bucket-counting rules, then ranks the rest by priority and unlock potential.
             </p>
           </div>
           <ol className="grid list-none grid-cols-1 gap-3 sm:grid-cols-2">
@@ -837,7 +813,7 @@ export function PlannerLayout() {
               ))}
             </div>
             <p className="text-[0.82rem] text-ink-faint leading-relaxed pt-1">
-              Within a tier, courses that unblock deeper prereq chains, fill multiple buckets, or sit at a lower course level are picked first.
+              Within a tier, courses that unblock deeper prereq chains, still help more than one allowed bucket, or sit at a lower course level are picked first.
             </p>
           </div>
           <div className="rounded-2xl border border-border-subtle/60 bg-surface-card/45 px-4 py-3 sm:px-5">
