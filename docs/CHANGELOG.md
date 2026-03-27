@@ -20,13 +20,19 @@ Format per release:
 - Raised general rate limit from 10 to 30 requests per minute per IP.
 - Added `.env` / `.env.*` exclusions to `.dockerignore` so local secrets cannot enter Docker image builds.
 - Replaced Framer Motion `whileHover` on `CourseCard`, `CourseRow`, and `Button` with CSS `transition-transform` utilities. Removes JS-driven layout thrash on hover.
+- Removed `pulse-gold-soft` (infinite `box-shadow` keyframe animation) from the CourseCard credit badge. With up to 40 cards visible simultaneously, this was running 40 concurrent animations and creating 40 GPU compositing layers via `will-change: box-shadow`.
+- Removed `whileHover={{ backgroundColor }}` from `CourseRow`. Animating `backgroundColor` in Framer Motion forces a repaint on every frame since it is not GPU-compositable.
+- Fixed `Button` having both `transition-colors` and `transition-transform` in the same className — the second overrode the first, silently breaking background-color hover transitions. Replaced both with `transition`.
+- Added 30-second mtime throttle to `_refresh_data_if_needed()`. On Render, CSV data is baked into the Docker image at build time, so checking file modification timestamps on every request was pure overhead.
+- Added WhiteNoise WSGI middleware wrapping for Next.js static asset serving (`_next/static/`, images, fonts). Faster than `send_from_directory` and correctly serves the pre-gzipped `.js.gz` and `.css.gz` siblings.
 - Dockerfile now gzip pre-compresses all `.js` and `.css` files after the Next.js build, enabling `Content-Encoding: gzip` passthrough via WhiteNoise.
 
 ### Design Decisions
 
 - Nightly re-enable: codebase has stabilised enough that daily regression reports are useful again. Auto-tune stays off until a review cadence is established.
 - Sentry opt-in via env var: DSN never touches version control; production activates it, local dev ignores it.
-- CSS transitions over Framer Motion hover: hover animations are purely cosmetic and do not need spring physics. Native CSS is faster and reduces bundle size.
+- CSS transitions over Framer Motion hover: hover animations are purely cosmetic and do not need spring physics. Native CSS is compositor-thread only, requires zero JavaScript, and reduces the number of active Framer Motion gesture recognizers from ~40 to 0 on the planner page.
+- mtime throttle: data reload check reduced from per-request to once per 30 seconds. Since data is baked into the image at deploy time, any mtime change would require a redeploy anyway — polling more frequently has no benefit.
 
 ---
 
