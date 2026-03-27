@@ -66,10 +66,8 @@ export function CourseCard({
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -3, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
         onClick={onClick}
-        className={`group glass-card card-glow-hover course-card-accent rounded-2xl px-4 py-4 accent-left-gold relative overflow-hidden h-full flex flex-col gap-3${onClick ? " cursor-pointer" : ""}`}
-        style={{ willChange: "transform" }}
+        className={`group glass-card card-glow-hover course-card-accent rounded-2xl px-4 py-4 accent-left-gold relative overflow-hidden h-full flex flex-col gap-3 hover:-translate-y-[3px] transition-transform duration-[220ms] ease-out${onClick ? " cursor-pointer" : ""}`}
         {...interactiveProps}
       >
         <div
@@ -147,10 +145,8 @@ export function CourseCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
       onClick={onClick}
-      className={`glass-card card-glow-hover course-card-accent rounded-2xl p-6 accent-left-gold relative overflow-hidden${onClick ? " cursor-pointer" : ""}`}
-      style={{ willChange: "transform" }}
+      className={`glass-card card-glow-hover course-card-accent rounded-2xl p-6 accent-left-gold relative overflow-hidden hover:-translate-y-1 transition-transform duration-[220ms] ease-out${onClick ? " cursor-pointer" : ""}`}
       {...interactiveProps}
     >
       {/* Subtle radial glow overlay */}
@@ -172,7 +168,7 @@ export function CourseCard({
               </>
             )}
           </div>
-          <div className="shrink-0 w-11 h-11 rounded-full bg-gold/15 border border-gold/30 flex items-center justify-center pulse-gold-soft">
+          <div className="shrink-0 w-11 h-11 rounded-full bg-gold/15 border border-gold/30 flex items-center justify-center">
             <span className="text-base font-bold text-gold" style={{ fontVariantNumeric: "tabular-nums" }}>
               {c.credits || 3}
             </span>

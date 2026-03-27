@@ -7,7 +7,8 @@ COPY frontend/package*.json ./
 RUN npm ci
 
 COPY frontend/ ./
-RUN npm run build
+RUN npm run build && \
+    find out -type f \( -name "*.js" -o -name "*.css" \) -exec gzip -k {} \;
 
 FROM python:3.11-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \

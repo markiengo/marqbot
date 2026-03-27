@@ -57,7 +57,6 @@ export function CourseRow({ course, courseCount, index = 0, onClick }: CourseRow
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2, backgroundColor: "rgba(18, 33, 63, 0.80)" }}
       transition={{ duration: 0.18, delay: index * 0.04 }}
       onClick={onClick}
       className={`flex-none lg:flex-1 ${density.row} rounded-lg glass-card card-glow-hover overflow-hidden flex items-center border-l-2 border-l-gold/50${onClick ? " cursor-pointer" : ""}`}
