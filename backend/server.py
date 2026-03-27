@@ -54,7 +54,6 @@ _sentry_dsn = os.environ.get("SENTRY_DSN", "")
 if _sentry_dsn:
     sentry_sdk.init(
         dsn=_sentry_dsn,
-        send_default_pii=True,
         traces_sample_rate=0.1,
     )
 
@@ -328,14 +327,16 @@ def _reload_data_if_changed(force: bool = False) -> bool:
 
 _last_mtime_check: float = 0.0
 _MTIME_CHECK_INTERVAL = 30.0  # seconds — data is baked into the Docker image on Render
+_mtime_check_lock = threading.Lock()
 
 
 def _refresh_data_if_needed() -> None:
     global _last_mtime_check
     now = time.monotonic()
-    if now - _last_mtime_check < _MTIME_CHECK_INTERVAL:
-        return
-    _last_mtime_check = now
+    with _mtime_check_lock:
+        if now - _last_mtime_check < _MTIME_CHECK_INTERVAL:
+            return
+        _last_mtime_check = now
     try:
         _reload_data_if_changed()
     except Exception as exc:
