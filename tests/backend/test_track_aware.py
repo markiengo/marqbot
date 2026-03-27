@@ -122,6 +122,116 @@ class TestAllocatorTrackIsolation:
         assert result["applied_by_bucket"] == {}
         assert result["remaining"] == {}
 
+    def test_overflow_non_elective_course_spills_into_elective_pool(self):
+        buckets = pd.DataFrame([
+            {
+                "track_id": "TRACK_A",
+                "bucket_id": "BCC::BCC_ENHANCE",
+                "bucket_label": "BCC Enhance",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "role": "core",
+                "requirement_mode": "required",
+                "parent_bucket_id": "BCC_CORE",
+                "double_count_family_id": "BCC_CORE",
+            },
+            {
+                "track_id": "TRACK_A",
+                "bucket_id": "TRACK_A::A_ELEC",
+                "bucket_label": "A Elective",
+                "priority": 2,
+                "needed_count": None,
+                "needed_credits": 3,
+                "min_level": None,
+                "allow_double_count": True,
+                "role": "elective",
+                "requirement_mode": "credits_pool",
+                "parent_bucket_id": "TRACK_A",
+                "double_count_family_id": "TRACK_A_ELEC",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "TRACK_A", "bucket_id": "BCC::BCC_ENHANCE", "course_code": "COURSE_A"},
+            {"track_id": "TRACK_A", "bucket_id": "TRACK_A::A_ELEC", "course_code": "COURSE_A"},
+            {"track_id": "TRACK_A", "bucket_id": "BCC::BCC_ENHANCE", "course_code": "COURSE_B"},
+            {"track_id": "TRACK_A", "bucket_id": "TRACK_A::A_ELEC", "course_code": "COURSE_B"},
+        ])
+        courses = pd.DataFrame([
+            {"course_code": "COURSE_A", "course_name": "Course A", "credits": 3, "level": 3000, "offered_fall": True, "offered_spring": True, "offered_summer": False, "prereq_hard": "none", "prereq_soft": "", "offering_confidence": "high", "notes": None},
+            {"course_code": "COURSE_B", "course_name": "Course B", "credits": 3, "level": 3000, "offered_fall": True, "offered_spring": True, "offered_summer": False, "prereq_hard": "none", "prereq_soft": "", "offering_confidence": "high", "notes": None},
+        ])
+
+        result = allocate_courses(
+            ["COURSE_A", "COURSE_B"], [], buckets, course_map, courses,
+            track_id="TRACK_A",
+        )
+        rerun = allocate_courses(
+            ["COURSE_A", "COURSE_B"], [], buckets, course_map, courses,
+            track_id="TRACK_A",
+        )
+
+        applied = result["applied_by_bucket"]
+        assert len(applied["BCC::BCC_ENHANCE"]["completed_applied"]) == 1
+        assert len(applied["TRACK_A::A_ELEC"]["completed_applied"]) == 1
+        assert set(
+            applied["BCC::BCC_ENHANCE"]["completed_applied"]
+            + applied["TRACK_A::A_ELEC"]["completed_applied"]
+        ) == {"COURSE_A", "COURSE_B"}
+        assert (
+            result["applied_by_bucket"]["BCC::BCC_ENHANCE"]["completed_applied"]
+            == rerun["applied_by_bucket"]["BCC::BCC_ENHANCE"]["completed_applied"]
+        )
+
+    def test_elective_pool_course_can_still_double_count_across_elective_pools(self):
+        buckets = pd.DataFrame([
+            {
+                "track_id": "TRACK_A",
+                "bucket_id": "TRACK_A::A_ELEC",
+                "bucket_label": "A Elective",
+                "priority": 1,
+                "needed_count": None,
+                "needed_credits": 3,
+                "min_level": None,
+                "allow_double_count": True,
+                "role": "elective",
+                "requirement_mode": "credits_pool",
+                "parent_bucket_id": "TRACK_A",
+                "double_count_family_id": "TRACK_A_ELEC",
+            },
+            {
+                "track_id": "TRACK_A",
+                "bucket_id": "TRACK_A::B_ELEC",
+                "bucket_label": "B Elective",
+                "priority": 2,
+                "needed_count": None,
+                "needed_credits": 3,
+                "min_level": None,
+                "allow_double_count": True,
+                "role": "elective",
+                "requirement_mode": "credits_pool",
+                "parent_bucket_id": "TRACK_A",
+                "double_count_family_id": "TRACK_A_OTHER_ELEC",
+            },
+        ])
+        course_map = pd.DataFrame([
+            {"track_id": "TRACK_A", "bucket_id": "TRACK_A::A_ELEC", "course_code": "COURSE_X"},
+            {"track_id": "TRACK_A", "bucket_id": "TRACK_A::B_ELEC", "course_code": "COURSE_X"},
+        ])
+        courses = pd.DataFrame([
+            {"course_code": "COURSE_X", "course_name": "Course X", "credits": 3, "level": 3000, "offered_fall": True, "offered_spring": True, "offered_summer": False, "prereq_hard": "none", "prereq_soft": "", "offering_confidence": "high", "notes": None},
+        ])
+
+        result = allocate_courses(
+            ["COURSE_X"], [], buckets, course_map, courses,
+            track_id="TRACK_A",
+        )
+
+        assert result["applied_by_bucket"]["TRACK_A::A_ELEC"]["completed_applied"] == ["COURSE_X"]
+        assert result["applied_by_bucket"]["TRACK_A::B_ELEC"]["completed_applied"] == ["COURSE_X"]
+
     def test_default_track_id_is_fin_major(self):
         assert DEFAULT_TRACK_ID == "FIN_MAJOR"
 
@@ -154,6 +264,52 @@ class TestEligibilityTrackFiltering:
             track_id="TRACK_A",
         )
         assert buckets == []
+
+    def test_non_elective_bucket_hides_elective_pool_overlap(self):
+        buckets_df = pd.DataFrame([
+            {
+                "track_id": "TRACK_A",
+                "bucket_id": "BCC::BCC_ENHANCE",
+                "bucket_label": "BCC Enhance",
+                "priority": 1,
+                "needed_count": 1,
+                "needed_credits": None,
+                "min_level": None,
+                "allow_double_count": False,
+                "role": "core",
+                "requirement_mode": "required",
+                "parent_bucket_id": "BCC_CORE",
+                "double_count_family_id": "BCC_CORE",
+            },
+            {
+                "track_id": "TRACK_A",
+                "bucket_id": "TRACK_A::A_ELEC",
+                "bucket_label": "A Elective",
+                "priority": 2,
+                "needed_count": None,
+                "needed_credits": 3,
+                "min_level": None,
+                "allow_double_count": True,
+                "role": "elective",
+                "requirement_mode": "credits_pool",
+                "parent_bucket_id": "TRACK_A",
+                "double_count_family_id": "TRACK_A_ELEC",
+            },
+        ])
+        course_map_df = pd.DataFrame([
+            {"track_id": "TRACK_A", "bucket_id": "BCC::BCC_ENHANCE", "course_code": "COURSE_X"},
+            {"track_id": "TRACK_A", "bucket_id": "TRACK_A::A_ELEC", "course_code": "COURSE_X"},
+        ])
+        courses_df = pd.DataFrame([
+            {"course_code": "COURSE_X", "course_name": "Course X", "credits": 3, "level": 3000},
+        ])
+
+        buckets = get_course_eligible_buckets(
+            "COURSE_X", course_map_df, courses_df, buckets_df,
+            track_id="TRACK_A",
+        )
+
+        assert [bucket["bucket_id"] for bucket in buckets] == ["BCC::BCC_ENHANCE"]
 
     def test_get_eligible_courses_respects_track(
         self, two_track_buckets, two_track_map, two_track_courses, two_track_prereq_map,
@@ -396,13 +552,13 @@ class TestServerTrackValidation:
         data = resp.get_json()
 
         current_bucket = data["current_progress"]["FIN_MAJOR::FINA-ELEC-4"]
-        assert current_bucket["completed_done"] == 3
+        assert current_bucket["completed_done"] == 0
         assert current_bucket["in_progress_increment"] == 3
-        assert current_bucket["assumed_done"] == 6
+        assert current_bucket["assumed_done"] == 3
 
         semester_bucket = data["semesters"][0]["progress"]["FIN_MAJOR::FINA-ELEC-4"]
-        assert semester_bucket["completed_done"] == 6
-        assert semester_bucket["done_count"] == 6
+        assert semester_bucket["completed_done"] == 3
+        assert semester_bucket["done_count"] == 3
         assert semester_bucket["in_progress_increment"] == 0
         assert "current in-progress courses are completed" in data["semesters"][0]["in_progress_note"]
 
@@ -792,6 +948,27 @@ class TestServerTrackValidation:
         # Core requirements from both base major and track appear.
         assert "AIM_MAJOR::AIM-REQ-CORE" in progress_keys
         assert "AIM_FINTECH_TRACK::AIM-FINTECH-REQ-CORE" in progress_keys
+
+    def test_bcc_overflow_course_spills_into_finance_elective_pool(self, client):
+        resp = client.post("/recommend", json={
+            "completed_courses": "ENTP 3001, HURE 3001",
+            "in_progress_courses": "",
+            "declared_majors": ["FIN_MAJOR"],
+            "target_semester_primary": "Fall 2026",
+            "target_semester_count": 1,
+            "max_recommendations": 6,
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+
+        enhance_bucket = data["current_progress"]["BCC::BCC_ENHANCE"]
+        finance_elective_bucket = data["current_progress"]["FIN_MAJOR::FINA-ELEC-4"]
+
+        assert len(enhance_bucket["completed_applied"]) == 1
+        assert len(finance_elective_bucket["completed_applied"]) == 1
+        assert set(
+            enhance_bucket["completed_applied"] + finance_elective_bucket["completed_applied"]
+        ) == {"ENTP 3001", "HURE 3001"}
 
     @pytest.mark.nightly
     def test_aim_pcib_core_mapping_matches_curated_list(self):

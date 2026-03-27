@@ -226,6 +226,59 @@ def get_allowed_double_count_pairs(
     return allowed_pairs
 
 
+def bucket_family_key(bucket: dict) -> str:
+    """Resolve the double-count family for a bucket dict (family > parent > empty)."""
+    family = str(bucket.get("double_count_family_id", "") or "").strip()
+    if family:
+        return family
+    parent = str(bucket.get("parent_bucket_id", "") or "").strip()
+    if parent:
+        return parent
+    return ""
+
+
+def order_buckets_same_family(buckets: list[dict]) -> list[dict]:
+    """Keep same-family buckets in required -> choose_n -> credits_pool order."""
+    if len(buckets) <= 1:
+        return buckets
+
+    by_family: dict[str, dict[str, list[dict]]] = {}
+    family_order: list[str] = []
+    for bucket in buckets:
+        family = bucket_family_key(bucket) or "__NO_FAMILY__"
+        if family not in by_family:
+            by_family[family] = {
+                "required": [],
+                "choose_n": [],
+                "credits_pool": [],
+                "other": [],
+            }
+            family_order.append(family)
+        mode = str(bucket.get("requirement_mode", "") or "").strip().lower()
+        if mode == "required":
+            by_family[family]["required"].append(bucket)
+        elif mode == "choose_n":
+            by_family[family]["choose_n"].append(bucket)
+        elif mode == "credits_pool":
+            by_family[family]["credits_pool"].append(bucket)
+        else:
+            by_family[family]["other"].append(bucket)
+
+    def _sort_rows(rows: list[dict]) -> list[dict]:
+        return sorted(
+            rows,
+            key=lambda r: (int(r.get("priority", 99)), str(r.get("bucket_id", ""))),
+        )
+
+    ordered: list[dict] = []
+    for family in family_order:
+        ordered.extend(_sort_rows(by_family[family]["required"]))
+        ordered.extend(_sort_rows(by_family[family]["choose_n"]))
+        ordered.extend(_sort_rows(by_family[family]["credits_pool"]))
+        ordered.extend(_sort_rows(by_family[family]["other"]))
+    return ordered
+
+
 def get_buckets_by_role(buckets_df: pd.DataFrame, track_id: str, role: str) -> list[str]:
     """Return all bucket_ids with the given role for a track."""
     if "role" not in buckets_df.columns:

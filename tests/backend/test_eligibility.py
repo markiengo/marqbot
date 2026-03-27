@@ -881,7 +881,7 @@ class TestGetEligibleCourses:
         assert row["bridge_target_buckets"] == ["FIN_MAJOR::REQ"]
         assert set(row["unlocks_unmet_courses"]) == {"MAJOR 2000", "TRACK 2000"}
 
-    def test_same_family_non_elective_hides_same_family_elective_pool_but_keeps_cross_family(self):
+    def test_non_elective_hides_all_elective_pool_overlaps(self):
         courses = pd.DataFrame([
             {
                 "course_code": "X100",
@@ -962,7 +962,7 @@ class TestGetEligibleCourses:
         row = next(c for c in eligible if c["course_code"] == "X100")
         assert "FIN_MAJOR::REQ" in row["fills_buckets"]
         assert "FIN_MAJOR::ELEC" not in row["fills_buckets"]
-        assert "ACCO_MAJOR::ELEC" in row["fills_buckets"]
+        assert "ACCO_MAJOR::ELEC" not in row["fills_buckets"]
 
     def test_duplicate_bucket_mapping_rows_are_deduped_in_fills(self):
         courses = pd.DataFrame([

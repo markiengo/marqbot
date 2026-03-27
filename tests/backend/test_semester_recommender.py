@@ -2759,6 +2759,75 @@ def test_recommendation_response_uses_assigned_buckets_for_writ_and_discovery_hi
     assert "MCC::MCC_WRIT" not in recs_by_code["MATH 1700"]["fills_buckets"]
 
 
+def test_recommendations_hide_credit_pool_when_course_has_non_elective_bucket():
+    courses = [
+        {
+            "course_code": "ENTP 3001",
+            "course_name": "Entrepreneurship",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "BCC::BCC_ENHANCE",
+            "bucket_label": "BCC Enhance",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "BCC_CORE",
+            "double_count_family_id": "BCC_CORE",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::FINA-ELEC-4",
+            "bucket_label": "Finance Elective Pool",
+            "priority": 2,
+            "needed_count": None,
+            "needed_credits": 12,
+            "min_level": 3000,
+            "allow_double_count": True,
+            "role": "elective",
+            "requirement_mode": "credits_pool",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR_ELEC",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_ENHANCE", "course_code": "ENTP 3001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::FINA-ELEC-4", "course_code": "ENTP 3001"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=3,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        current_standing=2,
+        completed_only_standing=2,
+    )
+
+    rec = next(course for course in out["recommendations"] if course["course_code"] == "ENTP 3001")
+    assert rec["fills_buckets"] == ["BCC::BCC_ENHANCE"]
+
+
 def test_same_semester_recommendations_only_include_one_writ_tagged_mcc_course():
     courses = [
         {

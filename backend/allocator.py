@@ -1,9 +1,13 @@
+import hashlib
+
 import pandas as pd
 from prereq_parser import parse_prereqs
 
 from requirements import (
     DEFAULT_TRACK_ID,
+    bucket_family_key,
     get_allowed_double_count_pairs,
+    order_buckets_same_family,
 )
 
 
@@ -64,6 +68,21 @@ def _normalize_optional_text(value) -> str | None:
     if not text or text.lower() == "nan":
         return None
     return text
+
+
+
+def _partition_assignment_buckets(
+    buckets: list[dict],
+) -> tuple[list[dict], list[dict]]:
+    non_elective = [
+        bucket for bucket in buckets
+        if str(bucket.get("requirement_mode", "") or "").strip().lower() != "credits_pool"
+    ]
+    elective = [
+        bucket for bucket in buckets
+        if str(bucket.get("requirement_mode", "") or "").strip().lower() == "credits_pool"
+    ]
+    return non_elective, elective
 
 
 def _build_course_runtime_indexes(courses_df: pd.DataFrame) -> dict:
@@ -496,7 +515,7 @@ def allocate_courses(
     def get_course_level(course_code: str) -> int | None:
         return course_level_index.get(course_code)
 
-    def get_eligible_buckets_for_course(course_code: str) -> list[dict]:
+    def get_ordered_buckets_for_course(course_code: str) -> list[dict]:
         result = []
         course_level = get_course_level(course_code)
 
@@ -507,62 +526,39 @@ def allocate_courses(
             if min_lvl is not None and course_level is not None and course_level < min_lvl:
                 continue
             mode = str(bucket_meta.get(bid, {}).get("requirement_mode", "") or "").strip().lower()
-            result.append({"bucket_id": bid, "requirement_mode": mode})
+            result.append(
+                {
+                    "bucket_id": bid,
+                    "requirement_mode": mode,
+                    "priority": bucket_meta.get(bid, {}).get("priority", 99),
+                    "parent_bucket_id": str(bucket_meta.get(bid, {}).get("parent_bucket_id", "") or "").strip(),
+                    "double_count_family_id": str(
+                        bucket_meta.get(bid, {}).get("double_count_family_id", "") or ""
+                    ).strip(),
+                }
+            )
 
         # Base deterministic order.
         result.sort(
             key=lambda b: (
-                bucket_meta.get(b["bucket_id"], {}).get("priority", 99),
+                int(b.get("priority", 99)),
                 str(b["bucket_id"]),
             )
         )
 
-        # Same-family precedence guard:
-        # prefer required -> choose_n -> credits_pool
-        # within each parent bucket family.
-        if len(result) <= 1:
-            return [{"bucket_id": r["bucket_id"]} for r in result]
+        return order_buckets_same_family(result)
 
-        parent_order: list[str] = []
-        grouped: dict[str, dict[str, list[dict]]] = {}
-        for entry in result:
-            bid = entry["bucket_id"]
-            meta = bucket_meta.get(bid, {})
-            parent = str(meta.get("parent_bucket_id", "") or "").strip()
-            if parent not in grouped:
-                grouped[parent] = {
-                    "required": [],
-                    "choose_n": [],
-                    "credits_pool": [],
-                    "other": [],
-                }
-                parent_order.append(parent)
-            mode = str(meta.get("requirement_mode", "") or "").strip().lower()
-            if mode == "required":
-                grouped[parent]["required"].append(entry)
-            elif mode == "choose_n":
-                grouped[parent]["choose_n"].append(entry)
-            elif mode == "credits_pool":
-                grouped[parent]["credits_pool"].append(entry)
-            else:
-                grouped[parent]["other"].append(entry)
+    def _primary_assignment_anchor(ordered_buckets: list[dict]) -> str:
+        non_elective, elective = _partition_assignment_buckets(ordered_buckets)
+        primary = non_elective if non_elective else elective
+        if not primary:
+            return ""
+        return str(primary[0].get("bucket_id", "") or "")
 
-        def _sort_group(rows_: list[dict]) -> list[dict]:
-            return sorted(
-                rows_,
-                key=lambda e: (
-                    bucket_meta.get(e["bucket_id"], {}).get("priority", 99),
-                    str(e["bucket_id"]),
-                ),
-            )
-
-        reordered: list[dict] = []
-        for parent in parent_order:
-            reordered.extend(_sort_group(grouped[parent]["required"]))
-            reordered.extend(_sort_group(grouped[parent]["choose_n"]))
-            reordered.extend(_sort_group(grouped[parent]["credits_pool"]))
-            reordered.extend(_sort_group(grouped[parent]["other"]))
-        return [{"bucket_id": r["bucket_id"]} for r in reordered]
+    def _overflow_tiebreak(course_code: str, ordered_buckets: list[dict]) -> str:
+        anchor = _primary_assignment_anchor(ordered_buckets)
+        seed = f"{track_key}|{anchor}|{course_code}"
+        return hashlib.sha256(seed.encode("utf-8")).hexdigest()
 
     def slots_remaining(bid: str) -> int:
         meta = bucket_meta[bid]
@@ -636,16 +632,27 @@ def allocate_courses(
             ndc_course_to_group[member] = gi
     ndc_allocated_groups: dict[int, str] = {}  # group_index → first allocated code
 
-    # Step 1: sort by constrained courses first.
+    # Step 1: sort completed courses so the most constrained are assigned first.
+    # Sort key: (fewest primary buckets, anchor bucket id, stable hash tiebreak, code).
+    # The hash tiebreak keeps same-slot collisions deterministic across runs.
     completed_with_buckets = []
     for code in completed:
-        eligible_buckets = get_eligible_buckets_for_course(code)
-        completed_with_buckets.append((code, eligible_buckets))
-    completed_with_buckets.sort(key=lambda x: len(x[1]))
+        ordered_buckets = get_ordered_buckets_for_course(code)
+        non_elective, elective = _partition_assignment_buckets(ordered_buckets)
+        primary_buckets = non_elective if non_elective else elective
+        completed_with_buckets.append((code, ordered_buckets, primary_buckets))
+    completed_with_buckets.sort(
+        key=lambda item: (
+            len(item[2]),
+            _primary_assignment_anchor(item[1]),
+            _overflow_tiebreak(item[0], item[1]),
+            item[0],
+        )
+    )
 
     # Step 2: assign completed courses.
-    for course_code, eligible_buckets in completed_with_buckets:
-        if not eligible_buckets:
+    for course_code, ordered_buckets, primary_buckets in completed_with_buckets:
+        if not primary_buckets:
             continue
         # No-double-count credit blocking: skip if another course in the
         # same NDC group has already been allocated.
@@ -658,9 +665,11 @@ def allocate_courses(
             continue
         credits = get_course_credits(course_code)
         assigned_to: list[str] = []
+        non_elective_buckets, elective_buckets = _partition_assignment_buckets(ordered_buckets)
+        assignment_pool = non_elective_buckets if non_elective_buckets else elective_buckets
 
         # Primary assignment: first eligible non-full bucket.
-        for bucket_info in eligible_buckets:
+        for bucket_info in assignment_pool:
             bid = bucket_info["bucket_id"]
             if is_full(bid):
                 continue
@@ -668,12 +677,24 @@ def allocate_courses(
             assigned_to.append(bid)
             break
 
+        # Overflow rule: if all non-elective buckets are already full, let the
+        # extra course spill into elective pools only.
+        if not assigned_to and non_elective_buckets and elective_buckets:
+            for bucket_info in elective_buckets:
+                bid = bucket_info["bucket_id"]
+                if is_full(bid):
+                    continue
+                assign_completed_to_bucket(course_code, bid, credits)
+                assigned_to.append(bid)
+                assignment_pool = elective_buckets
+                break
+
         if not assigned_to:
             continue
 
         # N-way assignment: each additional bucket must be pairwise-compatible
         # with all already-assigned buckets.
-        for bucket_info in eligible_buckets:
+        for bucket_info in assignment_pool:
             bid = bucket_info["bucket_id"]
             if bid in assigned_to:
                 continue
@@ -712,7 +733,10 @@ def allocate_courses(
     # Respect pairwise double-count policy so in-progress courses don't appear
     # in multiple same-parent buckets simultaneously (visual double-count bug).
     for course_code in in_progress:
-        eligible_buckets = get_eligible_buckets_for_course(course_code)
+        eligible_buckets = [
+            {"bucket_id": bucket["bucket_id"]}
+            for bucket in get_ordered_buckets_for_course(course_code)
+        ]
         credits = get_course_credits(course_code)
         ip_assigned_to: list[str] = []
         for bucket_info in eligible_buckets:
