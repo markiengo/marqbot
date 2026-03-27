@@ -1,7 +1,7 @@
 # my to-do list
 
 ## what's happening right now
-- planner/browser performance cleanup: trim always-on visual work, lighten modal opens, and keep session persistence from ballooning during long planning sessions
+- ~~planner/browser performance cleanup: trim always-on visual work, lighten modal opens, and keep session persistence from ballooning during long planning sessions~~ done (v2.5.2 — context slices, session split, modal defer, lazy OCR, reduced always-on effects; v2.5.3 — adaptive reduced-effects mode)
 - full policy documentation
 
 ## high priority

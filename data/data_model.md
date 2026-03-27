@@ -214,6 +214,13 @@ Those clauses remain in `catalog_prereq_raw`, `notes`, or soft detail columns.
 
 At load time, courses tagged with `courses.elective_pool_tag = biz_elective` are added dynamically to qualifying elective-like `credits_pool` buckets. This is runtime-only supplementation; `master_bucket_courses.csv` remains the checked-in source of explicit mappings.
 
+## Runtime Bucket Counting
+
+- Non-elective buckets (`required`, `choose_n`) beat `credits_pool` elective pools in recommendation and eligibility views. If a course can fill both, MarqBot shows the non-elective side only.
+- Completed-course allocation follows the same precedence. A course counted in a non-elective bucket does not also count in an elective pool at the same time.
+- Overflow exception: if a non-elective slot is already full and another completed course could also satisfy it, MarqBot may spill the extra course into eligible elective pools instead of dropping it.
+- Elective pools can still overlap with other elective pools when the pairwise bucket policy allows it.
+
 ## Course Equivalencies
 
 `course_equivalencies.csv` is stored in a wide format with one row per equivalency group.

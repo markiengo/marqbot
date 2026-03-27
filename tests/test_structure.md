@@ -11,7 +11,7 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 | **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 608 |
 | **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | ~45 |
 | **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly -q` | 2250 sampled + nightly-only catalog audits |
-| **Frontend** | `cd frontend; npm run test` | 102 |
+| **Frontend** | `cd frontend; npm run test` | 113 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
 Nightly is now the home for data-sensitive catalog acceptance checks that are expected to drive course/major patch decisions from the report, not PR gating.
@@ -101,10 +101,11 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 | `utils.test.ts` | 9 | Yes | Bucket labels, note formatting |
 | `frontend/tests/courseHistoryImportParser.test.ts` | 7 | Yes | Local OCR parser: golden fixture, row matching, grade classification |
 | `frontend/tests/coursesStep.dom.test.ts` | 4 | Yes | Screenshot import flow, prereq warnings, parsed-row apply |
+| `frontend/tests/effectsMode.test.ts` | 2 | Yes | Reduced-effects override persistence and modal fallback styling |
 | `frontend/tests/multiSelect.dom.test.ts` | 2 | Yes | Picker DOM interactions |
-| `frontend/tests/onboardingPage.dom.test.ts` | 4 | Yes | Onboarding DOM flow, loading state, secondary-program guard |
-| `frontend/tests/profileModal.dom.test.ts` | 3 | Yes | Profile modal submit/error flow, student-stage selector |
-| `frontend/tests/plannerCourseList.dom.test.ts` | 3 | Yes | Course list stage-conflict warning, filtering |
+| `frontend/tests/onboardingPage.dom.test.ts` | 5 | Yes | Onboarding DOM flow, loading state, secondary-program guard, alias search |
+| `frontend/tests/profileModal.dom.test.ts` | 4 | Yes | Profile modal submit/error flow, student-stage selector, alias search |
+| `frontend/tests/plannerCourseList.dom.test.ts` | 4 | Yes | Course list assumptions, stage-conflict warning, ranking explainer copy |
 | `frontend/tests/plannerFeedbackNudge.dom.test.ts` | 3 | Yes | Feedback lane, nudge timing, dismissal |
 | `frontend/tests/progressBucketDrillIn.test.ts` | 4 | Yes | Bucket drill-in detail rendering |
 | `frontend/tests/savedPlanDetailPage.dom.test.ts` | 1 | Yes | Saved-plan detail delete confirmation |
@@ -114,7 +115,7 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 
 `tests/frontend/*.dom.test.ts` is excluded from the default Vitest run.
 `frontend/tests/*.dom.test.ts` is included in the default Vitest run.
-The default frontend run currently covers 102 cases across both `tests/frontend/*.test.ts` and `frontend/tests/*.test.ts`.
+The default frontend run currently covers 113 cases across both `tests/frontend/*.test.ts` and `frontend/tests/*.test.ts`.
 
 ## CI Workflow
 

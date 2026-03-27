@@ -1,5 +1,5 @@
 # Recommendation Algorithm
-Last updated: March 20, 2026
+Last updated: March 27, 2026
 Status: `current behavior (parent/child + split prereq model)`
 
 ## In Plain English
@@ -39,6 +39,13 @@ Status: `current behavior (parent/child + split prereq model)`
 - Tracks are gated by `parent_major` and `required_major`.
 - Dynamic elective synthesis supplements explicit mappings at load time; it does not replace `master_bucket_courses`.
 - Dynamic synthesis is intentionally narrow: only tagged catalog courses are added, and only into qualifying `credits_pool` buckets.
+
+## Bucket Counting Rules
+- Non-elective buckets (`required`, `choose_n`) beat `credits_pool` elective pools in normal recommendation and eligibility views. If a course can fill both, MarqBot shows the non-elective side only.
+- Completed-course allocation follows the same precedence. A course counted in a non-elective bucket does not also count in an elective pool at the same time.
+- Overflow exception: if multiple completed courses can satisfy the same non-elective slot and that slot is already full, MarqBot may spill the extra course into eligible elective pools instead of dropping it.
+- Overflow tie-breaks are deterministic. For equally constrained same-slot collisions, MarqBot uses a stable pseudo-random order so the same request produces the same allocation on rerun.
+- Elective pools can still double count with other elective pools when pairwise bucket policy allows it.
 
 ## Prerequisite System
 ### Hard inputs used by eligibility
@@ -110,7 +117,7 @@ Courses are ranked by which requirement they fulfill. Higher tier = picked first
 | 5 | MCC Late (writing, culminating) | Upper-division core — deferred until you have credits |
 | 6 | Discovery themes | Exploratory courses with wide pools — scheduled last |
 
-Within a tier, courses that unblock deeper prereq chains, fill multiple buckets, or sit at a lower course level are picked first.
+Within a tier, courses that unblock deeper prereq chains, still help more than one allowed bucket, or sit at a lower course level are picked first.
 
 ### Scheduling Styles
 

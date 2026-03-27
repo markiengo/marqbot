@@ -8,6 +8,36 @@ Format per release:
 
 ---
 
+## [v2.5.3] - 2026-03-27
+
+### Changes
+
+- Updated the onboarding and profile-edit major search so it also matches major codes/aliases from the catalog, letting queries like `OSCM` find Operations & Supply Chain Management.
+- Added an adaptive reduced-effects system on the frontend. `frontend/src/context/EffectsContext.tsx` now resolves `full` vs `reduced` effects automatically using motion preference, low-capability browser hints, and a short frame-cadence probe, then stamps the result on the root document for shared styling.
+- Added a manual visual-effects override in planner preferences (`Auto`, `Full effects`, `Reduced effects`) and persisted it in browser storage under `marqbot_effects_preference`.
+- Flattened the most expensive planner, onboarding, and shared-modal rendering paths when reduced effects are active. Critical surfaces now drop blur-heavy backdrops, large glow stacks, and some heavier motion while keeping the same layout, color system, and core interactions.
+- Simplified screenshot OCR review UI by removing user-facing confidence percentages from import results and tutorial mock rows. Internal confidence scoring still routes low-confidence rows into manual review, so behavior stays the same without exposing the score.
+- Simplified the planner header CTA. The separate `Save Plan` button was removed, and the remaining primary header action is now a yellow `Save Plan` button.
+- Added frontend regression coverage for the reduced-effects mode and updated onboarding DOM coverage to match the current preferences -> roadmap -> planner flow.
+- Fixed bucket counting so non-elective buckets (`required`, `choose_n`) beat `credits_pool` elective pools in recommendation views and completed-course allocation.
+- Added overflow handling for same-slot completions: when a required slot is already full, extra completed courses can spill into eligible elective pools instead of being dropped. Updated the ranking explainers and bucket guide copy to reflect the rule.
+- Deduplicated shared bucket helpers (`bucket_family_key`, `order_buckets_same_family`) from allocator and eligibility into `requirements.py` so both modules use the same code path.
+- Moved `eval/advisor_gold.json` into `tests/backend/fixtures/` and updated the eval script default path. Test fixtures now live with their test suite.
+- Replaced the horizontal-scroll about-page timeline layout with a responsive grid that wraps properly on smaller screens.
+- Fixed pre-existing frontend test failures: added missing `EffectsProvider` context to `semesterModal` and `progressBucketDrillIn` test renders, added `scheduling_style` to the feedback test expected payload, and updated the about-content assertions for the current timeline structure.
+- Rewrote `README.md` with a feature table, badges, mermaid flow diagram, and collapsible local-setup section.
+
+### Design Decisions
+
+- This patch targets "works on average laptops even without browser hardware acceleration" rather than assuming GPU-assisted compositing is always available.
+- The reduced-effects pass preserves brand color, hierarchy, and spacing while degrading blur, glow, and animation first. The goal is a cleaner rendering path, not a visual redesign.
+- Effects mode is automatic by default because most students should never need to know why a browser is struggling, but a manual override remains available for edge cases and personal preference.
+- OCR confidence scoring remains internal because it still improves import triage; only the visible confidence badges were removed.
+- Bucket counting now favors the narrower requirement interpretation first because explicit required work should not disappear into a broad elective pool.
+- Extra same-slot completions should stay useful when policy allows it, so overflow can spill into elective pools, but only after the non-elective slot is satisfied.
+
+---
+
 ## [v2.5.2] - 2026-03-27
 
 ### Changes

@@ -32,6 +32,9 @@ It loads the catalog and degree data, decides what counts toward progress, check
 - `semester_recommender.py`
   Ranks and selects deterministic semester recommendations.
 
+- `requirements.py`
+  Shared domain constants and bucket helpers used by both allocator and eligibility (double-count families, bucket ordering, pairwise policy).
+
 - `prereq_parser.py`
   Parses supported hard-prereq expressions.
 
