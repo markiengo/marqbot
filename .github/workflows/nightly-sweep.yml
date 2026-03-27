@@ -2,12 +2,8 @@ name: Nightly Sweep
 
 on:
   pull_request:
-  # DISABLED 2026-03-24: Nightly schedule paused while the codebase is under
-  # heavy daily changes — the auto-tune diffs become stale before they can be
-  # reviewed, and the nightly-tuning/* branches add noise to the repo.
-  # Re-enable the two lines below when the codebase stabilises.
-  # schedule:
-  #   - cron: "0 7 * * *"
+  schedule:
+    - cron: "0 7 * * *"   # 2am CT daily (7am UTC) — reports only, auto-tune stays disabled
   workflow_dispatch:
 
 env:

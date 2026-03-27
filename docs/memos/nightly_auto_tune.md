@@ -4,7 +4,7 @@ MarqBot runs a single GitHub Actions workflow called **Nightly Sweep** that doub
 
 ## Current status
 
-> **Paused as of 2026-03-24.** The cron schedule and auto-tune job are disabled while the codebase is under heavy daily changes. The sweep still runs on `workflow_dispatch`. See the comments in `.github/workflows/nightly-sweep.yml` for how to re-enable.
+> **Partially re-enabled 2026-03-26.** The cron schedule (2am CT / 07:00 UTC) and nightly sweep jobs are active again. The auto-tune job remains disabled (`if: false`) — reports run nightly but no config PRs are created automatically. To restore auto-tune, set `if: false` back to `if: github.event_name != 'pull_request'` in `.github/workflows/nightly-sweep.yml`.
 
 ## How it works
 

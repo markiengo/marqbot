@@ -1,6 +1,6 @@
 # Test Structure
 
-Last updated: 2026-03-18
+Last updated: 2026-03-26
 
 Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
@@ -121,8 +121,8 @@ One unified workflow: `.github/workflows/nightly-sweep.yml`
 | Trigger | Jobs that run |
 |---|---|
 | **Pull request** | Backend Regression, Planner Fast Guardrail, Frontend Tests |
-| **Schedule** | ~~Nightly Focused Sweep, Nightly Auto-Tune~~ — **disabled 2026-03-24** while the codebase is under heavy daily changes. Re-enable in the workflow file when the codebase stabilises. |
-| **Manual** (`workflow_dispatch`) | Nightly Focused Sweep (Auto-Tune job is also disabled — set `if: false` back to `github.event_name != 'pull_request'` to restore) |
+| **Schedule** (2am CT daily) | Planner Fast Guardrail, Nightly Focused Sweep — **re-enabled 2026-03-26**. Auto-Tune job remains disabled (`if: false`). |
+| **Manual** (`workflow_dispatch`) | Planner Fast Guardrail, Nightly Focused Sweep (Auto-Tune job disabled — set `if: false` back to `github.event_name != 'pull_request'` to restore) |
 
 For the scheduled/manual nightly jobs, catalog-data assertion failures are treated as reportable review items, not release-blocking CI failures. The sweep stays green on pytest exit code `1` as long as the report artifact is produced; runner/internal pytest errors still fail the workflow. After a successful sweep, the auto-tune job reads the JSON sidecar, updates `config/ranking_overrides.json` plus `config/data_investigation_queue.json`, and opens a PR. Small override changes (`<= 3` bucket override edits) are set to auto-merge.
 

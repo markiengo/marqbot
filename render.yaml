@@ -7,9 +7,9 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: "3.12"
       - key: WEB_CONCURRENCY
-        value: "1"
+        value: "4"
       - key: GUNICORN_TIMEOUT
         value: "90"
       - key: GUNICORN_GRACEFUL_TIMEOUT

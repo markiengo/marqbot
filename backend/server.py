@@ -13,6 +13,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import pandas as pd
 from flask import Flask, g, jsonify, request, send_from_directory
+from flask_compress import Compress
+from whitenoise import WhiteNoise
 from werkzeug.exceptions import NotFound
 from dotenv import load_dotenv
 
@@ -44,9 +46,20 @@ from semester_recommender import (
     annotate_progress_with_recommendation_hierarchy,
 )
 
+import sentry_sdk
+
 load_dotenv()
 
+_sentry_dsn = os.environ.get("SENTRY_DSN", "")
+if _sentry_dsn:
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        send_default_pii=True,
+        traces_sample_rate=0.1,
+    )
+
 app = Flask(__name__)
+Compress(app)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -65,8 +78,8 @@ else:
 _data_lock = threading.Lock()
 _data_mtime = None
 
-# -- Rate limiting (manual token bucket, 10 req/min per IP) ----------------
-_RATE_LIMIT_MAX = 10
+# -- Rate limiting (manual token bucket, 30 req/min per IP) ----------------
+_RATE_LIMIT_MAX = 30
 _RATE_LIMIT_WINDOW = 60  # seconds
 _rate_limit_lock = threading.Lock()
 _rate_limit_tracker: dict[str, list[float]] = defaultdict(list)
@@ -313,7 +326,16 @@ def _reload_data_if_changed(force: bool = False) -> bool:
         return True
 
 
+_last_mtime_check: float = 0.0
+_MTIME_CHECK_INTERVAL = 30.0  # seconds — data is baked into the Docker image on Render
+
+
 def _refresh_data_if_needed() -> None:
+    global _last_mtime_check
+    now = time.monotonic()
+    if now - _last_mtime_check < _MTIME_CHECK_INTERVAL:
+        return
+    _last_mtime_check = now
     try:
         _reload_data_if_changed()
     except Exception as exc:
@@ -357,8 +379,9 @@ def _add_security_headers(response):
 def health_endpoint():
     return jsonify({
         "status": "ok",
-        "version": "2.3.2",
+        "courses_loaded": len(_data.get("catalog_codes", [])),
         "frontend_ready": _frontend_ready(),
+        "version": os.environ.get("RENDER_GIT_COMMIT", "dev")[:7],
     })
 
 
@@ -2736,6 +2759,13 @@ def frontend_files(filename):
         return send_from_directory(FRONTEND_DIR, "index.html")
     except NotFound:
         return _frontend_missing_response()
+
+
+# Serve Next.js static files via WhiteNoise — bypasses Flask routing for assets,
+# significantly faster than send_from_directory for JS/CSS/images.
+# SPA fallback (non-extension routes) still handled by frontend_files() below.
+if _frontend_ready():
+    app.wsgi_app = WhiteNoise(app.wsgi_app, root=FRONTEND_DIR, autorefresh=False)
 
 
 if __name__ == "__main__":
