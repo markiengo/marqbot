@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useAppContext } from "@/context/AppContext";
+import { useCatalogContext } from "@/context/AppContext";
 import { loadCourses } from "@/lib/api";
 import type { Course } from "@/lib/types";
 
-type AppDispatch = ReturnType<typeof useAppContext>["dispatch"];
+type AppDispatch = ReturnType<typeof useCatalogContext>["dispatch"];
 
 async function fetchCoursesOnce(
   courses: Course[],
@@ -36,22 +36,22 @@ async function fetchCoursesOnce(
 }
 
 export function useCourses() {
-  const { state, dispatch } = useAppContext();
+  const { courses, coursesLoadStatus, coursesLoadError, dispatch } = useCatalogContext();
   const inFlightRef = useRef<Promise<Course[]> | null>(null);
 
   useEffect(() => {
-    if (state.courses.length > 0 || state.coursesLoadStatus !== "idle") return;
-    void fetchCoursesOnce(state.courses, dispatch, inFlightRef).catch(() => null);
-  }, [state.courses, state.coursesLoadStatus, dispatch]);
+    if (courses.length > 0 || coursesLoadStatus !== "idle") return;
+    void fetchCoursesOnce(courses, dispatch, inFlightRef).catch(() => null);
+  }, [courses, coursesLoadStatus, dispatch]);
 
   const retry = () => {
-    void fetchCoursesOnce(state.courses, dispatch, inFlightRef).catch(() => null);
+    void fetchCoursesOnce(courses, dispatch, inFlightRef).catch(() => null);
   };
 
   return {
-    courses: state.courses,
-    loading: state.coursesLoadStatus === "loading",
-    error: state.coursesLoadError,
+    courses,
+    loading: coursesLoadStatus === "loading",
+    error: coursesLoadError,
     retry,
   };
 }

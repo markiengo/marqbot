@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
+import { useEffectsContext, useReducedEffects } from "@/context/EffectsContext";
 import {
   SEMESTER_OPTIONS,
   SEMESTER_COUNT_OPTIONS,
@@ -18,7 +19,13 @@ const selectCls = "onboarding-input onboarding-select w-full rounded-xl px-4 py-
 
 export function ProfilePreferencesTab() {
   const { state, dispatch } = useAppContext();
+  const { mode, autoMode, preference, setPreference } = useEffectsContext();
+  const reducedEffects = useReducedEffects();
   const [buildInfoOpen, setBuildInfoOpen] = useState(false);
+  const cardTransition = (delay: number) =>
+    reducedEffects
+      ? { duration: 0.18, delay: Math.min(delay, 0.08) }
+      : { type: "spring" as const, stiffness: 260, damping: 24, delay };
 
   return (
     <div className="space-y-4">
@@ -56,7 +63,7 @@ export function ProfilePreferencesTab() {
             key={item.action}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 24, delay: item.delay }}
+            transition={cardTransition(item.delay)}
             className={`${item.panel} flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]`}
           >
             <div className="space-y-1">
@@ -80,7 +87,7 @@ export function ProfilePreferencesTab() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.24 }}
+          transition={cardTransition(0.24)}
           className="onboarding-panel-soft flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]"
         >
           <div className="space-y-1">
@@ -109,7 +116,7 @@ export function ProfilePreferencesTab() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.32 }}
+          transition={cardTransition(0.32)}
           className="onboarding-panel flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]"
         >
           <div className="space-y-1">
@@ -149,7 +156,7 @@ export function ProfilePreferencesTab() {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.40 }}
+        transition={cardTransition(0.40)}
         className="grid gap-4 md:grid-cols-2"
       >
         <label className="onboarding-panel flex cursor-pointer items-center justify-between gap-4 rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]">
@@ -185,6 +192,37 @@ export function ProfilePreferencesTab() {
             <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-ink-muted transition-all peer-checked:left-[1.375rem] peer-checked:bg-gold-light" />
           </div>
         </label>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={cardTransition(0.48)}
+        className="onboarding-panel-soft rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-ink-primary">Visual effects</label>
+            <p className="text-xs text-ink-muted">
+              Auto keeps the premium look on capable devices and flattens expensive effects when rendering looks weak.
+            </p>
+          </div>
+          <span className="onboarding-pill rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
+            {preference === "auto" ? `Auto: ${autoMode}` : mode}
+          </span>
+        </div>
+        <div className="mt-3">
+          <select
+            aria-label="Effects mode"
+            value={preference}
+            onChange={(e) => setPreference(e.target.value as "auto" | "full" | "reduced")}
+            className={selectCls}
+          >
+            <option value="auto">Auto</option>
+            <option value="full">Full effects</option>
+            <option value="reduced">Reduced effects</option>
+          </select>
+        </div>
       </motion.div>
 
       <Modal

@@ -66,15 +66,15 @@ export function AboutCTA() {
           <div className={styles.ctaAurora} />
           <div
             className={`${styles.sectionGlow} -left-16 -top-16 h-72 w-72`}
-            style={{ background: "rgba(255,204,0,0.08)" }}
+            style={{ background: "radial-gradient(circle, rgba(255,204,0,0.10) 0%, rgba(255,204,0,0.05) 42%, transparent 74%)" }}
           />
           <div
             className={`${styles.sectionGlow} -bottom-12 -right-10 h-64 w-64`}
-            style={{ background: "rgba(24,68,160,0.14)" }}
+            style={{ background: "radial-gradient(circle, rgba(24,68,160,0.16) 0%, rgba(24,68,160,0.07) 42%, transparent 74%)" }}
           />
           <div
             className={`${styles.sectionGlow} left-[40%] top-[60%] h-48 w-48`}
-            style={{ background: "rgba(0,51,102,0.06)" }}
+            style={{ background: "radial-gradient(circle, rgba(0,51,102,0.08) 0%, rgba(0,51,102,0.04) 42%, transparent 74%)" }}
           />
 
           <div className="relative z-10">

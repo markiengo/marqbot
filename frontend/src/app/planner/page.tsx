@@ -6,6 +6,11 @@ import { usePrograms } from "@/hooks/usePrograms";
 import { useSession } from "@/hooks/useSession";
 import { PlannerLayout } from "@/components/planner/PlannerLayout";
 
+function PlannerSessionPersistence() {
+  useSession();
+  return null;
+}
+
 export default function PlannerPage() {
   const { courses, loading: coursesLoading, error: coursesError, retry: retryCourses } = useCourses();
   const {
@@ -14,7 +19,6 @@ export default function PlannerPage() {
     error: programsError,
     retry: retryPrograms,
   } = usePrograms();
-  useSession();
 
   const isLoading =
     coursesLoading ||
@@ -62,5 +66,10 @@ export default function PlannerPage() {
     );
   }
 
-  return <PlannerLayout />;
+  return (
+    <>
+      <PlannerSessionPersistence />
+      <PlannerLayout />
+    </>
+  );
 }

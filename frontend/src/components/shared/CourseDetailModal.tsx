@@ -36,7 +36,7 @@ export function CourseDetailModal({
   programLabelMap,
   bucketLabelMap,
 }: CourseDetailModalProps) {
-  const warnings = (plannerWarnings ?? []).filter(Boolean);
+  const warnings = open ? (plannerWarnings ?? []).filter(Boolean) : [];
 
   return (
     <Modal open={open} onClose={onClose} size="default">

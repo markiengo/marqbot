@@ -69,7 +69,8 @@ Those auto-tuned changes are limited to checked-in config. They do not edit the 
 - `FLASK_DEBUG`: optional local backend debug toggle
 - `FEEDBACK_PATH`: optional JSONL file path for feedback submissions; for local dev this can point to an ignored file like `docs/feedbacks/feedback.jsonl`, and for production it should point to a Render persistent disk path
 - `PORT`, `WEB_CONCURRENCY`, `GUNICORN_TIMEOUT`, `GUNICORN_GRACEFUL_TIMEOUT`: deploy/runtime overrides
-- `REQUEST_CACHE_SIZE`, `SLOW_REQUEST_LOG_MS`: backend cache/log tuning
+- `REQUEST_CACHE_SIZE`, `RECOMMEND_CACHE_SIZE`, `CAN_TAKE_CACHE_SIZE`, `PROGRAM_DATA_CACHE_SIZE`: backend response-cache entry caps (`REQUEST_CACHE_SIZE` is the shared default; the others override specific caches)
+- `SLOW_REQUEST_LOG_MS`: request duration threshold for slow-request logging
 - `NEXT_PUBLIC_API_BASE`: optional absolute frontend API base
 
 ## Project Directory

@@ -194,11 +194,10 @@ describe("Planner feedback nudge", () => {
   test("removes the header feedback button and opens the modal from the feedback lane", async () => {
     renderPlanner();
 
-    expect(screen.queryByRole("button", { name: /^feedback$/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /contact markie/i })).toHaveAttribute("href", "/about");
-    expect(screen.getByRole("button", { name: /feedback form/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^feedback$/i })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: /contact me/i })).toHaveAttribute("href", "/about");
 
-    fireEvent.click(screen.getByRole("button", { name: /feedback form/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^feedback$/i }));
 
     expect(screen.getByRole("heading", { name: /send feedback/i })).toBeInTheDocument();
 
@@ -213,10 +212,10 @@ describe("Planner feedback nudge", () => {
       vi.advanceTimersByTime(45_000);
     });
 
-    expect(screen.getByRole("button", { name: /feedback form/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^feedback$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /dismiss feedback nudge/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /feedback form/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^feedback$/i }));
 
     expect(screen.getByRole("heading", { name: /send feedback/i })).toBeInTheDocument();
 
@@ -227,7 +226,7 @@ describe("Planner feedback nudge", () => {
       vi.advanceTimersByTime(180_000);
     });
 
-    expect(screen.getByRole("button", { name: /feedback form/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^feedback$/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /dismiss feedback nudge/i }));
 
@@ -238,13 +237,13 @@ describe("Planner feedback nudge", () => {
       vi.advanceTimersByTime(180_000);
     });
 
-    expect(screen.getByRole("button", { name: /feedback form/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^feedback$/i })).toBeInTheDocument();
   });
 
   test("successful submit suppresses later auto-nudges", async () => {
     renderPlanner();
 
-    fireEvent.click(screen.getByRole("button", { name: /feedback form/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^feedback$/i }));
     fireEvent.click(screen.getByRole("button", { name: /rate marqbot 4 out of 5/i }));
     fireEvent.change(screen.getByLabelText(/what happened/i), {
       target: {
@@ -268,6 +267,6 @@ describe("Planner feedback nudge", () => {
     });
 
     expect(screen.queryByRole("button", { name: /dismiss feedback nudge/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /feedback form/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^feedback$/i })).toBeInTheDocument();
   });
 });

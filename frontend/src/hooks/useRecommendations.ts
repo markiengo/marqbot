@@ -1,12 +1,29 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { useAppContext } from "@/context/AppContext";
+import {
+  useCourseHistoryContext,
+  usePreferencesContext,
+  useProgramSelectionContext,
+  useRecommendationContext,
+} from "@/context/AppContext";
 import { postRecommend } from "@/lib/api";
 import type { RecommendationResponse } from "@/lib/types";
 
 export function useRecommendations() {
-  const { state, dispatch } = useAppContext();
+  const { completed, inProgress } = useCourseHistoryContext();
+  const {
+    targetSemester,
+    semesterCount,
+    maxRecs,
+    includeSummer,
+    isHonorsStudent,
+    schedulingStyle,
+    studentStage,
+  } = usePreferencesContext();
+  const { selectedMajors, selectedTracks, selectedMinors, discoveryTheme } =
+    useProgramSelectionContext();
+  const { lastRecommendationData, lastRequestedCount, dispatch } = useRecommendationContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reqId = useRef(0);
@@ -17,34 +34,34 @@ export function useRecommendations() {
     setError(null);
 
     try {
-      const majors = [...state.selectedMajors];
+      const majors = [...selectedMajors];
       const payload: Record<string, unknown> = {
-        completed_courses: [...state.completed].join(", "),
-        in_progress_courses: [...state.inProgress].join(", "),
-        target_semester: state.targetSemester,
-        target_semester_primary: state.targetSemester,
-        target_semester_count: Number(state.semesterCount) || 3,
-        max_recommendations: Number(state.maxRecs) || 3,
+        completed_courses: [...completed].join(", "),
+        in_progress_courses: [...inProgress].join(", "),
+        target_semester: targetSemester,
+        target_semester_primary: targetSemester,
+        target_semester_count: Number(semesterCount) || 3,
+        max_recommendations: Number(maxRecs) || 3,
       };
       if (majors.length > 0) payload.declared_majors = majors;
-      const trackIds = [...state.selectedTracks];
-      if (state.discoveryTheme && !trackIds.includes(state.discoveryTheme)) {
-        trackIds.push(state.discoveryTheme);
+      const trackIds = [...selectedTracks];
+      if (discoveryTheme && !trackIds.includes(discoveryTheme)) {
+        trackIds.push(discoveryTheme);
       }
       if (trackIds.length > 0) payload.track_ids = trackIds;
-      if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
-      if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
-      if (state.includeSummer) payload.include_summer = true;
-      if (state.isHonorsStudent) payload.is_honors_student = true;
-      payload.student_stage = state.studentStage;
-      payload.scheduling_style = state.schedulingStyle;
+      if (selectedMinors.size > 0) payload.declared_minors = [...selectedMinors];
+      if (discoveryTheme) payload.discovery_theme = discoveryTheme;
+      if (includeSummer) payload.include_summer = true;
+      if (isHonorsStudent) payload.is_honors_student = true;
+      payload.student_stage = studentStage;
+      payload.scheduling_style = schedulingStyle;
 
       const data: RecommendationResponse = await postRecommend(payload);
       if (id !== reqId.current) return null; // stale
 
       dispatch({
         type: "SET_RECOMMENDATIONS",
-        payload: { data, count: Number(state.maxRecs) || 3 },
+        payload: { data, count: Number(maxRecs) || 3 },
       });
 
       return data;
@@ -56,11 +73,26 @@ export function useRecommendations() {
     } finally {
       if (id === reqId.current) setLoading(false);
     }
-  }, [state.completed, state.inProgress, state.targetSemester, state.semesterCount, state.maxRecs, state.includeSummer, state.isHonorsStudent, state.schedulingStyle, state.studentStage, state.selectedMajors, state.selectedTracks, state.selectedMinors, state.discoveryTheme, dispatch]);
+  }, [
+    completed,
+    inProgress,
+    targetSemester,
+    semesterCount,
+    maxRecs,
+    includeSummer,
+    isHonorsStudent,
+    schedulingStyle,
+    studentStage,
+    selectedMajors,
+    selectedTracks,
+    selectedMinors,
+    discoveryTheme,
+    dispatch,
+  ]);
 
   return {
-    data: state.lastRecommendationData,
-    requestedCount: state.lastRequestedCount,
+    data: lastRecommendationData,
+    requestedCount: lastRequestedCount,
     loading,
     error,
     fetchRecommendations,

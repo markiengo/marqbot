@@ -143,11 +143,11 @@ export function NowNextSection() {
       <div className={styles.sectionMesh} />
       <div
         className={`${styles.sectionGlow} left-[12%] top-[24%] h-[16rem] w-[16rem]`}
-        style={{ background: "rgba(255,204,0,0.05)" }}
+        style={{ background: "radial-gradient(circle, rgba(255,204,0,0.08) 0%, rgba(255,204,0,0.04) 42%, transparent 74%)" }}
       />
       <div
         className={`${styles.sectionGlow} right-[8%] bottom-[14%] h-[18rem] w-[18rem]`}
-        style={{ background: "rgba(24,68,160,0.12)" }}
+        style={{ background: "radial-gradient(circle, rgba(24,68,160,0.14) 0%, rgba(24,68,160,0.06) 42%, transparent 74%)" }}
       />
 
       <div className="relative z-10 mx-auto max-w-[64rem] px-5 sm:px-7 lg:px-10">

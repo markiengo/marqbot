@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { RecommendationResponse, BucketProgress } from "@/lib/types";
 import { esc } from "@/lib/utils";
@@ -13,7 +13,7 @@ interface RecommendationsPanelProps {
   onCourseClick?: (courseCode: string) => void;
 }
 
-export function RecommendationsPanel({
+function RecommendationsPanelInner({
   data,
   onExpandSemester,
   onCourseClick,
@@ -191,3 +191,6 @@ export function RecommendationsPanel({
     </div>
   );
 }
+
+export const RecommendationsPanel = memo(RecommendationsPanelInner);
+RecommendationsPanel.displayName = "RecommendationsPanel";

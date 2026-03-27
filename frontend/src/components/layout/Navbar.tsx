@@ -7,10 +7,12 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { NAV_ITEMS } from "@/lib/constants";
 import { Button } from "@/components/shared/Button";
+import { useReducedEffects } from "@/context/EffectsContext";
 
 export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const reducedEffects = useReducedEffects();
   const isPlannerRoute = pathname.startsWith("/planner");
   const isWarmRoute =
     pathname === "/" ||
@@ -23,7 +25,7 @@ export function Navbar() {
 
   return (
     <nav
-      className={`sticky top-0 z-40 backdrop-blur-md ${
+      className={`sticky top-0 z-40 ${
         isWarmRoute
           ? "border-b border-white/8 bg-[linear-gradient(180deg,rgba(7,16,30,0.94),rgba(7,16,30,0.80))]"
           : "bg-surface-overlay/88 border-b border-b-gold/20"
@@ -74,7 +76,7 @@ export function Navbar() {
                   >
                     <span>{item.label}</span>
                     {item.badgeLabel && (
-                      <span className="rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold tooltip-bounce">
+                      <span className={`rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold ${reducedEffects ? "" : "tooltip-bounce"}`}>
                         {item.badgeLabel}
                       </span>
                     )}
@@ -150,7 +152,7 @@ export function Navbar() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 220, damping: 24 }}
+            transition={reducedEffects ? { duration: 0.16 } : { type: "spring", stiffness: 220, damping: 24 }}
             className={`overflow-hidden border-t md:hidden ${
               isWarmRoute
                 ? "border-border-subtle bg-surface-overlay"
@@ -177,7 +179,7 @@ export function Navbar() {
                   >
                     <span>{item.label}</span>
                     {item.badgeLabel && (
-                      <span className="rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold tooltip-bounce">
+                      <span className={`rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold ${reducedEffects ? "" : "tooltip-bounce"}`}>
                         {item.badgeLabel}
                       </span>
                     )}

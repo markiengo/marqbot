@@ -1,8 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { motion } from "motion/react";
-import { useAppContext } from "@/context/AppContext";
+import {
+  useCatalogContext,
+  useCourseHistoryContext,
+  useRecommendationContext,
+} from "@/context/AppContext";
 import { ProgressRing } from "./ProgressRing";
 import { AnimatedNumber } from "@/components/shared/AnimatedNumber";
 import {
@@ -20,26 +24,28 @@ interface ProgressDashboardProps {
 }
 
 export function useProgressMetrics(): CreditKpiMetrics {
-  const { state } = useAppContext();
+  const { courses } = useCatalogContext();
+  const { completed, inProgress } = useCourseHistoryContext();
+  const { lastRecommendationData } = useRecommendationContext();
+  const creditMap = useMemo(() => buildCourseCreditMap(courses), [courses]);
+
   return useMemo(() => {
-    const creditMap = buildCourseCreditMap(state.courses);
-    const response = state.lastRecommendationData;
     const { completed: completedSource, inProgress: inProgressSource } = getCurrentCourseLists(
-      response,
-      state.completed,
-      state.inProgress,
+      lastRecommendationData,
+      completed,
+      inProgress,
     );
 
     const completedCredits = sumCreditsForCourseCodes(completedSource, creditMap);
     const inProgressCredits = sumCreditsForCourseCodes(inProgressSource, creditMap);
     return computeCreditKpiMetrics(completedCredits, inProgressCredits);
-  }, [state.courses, state.completed, state.inProgress, state.lastRecommendationData]);
+  }, [creditMap, completed, inProgress, lastRecommendationData]);
 }
 
-export function ProgressDashboard({ onViewDetails, onCompletedClick, onInProgressClick }: ProgressDashboardProps) {
-  const { state } = useAppContext();
+function ProgressDashboardInner({ onViewDetails, onCompletedClick, onInProgressClick }: ProgressDashboardProps) {
+  const { completed, inProgress } = useCourseHistoryContext();
   const metrics = useProgressMetrics();
-  const hasData = state.completed.size > 0 || state.inProgress.size > 0;
+  const hasData = completed.size > 0 || inProgress.size > 0;
 
   return (
     <div className="lg:h-full lg:min-h-0 rounded-2xl glass-card gradient-border p-3 flex flex-col gap-1.5 relative overflow-hidden">
@@ -135,6 +141,9 @@ export function ProgressDashboard({ onViewDetails, onCompletedClick, onInProgres
     </div>
   );
 }
+
+export const ProgressDashboard = memo(ProgressDashboardInner);
+ProgressDashboard.displayName = "ProgressDashboard";
 
 function KpiTile({
   value,

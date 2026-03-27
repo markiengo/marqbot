@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useAppContext } from "@/context/AppContext";
+import { useCatalogContext } from "@/context/AppContext";
 import { loadPrograms } from "@/lib/api";
 import type { ProgramsData } from "@/lib/types";
 
-type AppDispatch = ReturnType<typeof useAppContext>["dispatch"];
+type AppDispatch = ReturnType<typeof useCatalogContext>["dispatch"];
 
 async function fetchProgramsOnce(
   programs: ProgramsData,
@@ -36,22 +36,22 @@ async function fetchProgramsOnce(
 }
 
 export function usePrograms() {
-  const { state, dispatch } = useAppContext();
+  const { programs, programsLoadStatus, programsLoadError, dispatch } = useCatalogContext();
   const inFlightRef = useRef<Promise<ProgramsData> | null>(null);
 
   useEffect(() => {
-    if (state.programs.majors.length > 0 || state.programsLoadStatus !== "idle") return;
-    void fetchProgramsOnce(state.programs, dispatch, inFlightRef).catch(() => null);
-  }, [state.programs, state.programsLoadStatus, dispatch]);
+    if (programs.majors.length > 0 || programsLoadStatus !== "idle") return;
+    void fetchProgramsOnce(programs, dispatch, inFlightRef).catch(() => null);
+  }, [programs, programsLoadStatus, dispatch]);
 
   const retry = () => {
-    void fetchProgramsOnce(state.programs, dispatch, inFlightRef).catch(() => null);
+    void fetchProgramsOnce(programs, dispatch, inFlightRef).catch(() => null);
   };
 
   return {
-    programs: state.programs,
-    loading: state.programsLoadStatus === "loading",
-    error: state.programsLoadError,
+    programs,
+    loading: programsLoadStatus === "loading",
+    error: programsLoadError,
     retry,
   };
 }

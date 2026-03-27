@@ -1,6 +1,6 @@
 # Test Structure
 
-Last updated: 2026-03-26
+Last updated: 2026-03-27
 
 Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
@@ -11,7 +11,7 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 | **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 608 |
 | **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | ~45 |
 | **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly -q` | 2250 sampled + nightly-only catalog audits |
-| **Frontend** | `cd frontend; npm run test` | 99 |
+| **Frontend** | `cd frontend; npm run test` | 102 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
 Nightly is now the home for data-sensitive catalog acceptance checks that are expected to drive course/major patch decisions from the report, not PR gating.
@@ -87,7 +87,7 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 | File | Tests | Default run | What it covers |
 |---|---:|---|---|
 | `aboutContent.test.ts` | 2 | Yes | About-page content constants |
-| `appReducer.test.ts` | 5 | Yes | Bootstrap errors, snapshot restore |
+| `appReducer.test.ts` | 7 | Yes | Bootstrap errors, snapshot restore, stage inference, track sanitization |
 | `canTake.test.ts` | 3 | Yes | Can-take query matching |
 | `coursesStep.dom.test.ts` | 1 | No | Prereq inconsistency warnings (DOM) |
 | `feedback.test.ts` | 2 | Yes | Feedback payload building and message validation |
@@ -102,17 +102,19 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 | `frontend/tests/courseHistoryImportParser.test.ts` | 7 | Yes | Local OCR parser: golden fixture, row matching, grade classification |
 | `frontend/tests/coursesStep.dom.test.ts` | 4 | Yes | Screenshot import flow, prereq warnings, parsed-row apply |
 | `frontend/tests/multiSelect.dom.test.ts` | 2 | Yes | Picker DOM interactions |
-| `frontend/tests/onboardingPage.dom.test.ts` | 3 | Yes | Onboarding DOM flow |
-| `frontend/tests/profileModal.dom.test.ts` | 2 | Yes | Profile modal submit/error flow |
+| `frontend/tests/onboardingPage.dom.test.ts` | 4 | Yes | Onboarding DOM flow, loading state, secondary-program guard |
+| `frontend/tests/profileModal.dom.test.ts` | 3 | Yes | Profile modal submit/error flow, student-stage selector |
 | `frontend/tests/plannerCourseList.dom.test.ts` | 3 | Yes | Course list stage-conflict warning, filtering |
 | `frontend/tests/plannerFeedbackNudge.dom.test.ts` | 3 | Yes | Feedback lane, nudge timing, dismissal |
 | `frontend/tests/progressBucketDrillIn.test.ts` | 4 | Yes | Bucket drill-in detail rendering |
 | `frontend/tests/savedPlanDetailPage.dom.test.ts` | 1 | Yes | Saved-plan detail delete confirmation |
 | `frontend/tests/savedPlanViewModal.dom.test.ts` | 1 | Yes | Saved-plan modal delete confirmation |
-| `frontend/tests/semesterModal.dom.test.ts` | 1 | Yes | Semester modal interactions |
+| `frontend/tests/semesterModal.dom.test.ts` | 3 | Yes | Semester modal copy, compact cards, course-detail planner context |
+| `frontend/tests/useSession.dom.test.ts` | 2 | Yes | Split recommendation persistence from the lighter planner session snapshot |
 
 `tests/frontend/*.dom.test.ts` is excluded from the default Vitest run.
 `frontend/tests/*.dom.test.ts` is included in the default Vitest run.
+The default frontend run currently covers 102 cases across both `tests/frontend/*.test.ts` and `frontend/tests/*.test.ts`.
 
 ## CI Workflow
 
@@ -134,7 +136,7 @@ All tests run fully offline once dependencies already exist locally. Make sure `
 # Standard suite (~1 min)
 .\.venv\Scripts\python.exe -m pytest -q
 
-# Planner smoke guardrail only (15 tests)
+# Planner smoke guardrail only (~45 tests)
 .\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q
 
 # Nightly focused sweep plus nightly-only catalog audits

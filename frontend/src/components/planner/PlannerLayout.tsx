@@ -79,8 +79,14 @@ export function PlannerLayout() {
   const feedbackLastActiveAtRef = useRef(Date.now());
   const feedbackLastNudgedAtRef = useRef<number | null>(null);
   const feedbackNudgeRecordRef = useRef(readPlannerFeedbackNudgeRecord());
+  const feedbackCtaExpandedRef = useRef(false);
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
   const hasMeaningfulPlannerUse = Boolean(state.lastRecommendationData) || canTakeFeedbackEligible;
+
+  const setFeedbackCtaExpandedState = useCallback((expanded: boolean) => {
+    feedbackCtaExpandedRef.current = expanded;
+    setFeedbackCtaExpanded(expanded);
+  }, []);
 
   // Description lookup map from loaded courses
   const descriptionMap = useMemo(() => {
@@ -89,6 +95,13 @@ export function PlannerLayout() {
       if (c.description) m.set(c.course_code, c.description);
     }
     return m;
+  }, [state.courses]);
+  const catalogCourseMap = useMemo(() => {
+    const map = new Map<string, (typeof state.courses)[number]>();
+    for (const course of state.courses) {
+      map.set(course.course_code, course);
+    }
+    return map;
   }, [state.courses]);
 
   // Auto-fetch once when arriving fresh from onboarding with no existing recs
@@ -113,19 +126,24 @@ export function PlannerLayout() {
   useEffect(() => {
     const markActivity = () => {
       feedbackLastActiveAtRef.current = Date.now();
-      setFeedbackCtaExpanded(false);
+      if (feedbackCtaExpandedRef.current) {
+        feedbackCtaExpandedRef.current = false;
+        setFeedbackCtaExpanded(false);
+      }
     };
+    const captureOptions = { capture: true } as const;
+    const passiveCaptureOptions = { capture: true, passive: true } as const;
 
-    window.addEventListener("keydown", markActivity, true);
-    window.addEventListener("pointerdown", markActivity, true);
-    window.addEventListener("touchstart", markActivity, true);
-    window.addEventListener("scroll", markActivity, true);
+    window.addEventListener("keydown", markActivity, captureOptions);
+    window.addEventListener("pointerdown", markActivity, passiveCaptureOptions);
+    window.addEventListener("touchstart", markActivity, passiveCaptureOptions);
+    window.addEventListener("scroll", markActivity, passiveCaptureOptions);
 
     return () => {
-      window.removeEventListener("keydown", markActivity, true);
-      window.removeEventListener("pointerdown", markActivity, true);
-      window.removeEventListener("touchstart", markActivity, true);
-      window.removeEventListener("scroll", markActivity, true);
+      window.removeEventListener("keydown", markActivity, captureOptions);
+      window.removeEventListener("pointerdown", markActivity, passiveCaptureOptions);
+      window.removeEventListener("touchstart", markActivity, passiveCaptureOptions);
+      window.removeEventListener("scroll", markActivity, passiveCaptureOptions);
     };
   }, []);
 
@@ -149,19 +167,19 @@ export function PlannerLayout() {
       if (now < nextEligibleAt) return;
 
       feedbackLastNudgedAtRef.current = now;
-      setFeedbackCtaExpanded(true);
+      setFeedbackCtaExpandedState(true);
     };
 
     maybeOpenFeedbackNudge();
     const timer = window.setInterval(maybeOpenFeedbackNudge, 1000);
     return () => window.clearInterval(timer);
-  }, [feedbackModalOpen, hasMeaningfulPlannerUse]);
+  }, [feedbackModalOpen, hasMeaningfulPlannerUse, setFeedbackCtaExpandedState]);
 
   const openFeedbackModal = useCallback(() => {
     setFeedbackSuccess(false);
-    setFeedbackCtaExpanded(false);
+    setFeedbackCtaExpandedState(false);
     setFeedbackModalOpen(true);
-  }, []);
+  }, [setFeedbackCtaExpandedState]);
 
   const dismissFeedbackNudge = useCallback(() => {
     const nextRecord = {
@@ -170,8 +188,8 @@ export function PlannerLayout() {
     };
     feedbackNudgeRecordRef.current = nextRecord;
     writePlannerFeedbackNudgeRecord(nextRecord);
-    setFeedbackCtaExpanded(false);
-  }, []);
+    setFeedbackCtaExpandedState(false);
+  }, [setFeedbackCtaExpandedState]);
 
   const handleFeedbackSubmitted = useCallback(() => {
     const nextRecord = {
@@ -181,7 +199,19 @@ export function PlannerLayout() {
     feedbackNudgeRecordRef.current = nextRecord;
     writePlannerFeedbackNudgeRecord(nextRecord);
     setFeedbackSuccess(true);
-    setFeedbackCtaExpanded(false);
+    setFeedbackCtaExpandedState(false);
+  }, [setFeedbackCtaExpandedState]);
+
+  const openProgressModal = useCallback(() => {
+    setProgressModalOpen(true);
+  }, []);
+
+  const openCompletedCourseList = useCallback(() => {
+    setCourseListModal("completed");
+  }, []);
+
+  const openInProgressCourseList = useCallback(() => {
+    setCourseListModal("in-progress");
   }, []);
 
   // ── Major Guide ──────────────────────────────────────────────────
@@ -277,6 +307,29 @@ export function PlannerLayout() {
     }
     return map;
   }, [data?.current_progress]);
+  const recommendedCourseMap = useMemo(() => {
+    const map = new Map<string, RecommendedCourse>();
+    for (const semester of data?.semesters ?? []) {
+      for (const course of semester.recommendations ?? []) {
+        map.set(course.course_code, course);
+      }
+    }
+    return map;
+  }, [data?.semesters]);
+  const detailCourse = courseDetailCode ? recommendedCourseMap.get(courseDetailCode) : undefined;
+  const fallbackCourse = courseDetailCode ? catalogCourseMap.get(courseDetailCode) : undefined;
+  const detailBuckets = useMemo(
+    () => (courseDetailCode ? detailCourse?.fills_buckets ?? courseBucketMap.get(courseDetailCode) : undefined),
+    [courseDetailCode, detailCourse, courseBucketMap],
+  );
+  const detailWarnings = useMemo(
+    () => buildRecommendationWarnings(detailCourse),
+    [detailCourse],
+  );
+  const detailReason = useMemo(
+    () => sanitizeRecommendationWhy(detailCourse?.why),
+    [detailCourse],
+  );
 
   const majorLabelById = useMemo(() => {
     const map = new Map<string, string>();
@@ -548,9 +601,9 @@ export function PlannerLayout() {
           <div className="lg:h-full lg:min-h-0 flex flex-col gap-3">
             <div className="lg:flex-[3] lg:min-h-0">
               <ProgressDashboard
-                onViewDetails={() => setProgressModalOpen(true)}
-                onCompletedClick={() => setCourseListModal("completed")}
-                onInProgressClick={() => setCourseListModal("in-progress")}
+                onViewDetails={openProgressModal}
+                onCompletedClick={openCompletedCourseList}
+                onInProgressClick={openInProgressCourseList}
               />
             </div>
 
@@ -803,29 +856,21 @@ export function PlannerLayout() {
           </div>
         </div>
       </Modal>
-      {(() => {
-        const allRecs = data?.semesters?.flatMap(s => s.recommendations ?? []) ?? [];
-        const detailCourse = allRecs.find(c => c.course_code === courseDetailCode);
-        const fallbackCourse = state.courses.find(c => c.course_code === courseDetailCode);
-        const detailBuckets = detailCourse?.fills_buckets ?? courseBucketMap.get(courseDetailCode ?? "");
-        return (
-          <CourseDetailModal
-            open={courseDetailCode !== null}
-            onClose={() => setCourseDetailCode(null)}
-            courseCode={courseDetailCode ?? ""}
-            courseName={detailCourse?.course_name ?? fallbackCourse?.course_name}
-            credits={detailCourse?.credits ?? fallbackCourse?.credits}
-            description={descriptionMap.get(courseDetailCode ?? "")}
-            prereqRaw={fallbackCourse?.catalog_prereq_raw}
-            buckets={detailBuckets}
-            plannerReason={sanitizeRecommendationWhy(detailCourse?.why)}
-            plannerNotes={detailCourse?.notes}
-            plannerWarnings={buildRecommendationWarnings(detailCourse)}
-            programLabelMap={programLabelMap}
-            bucketLabelMap={bucketLabelMap}
-          />
-        );
-      })()}
+      <CourseDetailModal
+        open={courseDetailCode !== null}
+        onClose={() => setCourseDetailCode(null)}
+        courseCode={courseDetailCode ?? ""}
+        courseName={detailCourse?.course_name ?? fallbackCourse?.course_name}
+        credits={detailCourse?.credits ?? fallbackCourse?.credits}
+        description={descriptionMap.get(courseDetailCode ?? "")}
+        prereqRaw={fallbackCourse?.catalog_prereq_raw}
+        buckets={detailBuckets}
+        plannerReason={detailReason}
+        plannerNotes={detailCourse?.notes}
+        plannerWarnings={detailWarnings}
+        programLabelMap={programLabelMap}
+        bucketLabelMap={bucketLabelMap}
+      />
       <CourseListModal
         open={courseListModal !== null}
         onClose={() => setCourseListModal(null)}

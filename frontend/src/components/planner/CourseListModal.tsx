@@ -29,14 +29,15 @@ export function CourseListModal({
   const [assumptionsOn, setAssumptionsOn] = useState(true);
 
   const courseMap = useMemo(() => {
+    if (!open) return new Map<string, Course>();
     const m = new Map<string, Course>();
     for (const c of courses) m.set(c.course_code, c);
     return m;
-  }, [courses]);
+  }, [open, courses]);
 
   const notes = useMemo(
-    () => (assumptionNotes || []).map((note) => note.trim()).filter(Boolean),
-    [assumptionNotes],
+    () => (open ? (assumptionNotes || []).map((note) => note.trim()).filter(Boolean) : []),
+    [open, assumptionNotes],
   );
   const scopeNote = useMemo(
     () => notes.find((note) => note.startsWith("Inference scope:")) ?? null,
@@ -51,8 +52,8 @@ export function CourseListModal({
   const activeCodes = hasAssumptions && !assumptionsOn ? rawCourseCodes : courseCodes;
 
   const sorted = useMemo(
-    () => [...activeCodes].sort((a, b) => a.localeCompare(b)),
-    [activeCodes],
+    () => (open ? [...activeCodes].sort((a, b) => a.localeCompare(b)) : []),
+    [open, activeCodes],
   );
 
   return (

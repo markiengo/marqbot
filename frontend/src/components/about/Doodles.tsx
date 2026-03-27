@@ -1,7 +1,5 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
-
 const MARKS = [
   // ── Hero area ──
   {
@@ -240,11 +238,9 @@ const MARKS = [
 ] as const;
 
 export function Doodles() {
-  const reduce = useReducedMotion();
-
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden z-[2]" aria-hidden>
-      {MARKS.map((m, i) => {
+      {MARKS.map((m) => {
         const pos: React.CSSProperties = {
           position: "absolute",
           top: m.top,
@@ -255,15 +251,12 @@ export function Doodles() {
         if ("right" in m && m.right) pos.right = m.right;
 
         return (
-          <motion.svg
+          <svg
             key={m.id}
             viewBox={m.viewBox}
             style={pos}
-            className={parseFloat(m.top) < 50 ? "parallax-slow" : "parallax-fast"}
-            initial={reduce ? { opacity: 0.6 } : { opacity: 0, rotate: m.rotate - 8 }}
-            whileInView={reduce ? undefined : { opacity: 0.6, rotate: m.rotate }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={reduce ? undefined : { duration: 0.5, delay: 0.06 + i * 0.04, ease: [0.22, 1, 0.36, 1] }}
+            className={parseFloat(m.top) < 50 ? "opacity-55" : "opacity-50"}
+            transform={`rotate(${m.rotate})`}
             fill="none"
             stroke={m.color}
             strokeWidth={1.5}
@@ -271,7 +264,7 @@ export function Doodles() {
             strokeLinejoin="round"
           >
             <path d={m.path} />
-          </motion.svg>
+          </svg>
         );
       })}
     </div>

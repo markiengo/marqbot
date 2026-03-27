@@ -8,31 +8,23 @@ Format per release:
 
 ---
 
-## [v2.5.2] - 2026-03-26
+## [v2.5.2] - 2026-03-27
 
 ### Changes
 
-- Re-enabled nightly cron schedule (2am CT / 07:00 UTC daily). Reports and fast guardrail run on schedule; auto-tune PR job remains disabled.
-- Added Sentry error tracking to the Flask backend. Activates when `SENTRY_DSN` environment variable is set; silent no-op otherwise.
-- Pinned all Python dependencies to exact versions in `requirements.txt`. Added `sentry-sdk[flask]`, `flask-compress`, and `whitenoise` as explicit dependencies.
-- Bumped `PYTHON_VERSION` in `render.yaml` from 3.11 to 3.12 to match CI. Raised `WEB_CONCURRENCY` from 1 to 4.
-- Enriched `/api/health` response: now returns `courses_loaded` count and `version` (git commit hash) instead of a hardcoded version string.
-- Raised general rate limit from 10 to 30 requests per minute per IP.
-- Added `.env` / `.env.*` exclusions to `.dockerignore` so local secrets cannot enter Docker image builds.
-- Replaced Framer Motion `whileHover` on `CourseCard`, `CourseRow`, and `Button` with CSS `transition-transform` utilities. Removes JS-driven layout thrash on hover.
-- Removed `pulse-gold-soft` (infinite `box-shadow` keyframe animation) from the CourseCard credit badge. With up to 40 cards visible simultaneously, this was running 40 concurrent animations and creating 40 GPU compositing layers via `will-change: box-shadow`.
-- Removed `whileHover={{ backgroundColor }}` from `CourseRow`. Animating `backgroundColor` in Framer Motion forces a repaint on every frame since it is not GPU-compositable.
-- Fixed `Button` having both `transition-colors` and `transition-transform` in the same className — the second overrode the first, silently breaking background-color hover transitions. Replaced both with `transition`.
-- Added 30-second mtime throttle to `_refresh_data_if_needed()`. On Render, CSV data is baked into the Docker image at build time, so checking file modification timestamps on every request was pure overhead.
-- Added WhiteNoise WSGI middleware wrapping for Next.js static asset serving (`_next/static/`, images, fonts). Faster than `send_from_directory` and correctly serves the pre-gzipped `.js.gz` and `.css.gz` siblings.
-- Dockerfile now gzip pre-compresses all `.js` and `.css` files after the Next.js build, enabling `Content-Encoding: gzip` passthrough via WhiteNoise.
+- Split planner session persistence in `frontend/src/hooks/useSession.ts`: the lightweight planner snapshot stays under `marqbot_session_v1`, while `lastRecommendationData` now persists separately under `marqbot_session_recommendation_v1`. Restore logic merges both snapshots on load instead of re-serializing the full recommendation payload on every planner change.
+- Reduced broad planner rerenders by splitting `frontend/src/context/AppContext.tsx` into narrower context slices (catalog, course history, program selection, preferences, UI, recommendations). `useRecommendations`, `useCanTake`, `CanTakeSection`, `ProgressDashboard`, and `RecommendationsPanel` were moved toward narrower subscriptions, and `frontend/src/app/planner/page.tsx` now isolates `useSession()` in a null child so the route component itself is not the persistence subscriber.
+- Trimmed modal-open work in the shared shell and planner modals. `frontend/src/components/shared/Modal.tsx` now defers blur/focus setup by one animation frame and adds compositor hints; `frontend/src/components/planner/PlannerLayout.tsx` memoizes course-detail lookups instead of re-flattening recommendation arrays on every open; `ProgressModal.tsx`, `CourseListModal.tsx`, and `CourseDetailModal.tsx` skip heavier derived work while closed.
+- Reduced always-on paint/compositing cost across landing/about/planner surfaces. `frontend/src/app/globals.css` no longer keeps perpetual pulse/float/parallax effects running by default, `frontend/src/components/layout/Navbar.tsx` drops backdrop blur, landing/about glow layers were converted from large blurred blobs to static gradients, and `frontend/src/components/about/Doodles.tsx` now renders plain SVG instead of motion-wrapped doodles.
+- Moved screenshot OCR parsing fully onto the user-triggered path. `frontend/src/components/onboarding/CourseHistoryImport.tsx` now lazy-loads the parser only when a screenshot import actually starts, instead of keeping that code on the normal planner-side import path.
+- Bounded backend response caches in `backend/server.py` so long exploratory sessions do not keep growing resident memory. Added per-cache entry caps and existing TTL/max-byte enforcement for recommendation, can-take, and program-data caches, plus env knobs `REQUEST_CACHE_SIZE`, `RECOMMEND_CACHE_SIZE`, `CAN_TAKE_CACHE_SIZE`, `PROGRAM_DATA_CACHE_SIZE`, and `SLOW_REQUEST_LOG_MS`.
 
 ### Design Decisions
 
-- Nightly re-enable: codebase has stabilised enough that daily regression reports are useful again. Auto-tune stays off until a review cadence is established.
-- Sentry opt-in via env var: DSN never touches version control; production activates it, local dev ignores it.
-- CSS transitions over Framer Motion hover: hover animations are purely cosmetic and do not need spring physics. Native CSS is compositor-thread only, requires zero JavaScript, and reduces the number of active Framer Motion gesture recognizers from ~40 to 0 on the planner page.
-- mtime throttle: data reload check reduced from per-request to once per 30 seconds. Since data is baked into the image at deploy time, any mtime change would require a redeploy anyway — polling more frequently has no benefit.
+- The investigation started from a browser-specific lag report (Edge smooth, Brave much worse, especially with GPU acceleration off), so the optimization target was render-path sensitivity and repeated client work rather than assuming the recommender backend was the primary bottleneck.
+- The goal of this pass was behavior-preserving performance cleanup: no intended visual redesigns, no recommendation-policy changes, and no API contract changes beyond documenting new backend cache controls.
+- Recommendation payload persistence was split out because it is the heaviest browser-local object in normal planner use; keeping it out of the hot session snapshot lowers storage churn during routine edits like course toggles, modal opens, and preference changes.
+- Backend cache limits were made explicit and configurable because recommendation-heavy browsing sessions can repeatedly hit the same endpoints; bounded caches keep those wins without turning into silent memory growth over time.
 
 ---
 

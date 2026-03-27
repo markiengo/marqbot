@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { useAppContext } from "@/context/AppContext";
+import { useCatalogContext, useUiContext } from "@/context/AppContext";
+import { useReducedEffects } from "@/context/EffectsContext";
 import { isCanTakeResultForQuery, useCanTake } from "@/hooks/useCanTake";
 import { SingleSelect } from "@/components/shared/SingleSelect";
 import { esc } from "@/lib/utils";
@@ -15,32 +16,33 @@ interface CanTakeSectionProps {
   onFeedbackNudgeEligibilityChange: (eligible: boolean) => void;
 }
 
-export function CanTakeSection({
+function CanTakeSectionInner({
   feedbackExpanded,
   onFeedbackOpen,
   onFeedbackDismiss,
   onFeedbackNudgeEligibilityChange,
 }: CanTakeSectionProps) {
-  const { state, dispatch } = useAppContext();
+  const { courses } = useCatalogContext();
+  const { canTakeQuery, dispatch } = useUiContext();
   const { data, loading, error, checkCanTake, clearCanTake } = useCanTake();
   const didAutoFetch = useRef(false);
-  const hasVisibleResult = isCanTakeResultForQuery(state.canTakeQuery, data);
-  const reduceMotion = useReducedMotion();
+  const hasVisibleResult = isCanTakeResultForQuery(canTakeQuery, data);
+  const reduceMotion = useReducedMotion() || useReducedEffects();
 
   useEffect(() => {
-    if (state.canTakeQuery.trim()) return;
+    if (canTakeQuery.trim()) return;
     didAutoFetch.current = false;
     clearCanTake();
-  }, [state.canTakeQuery, clearCanTake]);
+  }, [canTakeQuery, clearCanTake]);
 
   // If a query is already set (persisted from a previous visit) but we have no
   // result yet, re-fetch automatically so the answer is always visible.
   useEffect(() => {
-    if (didAutoFetch.current || !state.canTakeQuery || hasVisibleResult) return;
+    if (didAutoFetch.current || !canTakeQuery || hasVisibleResult) return;
     didAutoFetch.current = true;
-    void checkCanTake(state.canTakeQuery);
+    void checkCanTake(canTakeQuery);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.canTakeQuery, hasVisibleResult]);
+  }, [canTakeQuery, hasVisibleResult]);
 
   useEffect(() => {
     onFeedbackNudgeEligibilityChange(hasVisibleResult);
@@ -62,8 +64,8 @@ export function CanTakeSection({
       {/* Header */}
       <div className="shrink-0 relative z-[1]">
         <span className="section-kicker" style={{ fontSize: "0.816rem" }}>
-          {state.canTakeQuery
-            ? `Can I take ${state.canTakeQuery} next term?`
+          {canTakeQuery
+            ? `Can I take ${canTakeQuery} next term?`
             : "Can I take... next term?"}
         </span>
       </div>
@@ -72,8 +74,8 @@ export function CanTakeSection({
       <div className="flex items-center gap-2 shrink-0 relative z-[6]">
         <div className="flex-1 min-w-0">
           <SingleSelect
-            courses={state.courses}
-            value={state.canTakeQuery}
+            courses={courses}
+            value={canTakeQuery}
             onChange={(value) => {
               dispatch({ type: "SET_CAN_TAKE_QUERY", payload: value });
               clearCanTake();
@@ -102,26 +104,26 @@ export function CanTakeSection({
             >
               {data.can_take === true
                 ? "Yes"
-                  : data.can_take === false
-                    ? "Not yet"
-                    : "Check"}
+                : data.can_take === false
+                  ? "Not yet"
+                  : "Check"}
             </motion.span>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Detail row — only when result exists */}
-      {error && state.canTakeQuery.trim() && !loading && (
+      {/* Detail row - only when result exists */}
+      {error && canTakeQuery.trim() && !loading && (
         <div className="relative z-[1] rounded-lg px-3 py-2 text-xs bg-bad-light/50 text-bad">
-          Couldn&apos;t check {esc(state.canTakeQuery)} right now. {esc(error)}
+          Couldn&apos;t check {esc(canTakeQuery)} right now. {esc(error)}
         </div>
       )}
 
       {hasVisibleResult && data && !loading && (
         <motion.div
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
+          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0.14 : 0.2, ease: [0.22, 1, 0.36, 1] }}
           className={`relative z-[1] rounded-lg px-3 py-1.5 text-xs ${
             data.can_take === true
               ? "bg-ok-light/50 text-ok"
@@ -211,3 +213,6 @@ export function CanTakeSection({
     </div>
   );
 }
+
+export const CanTakeSection = memo(CanTakeSectionInner);
+CanTakeSection.displayName = "CanTakeSection";

@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useAppContext } from "@/context/AppContext";
-import { STORAGE_KEY } from "@/lib/constants";
+import {
+  useCatalogContext,
+  useCourseHistoryContext,
+  usePreferencesContext,
+  useProgramSelectionContext,
+  useRecommendationContext,
+  useUiContext,
+} from "@/context/AppContext";
+import { SESSION_RECOMMENDATION_STORAGE_KEY, STORAGE_KEY } from "@/lib/constants";
 import type { SessionSnapshot } from "@/lib/types";
+
+type PersistedRecommendationSnapshot = Pick<SessionSnapshot, "lastRecommendationData">;
 
 function readLocalStorage<T>(key: string): T | null {
   try {
@@ -23,20 +32,50 @@ function writeLocalStorage(key: string, value: unknown): void {
   }
 }
 
+function removeLocalStorage(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Ignore storage errors (private mode / quota exceeded)
+  }
+}
+
 export function useSession() {
-  const { state, dispatch } = useAppContext();
+  const { courses } = useCatalogContext();
+  const { completed, inProgress } = useCourseHistoryContext();
+  const { selectedMajors, selectedTracks, selectedMinors, discoveryTheme } =
+    useProgramSelectionContext();
+  const {
+    targetSemester,
+    semesterCount,
+    maxRecs,
+    includeSummer,
+    isHonorsStudent,
+    schedulingStyle,
+    studentStage,
+    studentStageIsExplicit,
+  } = usePreferencesContext();
+  const { canTakeQuery, activeNavTab, onboardingComplete, dispatch } = useUiContext();
+  const { lastRecommendationData, lastRequestedCount } = useRecommendationContext();
   const restoredRef = useRef(false);
 
   // Restore on mount (once courses are loaded)
   useEffect(() => {
-    if (restoredRef.current || state.courses.length === 0) return;
+    if (restoredRef.current || courses.length === 0) return;
     restoredRef.current = true;
 
     const snap = readLocalStorage<SessionSnapshot>(STORAGE_KEY);
+    const recommendationSnap =
+      readLocalStorage<PersistedRecommendationSnapshot>(SESSION_RECOMMENDATION_STORAGE_KEY);
     if (snap) {
-      dispatch({ type: "RESTORE_SESSION", payload: snap });
+      dispatch({
+        type: "RESTORE_SESSION",
+        payload: recommendationSnap?.lastRecommendationData
+          ? { ...snap, lastRecommendationData: recommendationSnap.lastRecommendationData }
+          : snap,
+      });
     }
-  }, [state.courses, dispatch]);
+  }, [courses, dispatch]);
 
   // Save on state changes (debounced)
   useEffect(() => {
@@ -44,49 +83,65 @@ export function useSession() {
 
     const timer = setTimeout(() => {
       const snapshot: SessionSnapshot = {
-        completed: [...state.completed],
-        inProgress: [...state.inProgress],
-        targetSemester: state.targetSemester,
-        semesterCount: state.semesterCount,
-        maxRecs: state.maxRecs,
-        includeSummer: state.includeSummer,
-        isHonorsStudent: state.isHonorsStudent,
-        schedulingStyle: state.schedulingStyle,
-        studentStage: state.studentStage,
-        studentStageIsExplicit: state.studentStageIsExplicit,
-        canTake: state.canTakeQuery,
-        declaredMajors: [...state.selectedMajors],
-        declaredTracks: state.selectedTracks,
-        declaredMinors: [...state.selectedMinors],
-        discoveryTheme: state.discoveryTheme,
-        activeNavTab: state.activeNavTab,
-        onboardingComplete: state.onboardingComplete,
-        lastRecommendationData: state.lastRecommendationData,
-        lastRequestedCount: state.lastRequestedCount,
+        completed: [...completed],
+        inProgress: [...inProgress],
+        targetSemester,
+        semesterCount,
+        maxRecs,
+        includeSummer,
+        isHonorsStudent,
+        schedulingStyle,
+        studentStage,
+        studentStageIsExplicit,
+        canTake: canTakeQuery,
+        declaredMajors: [...selectedMajors],
+        declaredTracks: selectedTracks,
+        declaredMinors: [...selectedMinors],
+        discoveryTheme,
+        activeNavTab,
+        onboardingComplete,
+        lastRequestedCount,
       };
       writeLocalStorage(STORAGE_KEY, snapshot);
     }, 300);
 
     return () => clearTimeout(timer);
   }, [
-    state.completed,
-    state.inProgress,
-    state.targetSemester,
-    state.semesterCount,
-    state.maxRecs,
-    state.includeSummer,
-    state.isHonorsStudent,
-    state.schedulingStyle,
-    state.studentStage,
-    state.studentStageIsExplicit,
-    state.canTakeQuery,
-    state.selectedMajors,
-    state.selectedTracks,
-    state.selectedMinors,
-    state.discoveryTheme,
-    state.activeNavTab,
-    state.onboardingComplete,
-    state.lastRecommendationData,
-    state.lastRequestedCount,
+    completed,
+    inProgress,
+    targetSemester,
+    semesterCount,
+    maxRecs,
+    includeSummer,
+    isHonorsStudent,
+    schedulingStyle,
+    studentStage,
+    studentStageIsExplicit,
+    canTakeQuery,
+    selectedMajors,
+    selectedTracks,
+    selectedMinors,
+    discoveryTheme,
+    activeNavTab,
+    onboardingComplete,
+    lastRequestedCount,
   ]);
+
+  useEffect(() => {
+    if (!restoredRef.current) return;
+
+    const timer = setTimeout(() => {
+      const recommendationData = lastRecommendationData;
+      if (!recommendationData) {
+        removeLocalStorage(SESSION_RECOMMENDATION_STORAGE_KEY);
+        return;
+      }
+      const snapshot: PersistedRecommendationSnapshot = {
+        lastRecommendationData: recommendationData,
+      };
+      writeLocalStorage(SESSION_RECOMMENDATION_STORAGE_KEY, snapshot);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [lastRecommendationData]);
 }

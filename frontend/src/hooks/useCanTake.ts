@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { useAppContext } from "@/context/AppContext";
+import {
+  useCourseHistoryContext,
+  usePreferencesContext,
+  useProgramSelectionContext,
+} from "@/context/AppContext";
 import { postCanTake } from "@/lib/api";
 import type { CanTakeResponse } from "@/lib/types";
 
@@ -15,7 +19,9 @@ export function isCanTakeResultForQuery(
 }
 
 export function useCanTake() {
-  const { state } = useAppContext();
+  const { completed, inProgress } = useCourseHistoryContext();
+  const { targetSemester, studentStage } = usePreferencesContext();
+  const { selectedMajors, selectedTracks } = useProgramSelectionContext();
   const [data, setData] = useState<CanTakeResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,17 +46,17 @@ export function useCanTake() {
       setError(null);
 
       try {
-        const majors = [...state.selectedMajors];
+        const majors = [...selectedMajors];
         const payload: Record<string, unknown> = {
           requested_course: courseCode.trim(),
-          completed_courses: [...state.completed].join(", "),
-          in_progress_courses: [...state.inProgress].join(", "),
-          target_semester: state.targetSemester,
+          completed_courses: [...completed].join(", "),
+          in_progress_courses: [...inProgress].join(", "),
+          target_semester: targetSemester,
         };
         if (majors.length > 0) payload.declared_majors = majors;
-        if (state.selectedTracks.length > 0) payload.track_ids = state.selectedTracks;
-        if (state.selectedTracks.length === 1) payload.track_id = state.selectedTracks[0];
-        payload.student_stage = state.studentStage;
+        if (selectedTracks.length > 0) payload.track_ids = selectedTracks;
+        if (selectedTracks.length === 1) payload.track_id = selectedTracks[0];
+        payload.student_stage = studentStage;
 
         const result = await postCanTake(payload);
         if (id !== reqId.current) return null;
@@ -66,7 +72,7 @@ export function useCanTake() {
         if (id === reqId.current) setLoading(false);
       }
     },
-    [clearCanTake, state.completed, state.inProgress, state.targetSemester, state.studentStage, state.selectedMajors, state.selectedTracks],
+    [clearCanTake, completed, inProgress, targetSemester, studentStage, selectedMajors, selectedTracks],
   );
 
   return { data, loading, error, checkCanTake, clearCanTake };

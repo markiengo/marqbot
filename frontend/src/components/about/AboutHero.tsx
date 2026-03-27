@@ -38,11 +38,11 @@ export function AboutHero() {
       <div className={styles.gridOverlay} />
       <div
         className={`${styles.sectionGlow} left-[12%] top-[14%] h-[18rem] w-[18rem]`}
-        style={{ background: "rgba(255,204,0,0.08)" }}
+        style={{ background: "radial-gradient(circle, rgba(255,204,0,0.10) 0%, rgba(255,204,0,0.05) 42%, transparent 74%)" }}
       />
       <div
         className={`${styles.sectionGlow} right-[8%] top-[30%] h-[20rem] w-[20rem]`}
-        style={{ background: "rgba(24,68,160,0.16)" }}
+        style={{ background: "radial-gradient(circle, rgba(24,68,160,0.18) 0%, rgba(24,68,160,0.08) 42%, transparent 74%)" }}
       />
 
       <div className="relative z-10 mx-auto max-w-[72rem] px-5 sm:px-7 lg:px-10">

@@ -32,12 +32,12 @@ export function BenefitsSection() {
     <section ref={ref} className="relative overflow-hidden py-14 band-blue band-fade-top">
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div
-          className="absolute top-12 left-[10%] h-[20rem] w-[20rem] rounded-full blur-[110px]"
-          style={{ background: "rgba(255,204,0,0.05)" }}
+          className="absolute top-12 left-[10%] h-[20rem] w-[20rem] rounded-full opacity-90"
+          style={{ background: "radial-gradient(circle, rgba(255,204,0,0.08) 0%, rgba(255,204,0,0.04) 40%, transparent 74%)" }}
         />
         <div
-          className="absolute bottom-8 right-[8%] h-[18rem] w-[18rem] rounded-full blur-[90px]"
-          style={{ background: "rgba(0,114,206,0.12)" }}
+          className="absolute bottom-8 right-[8%] h-[18rem] w-[18rem] rounded-full opacity-95"
+          style={{ background: "radial-gradient(circle, rgba(0,114,206,0.14) 0%, rgba(0,114,206,0.07) 42%, transparent 74%)" }}
         />
       </div>
 

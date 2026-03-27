@@ -27,11 +27,11 @@ export function LandingFinalCTA() {
         >
           <div
             className="absolute top-0 left-0 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{ background: "rgba(255,204,0,0.07)", filter: "blur(70px)" }}
+            style={{ background: "radial-gradient(circle, rgba(255,204,0,0.10) 0%, rgba(255,204,0,0.05) 42%, transparent 74%)" }}
           />
           <div
             className="absolute bottom-0 right-0 h-44 w-44 translate-x-1/3 translate-y-1/3 rounded-full"
-            style={{ background: "rgba(24,68,160,0.12)", filter: "blur(60px)" }}
+            style={{ background: "radial-gradient(circle, rgba(24,68,160,0.16) 0%, rgba(24,68,160,0.08) 42%, transparent 74%)" }}
           />
           <div
             className="absolute inset-0 opacity-[0.06]"

@@ -38,17 +38,15 @@ export function LandingHeroSimple() {
           }}
         />
         <div
-          className="absolute left-[6%] top-[8%] h-[28rem] w-[28rem] rounded-full parallax-slow"
+          className="absolute left-[6%] top-[8%] h-[28rem] w-[28rem] rounded-full opacity-90"
           style={{
-            background: "radial-gradient(circle, rgba(255,204,0,0.08) 0%, transparent 70%)",
-            filter: "blur(40px)",
+            background: "radial-gradient(circle, rgba(255,204,0,0.12) 0%, rgba(255,204,0,0.05) 42%, transparent 72%)",
           }}
         />
         <div
-          className="absolute -right-20 top-24 h-[24rem] w-[24rem] rounded-full parallax-fast"
+          className="absolute -right-20 top-24 h-[24rem] w-[24rem] rounded-full opacity-95"
           style={{
-            background: "radial-gradient(circle, rgba(0,114,206,0.18) 0%, transparent 72%)",
-            filter: "blur(52px)",
+            background: "radial-gradient(circle, rgba(0,114,206,0.2) 0%, rgba(0,114,206,0.08) 40%, transparent 74%)",
           }}
         />
         <div

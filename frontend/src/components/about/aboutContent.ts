@@ -84,7 +84,20 @@ export const ABOUT_TIMELINE: TimelineEntry[] = [
 ];
 
 // Legacy exports kept for any remaining references
-export const ABOUT_RECENT_CHANGES: AboutBuildCard[] = [];
+export const ABOUT_RECENT_CHANGES: AboutBuildCard[] = [
+  {
+    eyebrow: "new",
+    title: "Planner performance cleanup",
+    body:
+      "Reduced planner rerenders, lighter session persistence, and faster modal opens when you check degree progress or course details.",
+  },
+  {
+    eyebrow: "new",
+    title: "Lower-power browser pass",
+    body:
+      "Cut always-on page effects and lazy-loaded screenshot OCR so the site does less work before you even ask it to build a plan.",
+  },
+];
 export const ABOUT_BUILD_CARDS: AboutBuildCard[] = [];
 
 export const ABOUT_CONTACT_LINKS: AboutContactLink[] = [

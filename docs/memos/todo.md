@@ -1,7 +1,8 @@
 # my to-do list
 
 ## what's happening right now
-- UI refactor: profile modal split into tabs (Program / Courses / Preferences), bucket section tabs, semester/progress modal polish
+- planner/browser performance cleanup: trim always-on visual work, lighten modal opens, and keep session persistence from ballooning during long planning sessions
+- full policy documentation
 
 ## high priority
 - ~~work on course_equivalencies~~ done (v2.3.1)
@@ -13,7 +14,7 @@
 - ~~interactive buckets?~~ done (v2.5.0 — expandable bucket cards in Major Guide)
 
 ## medium priority
-- feedback form inside app
+- ~~feedback form inside app~~ done (planner feedback modal + backend `/api/feedback`)
 - configure UI from iPhone perspective
 - add a mascot? marqbot vibe
 

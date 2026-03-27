@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/shared/Button";
 import { Modal } from "@/components/shared/Modal";
 import { useAppContext } from "@/context/AppContext";
-import { parseCourseHistoryScreenshot } from "@/lib/courseHistoryImport";
+import { useReducedEffects } from "@/context/EffectsContext";
 import { filterCourses } from "@/lib/utils";
 import type { Course, ImportResult, ImportRow, ImportStatus } from "@/lib/types";
 
@@ -24,6 +24,7 @@ interface ReviewRow extends ImportRow {
 
 const MAX_IMPORT_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const LOW_CONFIDENCE_THRESHOLD = 0.8;
+let courseHistoryParserPromise: Promise<typeof import("@/lib/courseHistoryImport")> | null = null;
 
 interface TutorialStep {
   tag: string;
@@ -55,10 +56,6 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 
 function reviewKey(prefix: string, row: ImportRow, index: number): string {
   return `${prefix}-${row.course_code || "unmatched"}-${row.term || "term"}-${index}`;
-}
-
-function formatConfidence(value: number): string {
-  return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
 }
 
 function dedupeCodes(codes: string[]): string[] {
@@ -106,9 +103,17 @@ function partitionResult(result: ImportResult | null) {
   return { completedMatches, inProgressMatches, needsReview: lowConfidenceRows };
 }
 
+function loadCourseHistoryParser() {
+  if (!courseHistoryParserPromise) {
+    courseHistoryParserPromise = import("@/lib/courseHistoryImport");
+  }
+  return courseHistoryParserPromise;
+}
+
 
 export function CourseHistoryImport() {
   const { state, dispatch } = useAppContext();
+  const reducedEffects = useReducedEffects();
   const [status, setStatus] = useState<ImportStatus>("idle");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -177,6 +182,7 @@ export function CourseHistoryImport() {
     setResult(null);
     setStatus("preprocessing");
     try {
+      const { parseCourseHistoryScreenshot } = await loadCourseHistoryParser();
       const nextResult = await parseCourseHistoryScreenshot(file, state.courses, {
         onStageChange: (nextStage) => setStatus(nextStage),
       });
@@ -313,8 +319,8 @@ export function CourseHistoryImport() {
 
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={reducedEffects ? { opacity: 0 } : { opacity: 0, y: 10 }}
+            animate={reducedEffects ? { opacity: 1 } : { opacity: 1, y: 0 }}
             className="onboarding-panel-danger mt-4 rounded-[1.25rem] px-4 py-4 text-sm text-ink-primary"
           >
             {error}
@@ -322,8 +328,8 @@ export function CourseHistoryImport() {
         )}
         {applyNotice && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={reducedEffects ? { opacity: 0 } : { opacity: 0, y: 10 }}
+            animate={reducedEffects ? { opacity: 1 } : { opacity: 1, y: 0 }}
             className="onboarding-panel-success mt-4 rounded-[1.25rem] px-4 py-4 text-sm text-ink-primary"
           >
             {applyNotice}
@@ -333,10 +339,10 @@ export function CourseHistoryImport() {
         <AnimatePresence>
           {result && status === "parsed" && (
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.24 }}
+              initial={reducedEffects ? { opacity: 0 } : { opacity: 0, y: 12 }}
+              animate={reducedEffects ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={reducedEffects ? { opacity: 0 } : { opacity: 0, y: -10 }}
+              transition={{ duration: reducedEffects ? 0.16 : 0.24 }}
               className="mt-5 space-y-4"
             >
               <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
@@ -346,7 +352,7 @@ export function CourseHistoryImport() {
                     Matched {matchedCount} of {result.summary.total_rows} rows
                   </p>
                   <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
-                    Confident matches are pre-checked. Lower-confidence rows stay in review until you confirm them.
+                    Rows MarqBot can place cleanly are pre-checked. Anything ambiguous stays in review until you confirm it.
                   </p>
                 </div>
                 <div className="onboarding-panel-soft rounded-[1.4rem] px-4 py-4">
@@ -387,6 +393,7 @@ export function CourseHistoryImport() {
               <div className="onboarding-panel-soft flex flex-wrap items-center justify-between gap-3 rounded-[1.45rem] px-4 py-4">
                 <p className="text-sm leading-relaxed text-ink-secondary">
                   Apply what looks right now, then keep editing with the normal course chips below.
+                  {reducedEffects ? " Screenshot OCR may take a bit longer on lower-power setups." : ""}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -486,9 +493,6 @@ function MatchSection({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-semibold text-ink-primary">{code}</span>
-                  <span className="ml-auto shrink-0 text-[10px] font-semibold text-ink-faint">
-                    {formatConfidence(row.confidence)}
-                  </span>
                 </div>
                 <p className="truncate text-xs text-ink-secondary">{row.term || "term unknown"}</p>
               </div>
@@ -585,9 +589,6 @@ function NeedsReviewCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="onboarding-pill onboarding-pill-danger rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]">
               {row.reason || row.status}
-            </span>
-            <span className="onboarding-pill onboarding-pill-blue rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]">
-              Confidence {formatConfidence(row.confidence)}
             </span>
           </div>
           <p className="text-sm font-semibold text-ink-primary">{row.source_text}</p>
@@ -874,7 +875,6 @@ function ImportTutorialModal({ open, onClose }: { open: boolean; onClose: () => 
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-ink-primary">ECON 1103</span>
                           <span className="onboarding-pill onboarding-pill-blue rounded-full px-2 py-0.5 text-[10px] font-bold">Completed</span>
-                          <span className="rounded-full bg-[rgba(30,159,97,0.16)] px-2 py-0.5 text-[10px] font-bold text-ok">98%</span>
                         </div>
                         <p className="mt-0.5 text-xs text-ink-secondary">Principles of Microeconomics &middot; 2025 Fall</p>
                       </div>
@@ -890,7 +890,6 @@ function ImportTutorialModal({ open, onClose }: { open: boolean; onClose: () => 
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-ink-primary">FINA 3001</span>
                           <span className="onboarding-pill onboarding-pill-gold rounded-full px-2 py-0.5 text-[10px] font-bold">In Progress</span>
-                          <span className="rounded-full bg-[rgba(30,159,97,0.16)] px-2 py-0.5 text-[10px] font-bold text-ok">95%</span>
                         </div>
                         <p className="mt-0.5 text-xs text-ink-secondary">Intro to Financial Management &middot; 2026 Sum</p>
                       </div>
@@ -904,9 +903,8 @@ function ImportTutorialModal({ open, onClose }: { open: boolean; onClose: () => 
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-ink-primary">SOCI 9290</span>
                           <span className="onboarding-pill onboarding-pill-danger rounded-full px-2 py-0.5 text-[10px] font-bold">Needs Review</span>
-                          <span className="rounded-full bg-[rgba(255,204,0,0.14)] px-2 py-0.5 text-[10px] font-bold text-gold-light">62%</span>
                         </div>
-                        <p className="mt-0.5 text-xs text-ink-secondary">Low confidence &mdash; you pick the right match</p>
+                        <p className="mt-0.5 text-xs text-ink-secondary">Something looked off, so you pick the right match.</p>
                       </div>
                     </div>
                   </div>

@@ -110,40 +110,130 @@ def _env_int(name: str, default: int, minimum: int = 1) -> int:
 
 _SLOW_REQUEST_LOG_MS = _env_float("SLOW_REQUEST_LOG_MS", 750.0, minimum=0.0)
 _REQUEST_CACHE_SIZE = _env_int("REQUEST_CACHE_SIZE", 128, minimum=1)
+_RECOMMEND_CACHE_SIZE = _env_int("RECOMMEND_CACHE_SIZE", min(32, _REQUEST_CACHE_SIZE), minimum=1)
+_CAN_TAKE_CACHE_SIZE = _env_int("CAN_TAKE_CACHE_SIZE", _REQUEST_CACHE_SIZE, minimum=1)
+_PROGRAM_DATA_CACHE_SIZE = _env_int("PROGRAM_DATA_CACHE_SIZE", min(24, _REQUEST_CACHE_SIZE), minimum=1)
+_RECOMMEND_CACHE_TTL_SECONDS = _env_float("RECOMMEND_CACHE_TTL_SECONDS", 600.0, minimum=0.0)
+_CAN_TAKE_CACHE_TTL_SECONDS = _env_float("CAN_TAKE_CACHE_TTL_SECONDS", 600.0, minimum=0.0)
+_PROGRAM_DATA_CACHE_TTL_SECONDS = _env_float("PROGRAM_DATA_CACHE_TTL_SECONDS", 1800.0, minimum=0.0)
+_RECOMMEND_CACHE_MAX_BYTES = _env_int("RECOMMEND_CACHE_MAX_BYTES", 8_000_000, minimum=0)
+_CAN_TAKE_CACHE_MAX_BYTES = _env_int("CAN_TAKE_CACHE_MAX_BYTES", 512_000, minimum=0)
+
+
+def _estimate_json_payload_bytes(value) -> int:
+    try:
+        return len(
+            json.dumps(
+                value,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+            ).encode("utf-8")
+        )
+    except (TypeError, ValueError):
+        return 0
 
 
 class _LruResponseCache:
-    """Thread-safe bounded in-memory cache for JSON-serializable responses."""
+    """Thread-safe bounded in-memory cache with optional TTL and byte budget."""
 
-    def __init__(self, max_size: int):
+    def __init__(
+        self,
+        max_size: int,
+        *,
+        ttl_seconds: float = 0.0,
+        max_bytes: int = 0,
+        size_estimator=None,
+    ):
         self.max_size = max(1, int(max_size))
+        self.ttl_seconds = max(0.0, float(ttl_seconds))
+        self.max_bytes = max(0, int(max_bytes))
+        self._size_estimator = size_estimator
         self._lock = threading.Lock()
-        self._items: OrderedDict[str, dict] = OrderedDict()
+        self._items: OrderedDict[str, tuple[float, object, int]] = OrderedDict()
+        self._total_bytes = 0
+
+    def _estimate_size(self, value) -> int:
+        if self._size_estimator is None:
+            return 0
+        estimated = self._size_estimator(value)
+        try:
+            return max(0, int(estimated))
+        except (TypeError, ValueError):
+            return 0
+
+    def _is_expired(self, stored_at: float, now: float) -> bool:
+        return self.ttl_seconds > 0 and (now - stored_at) >= self.ttl_seconds
+
+    def _purge_expired_locked(self, now: float) -> None:
+        if self.ttl_seconds <= 0:
+            return
+        expired_keys = [
+            key
+            for key, (stored_at, _, _) in self._items.items()
+            if self._is_expired(stored_at, now)
+        ]
+        for key in expired_keys:
+            _, _, weight = self._items.pop(key)
+            self._total_bytes -= weight
+
+    def _trim_locked(self) -> None:
+        while self._items and (
+            len(self._items) > self.max_size
+            or (self.max_bytes > 0 and self._total_bytes > self.max_bytes)
+        ):
+            _, (_, _, weight) = self._items.popitem(last=False)
+            self._total_bytes -= weight
 
     def get(self, key: str):
         with self._lock:
+            now = time.monotonic()
+            self._purge_expired_locked(now)
             if key not in self._items:
                 return None
-            value = self._items.pop(key)
-            self._items[key] = value
+            stored_at, value, weight = self._items.pop(key)
+            if self._is_expired(stored_at, now):
+                self._total_bytes -= weight
+                return None
+            self._items[key] = (stored_at, value, weight)
             return value
 
-    def set(self, key: str, value: dict) -> None:
+    def set(self, key: str, value) -> None:
         with self._lock:
+            now = time.monotonic()
+            self._purge_expired_locked(now)
+            weight = self._estimate_size(value)
+            if self.max_bytes > 0 and weight > self.max_bytes:
+                return
             if key in self._items:
-                self._items.pop(key)
-            self._items[key] = value
-            while len(self._items) > self.max_size:
-                self._items.popitem(last=False)
+                _, _, existing_weight = self._items.pop(key)
+                self._total_bytes -= existing_weight
+            self._items[key] = (now, value, weight)
+            self._total_bytes += weight
+            self._trim_locked()
 
     def clear(self) -> None:
         with self._lock:
             self._items.clear()
+            self._total_bytes = 0
 
 
-_recommend_response_cache = _LruResponseCache(_REQUEST_CACHE_SIZE)
-_can_take_response_cache = _LruResponseCache(_REQUEST_CACHE_SIZE)
-_program_data_cache = _LruResponseCache(_REQUEST_CACHE_SIZE)
+_recommend_response_cache = _LruResponseCache(
+    _RECOMMEND_CACHE_SIZE,
+    ttl_seconds=_RECOMMEND_CACHE_TTL_SECONDS,
+    max_bytes=_RECOMMEND_CACHE_MAX_BYTES,
+    size_estimator=_estimate_json_payload_bytes,
+)
+_can_take_response_cache = _LruResponseCache(
+    _CAN_TAKE_CACHE_SIZE,
+    ttl_seconds=_CAN_TAKE_CACHE_TTL_SECONDS,
+    max_bytes=_CAN_TAKE_CACHE_MAX_BYTES,
+    size_estimator=_estimate_json_payload_bytes,
+)
+_program_data_cache = _LruResponseCache(
+    _PROGRAM_DATA_CACHE_SIZE,
+    ttl_seconds=_PROGRAM_DATA_CACHE_TTL_SECONDS,
+)
 
 
 def _cache_enabled() -> bool:

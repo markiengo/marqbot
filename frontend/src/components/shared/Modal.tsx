@@ -2,7 +2,8 @@
 
 import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { useReducedEffects } from "@/context/EffectsContext";
 
 interface ModalProps {
   open: boolean;
@@ -45,6 +46,10 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [blurReady, setBlurReady] = useState(false);
+  const reducedEffects = useReducedEffects();
+  const prefersReducedMotion = useReducedMotion();
+  const simplifyMotion = reducedEffects || prefersReducedMotion;
   const titleId = useId();
   const modalId = useId();
   const handleClose = useEffectEvent(() => {
@@ -55,14 +60,28 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
+    if (!open || simplifyMotion) {
+      setBlurReady(false);
+      return;
+    }
+
+    const blurFrame = window.requestAnimationFrame(() => {
+      setBlurReady(true);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(blurFrame);
+      setBlurReady(false);
+    };
+  }, [open, simplifyMotion]);
+
+  useEffect(() => {
     if (!open) {
-      // Return focus to the element that triggered the modal
       triggerRef.current?.focus();
       triggerRef.current = null;
       return;
     }
 
-    // Remember what had focus before opening
     triggerRef.current = document.activeElement as HTMLElement;
     addModalToStack(modalId);
 
@@ -71,25 +90,23 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
     };
     document.addEventListener("keydown", handleKey);
 
-    // Focus trap — move focus into dialog
-    const dialog = dialogRef.current;
-    if (dialog) {
+    document.body.style.overflow = "hidden";
+    const focusFrame = window.requestAnimationFrame(() => {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
       const focusable = dialog.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
-      if (focusable.length) {
-        try {
-          focusable[0].focus({ preventScroll: true });
-        } catch {
-          focusable[0].focus();
-        }
+      if (focusable.length === 0) return;
+      try {
+        focusable[0].focus({ preventScroll: true });
+      } catch {
+        focusable[0].focus();
       }
-    }
-
-    // Prevent body scroll
-    document.body.style.overflow = "hidden";
+    });
 
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", handleKey);
       removeModalFromStack(modalId);
       document.body.style.overflow = openModalStack.length > 0 ? "hidden" : "";
@@ -105,34 +122,35 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
+          transition={{ duration: simplifyMotion ? 0.16 : 0.25 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4"
+          style={{ willChange: "opacity" }}
         >
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="absolute inset-0 bg-black/55 backdrop-blur-[20px]"
+            transition={{ duration: simplifyMotion ? 0.16 : 0.25 }}
+            className={`absolute inset-0 bg-black/55 ${blurReady && !simplifyMotion ? "backdrop-blur-[20px]" : ""}`}
             onClick={onClose}
+            style={{ willChange: "opacity" }}
           />
 
-          {/* Dialog */}
           <motion.div
             ref={dialogRef}
-            initial={{ opacity: 0, scale: 0.97, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 12 }}
-            transition={{ type: "spring", stiffness: 240, damping: 26 }}
+            initial={simplifyMotion ? { opacity: 0, y: 8 } : { opacity: 0, scale: 0.97, y: 12 }}
+            animate={simplifyMotion ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={simplifyMotion ? { opacity: 0, y: 8 } : { opacity: 0, scale: 0.97, y: 12 }}
+            transition={simplifyMotion ? { duration: 0.18 } : { type: "spring", stiffness: 240, damping: 26 }}
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
-            className={`relative modal-aurora backdrop-blur-[20px] rounded-2xl border border-border-card shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(141,170,224,0.06),0_0_60px_rgba(255,204,0,0.04),0_0_120px_rgba(0,114,206,0.03)] ${sizeClasses[size]} overflow-y-auto z-10`}
+            className={`relative modal-aurora ${blurReady && !simplifyMotion ? "backdrop-blur-[20px]" : ""} ${!simplifyMotion ? "transform-gpu" : ""} rounded-2xl border border-border-card ${simplifyMotion ? "shadow-[0_16px_36px_rgba(0,0,0,0.36),0_0_0_1px_rgba(141,170,224,0.06)]" : "shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(141,170,224,0.06),0_0_60px_rgba(255,204,0,0.04),0_0_120px_rgba(0,114,206,0.03)]"} ${sizeClasses[size]} overflow-y-auto z-10`}
+            style={{ willChange: "transform, opacity", contain: "layout paint style" }}
           >
             {title && (
-              <div className="relative flex items-center justify-between px-4 pt-5 pb-3 sm:px-8 sm:pt-7 sm:pb-4 border-b border-border-subtle">
-                <div className="absolute top-0 left-[5%] right-[5%] h-[2px] bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
+              <div className="relative flex items-center justify-between border-b border-border-subtle px-4 pb-3 pt-5 sm:px-8 sm:pb-4 sm:pt-7">
+                <div className="absolute left-[5%] right-[5%] top-0 h-[2px] bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
                 <div className="flex items-center gap-4">
                   <h3
                     id={titleId}
@@ -142,14 +160,13 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
                   </h3>
                   {titleExtra}
                 </div>
-                {/* 44×44px touch target wraps the × glyph */}
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex items-center justify-center w-11 h-11 -mr-2 rounded-xl text-ink-faint hover:text-ink-secondary hover:bg-surface-hover transition-colors cursor-pointer"
+                  className="flex h-11 w-11 -mr-2 cursor-pointer items-center justify-center rounded-xl text-ink-faint transition-colors hover:bg-surface-hover hover:text-ink-secondary"
                   aria-label="Close dialog"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>

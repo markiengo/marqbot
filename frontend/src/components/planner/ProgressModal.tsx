@@ -40,10 +40,13 @@ export function ProgressModal({
   rawCompleted,
   rawInProgress,
 }: ProgressModalProps) {
-  const sections = groupProgressByTierWithMajors(currentProgress, programLabelMap, programOrder);
+  const sections = useMemo(
+    () => (open ? groupProgressByTierWithMajors(currentProgress, programLabelMap, programOrder) : []),
+    [open, currentProgress, programLabelMap, programOrder],
+  );
   const allNotes = useMemo(
-    () => (assumptionNotes || []).map((n) => n.trim()).filter(Boolean),
-    [assumptionNotes],
+    () => (open ? (assumptionNotes || []).map((n) => n.trim()).filter(Boolean) : []),
+    [open, assumptionNotes],
   );
   const scopeNote = useMemo(
     () => allNotes.find((n) => n.startsWith("Inference scope:")) ?? null,
@@ -58,13 +61,16 @@ export function ProgressModal({
   const [bucketDetail, setBucketDetail] = useState<BucketDetailState | null>(null);
   const bucketTriggerRef = useRef<HTMLButtonElement | null>(null);
 
-  const creditMap = useMemo(() => buildCourseCreditMap(courses), [courses]);
+  const creditMap = useMemo(
+    () => (open ? buildCourseCreditMap(courses) : new Map<string, number>()),
+    [open, courses],
+  );
   const rawMetrics = useMemo(() => {
-    if (!rawCompleted) return metrics;
+    if (!open || !rawCompleted) return metrics;
     const completedCredits = sumCreditsForCourseCodes(rawCompleted, creditMap);
     const inProgressCredits = sumCreditsForCourseCodes(rawInProgress ?? new Set(), creditMap);
     return computeCreditKpiMetrics(completedCredits, inProgressCredits);
-  }, [rawCompleted, rawInProgress, creditMap, metrics]);
+  }, [open, rawCompleted, rawInProgress, creditMap, metrics]);
 
   const activeMetrics = hasAssumptions && !assumptionsOn ? rawMetrics : metrics;
 
@@ -239,6 +245,7 @@ export function ProgressModal({
               <BucketSectionTabs
                 sections={sections}
                 programLabelMap={programLabelMap}
+                animate={false}
                 onBucketClick={openBucketDetail}
                 layoutId="progress-modal-sections"
               />
