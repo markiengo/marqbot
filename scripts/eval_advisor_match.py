@@ -5,7 +5,7 @@ Advisor Match Evaluation Script (v1.9).
 Scores recommendation quality against a gold dataset of advisor-curated profiles.
 
 Usage:
-  python scripts/eval_advisor_match.py [--url http://localhost:5000] [--gold eval/advisor_gold.json]
+  python scripts/eval_advisor_match.py [--url http://localhost:5000] [--gold tests/backend/fixtures/advisor_gold.json]
 
 Pass/Fail definition (locked):
   - Case pass: overlap(actual_top6, expected_top6) >= 4
@@ -107,7 +107,7 @@ def main() -> None:
     parser.add_argument("--url", default="http://localhost:5000", help="Base URL of MarqBot server")
     parser.add_argument(
         "--gold",
-        default=os.path.join(os.path.dirname(__file__), "..", "eval", "advisor_gold.json"),
+        default=os.path.join(os.path.dirname(__file__), "..", "tests", "backend", "fixtures", "advisor_gold.json"),
         help="Path to advisor_gold.json",
     )
     args = parser.parse_args()

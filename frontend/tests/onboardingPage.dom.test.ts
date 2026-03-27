@@ -29,6 +29,7 @@ const baseCourses = [
 const basePrograms = {
   majors: [
     { id: "FIN_MAJOR", label: "Finance", requires_primary_major: false },
+    { id: "OSCM_MAJOR", label: "Operations & Supply Chain Management", requires_primary_major: false },
     { id: "MCC_DISC", label: "Discovery", requires_primary_major: true },
   ],
   tracks: [
@@ -93,7 +94,8 @@ describe("OnboardingPage component flow", () => {
     await user.selectOptions(studentStageSelect, "graduate");
     expect(studentStageSelect).toHaveValue("graduate");
 
-    await user.click(screen.getByRole("button", { name: /show my plan/i }));
+    await user.click(screen.getByRole("button", { name: /next: your roadmap/i }));
+    await user.click(await screen.findByRole("button", { name: /show my plan/i }));
     expect(pushSpy).toHaveBeenCalledWith("/planner");
   });
 
@@ -133,5 +135,23 @@ describe("OnboardingPage component flow", () => {
 
     expect(screen.getByRole("button", { name: /next: add courses/i })).toBeDisabled();
     expect(screen.getAllByText(/still needs a primary major/i).length).toBeGreaterThan(0);
+  });
+
+  test("matches majors by subject code aliases in onboarding search", async () => {
+    const user = userEvent.setup();
+    const state = makeAppState({
+      courses: baseCourses,
+      programs: basePrograms,
+      coursesLoadStatus: "ready",
+      programsLoadStatus: "ready",
+    });
+
+    renderWithApp(createElement(OnboardingPage), state);
+
+    await user.type(screen.getByPlaceholderText(/search majors/i), "oscm");
+
+    expect(
+      await screen.findByRole("option", { name: /^operations & supply chain management$/i }),
+    ).toBeInTheDocument();
   });
 });

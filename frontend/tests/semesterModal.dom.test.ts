@@ -3,15 +3,18 @@
 import "./setupTests";
 
 import { createElement } from "react";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 
 import { SemesterModal } from "../src/components/planner/SemesterModal";
 import { CourseDetailModal } from "../src/components/shared/CourseDetailModal";
+import { renderWithApp, makeAppState } from "./testUtils";
+
+const state = makeAppState();
 
 describe("SemesterModal planner copy", () => {
   test("does not render retired balance-policy chips", () => {
-    render(
+    renderWithApp(
       createElement(SemesterModal, {
         open: true,
         onClose: () => {},
@@ -40,6 +43,7 @@ describe("SemesterModal planner copy", () => {
           },
         ],
       }),
+      state,
     );
 
     expect(screen.queryByText("Limited major or track options this term")).not.toBeInTheDocument();
@@ -48,7 +52,7 @@ describe("SemesterModal planner copy", () => {
   });
 
   test("uses compact recommendation cards and hides boilerplate why text", () => {
-    render(
+    renderWithApp(
       createElement(SemesterModal, {
         open: true,
         onClose: () => {},
@@ -82,6 +86,7 @@ describe("SemesterModal planner copy", () => {
         ],
         onCourseClick: () => {},
       }),
+      state,
     );
 
     expect(screen.queryByText(/This course advances your declared degree path/i)).not.toBeInTheDocument();
@@ -93,7 +98,7 @@ describe("SemesterModal planner copy", () => {
 
 describe("CourseDetailModal planner context", () => {
   test("renders expanded planner details in the course detail view", () => {
-    render(
+    renderWithApp(
       createElement(CourseDetailModal, {
         open: true,
         onClose: () => {},
@@ -105,6 +110,7 @@ describe("CourseDetailModal planner context", () => {
         plannerNotes: "Take it after ACCO 1030 if you can.",
         plannerWarnings: ["junior standing required"],
       }),
+      state,
     );
 
     expect(screen.getByText("Why this showed up")).toBeInTheDocument();

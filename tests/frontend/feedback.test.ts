@@ -66,6 +66,7 @@ describe("feedback helpers", () => {
           max_recs: "4",
           include_summer: true,
           is_honors_student: true,
+          scheduling_style: "grinder",
           student_stage: "graduate",
           active_nav_tab: "plan",
           onboarding_complete: true,

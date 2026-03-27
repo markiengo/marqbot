@@ -222,4 +222,19 @@ describe("Planner completed course modal", () => {
     expect(screen.getByText(/history includes 5000-7999-level coursework/i)).toBeInTheDocument();
     expect(screen.getByText(/locked to undergraduate recommendations/i)).toBeInTheDocument();
   });
+
+  test("shows the updated ranking-rules explainer copy", () => {
+    renderPlanner();
+
+    fireEvent.click(screen.getByRole("button", { name: /how ranking works/i }));
+
+    expect(screen.getByRole("heading", { name: /how marqbot ranks courses/i })).toBeInTheDocument();
+    expect(screen.getByText("Respect bucket rules")).toBeInTheDocument();
+    expect(
+      screen.getByText(/required buckets beat elective pools when the rules collide/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/after the bucket rules are settled, courses that unlock more later/i),
+    ).toBeInTheDocument();
+  });
 });

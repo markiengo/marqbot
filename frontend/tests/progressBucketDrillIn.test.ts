@@ -3,12 +3,15 @@
 import "./setupTests";
 
 import { createElement } from "react";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
 import { ProgressModal } from "../src/components/planner/ProgressModal";
 import { SemesterModal } from "../src/components/planner/SemesterModal";
 import type { BucketProgress, CreditKpiMetrics, SemesterData } from "../src/lib/types";
+import { renderWithApp, makeAppState } from "./testUtils";
+
+const state = makeAppState();
 
 const baseMetrics: CreditKpiMetrics = {
   minGradCredits: 124,
@@ -46,7 +49,7 @@ describe("Progress bucket drill-in", () => {
   test("opens a bucket modal from current progress and forwards course clicks", async () => {
     const onCourseClick = vi.fn();
 
-    render(
+    renderWithApp(
       createElement(ProgressModal, {
         open: true,
         onClose: () => {},
@@ -55,6 +58,7 @@ describe("Progress bucket drill-in", () => {
         courses: courseCatalog,
         onCourseClick,
       }),
+      state,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /mcc core/i }));
@@ -77,7 +81,7 @@ describe("Progress bucket drill-in", () => {
   });
 
   test("escape closes only the topmost bucket modal and returns focus to the bucket card", async () => {
-    render(
+    renderWithApp(
       createElement(ProgressModal, {
         open: true,
         onClose: () => {},
@@ -85,6 +89,7 @@ describe("Progress bucket drill-in", () => {
         currentProgress: { MCC_CORE: makeBucketProgress() },
         courses: courseCatalog,
       }),
+      state,
     );
 
     const bucketButton = screen.getByRole("button", { name: /mcc core/i });
@@ -103,7 +108,7 @@ describe("Progress bucket drill-in", () => {
   });
 
   test("shows an empty state when no courses are counting in the bucket", async () => {
-    render(
+    renderWithApp(
       createElement(ProgressModal, {
         open: true,
         onClose: () => {},
@@ -120,6 +125,7 @@ describe("Progress bucket drill-in", () => {
         },
         courses: courseCatalog,
       }),
+      state,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /mcc core/i }));
@@ -147,7 +153,7 @@ describe("Projected bucket drill-in", () => {
       projection_note: "Preview of progress after this semester.",
     };
 
-    render(
+    renderWithApp(
       createElement(SemesterModal, {
         open: true,
         onClose: () => {},
@@ -157,6 +163,7 @@ describe("Projected bucket drill-in", () => {
         requestedCount: 3,
         courses: courseCatalog,
       }),
+      state,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /mcc core/i }));

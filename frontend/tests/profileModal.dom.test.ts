@@ -97,10 +97,47 @@ describe("ProfileModal recommendation submit flow", () => {
       }),
     );
 
-    const selector = screen.getByRole("combobox", { name: /student stage/i });
+    await user.click(screen.getByRole("button", { name: /preferences/i }));
+
+    const selector = await screen.findByLabelText(/student stage/i);
     expect(selector).toHaveValue("undergrad");
 
     await user.selectOptions(selector, "doctoral");
     expect(selector).toHaveValue("doctoral");
+  });
+
+  test("matches majors by subject code aliases in profile edit search", async () => {
+    const user = userEvent.setup();
+
+    renderWithApp(
+      createElement(ProfileModal, {
+        open: true,
+        onClose: vi.fn(),
+        loading: false,
+        error: null,
+        onSubmitRecommendations: vi.fn().mockResolvedValue(null),
+      }),
+      makeAppState({
+        programs: {
+          majors: [
+            { id: "FIN_MAJOR", label: "Finance", requires_primary_major: false },
+            {
+              id: "OSCM_MAJOR",
+              label: "Operations & Supply Chain Management",
+              requires_primary_major: false,
+            },
+          ],
+          tracks: [],
+          minors: [],
+          default_track_id: "FIN_MAJOR",
+        },
+      }),
+    );
+
+    await user.type(screen.getByPlaceholderText(/search majors/i), "oscm");
+
+    expect(
+      await screen.findByRole("option", { name: /^operations & supply chain management$/i }),
+    ).toBeInTheDocument();
   });
 });
