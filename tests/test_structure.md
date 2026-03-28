@@ -8,7 +8,7 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
 | What to run | Command | Tests |
 |---|---|---:|
-| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 622 |
+| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 627 |
 | **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | ~45 |
 | **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly -q` | 2250 sampled + nightly-only catalog audits |
 | **Frontend** | `cd frontend; npm run test` | 113 |
