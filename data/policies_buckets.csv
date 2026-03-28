@@ -1,0 +1,178 @@
+policy_id,parent_bucket_id,notes
+STAND_01,ALL,Standing derived from total credits affects every bucket's course eligibility
+STAND_02,ALL,Standing-based course warnings apply across all buckets
+CENS_01,ALL,College probation affects enrollment in all programs
+CENS_02,ALL,Academic dismissal blocks all enrollment
+CENS_03,ALL,Academic dismissal blocks all enrollment
+CRED_01,ALL,Full-time status check applies to total credits per semester across all buckets
+CRED_02,ALL,Normal load warning applies to total credits per semester
+CRED_03,ALL_CAS,CAS credit max applies to all CAS program buckets
+CRED_04,ALL_COBA,CoBA 19-credit max applies to all business program buckets
+CRED_05,ALL_COMM,Communication credit max
+CRED_06,ALL_EDUC,Education credit max
+CRED_07,ALL_ENGR,Engineering credit max
+CRED_08,ALL_HLSC,Health Sciences credit max
+CRED_09,ALL_NURS,Nursing credit max
+CRED_10,ALL,Summer session max is university-wide
+CRED_11,ALL,J-session max is university-wide
+CRED_12,ALL,Dean consent for overload is university-wide
+CRED_13,ALL,Non-degree credit max is university-wide
+CRED_14,ALL,No concurrent registration is university-wide
+GRAD_01,ALL,120 credit check sums across all buckets
+GRAD_02,ALL,2.0 GPA is university-wide
+GRAD_03,ALL,45-credit MU residency is university-wide
+GRAD_04,ALL,24 upper-div residency is university-wide
+GRAD_05,ALL,Final 36 residency is university-wide
+GRAD_06,ACCO_MAJOR,50% of major credits at MU
+GRAD_06,AIM_MAJOR,50% of major credits at MU
+GRAD_06,BADM_MAJOR,50% of major credits at MU
+GRAD_06,BECO_MAJOR,50% of major credits at MU
+GRAD_06,BUAN_MAJOR,50% of major credits at MU
+GRAD_06,FIN_MAJOR,50% of major credits at MU
+GRAD_06,HURE_MAJOR,50% of major credits at MU
+GRAD_06,INBU_MAJOR,50% of major credits at MU
+GRAD_06,INSY_MAJOR,50% of major credits at MU
+GRAD_06,MARK_MAJOR,50% of major credits at MU
+GRAD_06,OSCM_MAJOR,50% of major credits at MU
+GRAD_06,REAL_MAJOR,50% of major credits at MU
+GRAD_07,BADM_MINOR,50% of minor credits at MU
+GRAD_07,ENTP_MINOR,50% of minor credits at MU
+GRAD_07,HR_MINOR,50% of minor credits at MU
+GRAD_07,INSY_MINOR,50% of minor credits at MU
+GRAD_07,MARK_MINOR,50% of minor credits at MU
+GRAD_07,OSCM_MINOR,50% of minor credits at MU
+GRAD_07,PRSL_MINOR,50% of minor credits at MU
+GRAD_08,ACCO_MAJOR,15 credits in major at MU
+GRAD_08,AIM_MAJOR,15 credits in major at MU
+GRAD_08,BADM_MAJOR,15 credits in major at MU
+GRAD_08,BECO_MAJOR,15 credits in major at MU
+GRAD_08,BUAN_MAJOR,15 credits in major at MU
+GRAD_08,FIN_MAJOR,15 credits in major at MU
+GRAD_08,HURE_MAJOR,15 credits in major at MU
+GRAD_08,INBU_MAJOR,15 credits in major at MU
+GRAD_08,INSY_MAJOR,15 credits in major at MU
+GRAD_08,MARK_MAJOR,15 credits in major at MU
+GRAD_08,OSCM_MAJOR,15 credits in major at MU
+GRAD_08,REAL_MAJOR,15 credits in major at MU
+GRAD_09,BADM_MINOR,9 credits in minor at MU
+GRAD_09,ENTP_MINOR,9 credits in minor at MU
+GRAD_09,HR_MINOR,9 credits in minor at MU
+GRAD_09,INSY_MINOR,9 credits in minor at MU
+GRAD_09,MARK_MINOR,9 credits in minor at MU
+GRAD_09,OSCM_MINOR,9 credits in minor at MU
+GRAD_09,PRSL_MINOR,9 credits in minor at MU
+GRAD_10,ALL,Must clear all incomplete grades across all programs
+DECL_01,ALL,Degree-seeking requirement is universal
+DECL_02,ALL_COBA,CoBA students must declare major before junior year
+DECL_03,ALL,Minor declaration requires degree-seeking status
+DECL_04,ALL,Minor should be declared by junior year
+RPT_01,ALL,Repeat policy applies to all courses
+RPT_02,ALL,Repeat-at-MU requirement is universal
+RPT_03,ALL,Highest grade in GPA is universal
+RPT_04,ALL,Unlimited repeat exceptions are universal
+RPT_05,ALL,Failed course repeat rules are universal
+XFER_01,ALL,Transfer grade minimum applies universally
+XFER_02,ALL_COBA,Major course 10-year sunset; some colleges have shorter
+XFER_03,ALL,Test credit policy is university-wide
+XFER_04,ALL,Test credit revocation is university-wide
+XFER_05,ALL,Study elsewhere approval is university-wide
+MCC_01,MCC_FOUNDATION,5000+ courses cannot satisfy MCC Foundation
+MCC_01,MCC_CULM,5000+ courses cannot satisfy MCC Culminating
+MCC_01,MCC_DISC,5000+ courses cannot satisfy MCC Discovery parent
+MCC_01,MCC_DISC_BNJ,5000+ courses cannot satisfy MCC Discovery: Basic Needs and Justice
+MCC_01,MCC_DISC_CB,5000+ courses cannot satisfy MCC Discovery: Crossing Boundaries
+MCC_01,MCC_DISC_CMI,5000+ courses cannot satisfy MCC Discovery: Cognition Memory & Intelligence
+MCC_01,MCC_DISC_EOH,5000+ courses cannot satisfy MCC Discovery: Expanding Our Horizons
+MCC_01,MCC_DISC_IC,5000+ courses cannot satisfy MCC Discovery: Individuals and Communities
+MCC_01,MCC_ESSV2,5000+ courses cannot satisfy MCC ESSV2
+MCC_01,MCC_WRIT,5000+ courses cannot satisfy MCC Writing Intensive
+MCC_02,MCC_FOUNDATION,Transfer MCC placement affects Foundation requirements
+MCC_02,MCC_CULM,Transfer MCC placement affects Culminating requirements
+MCC_02,MCC_DISC,Transfer MCC placement affects Discovery requirements
+MCC_02,MCC_ESSV2,Transfer MCC placement affects ESSV2 requirements
+MCC_02,MCC_WRIT,Transfer MCC placement affects Writing Intensive requirements
+COBA_01,ALL_COBA,CoBA 12-19 credit load range applies to all business programs
+COBA_02,ACCO_MAJOR,C or better in major requirements and electives
+COBA_02,AIM_MAJOR,C or better in major requirements and electives
+COBA_02,BADM_MAJOR,C or better in major requirements and electives
+COBA_02,BECO_MAJOR,C or better in major requirements and electives
+COBA_02,BUAN_MAJOR,C or better in major requirements and electives
+COBA_02,FIN_MAJOR,C or better in major requirements and electives
+COBA_02,HURE_MAJOR,C or better in major requirements and electives
+COBA_02,INBU_MAJOR,C or better in major requirements and electives
+COBA_02,INSY_MAJOR,C or better in major requirements and electives
+COBA_02,MARK_MAJOR,C or better in major requirements and electives
+COBA_02,OSCM_MAJOR,C or better in major requirements and electives
+COBA_02,REAL_MAJOR,C or better in major requirements and electives
+COBA_02,BCC_CORE,C or better in BCC core courses that introduce the major
+COBA_03,ACCO_MAJOR,C or better in ACCO 1030 and 1031 before ACCO 3001
+COBA_04,ALL_COBA,At least one International Business course required for all CoBA students
+COBA_05,BADM_MINOR,CoBA students cannot declare this business minor
+COBA_05,ENTP_MINOR,CoBA students cannot declare this business minor
+COBA_05,HR_MINOR,CoBA students cannot declare this business minor
+COBA_05,INSY_MINOR,CoBA students cannot declare this business minor
+COBA_05,MARK_MINOR,CoBA students cannot declare this business minor
+COBA_05,OSCM_MINOR,CoBA students cannot declare this business minor
+COBA_05,PRSL_MINOR,CoBA students cannot declare this business minor
+COBA_06,ACCO_MAJOR,Max 3 business majors
+COBA_06,AIM_MAJOR,Max 3 business majors
+COBA_06,BADM_MAJOR,Max 3 business majors
+COBA_06,BECO_MAJOR,Max 3 business majors
+COBA_06,BUAN_MAJOR,Max 3 business majors
+COBA_06,FIN_MAJOR,Max 3 business majors
+COBA_06,HURE_MAJOR,Max 3 business majors
+COBA_06,INBU_MAJOR,Max 3 business majors
+COBA_06,INSY_MAJOR,Max 3 business majors
+COBA_06,MARK_MAJOR,Max 3 business majors
+COBA_06,OSCM_MAJOR,Max 3 business majors
+COBA_06,REAL_MAJOR,Max 3 business majors
+COBA_07,ALL_COBA,CR/NC restrictions apply to all CoBA programs
+COBA_08,BCC_CORE,Calculus in BCC must be taken at MU after matriculation
+COBA_08,ACCO_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,AIM_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,BADM_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,BECO_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,BUAN_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,FIN_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,HURE_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,INBU_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,INSY_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,MARK_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,OSCM_MAJOR,Business courses must be taken at MU after matriculation
+COBA_08,REAL_MAJOR,Business courses must be taken at MU after matriculation
+COBA_10,ACCO_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,AIM_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,BADM_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,BECO_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,BUAN_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,FIN_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,HURE_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,INBU_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,INSY_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,MARK_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,OSCM_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+COBA_10,REAL_MAJOR,Single-major upper-div electives can be below C if GPA meets minimum
+CAS_01,ALL_CAS,CAS C-/D+/D grade floor for major/minor hours
+CAS_02,ALL_CAS,CAS credit overload form for >20 credits
+ENG_01,ALL_ENGR,Engineering max 5 repeat uses
+ENG_02,ALL_ENGR,Engineering W grade limits
+ENG_03,ALL_ENGR,Engineering F/WF grade limits
+ENG_04,ALL_ENGR,Engineering 8-year course expiration
+ENG_05,ALL_ENGR,Engineering CR/NC restrictions
+DC_01,ALL,Double-count family denial applies to all bucket pairings
+DC_02,ALL,NDC group blocking applies to all buckets
+DC_03,ALL,Pairwise double-count check applies to all multi-bucket assignments
+MM_01,ALL,Major/minor subject overlap check applies to all programs
+MM_02,AIM_MAJOR,AIM requires a primary major
+MM_02,BUAN_MAJOR,BUAN requires a primary major
+MM_02,INBU_MAJOR,INBU requires a primary major
+MM_03,INBU_MAJOR,International Business requires second language proficiency
+RT_01,ALL,Max 2 courses per bucket per semester applies to all buckets
+RT_02,ALL,Overflow to elective pools applies to all non-elective buckets
+RT_03,BCC_CORE,BCC tier ordering: BCC_REQUIRED is tier 1
+RT_03,MCC_FOUNDATION,BCC tier ordering: MCC_FOUNDATION is tier 2
+RT_04,BCC_CORE,BCC deferral when explorer style and runway >= 4 semesters
+RT_05,ALL,Ranking override cap applies to all bucket priorities
+RT_06,ALL,Recommendation count limit is API-wide
+RT_07,ALL,Semester count limit is API-wide
+RT_08,ALL,Summer low-confidence filter applies to all buckets in summer terms

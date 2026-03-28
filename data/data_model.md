@@ -101,6 +101,23 @@ erDiagram
         string catalog_prereq_raw "full bulletin text"
     }
 
+    POLICIES {
+        string policy_id PK "e.g. COBA_06"
+        string policy_name
+        string scope_type "university / college / bucket"
+        string scope_id
+        string runtime_mode "block / warning / advisory / none"
+        string implementation_status "runtime_ready / deferred / etc."
+    }
+
+    POLICIES_BUCKETS {
+        string policy_id FK
+        string parent_bucket_id FK "or group alias like ALL_COBA"
+        string notes
+    }
+
+    POLICIES ||--o{ POLICIES_BUCKETS : "affects"
+    PARENT_BUCKETS ||--o{ POLICIES_BUCKETS : "governed by"
     COURSES ||--o| HARD_PREREQS : "eligibility gates"
     COURSES ||--o| SOFT_PREREQS : "warnings"
     COURSES ||--o{ MASTER_BUCKET_COURSES : "mapped to"
@@ -121,6 +138,8 @@ erDiagram
 | `course_soft_prereqs.csv` | Soft warnings, raw prerequisite text, and audit detail columns. |
 | `course_offerings.csv` | Seasonal offering history. Currently disabled - all courses treated as offered every term. |
 | `course_equivalencies.csv` | Equivalency groups used for honors/grad alternatives, cross-listing, and no-double-count logic. |
+| `policies.csv` | Normalized registry of 76 Marquette academic policies with scope, runtime mode, implementation status, and source URLs. |
+| `policies_buckets.csv` | Policy-to-bucket join table (177 rows) mapping each policy to specific parent bucket IDs or group aliases (ALL, ALL_COBA, etc.). |
 
 ## Operational Config
 

@@ -2,13 +2,13 @@
 
 ## what's happening right now
 - ~~planner/browser performance cleanup: trim always-on visual work, lighten modal opens, and keep session persistence from ballooning during long planning sessions~~ done (v2.5.2 — context slices, session split, modal defer, lazy OCR, reduced always-on effects; v2.5.3 — adaptive reduced-effects mode)
-- full policy documentation
+- ~~full policy documentation~~ done (v2.5.4 — policies.csv, policies_buckets.csv, COBA_05/06/CRED enforcement, algorithm.md rewrite, technical_reference.md)
 
 ## high priority
 - ~~work on course_equivalencies~~ done (v2.3.1)
 - ~~add major guides before showing recommendations. -> bucket showdown before recs and a button to go back too~~ done (v2.5.0 — Major Guide modal + onboarding step 4)
 - ~~fix warnings ambiguity -> dynamic warnings?~~ done (standing warnings now suppress dynamically)
-- full policy documentation
+- ~~full policy documentation~~ done (v2.5.4)
 - plan out AI feature more carefully to cater to the school's picture. note: pareto analysis. let the AI do the automation work
 - beth krey added an email about the updates -> check to see if this is implementable
 - ~~interactive buckets?~~ done (v2.5.0 — expandable bucket cards in Major Guide)

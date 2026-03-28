@@ -1,6 +1,6 @@
 # Test Structure
 
-Last updated: 2026-03-27
+Last updated: 2026-03-28
 
 Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
@@ -8,7 +8,7 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
 | What to run | Command | Tests |
 |---|---|---:|
-| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 608 |
+| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 622 |
 | **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | ~45 |
 | **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly -q` | 2250 sampled + nightly-only catalog audits |
 | **Frontend** | `cd frontend; npm run test` | 113 |
@@ -58,6 +58,7 @@ Nightly is now the home for data-sensitive catalog acceptance checks that are ex
 | `test_unlocks.py` | 9 | Reverse prereq map, blocker warnings |
 | `test_validate_prereqs_endpoint.py` | 8 | `/validate-prereqs` endpoint contract |
 | `test_validate_track.py` | 45 | Publish-gate validation, V2 governance |
+| `test_policy_verification.py` | 10 | COBA_05/06 enforcement, CRED_01/02/04/10 credit-load warnings, summer cap, semester_warnings field |
 
 Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`, `nightly_support.py`
 
@@ -134,7 +135,7 @@ For the scheduled/manual nightly jobs, catalog-data assertion failures are treat
 All tests run fully offline once dependencies already exist locally. Make sure `.venv/` and `frontend/node_modules/` are present before you lose internet. Everything reads from the CSVs in `data/`.
 
 ```powershell
-# Standard suite (~1 min)
+# Standard suite (~10 min)
 .\.venv\Scripts\python.exe -m pytest -q
 
 # Planner smoke guardrail only (~45 tests)

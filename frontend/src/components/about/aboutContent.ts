@@ -52,10 +52,10 @@ export const ABOUT_KNOWN_ISSUES = {
 
 export const ABOUT_TIMELINE: TimelineEntry[] = [
   {
-    status: "building",
-    title: "Soft-prereqs",
-    body: "Hidden sequences and policy rules, caught earlier.",
-    detail: "MarqBot sometimes suggests advanced courses before the earlier classes in a sequence, or misses soft rules the bulletin doesn\u2019t make obvious \u2014 instructor consent, college restrictions, major-only tracks, and similar edge cases. Rolling those into the recommendation logic so they get caught before they surprise you.",
+    status: "shipped",
+    title: "Policy and restriction enforcement",
+    body: "College restrictions, major gates, and credit-load rules are now enforced.",
+    detail: "MarqBot now enforces college and major restrictions when the bulletin language is clear, warns about credit overloads and business-minor conflicts, and documents 76 Marquette policies with machine-readable status tracking. Hidden sequences and edge cases are caught before they surprise you.",
   },
   {
     status: "building",

@@ -56,7 +56,7 @@ Under the hood, MarqBot runs a deterministic recommendation engine:
 3. Pick       — fills your semester in ranked order, with caps to keep things balanced
 ```
 
-Your scheduling style adjusts the balance between core requirements and discovery electives. For the full breakdown, see [docs/algorithm.md](docs/algorithm.md).
+Your scheduling style adjusts the balance between core requirements and discovery electives. For the full breakdown, see [How MarqBot Plans Your Degree](docs/algorithm.md). For engine internals, see the [Technical Reference](docs/technical_reference.md).
 
 When a required or choose-from bucket collides with a broad elective pool, MarqBot counts the narrower requirement first. If two completed courses overfill the same required slot, the extra course can still spill into an eligible elective pool.
 The frontend also adapts its visual effects to the device. On weaker browsers, MarqBot automatically tones down blur, glow, and heavier motion so the planner stays usable without changing the actual planning logic.
@@ -75,17 +75,88 @@ Use it to plan faster. Then confirm with your advisor before you register.
 - [Degree Progress Reports](https://www.marquette.edu/central/registrar/degree-progress.php)
 - [College of Business Undergraduate Info](https://www.marquette.edu/business/undergraduate/)
 
+## Documentation
+
+| Doc | What it covers |
+|---|---|
+| [How MarqBot Plans Your Degree](docs/algorithm.md) | Non-technical walkthrough of the recommendation engine, requirements, and policies |
+| [Technical Reference](docs/technical_reference.md) | Data inputs, pipeline internals, ranking tuples, API endpoints, module map |
+| [Changelog](docs/CHANGELOG.md) | Version history and release notes |
+
 ## Project Directory
 
-| Directory | What's in it |
-|---|---|
-| `backend/` | Flask API and recommendation engine |
-| `frontend/` | Next.js student UI |
-| `data/` | Course catalog, prereqs, offerings, and requirement CSVs |
-| `config/` | Ranking overrides and nightly investigation queue |
-| `scripts/` | Data utilities and nightly analysis |
-| `tests/` | Backend (Pytest) and frontend (Vitest) tests |
-| `docs/` | Changelog, algorithm notes, and working memos |
+```
+backend/                  Flask API and recommendation engine
+  server.py                 API routes, request validation, policy enforcement
+  data_loader.py            CSV loading, prereq overlay, equivalency maps
+  allocator.py              Course-to-bucket allocation with overflow spill
+  eligibility.py            Prereq, standing, stage, and restriction filtering
+  semester_recommender.py   Ranking, selection, credit-load warnings
+  scheduling_styles.py      Three-pass selection loop (grinder/explorer/mixer)
+  requirements.py           Domain constants, double-count families, bucket helpers
+  prereq_parser.py          Hard-prereq expression parser
+  student_stage.py          Undergrad/grad stage filter
+  unlocks.py                Prereq chain depth for bridge course ranking
+  normalizer.py             Course code normalization
+  validators.py             Input validation helpers
+
+frontend/                 Next.js student UI
+  src/
+    app/                    Pages (onboarding, planner, courses, saved, about, ai-advisor)
+    components/             UI components by feature area
+      landing/                Landing page components
+      onboarding/             Program selection and course entry
+      planner/                Semester plan, progress, recommendations
+      saved/                  Saved plan management
+      about/                  About page components
+      layout/                 Shared layout (navbar, footer)
+      shared/                 Reusable UI primitives
+    context/                React context providers
+    hooks/                  Custom React hooks
+    lib/                    Utility functions
+  public/assets/            Static images and branding
+
+data/                     CSV course catalog (manual edits only)
+  courses.csv               Base course catalog with credits, level, description
+  parent_buckets.csv        Program envelopes (majors, minors, tracks, universal)
+  child_buckets.csv         Individual requirements inside each parent
+  master_bucket_courses.csv Explicit course-to-bucket membership
+  course_hard_prereqs.csv   Hard prerequisite graph edges
+  course_soft_prereqs.csv   Warning-only and manual-review prereq metadata
+  course_equivalencies.csv  Honors, cross-list, and no-double-count relationships
+  course_offerings.csv      Term scheduling history (currently disabled)
+  policies.csv              Normalized academic policy registry (76 policies)
+  policies_buckets.csv      Policy-to-bucket join table (177 mappings)
+  quips.csv                 Rotating UI quips
+
+config/                   Runtime configuration
+  ranking_overrides.json    Manual priority overrides for specific courses
+  data_investigation_queue.json  Flagged data issues from nightly analysis
+  autotune_ledger.json      Regression/boost-resistance detection for nightly tuning
+
+scripts/                  Data utilities and nightly analysis
+  analyze_nightly.py        Nightly auto-tune flow
+  run_local.py              Local dev server launcher
+  discover_equivalencies.py Equivalency discovery utility
+  compile_quips.py          Quip compilation
+  validate_track.py         Track validation checks
+
+tests/                    Test suites
+  backend/                  Pytest backend tests (612+ cases)
+  frontend/                 Frontend tests
+  nightly_reports/          Archived nightly analysis reports
+
+docs/                     Documentation
+  algorithm.md              Non-technical system explainer
+  technical_reference.md    Technical internals reference
+  CHANGELOG.md              Version history
+  memos/                    Working memos and planning docs
+  prompts/                  Session prompts and templates
+  feedbacks/                Collected feedback records
+
+infra/                    Infrastructure
+  docker/                   Docker configuration
+```
 
 <details>
 <summary><strong>Run it locally</strong></summary>

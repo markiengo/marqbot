@@ -8,6 +8,30 @@ Format per release:
 
 ---
 
+## [v2.5.4] - 2026-03-28
+
+### Changes
+
+- Created `data/policies.csv` — a normalized registry of 76 Marquette academic policies with machine-readable schema (scope, runtime mode, implementation status, source URLs).
+- Created `data/policies_buckets.csv` — a 177-row join table mapping each policy to the specific parent bucket IDs it affects, using group aliases (ALL, ALL_COBA, ALL_CAS, etc.).
+- Added COBA_06 enforcement in `server.py`: CoBA students may declare a maximum of three business majors. A fourth triggers a hard block.
+- Added COBA_05 enforcement in `server.py`: CoBA students who declare a business minor receive a warning suggesting a second business major instead.
+- Added per-semester credit-load warnings in `semester_recommender.py`: below-full-time (< 12 credits), above-normal (> 18), CoBA overload (> 19 requires dean approval), and summer cap (> 16).
+- Added `semester_warnings` field to each semester in the `/recommend` response.
+- Rewrote `docs/algorithm.md` as a non-technical walkthrough of how MarqBot plans a degree — written for students and advisors, not engineers.
+- Created `docs/technical_reference.md` covering the entire codebase: backend modules, API routes, engine pipeline, frontend pages/components/state/hooks, data layer, config, scripts, tests, and infrastructure.
+- Expanded `README.md` with a Documentation section, full subfolder directory tree, and links to both the non-technical guide and technical reference.
+- Added `tests/backend/test_policy_verification.py` with 10 scenarios verifying COBA_05, COBA_06, CRED_01/02/04/10, summer cap, and semester_warnings field presence.
+
+### Design Decisions
+
+- Policy data is split into two CSVs (registry + bucket join) so the registry stays flat and readable while bucket mappings can fan out to multiple rows per policy.
+- COBA_05 is a warning rather than a hard block because non-CoBA students can legitimately minor in business — only CoBA students get the advisory.
+- Credit-load warnings are attached per-semester rather than globally because different semesters can have different load profiles (summer vs. fall/spring).
+- The algorithm.md rewrite was motivated by the doc serving two audiences poorly. Non-technical users now get a plain-English walkthrough; engineers get the full technical reference separately.
+
+---
+
 ## [v2.5.3] - 2026-03-27
 
 ### Changes

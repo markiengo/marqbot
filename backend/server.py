@@ -1735,6 +1735,36 @@ def _resolve_program_selection(body, data: dict):
             },
         }, 400)
 
+    # COBA_06: CoBA students can complete a maximum of three business majors.
+    _BUSINESS_MAJOR_IDS = {
+        "ACCO_MAJOR", "AIM_MAJOR", "BADM_MAJOR", "BECO_MAJOR", "BUAN_MAJOR",
+        "FIN_MAJOR", "HURE_MAJOR", "INBU_MAJOR", "INSY_MAJOR", "MARK_MAJOR",
+        "OSCM_MAJOR", "REAL_MAJOR",
+    }
+    biz_majors = [m for m in declared_majors if m in _BUSINESS_MAJOR_IDS]
+    if len(biz_majors) > 3:
+        return None, ({
+            "mode": "error",
+            "error": {
+                "error_code": "TOO_MANY_BUSINESS_MAJORS",
+                "message": "College of Business students may declare a maximum of three business majors.",
+            },
+        }, 400)
+
+    # COBA_05: CoBA students cannot declare a business minor.
+    _BUSINESS_MINOR_IDS = {
+        "BADM_MINOR", "ENTP_MINOR", "HR_MINOR", "INSY_MINOR",
+        "MARK_MINOR", "OSCM_MINOR", "PRSL_MINOR",
+    }
+    if biz_majors and declared_minors:
+        biz_minors = [m for m in declared_minors if m in _BUSINESS_MINOR_IDS]
+        if biz_minors:
+            labels = ", ".join(_program_label(m) for m in biz_minors)
+            warnings.append(
+                f"Business majors cannot declare a business minor ({labels}). "
+                "Consider adding a second business major instead."
+            )
+
     # Support track_ids (array) and legacy track_id (single) — normalise to list.
     selected_track_ids = []
     for raw_track in (raw_track_ids or []):

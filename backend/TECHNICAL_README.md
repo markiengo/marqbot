@@ -18,7 +18,7 @@ It loads the catalog and degree data, decides what counts toward progress, check
 ## Main files
 
 - `server.py`
-  Flask app, API routes, request validation, feedback storage, and static frontend serving.
+  Flask app, API routes, request validation, program validation (COBA_05/06 enforcement), feedback storage, and static frontend serving.
 
 - `data_loader.py`
   Loads split prereq CSVs, program buckets, and equivalency data into runtime indexes.
@@ -38,19 +38,40 @@ It loads the catalog and degree data, decides what counts toward progress, check
 - `prereq_parser.py`
   Parses supported hard-prereq expressions.
 
+- `scheduling_styles.py`
+  Three-pass selection loop with style-specific slot reservations (grinder/explorer/mixer).
+
+- `student_stage.py`
+  Filters course levels by student stage (undergrad/graduate/doctoral).
+
+- `unlocks.py`
+  Computes prereq chain depth for bridge course ranking.
+
+- `normalizer.py`
+  Course code normalization.
+
+- `validators.py`
+  Input validation helpers.
+
 ## Main routes
 
 - `/api/programs`
   Program metadata and bucket labels.
 
-- `/api/recommend`
+- `/recommend`
   Semester recommendations.
 
-- `/api/can-take`
+- `/can-take`
   Checks one course.
 
 - `/api/validate-prereqs`
   Detects completed/in-progress prereq contradictions.
+
+- `/api/courses`
+  Full course catalog.
+
+- `/api/program-buckets`
+  Bucket tree for a set of program IDs. Static CSV read only.
 
 - `/api/feedback`
   Accepts planner ratings and bug/idea reports, with planner context attached.

@@ -1904,6 +1904,35 @@ def run_recommendation_semester(
         bucket_parent_map=bucket_parent_map,
     )
 
+    # ── Credit-load warnings (CRED_01, CRED_02, CRED_04) ────────────
+    semester_warnings: list[str] = []
+    _total_rec_credits = sum(
+        float(r.get("credits", 3)) for r in recommendations_sem
+    )
+    if is_summer_sem:
+        if _total_rec_credits > 16:
+            semester_warnings.append(
+                f"This semester totals {_total_rec_credits:.0f} recommended credits, "
+                "which exceeds the summer term maximum of 16."
+            )
+    else:
+        if _total_rec_credits > 19:
+            semester_warnings.append(
+                f"This semester totals {_total_rec_credits:.0f} recommended credits, "
+                "which exceeds the College of Business maximum of 19. "
+                "A Credit Overload form and dean approval are required."
+            )
+        elif _total_rec_credits > 18:
+            semester_warnings.append(
+                f"This semester totals {_total_rec_credits:.0f} recommended credits, "
+                "which is above the normal 15\u201318 range."
+            )
+        if _total_rec_credits < 12 and len(recommendations_sem) > 0:
+            semester_warnings.append(
+                f"This semester totals {_total_rec_credits:.0f} recommended credits, "
+                "which is below the 12-credit full-time minimum."
+            )
+
     result = {
         "target_semester": target_semester_label,
         "standing": current_standing,
@@ -1915,6 +1944,7 @@ def run_recommendation_semester(
         "applied_completed_count": sum(p.get("done_count", 0) for p in progress_sem.values()),
         "in_progress_note": in_progress_note_sem,
         "blocking_warnings": blocking_sem,
+        "semester_warnings": semester_warnings,
         "progress": progress_sem,
         "manual_review_courses": manual_review_sem,
         "projected_progress": projected_progress_sem,

@@ -1,230 +1,177 @@
-# Recommendation Algorithm
-Last updated: March 27, 2026
-Status: `current behavior (parent/child + split prereq model)`
+# How MarqBot Plans Your Degree
 
-## In Plain English
-"MarqBot removes what you can't take, ranks the rest by how important they are to your degree, and fills your semester — no guesswork."
+Last updated: March 28, 2026
 
-## Data Inputs
-| Area | Files | Purpose |
-|------|-------|---------|
-| Catalog | `courses.csv` | Base course catalog, credits, level, description, and `elective_pool_tag`. |
-| Program graph | `parent_buckets.csv`, `child_buckets.csv`, `master_bucket_courses.csv` | Defines majors, tracks, minors, universal requirements, child buckets, explicit course membership, and overlap governance. |
-| Prereqs | `course_hard_prereqs.csv`, `course_soft_prereqs.csv` | Splits eligibility gates from warning-only or manual-review metadata. |
-| Equivalencies | `course_equivalencies.csv` | Honors, grad, equivalent, cross-listed, and no-double-count relationships used by allocation and eligibility. |
-| Offerings | `course_offerings.csv` | Fall/spring/summer scheduling history. Currently disabled — all courses treated as offered every term. |
+## The Short Version
 
-## Runtime Build
-1. Load `courses.csv` as the base catalog.
-2. Build the parent/child requirement graph from `parent_buckets.csv`, `child_buckets.csv`, and `master_bucket_courses.csv`.
-3. Overlay `course_hard_prereqs.csv` onto the catalog as runtime eligibility fields:
-   - `prereq_hard`
-   - `prereq_concurrent`
-   - `prereq_level`
-4. Overlay `course_soft_prereqs.csv` onto the catalog as warning and audit fields:
-   - `prereq_soft`
-   - `prereq_notes`
-   - raw `soft_prereq_*` detail columns
-5. ~~Overlay `course_offerings.csv` onto the catalog.~~ Disabled — all courses default to offered every term with high confidence.
-6. Load `course_equivalencies.csv` and build runtime maps for prereq expansion, bucket expansion, cross-list handling, and no-double-count blocking.
-7. Synthesize dynamic elective mappings from `courses.elective_pool_tag` only for elective-like `credits_pool` child buckets. Current dynamic tag: `biz_elective`.
-8. Convert the loaded data into runtime bucket and course maps used by allocation, eligibility, and ranking.
-9. Resolve request-scoped restriction context from the selected programs. Track selections are expanded with their parent and required major IDs before restriction checks run.
+You tell MarqBot what programs you're in and what you've already taken. MarqBot figures out what you still need, removes anything you can't take yet, ranks the rest by importance, and fills your semesters. Same inputs, same plan, every time.
 
-## Parent-Child Bucket Mapping
-- A `parent_bucket` is the program envelope: major, track, minor, or universal requirement group.
-- A `child_bucket` is a single requirement inside that parent.
-- `master_bucket_courses` holds explicit course-to-child membership.
-- Progress is allocated at the child-bucket level, then rolled up to the parent.
-- Tracks are gated by `parent_major` and `required_major`.
-- Dynamic elective synthesis supplements explicit mappings at load time; it does not replace `master_bucket_courses`.
-- Dynamic synthesis is intentionally narrow: only tagged catalog courses are added, and only into qualifying `credits_pool` buckets.
+---
 
-## Bucket Counting Rules
-- Non-elective buckets (`required`, `choose_n`) beat `credits_pool` elective pools in normal recommendation and eligibility views. If a course can fill both, MarqBot shows the non-elective side only.
-- Completed-course allocation follows the same precedence. A course counted in a non-elective bucket does not also count in an elective pool at the same time.
-- Overflow exception: if multiple completed courses can satisfy the same non-elective slot and that slot is already full, MarqBot may spill the extra course into eligible elective pools instead of dropping it.
-- Overflow tie-breaks are deterministic. For equally constrained same-slot collisions, MarqBot uses a stable pseudo-random order so the same request produces the same allocation on rerun.
-- Elective pools can still double count with other elective pools when pairwise bucket policy allows it.
+## Step by Step
 
-## Prerequisite System
-### Hard inputs used by eligibility
-- `hard_prereq`: parseable course-to-course prerequisites only.
-- `concurrent_with`: courses that must or may be taken in the same term.
-- `min_standing`: standing gate (`1.0=freshman`, `2.0=sophomore`, `3.0=junior`, `4.0=senior`).
+### 1. You Pick Your Programs
 
-### Soft inputs used by warnings and manual review
-- `soft_prereq`: machine tags.
-- `soft_prereq_*`: raw catalog snippets by category.
-- `catalog_prereq_raw`: full bulletin prerequisite line.
-- `notes`: overflow or human-readable audit context.
+When you first open MarqBot, you choose your major (like Finance or Marketing), and optionally a track and a minor. MarqBot uses this to build your personal requirement checklist — every course bucket you need to complete before you graduate.
 
-### Restriction enforcement
-- `major_restriction` and `college_restriction` are no longer warning-only when the underlying text can be enforced safely.
-- Enforcement uses the selected program context plus any parent or required major implied by the selection.
-- Clear matches are blocked at eligibility time; satisfied matches are cleared so they do not remain as warning-only soft tags.
-- Current safe enforcement is intentionally narrow: business-college/business-major language, explicit supported program-base restrictions, and positive or negative college restrictions with clear college names.
+If you're a College of Business student, MarqBot also loads the Business Common Core (BCC), which is the shared set of foundational business courses every CoBA major has to take. On top of that, there's the Marquette Core Curriculum (MCC) — the university-wide requirements that every Marquette student completes regardless of major.
 
-### Excluded from `hard_prereq` on purpose
-These clauses may mention course codes, but they are not hard prerequisite graph edges:
-- `Cross-listed with ...`
-- `Credit is not given for both ...`
-- `Cannot receive credit for both ...`
-- `A maximum of ... credits ... can count toward the major`
-- `previous or subsequent enrollment in ...`
-- `not eligible to enroll ...`
-- instructor consent, major restriction, program admission, placement, GPA, and minimum-grade clauses
+So your full requirement set looks something like:
 
-These are kept only in soft detail fields or notes.
+- **MCC Foundation** — the core classes everyone takes (rhetoric, theology, philosophy, math, etc.)
+- **Business Common Core** — the shared business foundation (accounting, economics, statistics, etc.)
+- **Your major requirements** — the courses specific to your chosen major
+- **Track or minor requirements** — if you picked one
+- **MCC Writing Intensive and Culminating** — upper-division core requirements that come later
+- **Discovery themes** — the exploratory part of MCC where you pick from broad topic areas
 
-### Concurrent nuance
-- `which may be taken concurrently` means the course is still a prerequisite, but it may be in progress. That code can appear in both `hard_prereq` and `concurrent_with`.
-- `taken concurrently with ...`, `must be taken concurrent with ...`, `concurrent enrollment with ...`, and `both of which must be taken concurrently` are treated as co-req-only phrasing. Those codes go to `concurrent_with`, not `hard_prereq`.
-- Runtime eligibility accepts both `concurrent_with` and the soft `may_be_concurrent` signal as same-term concurrency.
-- When `concurrent_with` is present, it is used as the explicit same-semester companion expression for eligibility messaging and same-term dependency tracking.
-- During semester selection, a concurrent-dependent course is deferred until its companion course is already completed, in progress, or selected earlier in the same semester, then reconsidered in a same-semester follow-up pass.
+### 2. You Add What You've Already Taken
 
-### Manual review
-If the bulletin prerequisite logic cannot be encoded safely into the supported parser grammar, the course keeps `hard_prereq=none`, gets the `complex_hard_prereq` soft tag, and is surfaced as `manual_review` in eligibility output.
+You enter your completed courses and anything currently in progress. MarqBot checks each one against your requirement buckets and marks off what's done.
 
-## Pipeline
-1. Validate program selection and major/track pairing rules.
-2. Build the active parent/child requirement set and allocate completed or in-progress courses.
-3. Build eligible candidates:
-   - not already completed or in progress
-   - hard prereqs and standing satisfied
-   - major and college restrictions satisfied when the soft restriction text is machine-enforceable
-   - co-req-compatible
-   - otherwise surfaced as `manual_review` when the row is intentionally not auto-decodable
-4. Suppress non-recommendable courses (see exclusions below).
-5. Rank candidates deterministically with this tuple order:
-   - `tier` (lower wins — see hierarchy below)
-   - bridge-course status (`0=direct filler`, `1=bridge-only`)
-   - unlock chain depth (deeper first)
-   - `multi_bucket_score` (higher first)
-   - course level (lower first)
-   - `course_code` (lexical tiebreak)
+If a course counts toward a specific requirement (like "FINA 3001 fills the Finance Core"), MarqBot puts it there first. If you've taken more courses than a bucket needs — say you completed two courses that could both fill the same single slot — the extra one spills into an elective pool if one exists, rather than going to waste.
 
-### Priority Tiers
-Courses are ranked by which requirement they fulfill. Higher tier = picked first.
+MarqBot never double-counts a course in conflicting buckets. If two requirements both want the same course, the more specific requirement wins.
 
-| Tier | What it covers | Why it's prioritized |
-|------|---------------|---------------------|
-| 1 | MCC Foundation (core curriculum) | Gates everything else — must be done early |
-| 2 | Business Core (BCC) | Shared prereqs that unlock all major courses |
-| 3 | Major requirements | Direct degree requirements |
-| 4 | Track / Minor | Supplementary program requirements |
-| 5 | MCC Late (writing, culminating) | Upper-division core — deferred until you have credits |
-| 6 | Discovery themes | Exploratory courses with wide pools — scheduled last |
+### 3. MarqBot Figures Out What You Can Take
 
-Within a tier, courses that unblock deeper prereq chains, still help more than one allowed bucket, or sit at a lower course level are picked first.
+Before recommending anything, MarqBot filters out courses you're not eligible for. This means checking:
 
-### Scheduling Styles
+- **Prerequisites**: Did you complete the required courses? For example, you can't take FINA 3001 until you've passed ACCO 1030 and ACCO 1031. MarqBot reads the actual prerequisite chains from Marquette's bulletin.
 
-Your style controls how MarqBot balances core requirements and discovery each semester. Prerequisites still come first regardless of style.
+- **Standing**: Your class standing (freshman, sophomore, junior, senior) is based on total credits earned. Some courses require you to be at least a sophomore or junior. MarqBot calculates your standing from your completed credits:
+  - 0–23 credits = Freshman
+  - 24–59 credits = Sophomore
+  - 60–89 credits = Junior
+  - 90+ credits = Senior
 
-| Style | What it does |
-|-------|-------------|
-| **Grinder** (default) | Core and major requirements first. Discovery fills gaps. Best for internship readiness. |
-| **Explorer** | Reserves 2 discovery slots per semester so you can explore early. Core prereqs still happen on time. |
-| **Mixer** | Alternates core and discovery picks for balanced semesters. At least 1 discovery + 2 core per term. |
+- **Course level**: As an undergrad, you can only take courses numbered 1000–4999. Graduate-level courses (5000+) are filtered out entirely.
 
-Switch anytime — only the recommendation order changes, not your transcript.
+- **College and major restrictions**: Some courses are restricted to students in a specific college or major. When MarqBot can read the restriction clearly ("open to College of Business students only"), it enforces it. If the restriction language is ambiguous, MarqBot flags it for manual review instead of guessing.
 
-Under the hood, each style uses tier remapping and slot reservations enforced by a three-pass selection loop (`scheduling_styles.py`):
-1. **Mandatory pass** — accept band-0 bridge candidates (prereq unlockers that can't wait).
-2. **Reservation pass** — fill style-specific slot targets (explorer: 2 discovery; mixer: 1 discovery + 2 core; grinder: skip).
-3. **Greedy fill** — fill remaining slots in ranked order.
+- **Concurrent courses**: Some courses must be taken at the same time as another course. MarqBot handles these by making sure the companion course is either already done, in progress, or being recommended in the same semester.
 
-All passes respect the same gate checks: WRIT limit, same-semester prereqs, maturity guard, bucket capacity, and bridge deferral. The `scheduling_style` parameter defaults to `"grinder"` when omitted.
+If a course's prerequisite language is too complex for MarqBot to parse safely (like "instructor consent required" or complicated conditional logic), it doesn't guess. It marks the course as "manual review" so you know to check with your advisor.
 
-6. Select greedily with:
-   - bucket cap (`2`) with auto-relaxation (`BCC_REQUIRED` allows up to `3`)
-   - program-balance deferral (threshold `2`)
-   - bridge-target guard
-   - freshman maturity guard (for `current_standing <= 1`, defer `tier >= 3` courses at `3000+` while lower-level direct-fill options remain)
-   - same-semester concurrent follow-up after earlier picks satisfy a deferred companion dependency
-   - rescue pass when no picks are produced
-7. Return recommendations, progress/projection, warnings, and optional debug trace.
+### 4. MarqBot Ranks What's Left
 
-## Bridge Course Scope
-A bridge course is a candidate that does not directly fill any unmet bucket but unlocks a course that does. Bridge targets are restricted:
-- **No elective pools**: buckets with `requirement_mode = credits_pool` are skipped. Elective pools have many direct options and don't need prereq-chain unlocking.
-- **Only MCC, BCC, and major targets**: track and minor targets are skipped from bridge logic.
-- **No Discovery themes**: buckets whose parent starts with `MCC_DISC` are skipped. Discovery themes have wide cross-department course pools that would otherwise cause irrelevant recommendations (e.g. BIOL 1001 to unlock a CMI NSM course).
+After filtering, MarqBot ranks every eligible course by how important it is to your degree progress. The ranking uses a priority system:
 
-## Currently Excluded From Recommendations
-The engine does not recommend courses when any of these is true:
-- course code contains `4986` (work-period grading courses)
-- course code ends with `H` after a number for non-honors students. When `is_honors_student=true`, honors sections are allowed and base courses are deduplicated when the H variant is also eligible.
-- course credits include any non-integer numeric values (for example, `1.5` or `1.5-3`)
-- course name contains one of:
-  - `internship`
-  - `work period`
-  - `independent study`
-  - `topics in`
+**Tier 1 — MCC Foundation** comes first because these are the baseline courses that gate everything else. You need them done early.
 
-These courses still count toward progress if they are already completed or in progress.
+**Tier 2 — Business Common Core** comes next because BCC courses are the shared prereqs that unlock your major-specific courses. If you delay these, your major courses get pushed back.
 
-## Summer Special Cases
-- Summer caps recommendations at 4.
+**Tier 3 — Major requirements** are your actual degree courses. Once foundation and BCC are in progress, these start filling in.
 
-## Standing Recovery
-When all remaining required courses are blocked by `min_standing`, the engine recommends filler courses that build credits toward the blocked standing threshold.
+**Tier 4 — Track and minor** requirements come after your major since they're supplementary to your primary degree.
 
-## Credit Parsing For Standing
-- Standing projection uses parsed catalog credits.
-- Decimal credits are preserved (for example, `1.5`).
-- Credit ranges use the lower bound for projection (for example, `1-3` is treated as `1.0`).
+**Tier 5 — MCC Late** (writing intensive and culminating experience) are upper-division core requirements that are intentionally deferred until you have enough credits and course maturity.
 
-## Invariants
-- Deterministic ordering for identical inputs.
-- No recommendation for already completed or in-progress courses.
-- No note-only or co-req-only course codes leak into the hard prerequisite graph.
-- `manual_review` is surfaced explicitly in output.
+**Tier 6 — Discovery themes** are the exploratory MCC courses. They have the widest course pools, so there's almost always something available. MarqBot schedules these last because they have the most flexibility.
 
-## Debug Trace Fields
-When `debug=true`, each ranked candidate includes:
-- `rank`, `course_code`, `course_name`
-- `selected`, `skip_reason`
-- `tier`, `is_bridge_course`
-- `course_level`, `chain_depth`, `multi_bucket_score`
-- `fills_buckets`, `selection_buckets`, `current_unmet_buckets`, `bridge_target_buckets`
-- `bucket_capacity`
+Within each tier, MarqBot further sorts by:
+- Whether the course unlocks other courses you need (prereq chain depth — deeper chains get priority)
+- Whether the course counts toward more than one bucket (multi-bucket courses are more efficient)
+- Course level (lower-level courses first, since they tend to be earlier in the sequence)
+- Course code (alphabetical, as a final tiebreak so the order is always the same)
 
-Additional diagnostic fields may still appear in debug output for troubleshooting, but they are not necessarily active sort keys.
-Note: `chain_depth` in debug is sourced from the same chain-depth map used by ranking.
+### 5. MarqBot Fills Your Semester
 
-## Read-Only Endpoints
+Now MarqBot picks courses from the ranked list to fill your semester. It doesn't just grab the top N — it applies balance rules:
 
-### `GET /api/program-buckets`
-Returns the bucket tree structure for a set of program IDs. This endpoint reads static CSV data only — no recommendation engine, no allocation, no eligibility checks.
+- **Bucket cap**: No more than 2 courses from the same requirement bucket in one semester (with a small exception for BCC, which can go up to 3).
 
-**Request**: `?programs=FIN_MAJOR,BCC_CORE,MCC_CULM`
+- **Program balance**: If one program is dominating the picks, MarqBot defers some to keep your semester balanced across your requirements.
 
-**Response shape**:
-```json
-{
-  "programs": [
-    {
-      "program_id": "FIN_MAJOR",
-      "program_label": "Finance",
-      "type": "major",
-      "buckets": [
-        {
-          "bucket_id": "fina-req-core",
-          "label": "Finance Core Requirements",
-          "requirement_mode": "required",
-          "courses_required": 3,
-          "credits_required": null,
-          "course_count": 3,
-          "min_level": null,
-          "sample_courses": ["FINA 3001", "FINA 4001", "FINA 4011"]
-        }
-      ]
-    }
-  ]
-}
-```
+- **Freshman guard**: If you're a freshman, MarqBot holds off on recommending 3000-level major courses when there are still lower-level foundation courses to take. This keeps your first year focused on building the base.
 
-Data source: joins `parent_buckets_df` + `child_buckets_df` + course counts from `master_bucket_courses`. Up to 3 sample courses per bucket. Used by the Major Guide modal and onboarding step 4.
+- **Bridge courses**: Sometimes a course doesn't directly fill any of your remaining requirements, but it's a prerequisite for one that does. MarqBot recognizes these "bridge" courses and includes them when needed. It only does this for core and major requirements though — not for elective pools or discovery themes, which have plenty of direct options.
+
+- **Credit load**: MarqBot watches the total credit count per semester. If a semester goes over 19 credits (the CoBA maximum), it warns you that you'd need a Credit Overload form. If it drops below 12, it warns that you'd be below full-time status.
+
+### 6. You Get Your Plan
+
+MarqBot returns your semester plan with:
+- A ranked list of recommended courses for each term
+- Your progress across every requirement bucket (what's done, what's left)
+- A projection of your remaining semesters
+- Any warnings (credit load, standing, restriction flags, manual review items)
+
+The plan is deterministic: if you and a friend enter the exact same programs and completed courses, you get the exact same recommendations.
+
+---
+
+## Scheduling Styles
+
+Not everyone wants to plan the same way. MarqBot offers three scheduling styles that change how it balances core requirements versus discovery electives:
+
+**Grinder** (the default) — Prioritizes core and major requirements. Discovery courses only fill gaps after everything else is placed. This is the fastest path to internship and graduation readiness.
+
+**Explorer** — Reserves 2 discovery slots per semester so you can explore topics outside your major early on. Your core prereqs still happen on time — MarqBot just makes room for breadth.
+
+**Mixer** — Alternates between core and discovery picks to create balanced semesters. Each term gets at least 1 discovery course and 2 core courses.
+
+You can switch styles anytime. It only changes the recommendation order — your transcript and progress stay the same.
+
+---
+
+## What MarqBot Doesn't Recommend
+
+Some courses are real but not suitable for automatic recommendations:
+- **Internship courses** — placement-based, not schedulable
+- **Independent study** — requires instructor arrangement
+- **Topics courses** — content varies by semester and instructor
+- **Work period courses** — co-op grading courses
+- **Honors sections** — only shown if you're flagged as an honors student
+- **Fractional-credit courses** — courses with non-standard credits like 1.5
+
+These courses still count toward your progress if you've already completed them. MarqBot just won't recommend them because they require decisions it can't make for you.
+
+---
+
+## Summer Semesters
+
+Summer terms are shorter, so MarqBot caps recommendations at 4 courses. It also filters out courses that historically aren't offered in summer (when term offering data is available).
+
+---
+
+## Academic Policies MarqBot Knows About
+
+MarqBot is aware of Marquette's academic policies and enforces the ones it can read reliably:
+
+- **Credit load limits** — warns if your semester plan exceeds the CoBA maximum (19 credits) or drops below full-time (12 credits). Summer has a separate 16-credit cap.
+- **Business major limits** — CoBA students can declare up to 3 business majors. MarqBot blocks a 4th.
+- **Business minor restriction** — CoBA students cannot declare a business minor. MarqBot warns if you try.
+- **Standing requirements** — courses with standing gates are filtered or warned based on your credit count.
+- **Double-count rules** — MarqBot respects Marquette's rules about which courses can count toward multiple requirements and which can't.
+- **Major/minor overlap** — if your major and minor share too many courses, MarqBot flags the overlap.
+
+Many other policies (graduation audits, GPA requirements, transfer credit rules, repeat policies) are documented in the system but require data MarqBot doesn't have access to — like grades, transfer transcripts, or advisor overrides. Those are flagged for reference but not enforced.
+
+---
+
+## How Requirements Are Organized
+
+MarqBot organizes your degree requirements into a two-level structure:
+
+**Parent buckets** are the big categories — your major, your minor, your track, MCC Foundation, Business Common Core, etc. Each parent bucket represents a program or universal requirement group.
+
+**Child buckets** are the individual requirements inside each parent. For example, the Finance major parent bucket contains child buckets like "Finance Core Requirements" (3 specific courses you must take), "Finance Electives" (pick from a pool until you hit a credit target), etc.
+
+Each child bucket has a mode:
+- **Required** — you must take every course in the list
+- **Choose N** — pick N courses from the list
+- **Credits pool** — take courses from a broad pool until you hit a credit target (these are your elective buckets)
+
+Progress is tracked at the child bucket level and rolls up to the parent. When all child buckets in a parent are satisfied, that program requirement is complete.
+
+---
+
+## What MarqBot Is Not
+
+MarqBot is a planning tool. It is not:
+- A replacement for CheckMarq or DegreeWorks
+- An official university system
+- Academic advising
+
+Use it to plan faster, then confirm with your advisor before you register.
