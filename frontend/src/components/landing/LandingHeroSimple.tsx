@@ -75,10 +75,10 @@ export function LandingHeroSimple() {
             For Marquette Business Students
           </span>
 
-          <h1 className="mx-auto mt-6 max-w-[15.8ch] text-center text-[clamp(3rem,7vw,5.9rem)] font-bold leading-[0.92] tracking-[-0.04em] text-white sm:max-w-[16.5ch]">
-            <span className="sm:whitespace-nowrap">Know what to take next.</span>
-            <span className="mt-2 block text-emphasis-blue">Before registration</span>
-            <span className="block text-gradient-gold">turns into a side quest.</span>
+          <h1 className="mt-6 text-center text-[clamp(3rem,7vw,5.9rem)] font-bold leading-[0.92] tracking-[-0.04em] text-white">
+            <span className="block -translate-x-4 text-center sm:whitespace-nowrap">Know what to take next.</span>
+            <span className="mt-2 block text-center text-emphasis-blue">Before registration</span>
+            <span className="block text-center text-gradient-gold">turns into a side quest.</span>
           </h1>
 
           <p className="mx-auto mt-5 max-w-[36rem] text-[1rem] leading-relaxed text-slate-300 sm:text-[1.05rem]">
@@ -259,6 +259,24 @@ export function LandingHeroSimple() {
             </motion.div>
           </div>
         </motion.div>
+
+        {/* Scroll cue — pinned to bottom of first viewport, hidden on mobile */}
+        <Link
+          href="#feature-spotlight"
+          className="landing-scroll-cue absolute bottom-7 left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full px-4 py-2.5 sm:flex"
+          aria-label="Continue to features"
+        >
+          <span className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-300">
+            What it does
+          </span>
+          <motion.span
+            animate={reduceEffects ? {} : { y: [0, 3, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            className="leading-none text-slate-400"
+          >
+            ↓
+          </motion.span>
+        </Link>
       </div>
     </section>
   );
