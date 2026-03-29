@@ -5,31 +5,40 @@ import { motion, useInView } from "motion/react";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 type Benefit = {
+  num: string;
   kicker: string;
   title: string;
   body: string;
   accent: "gold" | "blue";
-  detail?: string;
 };
 
 const benefits: Benefit[] = [
   {
+    num: "01",
     kicker: "Take now",
     title: "See what you can actually take.",
-    body: "No more planning around a class CheckMarq will reject.",
+    body: "MarqBot checks prereqs, standing, and offering status before surfacing anything. No more planning around a class CheckMarq will reject.",
     accent: "gold",
-    detail: "MarqBot checks prereqs, standing, and offering status before surfacing anything. No guessing.",
   },
   {
+    num: "02",
     kicker: "Catch early",
     title: "Spot bottlenecks before they spiral.",
-    body: "Some courses quietly gate half your future. MarqBot surfaces those early.",
+    body: "Some courses quietly gate half your future. MarqBot surfaces those early — before they become a senior-year problem.",
     accent: "blue",
   },
   {
+    num: "03",
+    kicker: "Plan ahead",
+    title: "See the next three semesters, not just the next one.",
+    body: "Map out multiple terms at once. Scheduling traps are a lot easier to dodge when you can see them coming.",
+    accent: "blue",
+  },
+  {
+    num: "04",
     kicker: "Track it all",
     title: "Keep the whole degree map in view.",
-    body: "Major, track, MCC, minors, and supporting buckets stay attached to the recommendation.",
+    body: "Major, track, MCC, minors, and supporting buckets stay attached to every recommendation. Nothing falls through.",
     accent: "gold",
   },
 ];
@@ -85,85 +94,49 @@ export function BenefitsSection() {
           </motion.p>
         </div>
 
-        {/* Asymmetric spotlight rail: dominant card left, supporting stack right */}
-        <div className="feature-spotlight-rail mt-10 grid gap-5 md:grid-cols-[1.5fr_1fr]">
-
-          {/* Dominant card — permanently active */}
-          <motion.article
-            data-benefit="take-now"
-            data-active="true"
-            initial={reduceEffects ? false : { opacity: 0, x: -28, y: 16 }}
-            animate={inView ? { opacity: 1, x: 0, y: 0 } : {}}
-            transition={{ duration: reduceEffects ? 0.18 : 0.56, ease: [0.22, 1, 0.36, 1] }}
-            className="feature-spotlight-step group relative flex flex-col overflow-hidden rounded-[1.6rem] border p-7"
-          >
-            <div
-              className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              style={{ background: "radial-gradient(circle at 30% 0%, rgba(255,204,0,0.10), transparent 65%)" }}
-            />
-            <div className="relative flex h-full flex-col">
-              <span className="feature-spotlight-chip">
-                <span className="h-1.5 w-1.5 rounded-full bg-gold" />
-                {benefits[0].kicker}
+        {/* 2×2 benefit grid */}
+        <div className="feature-spotlight-rail mt-10 grid gap-5 sm:grid-cols-2">
+          {benefits.map((benefit, index) => (
+            <motion.article
+              key={benefit.title}
+              data-benefit={benefit.kicker.toLowerCase().replace(/\s+/g, "-")}
+              initial={reduceEffects ? false : { opacity: 0, y: 24 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: reduceEffects ? 0.18 : 0.5, delay: reduceEffects ? 0 : 0.12 + index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={reduceEffects ? undefined : { y: -5, scale: 1.015 }}
+              className="feature-spotlight-step group relative overflow-hidden rounded-[1.5rem] border p-6 shine-sweep"
+            >
+              {/* Hover glow */}
+              <div
+                className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                style={{
+                  background: benefit.accent === "gold"
+                    ? "radial-gradient(circle at 40% 0%, rgba(255,204,0,0.08), transparent 62%)"
+                    : "radial-gradient(circle at 40% 0%, rgba(0,114,206,0.10), transparent 62%)",
+                }}
+              />
+              {/* Decorative step number */}
+              <span className="pointer-events-none absolute right-5 top-4 select-none text-[3.8rem] font-bold leading-none text-white/[0.04]">
+                {benefit.num}
               </span>
-              <h3 className="mt-5 text-[1.55rem] font-bold leading-tight tracking-tight text-white sm:text-[1.9rem]">
-                {benefits[0].title}
-              </h3>
-              <p className="mt-3 text-[0.95rem] leading-relaxed text-slate-300">
-                {benefits[0].body}
-              </p>
-              {benefits[0].detail && (
-                <p className="mt-4 border-t border-white/8 pt-4 text-sm leading-relaxed text-slate-400">
-                  {benefits[0].detail}
-                </p>
-              )}
-              <div className="mt-auto flex items-center gap-2 pt-6">
-                <span className="h-px flex-1 bg-gradient-to-r from-gold/40 to-transparent" />
-                <span className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-gold/60">
-                  Why it&apos;s first
-                </span>
-              </div>
-            </div>
-          </motion.article>
 
-          {/* Supporting cards stacked */}
-          <div className="grid gap-5">
-            {benefits.slice(1).map((benefit, i) => (
-              <motion.article
-                key={benefit.title}
-                data-benefit={benefit.kicker.toLowerCase().replace(/\s+/g, "-")}
-                initial={reduceEffects ? false : { opacity: 0, x: 22, y: 16 }}
-                animate={inView ? { opacity: 1, x: 0, y: 0 } : {}}
-                transition={{ duration: reduceEffects ? 0.18 : 0.5, delay: reduceEffects ? 0 : 0.16 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                whileHover={reduceEffects ? undefined : { y: -4, scale: 1.01 }}
-                className="feature-spotlight-step group relative overflow-hidden rounded-[1.4rem] border p-5 shine-sweep"
-              >
-                <div
-                  className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                  style={{
-                    background: benefit.accent === "gold"
-                      ? "radial-gradient(circle at 50% 0%, rgba(255,204,0,0.07), transparent 65%)"
-                      : "radial-gradient(circle at 50% 0%, rgba(0,114,206,0.09), transparent 65%)",
-                  }}
-                />
-                <div className="relative">
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${
-                      benefit.accent === "gold" ? "bg-gold/12 text-gold" : "bg-blue-400/10 text-[#8ec8ff]"
-                    }`}
-                  >
-                    {benefit.kicker}
-                  </span>
-                  <h3 className="mt-3 text-[0.95rem] font-semibold leading-tight text-white">
-                    {benefit.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                    {benefit.body}
-                  </p>
-                </div>
-              </motion.article>
-            ))}
-          </div>
+              <div className="relative">
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                    benefit.accent === "gold" ? "bg-gold/12 text-gold" : "bg-blue-400/10 text-[#8ec8ff]"
+                  }`}
+                >
+                  {benefit.kicker}
+                </span>
+                <h3 className="mt-4 text-[1.08rem] font-bold leading-tight text-white">
+                  {benefit.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  {benefit.body}
+                </p>
+              </div>
+            </motion.article>
+          ))}
         </div>
       </div>
     </section>
