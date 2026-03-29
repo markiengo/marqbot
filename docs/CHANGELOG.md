@@ -8,6 +8,32 @@ Format per release:
 
 ---
 
+## [Unreleased]
+
+---
+
+## [v2.6.0] - 2026-03-29
+
+### Changes
+
+- Completed landing page redesign milestone (v1.0). Phase docs archived to `.planning/milestones/v1.0-phases/`.
+- Fixed hero heading alignment. The three headline lines ("Know what to take next.", "Before registration", "turns into a side quest.") now center correctly at all viewport sizes.
+- Added a scroll cue to the hero section — an animated `↓` link anchored to `#feature-spotlight` appears at the bottom of the viewport on `sm+` screens, using the pre-defined `.landing-scroll-cue` CSS class.
+- Rewrote `BenefitsSection` as a 2×2 equal-weight grid. The old 3-card horizontal row was replaced with four benefits ("Take now", "Catch early", "Plan ahead", "Track it all"), each in a `feature-spotlight-step` card with hover glow, decorative step number, and staggered entry animation.
+- Extracted `frontend/src/hooks/useReducedEffects.ts` from `EffectsContext.tsx`. The new hook reads `document.documentElement.dataset.effectsMode` and `localStorage.marqbot_effects_preference` directly, removing a React context layer. `EffectsContext.tsx` was deleted; all consumers were updated to import from `useReducedEffects`.
+- Renamed `docs/technical_reference.md` to `docs/tech_readme.md`. Added a "Project Context" section at the top with a table pointing to `.planning` files and a `.planning/codebase/` map table.
+- Added `.codex/` to `.gitignore` under the local-only IDE/agent state block.
+- Removed stale `queryByText(/active benefit/)` assertion from `frontend/tests/effectsMode.test.ts` — the redesigned `BenefitsSection` has no active-benefit text node.
+
+### Design Decisions
+
+- The 2×2 grid replaces the earlier asymmetric "spotlight dominant card" layout because equal-weight cards read more naturally in a scrollable landing context — no card should appear secondary at first glance.
+- A fourth benefit ("Plan ahead — see the next three semesters, not just the next one") was added to complete the grid and give the multi-semester planner its own callout separate from the degree-map tracking point.
+- The scroll cue was added because the hero section occupies the full viewport, giving no visual hint that content continues below the fold. A subtle animated anchor resolves the discoverability gap without adding visual weight above the fold.
+- `useReducedEffects` was extracted as a plain hook (not a context) because the value it reads — a DOM attribute and a localStorage key — is already globally accessible. A context layer added overhead without benefit.
+
+---
+
 ## [v2.5.4] - 2026-03-28
 
 ### Changes
@@ -19,7 +45,7 @@ Format per release:
 - Added per-semester credit-load warnings in `semester_recommender.py`: below-full-time (< 12 credits), above-normal (> 18), CoBA overload (> 19 requires dean approval), and summer cap (> 16).
 - Added `semester_warnings` field to each semester in the `/recommend` response.
 - Rewrote `docs/algorithm.md` as a non-technical walkthrough of how MarqBot plans a degree — written for students and advisors, not engineers.
-- Created `docs/technical_reference.md` covering the entire codebase: backend modules, API routes, engine pipeline, frontend pages/components/state/hooks, data layer, config, scripts, tests, and infrastructure.
+- Created `docs/tech_readme.md` covering the entire codebase: backend modules, API routes, engine pipeline, frontend pages/components/state/hooks, data layer, config, scripts, tests, and infrastructure.
 - Expanded `README.md` with a Documentation section, full subfolder directory tree, and links to both the non-technical guide and technical reference.
 - Added `tests/backend/test_policy_verification.py` with 10 scenarios verifying COBA_05, COBA_06, CRED_01/02/04/10, summer cap, and semester_warnings field presence.
 
