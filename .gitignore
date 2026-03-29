@@ -52,4 +52,6 @@ docs/feedbacks/
 !**/CHANGELOG.md
 !**/changelog.md
 !tests/test_structure.md
+!.planning/
+!.planning/**
 
