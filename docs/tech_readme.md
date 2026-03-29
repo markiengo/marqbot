@@ -1,6 +1,22 @@
 # Technical Reference
 
-Last updated: March 28, 2026
+Last updated: March 29, 2026
+
+## Project Context
+
+For current development state, active milestone, and decisions, read these first:
+
+| File | What it tells you |
+|------|-------------------|
+| `.planning/PROJECT.md` | Core value prop, active requirements, key decisions, constraints |
+| `.planning/STATE.md` | Current position, blockers, resume point for active work |
+| `.planning/ROADMAP.md` | Active milestone, phase breakdown, completion status |
+| `.planning/REQUIREMENTS.md` | Requirement IDs (HERO-xx, FLOW-xx, etc.) referenced in plans |
+| `.planning/MILESTONES.md` | Completed milestones and their phase archives |
+
+Active phase plans live in `.planning/phases/`. Archived phases live in `.planning/milestones/`.
+
+---
 
 ## Architecture Overview
 
