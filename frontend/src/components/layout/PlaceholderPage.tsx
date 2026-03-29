@@ -66,7 +66,7 @@ export function PlaceholderPage({
 
       {/* Centered content card */}
       <div className="relative z-10 w-full max-w-[38rem]">
-        <div className="relative overflow-hidden rounded-[1.6rem] border border-white/15 bg-[linear-gradient(145deg,rgba(10,24,50,0.88),rgba(8,19,39,0.82))] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.40)] backdrop-blur-xl sm:p-8">
+        <div className="relative overflow-hidden rounded-[1.6rem] border border-white/15 bg-[linear-gradient(145deg,rgba(10,24,50,0.88),rgba(8,19,39,0.82))] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.40)] sm:p-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.06),transparent_40%)]" />
           <div className="relative z-10 space-y-5 text-center">
             <motion.span

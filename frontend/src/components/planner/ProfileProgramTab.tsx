@@ -147,7 +147,7 @@ export function ProfileProgramTab() {
   const inputCls = "onboarding-input w-full rounded-xl px-4 py-3 text-[0.95rem]";
   const selectCls = `${inputCls} onboarding-select`;
   const dropdownCls =
-    "onboarding-panel absolute left-0 top-full z-[60] mt-1 max-h-[min(18rem,34vh)] w-full overflow-y-auto rounded-xl shadow-[0_16px_36px_rgba(0,0,0,0.22)]";
+    "onboarding-panel absolute left-0 top-full z-[60] mt-2 max-h-[min(18rem,34vh)] w-full overflow-y-auto rounded-xl border-t border-border-subtle shadow-[0_24px_48px_rgba(0,0,0,0.3)]";
 
   return (
     <div className="space-y-4">
@@ -245,7 +245,7 @@ export function ProfileProgramTab() {
               </div>
             )}
             {isOpen && query && filtered.length === 0 && (
-              <div className="onboarding-panel absolute left-0 top-full z-[60] mt-1 w-full rounded-xl px-3 py-2.5 text-xs text-ink-muted shadow-[0_16px_36px_rgba(0,0,0,0.22)]">
+              <div className="onboarding-panel absolute left-0 top-full z-[60] mt-2 w-full rounded-xl border-t border-border-subtle px-3 py-2.5 text-xs text-ink-muted shadow-[0_24px_48px_rgba(0,0,0,0.3)]">
                 No majors found for &ldquo;{query}&rdquo;
               </div>
             )}
@@ -332,7 +332,7 @@ export function ProfileProgramTab() {
             <select disabled className={`${selectCls} pointer-events-none opacity-40`}>
               <option value="">Add minor...</option>
             </select>
-            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-surface-card/60 backdrop-blur-[1px]">
+            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-surface-card/80">
               <span className="text-xs font-semibold uppercase tracking-widest text-gold/70">Coming Soon</span>
             </div>
           </div>

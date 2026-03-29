@@ -12,6 +12,7 @@ export default defineConfig({
     include: [
       "../tests/frontend/**/*.test.ts",
       "./tests/**/*.test.ts",
+      "./tests/**/*.test.tsx",
     ],
     exclude: ["../tests/frontend/**/*.dom.test.ts"],
   },

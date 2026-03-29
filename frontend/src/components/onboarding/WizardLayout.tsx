@@ -43,7 +43,7 @@ export function WizardLayout({
   const meta = stepMeta[stepKey];
 
   return (
-    <div className="warm-page warm-page-noise min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+    <div className="warm-page min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-[96rem]">
         <div className="grid gap-5 xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)] xl:items-start">
           <aside className="warm-card-muted rounded-[2rem] p-5 sm:p-6 xl:sticky xl:top-28">
@@ -79,7 +79,6 @@ export function WizardLayout({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ type: "spring", stiffness: 220, damping: 24 }}
-                className="warm-card rounded-[2rem] p-5 sm:p-6 lg:p-7"
               >
                 {children}
               </motion.div>

@@ -312,7 +312,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
                     ref={(el) => { trackListRefs.current[majorId] = el; }}
                     id={listboxId}
                     role="listbox"
-                    className="absolute z-20 w-full mt-1 max-h-48 overflow-y-auto bg-surface-card border border-border-medium rounded-lg shadow-lg"
+                    className="absolute z-20 mt-2 max-h-48 w-full overflow-y-auto rounded-lg border border-border-medium border-t-border-subtle bg-surface-card shadow-[0_20px_40px_rgba(0,0,0,0.28)]"
                   >
                     {filteredTracks.map((t) => (
                       <button
@@ -349,7 +349,7 @@ export function InputSidebar({ hideHeader }: InputSidebarProps = {}) {
             >
               <option value="">Add minor...</option>
             </select>
-            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-card/60 backdrop-blur-[1px]">
+            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-card/80">
               <span className="text-xs font-semibold text-gold/70 uppercase tracking-widest">
                 Coming Soon
               </span>

@@ -119,7 +119,7 @@ export function ProfileModal({
         </div>
 
         {/* Sticky footer */}
-        <div className="shrink-0 border-t border-border-subtle bg-surface-card/95 px-8 py-4 backdrop-blur-sm">
+        <div className="shrink-0 border-t border-border-subtle bg-surface-card px-8 py-4">
           {error && (
             <div className="mb-3 rounded-xl border border-bad/25 bg-bad-light px-3 py-2 text-sm text-bad">
               {error}

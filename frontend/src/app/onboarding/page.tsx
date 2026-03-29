@@ -51,7 +51,7 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <div className="warm-page warm-page-noise flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
+      <div className="warm-page flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
         <div className="warm-card w-full max-w-md rounded-[2rem] p-8 text-center">
           <div className="onboarding-pill onboarding-pill-gold mx-auto flex h-14 w-14 items-center justify-center rounded-full">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#b07b2b] border-t-transparent" />
@@ -71,7 +71,7 @@ export default function OnboardingPage() {
 
   if (bootstrapError) {
     return (
-      <div className="warm-page warm-page-noise flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
+      <div className="warm-page flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
         <div className="warm-card w-full max-w-md rounded-[2rem] p-6 text-center">
           <div className="space-y-2">
             <h1 className="font-[family-name:var(--font-sora)] text-xl font-semibold text-ink-primary">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useInView } from "motion/react";
+import { motion, useInView, useReducedMotion } from "motion/react";
 import { AnchorLine } from "@/components/shared/AnchorLine";
 
 const steps = [
@@ -29,7 +29,8 @@ const checks = [
 ];
 
 export function HowItWorksClear() {
-  const ref = useRef(null);
+  const ref = useRef<HTMLElement | null>(null);
+  const reduceMotion = useReducedMotion();
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
@@ -49,17 +50,17 @@ export function HowItWorksClear() {
       <div className="mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
         <div className="max-w-[50rem]">
           <motion.p
-            initial={{ opacity: 0, y: 8 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.35 }}
+            transition={{ duration: reduceMotion ? 0.16 : 0.35 }}
             className="text-xs font-semibold uppercase tracking-widest text-gold"
           >
             How it works
           </motion.p>
           <motion.h2
-            initial={{ opacity: 0, y: 14 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 14 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.45, delay: 0.08 }}
+            transition={{ duration: reduceMotion ? 0.16 : 0.45, delay: reduceMotion ? 0 : 0.08 }}
             className="mt-3 text-[1.8rem] font-bold leading-tight text-white sm:text-[2.4rem]"
           >
             Three steps.{" "}
@@ -74,10 +75,10 @@ export function HowItWorksClear() {
             {steps.map((step, index) => (
               <motion.div
                 key={step.number}
-                initial={{ opacity: 0, y: 24 }}
+                initial={reduceMotion ? false : { opacity: 0, y: 24 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.45, delay: 0.2 + index * 0.1 }}
-                whileHover={{ y: -8, scale: 1.02 }}
+                transition={{ duration: reduceMotion ? 0.16 : 0.45, delay: reduceMotion ? 0 : 0.2 + index * 0.1 }}
+                whileHover={reduceMotion ? undefined : { y: -8, scale: 1.02 }}
                 className="rounded-[1.4rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-5 shine-sweep"
               >
                 <span className="text-2xl font-bold tracking-tight text-gold">
@@ -94,9 +95,9 @@ export function HowItWorksClear() {
           </div>
 
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 24 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, delay: 0.28 }}
+            transition={{ duration: reduceMotion ? 0.16 : 0.5, delay: reduceMotion ? 0 : 0.28 }}
             className="rounded-[1.4rem] border border-gold/18 bg-[linear-gradient(160deg,rgba(255,204,0,0.08),rgba(14,28,58,0.40))] p-5 float-soft"
           >
             <p className="text-xs font-semibold uppercase tracking-widest text-gold">
@@ -109,9 +110,9 @@ export function HowItWorksClear() {
               {checks.map((check, index) => (
                 <motion.div
                   key={check}
-                  initial={{ opacity: 0, x: 16 }}
+                  initial={reduceMotion ? false : { opacity: 0, x: 16 }}
                   animate={inView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.4, delay: 0.36 + index * 0.08 }}
+                  transition={{ duration: reduceMotion ? 0.16 : 0.4, delay: reduceMotion ? 0 : 0.36 + index * 0.08 }}
                   className="rounded-xl border border-white/8 bg-black/10 px-3 py-2 text-xs leading-relaxed text-slate-200"
                 >
                   {check}

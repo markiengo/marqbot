@@ -3,8 +3,6 @@
 import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { useReducedEffects } from "@/context/EffectsContext";
-
 interface ModalProps {
   open: boolean;
   onClose: () => void;
@@ -46,10 +44,8 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [blurReady, setBlurReady] = useState(false);
-  const reducedEffects = useReducedEffects();
   const prefersReducedMotion = useReducedMotion();
-  const simplifyMotion = reducedEffects || prefersReducedMotion;
+  const simplifyMotion = prefersReducedMotion;
   const titleId = useId();
   const modalId = useId();
   const handleClose = useEffectEvent(() => {
@@ -58,22 +54,6 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    if (!open || simplifyMotion) {
-      setBlurReady(false);
-      return;
-    }
-
-    const blurFrame = window.requestAnimationFrame(() => {
-      setBlurReady(true);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(blurFrame);
-      setBlurReady(false);
-    };
-  }, [open, simplifyMotion]);
 
   useEffect(() => {
     if (!open) {
@@ -131,7 +111,7 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: simplifyMotion ? 0.16 : 0.25 }}
-            className={`absolute inset-0 bg-black/55 ${blurReady && !simplifyMotion ? "backdrop-blur-[20px]" : ""}`}
+            className="absolute inset-0 bg-[rgba(4,9,20,0.82)]"
             onClick={onClose}
             style={{ willChange: "opacity" }}
           />
@@ -145,7 +125,7 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
-            className={`relative modal-aurora ${blurReady && !simplifyMotion ? "backdrop-blur-[20px]" : ""} ${!simplifyMotion ? "transform-gpu" : ""} rounded-2xl border border-border-card ${simplifyMotion ? "shadow-[0_16px_36px_rgba(0,0,0,0.36),0_0_0_1px_rgba(141,170,224,0.06)]" : "shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(141,170,224,0.06),0_0_60px_rgba(255,204,0,0.04),0_0_120px_rgba(0,114,206,0.03)]"} ${sizeClasses[size]} overflow-y-auto z-10`}
+            className={`relative modal-aurora ${!simplifyMotion ? "transform-gpu" : ""} rounded-2xl border border-border-card shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(141,170,224,0.06)] ${sizeClasses[size]} overflow-y-auto z-10`}
             style={{ willChange: "transform, opacity", contain: "layout paint style" }}
           >
             {title && (

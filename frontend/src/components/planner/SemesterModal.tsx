@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import type { BucketDetailState, Course, RecommendedCourse, SemesterData } from "@/lib/types";
 import { Modal } from "@/components/shared/Modal";
 import { Button } from "@/components/shared/Button";
+import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
 import { CourseCard } from "./CourseCard";
 import { Tag } from "@/components/shared/Tag";
 import { groupProgressByTierWithMajors, sortBucketsByTier } from "@/lib/rendering";
@@ -61,6 +62,7 @@ export function SemesterModal({
   const [applyLoading, setApplyLoading] = useState(false);
   const [editApplied, setEditApplied] = useState(false);
   const [bucketDetail, setBucketDetail] = useState<BucketDetailState | null>(null);
+  const [editDetailCode, setEditDetailCode] = useState<string | null>(null);
   const bucketTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   // Reset state when modal closes
@@ -71,14 +73,29 @@ export function SemesterModal({
       setApplyLoading(false);
       setEditApplied(false);
       setBucketDetail(null);
+      setEditDetailCode(null);
     }
   }, [open]);
 
-  if (!semester) return null;
-
-  const recs = semester.recommendations || [];
-  const semesterProgress = semester.projected_progress || semester.progress;
+  const recs = semester?.recommendations || [];
+  const semesterProgress = semester?.projected_progress || semester?.progress;
   const canEdit = Boolean(onEditApply) && recs.length > 0;
+  const catalogCourseMap = useMemo(() => {
+    const map = new Map<string, Course>();
+    courses.forEach((course) => map.set(course.course_code, course));
+    return map;
+  }, [courses]);
+  const editRecommendedMap = useMemo(() => {
+    const map = new Map<string, RecommendedCourse>();
+    [...recs, ...(candidatePool ?? []), ...editCourses].forEach((course) => {
+      map.set(course.course_code, course);
+    });
+    return map;
+  }, [candidatePool, editCourses, recs]);
+  const editDetailCourse = editDetailCode ? editRecommendedMap.get(editDetailCode) : undefined;
+  const editFallbackCourse = editDetailCode ? catalogCourseMap.get(editDetailCode) : undefined;
+
+  if (!semester) return null;
 
   const handleEnterEdit = () => {
     setEditCourses([...recs]);
@@ -221,6 +238,7 @@ export function SemesterModal({
             onApply={handleApply}
             onCancel={() => setEditMode(false)}
             applyLoading={applyLoading}
+            onCourseOpen={setEditDetailCode}
           />
         ) : (
           <>
@@ -313,11 +331,26 @@ export function SemesterModal({
           onCourseClick={handleBucketCourseClick}
         />
       )}
+      <CourseDetailModal
+        open={editDetailCode !== null}
+        onClose={() => setEditDetailCode(null)}
+        courseCode={editDetailCode ?? ""}
+        courseName={editDetailCourse?.course_name ?? editFallbackCourse?.course_name}
+        credits={editDetailCourse?.credits ?? editFallbackCourse?.credits}
+        description={editFallbackCourse?.description}
+        prereqRaw={editFallbackCourse?.catalog_prereq_raw}
+        buckets={editDetailCourse?.fills_buckets}
+        plannerReason={editDetailCourse?.why}
+        plannerNotes={editDetailCourse?.notes}
+        plannerWarnings={editDetailCourse?.warning_text ? [editDetailCourse.warning_text] : undefined}
+        programLabelMap={programLabelMap}
+        bucketLabelMap={bucketLabelMap}
+      />
     </>
   );
 }
 
-/* ── Edit mode content ──────────────────────────────────────── */
+/* ── Edit mode content — two-column swap layout ────────────── */
 
 function EditModeContent({
   editCourses,
@@ -330,6 +363,7 @@ function EditModeContent({
   onApply,
   onCancel,
   applyLoading,
+  onCourseOpen,
 }: {
   editCourses: RecommendedCourse[];
   candidatePool?: RecommendedCourse[];
@@ -341,69 +375,141 @@ function EditModeContent({
   onApply(): void;
   onCancel(): void;
   applyLoading: boolean;
+  onCourseOpen(code: string): void;
 }) {
+  const [mobileTab, setMobileTab] = useState<"selected" | "swaps">("selected");
+  const [swapFilter, setSwapFilter] = useState("");
+  const trimmedFilter = swapFilter.trim();
   const editCodes = useMemo(
     () => new Set(editCourses.map((c) => c.course_code)),
     [editCourses],
   );
-  const available = (candidatePool ?? []).filter((c) => !editCodes.has(c.course_code));
+  const available = useMemo(() => {
+    const pool = (candidatePool ?? []).filter((c) => !editCodes.has(c.course_code));
+    if (!trimmedFilter) return pool;
+    const q = trimmedFilter.toLowerCase();
+    return pool.filter(
+      (c) =>
+        c.course_code.toLowerCase().includes(q) ||
+        (c.course_name && c.course_name.toLowerCase().includes(q)),
+    );
+  }, [candidatePool, editCodes, trimmedFilter]);
+
+  useEffect(() => {
+    if (editCourses.length === 0) {
+      setMobileTab("swaps");
+    }
+  }, [editCourses.length]);
 
   return (
-    <div className="space-y-8">
-      {/* Selected courses */}
-      <div className="space-y-4">
-        <h3 className="text-[1.05rem] font-semibold text-gold uppercase tracking-wider hash-mark">
-          Selected Courses ({editCourses.length})
-        </h3>
-        {editCourses.length === 0 ? (
-          <p className="text-[1.05rem] text-ink-faint italic">No courses selected yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {editCourses.map((c) => (
-              <EditCourseRow
-                key={c.course_code}
-                course={c}
-                programLabelMap={programLabelMap}
-                bucketLabelMap={bucketLabelMap}
-                action="remove"
-                onAction={() => onRemove(c.course_code)}
-              />
-            ))}
-          </div>
-        )}
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3 md:hidden">
+        <div className="inline-flex rounded-full border border-border-subtle bg-surface-sunken p-1">
+          <button
+            type="button"
+            onClick={() => setMobileTab("selected")}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
+              mobileTab === "selected" ? "bg-gold/16 text-gold-light" : "text-ink-muted"
+            }`}
+          >
+            Your Courses ({editCourses.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("swaps")}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
+              mobileTab === "swaps" ? "bg-mu-blue/18 text-ink-accent-blue" : "text-ink-muted"
+            }`}
+          >
+            Eligible Swaps ({available.length})
+          </button>
+        </div>
       </div>
 
-      {/* Available alternatives */}
-      <div className="space-y-4">
-        <h3 className="text-[1.05rem] font-semibold text-gold uppercase tracking-wider hash-mark">
-          Eligible swaps
-        </h3>
-        {candidatePoolLoading ? (
-          <div className="flex items-center gap-3 px-2 py-5">
-            <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin" />
-            <span className="text-[1.05rem] text-ink-faint">Loading eligible courses...</span>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <section className={`${mobileTab === "selected" ? "flex" : "hidden"} flex-col rounded-[1.2rem] border border-border-subtle bg-[rgba(7,18,39,0.44)] p-3 md:flex`}>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-light">Selected</p>
+              <h3 className="mt-1 text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
+                Your Courses
+              </h3>
+            </div>
+            <span className="text-sm font-semibold text-gold-light">{editCourses.length}</span>
           </div>
-        ) : available.length === 0 ? (
-          <p className="text-[1.05rem] text-ink-faint italic">No additional eligible courses right now.</p>
-        ) : (
-          <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
-            {available.map((c) => (
-              <EditCourseRow
-                key={c.course_code}
-                course={c}
-                programLabelMap={programLabelMap}
-                bucketLabelMap={bucketLabelMap}
-                action="add"
-                onAction={() => onAdd(c)}
-              />
-            ))}
+          <div className="max-h-[min(44vh,24rem)] min-h-[12rem] space-y-2 overflow-y-auto pr-1 md:max-h-[26rem]">
+            {editCourses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="text-sm font-medium text-ink-secondary">No courses selected</p>
+                <p className="text-xs text-ink-faint mt-1">Add courses from the right panel.</p>
+              </div>
+            ) : (
+              editCourses.map((c) => (
+                <EditCourseRow
+                  key={c.course_code}
+                  course={c}
+                  programLabelMap={programLabelMap}
+                  bucketLabelMap={bucketLabelMap}
+                  action="remove"
+                  onAction={() => onRemove(c.course_code)}
+                  onOpen={() => onCourseOpen(c.course_code)}
+                />
+              ))
+            )}
           </div>
-        )}
+        </section>
+
+        <section className={`${mobileTab === "swaps" ? "flex" : "hidden"} flex-col rounded-[1.2rem] border border-border-subtle bg-[rgba(7,18,39,0.44)] p-3 md:flex`}>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-accent-blue">Swap Pool</p>
+              <h3 className="mt-1 text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
+                Eligible Swaps
+              </h3>
+            </div>
+            <span className="text-sm font-semibold text-ink-accent-blue">{available.length}</span>
+          </div>
+          <input
+            type="text"
+            value={swapFilter}
+            onChange={(e) => setSwapFilter(e.target.value)}
+            placeholder="Filter courses..."
+            className="mb-2 w-full rounded-lg border border-border-medium bg-surface-input px-3 py-2 text-sm text-ink-primary placeholder:text-ink-faint focus:outline-none focus:ring-1 focus:ring-gold/40"
+          />
+          {candidatePoolLoading ? (
+            <div className="flex items-center gap-3 py-6 justify-center">
+              <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-ink-faint">Loading eligible courses...</span>
+            </div>
+          ) : available.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <p className="text-sm font-medium text-ink-secondary">
+                {trimmedFilter ? "No matches" : "No eligible courses"}
+              </p>
+              <p className="text-xs text-ink-faint mt-1">
+                {trimmedFilter ? "Try a different search." : "All eligible courses are already selected."}
+              </p>
+            </div>
+          ) : (
+            <div className="max-h-[min(44vh,24rem)] space-y-2 overflow-y-auto pr-1 md:max-h-[26rem]">
+              {available.map((c) => (
+                <EditCourseRow
+                  key={c.course_code}
+                  course={c}
+                  programLabelMap={programLabelMap}
+                  bucketLabelMap={bucketLabelMap}
+                  action="add"
+                  onAction={() => onAdd(c)}
+                  onOpen={() => onCourseOpen(c.course_code)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
-      {/* Action buttons */}
-      <div className="divider-fade mt-2" />
-      <div className="flex items-center justify-end gap-3 pt-3">
+      <div className="divider-fade" />
+      <div className="sticky bottom-0 -mx-1 mt-1 flex items-center justify-end gap-3 rounded-b-[1.1rem] border-t border-border-subtle bg-[rgba(7,18,39,0.96)] px-1 pb-1 pt-3">
         <Button variant="ghost" size="sm" onClick={onCancel} disabled={applyLoading}>
           Cancel
         </Button>
@@ -422,7 +528,7 @@ function EditModeContent({
   );
 }
 
-/* ── Single course row (used in edit mode) ──────────────────── */
+/* ── Compact course row (used in swap mode) ───────────────── */
 
 function EditCourseRow({
   course,
@@ -430,34 +536,38 @@ function EditCourseRow({
   bucketLabelMap,
   action,
   onAction,
+  onOpen,
 }: {
   course: RecommendedCourse;
   programLabelMap?: Map<string, string>;
   bucketLabelMap?: Map<string, string>;
   action: "add" | "remove";
   onAction(): void;
+  onOpen(): void;
 }) {
   const bucketIds = course.fills_buckets ?? [];
   return (
-    <div className={`flex items-center gap-4 glass-card card-glow-hover rounded-2xl p-5 ${action === "remove" ? "border-l-2 border-l-ok/50" : "border-l-2 border-l-mu-blue/50"}`}>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div>
-            {/* Use the token, not a hardcoded hex */}
-            <span className="font-semibold text-mu-blue text-[1.05rem]">
-              {course.course_code}
-            </span>
-            {course.course_name && (
-              <>
-                <span className="text-ink-faint mx-1.5">&mdash;</span>
-                <span className="text-ink-primary text-[1.05rem]">{course.course_name}</span>
-              </>
-            )}
-          </div>
+    <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
+      action === "remove"
+        ? "glass-card border-l-2 border-l-ok/50"
+        : "border border-border-medium hover:border-mu-blue/30 hover:bg-[rgba(0,114,206,0.04)]"
+    }`}>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex-1 min-w-0 text-left cursor-pointer rounded-lg focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2"
+      >
+        <div className="flex items-baseline gap-2">
+          <span className="font-semibold text-mu-blue text-sm whitespace-nowrap">
+            {course.course_code}
+          </span>
+          {course.course_name && (
+            <span className="text-ink-primary text-sm truncate">{course.course_name}</span>
+          )}
         </div>
         {bucketIds.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {sortBucketsByTier(bucketIds).map((bid, idx) => {
+          <div className="flex flex-wrap gap-1 mt-1">
+            {sortBucketsByTier(bucketIds).slice(0, 3).map((bid, idx) => {
               const isBcc = bid.includes("BCC_REQUIRED");
               const variant = isBcc
                 ? "bcc"
@@ -472,14 +582,16 @@ function EditCourseRow({
                 </Tag>
               );
             })}
+            {bucketIds.length > 3 && (
+              <span className="text-[10px] text-ink-faint self-center">+{bucketIds.length - 3}</span>
+            )}
           </div>
         )}
-      </div>
-      {/* 44×44 minimum touch target */}
+      </button>
       <button
         type="button"
         onClick={onAction}
-        className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-xl font-bold transition-colors ${
+        className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors ${
           action === "remove"
             ? "text-bad hover:bg-bad-light/30"
             : "text-ok hover:bg-ok/10"

@@ -113,23 +113,23 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
       </Modal>
 
       <CourseHistoryImport />
-
       <div className="grid items-start gap-4 xl:grid-cols-2">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.1 }}
-          className="onboarding-panel flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]"
+          transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.08 }}
+          className="import-list-section rounded-[1.55rem] px-4 py-4 sm:px-5"
         >
           <div className="space-y-1">
-            <label className="text-base font-semibold text-ink-primary md:text-lg">
-              Classes you&apos;ve already finished
-            </label>
-            <p className="mt-0.5 text-xs text-ink-muted">
-              AP, IB, transfer credit -- all of it goes here.
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8ec8ff]">Completed</p>
+            <h3 className="text-[1.05rem] font-semibold tracking-[-0.02em] text-ink-primary">
+              Courses you&apos;ve already finished
+            </h3>
+            <p className="text-sm text-ink-secondary">
+              Import populates this first. Edit here after applying if anything needs cleanup.
             </p>
           </div>
-          <div className="mt-3">
+          <div className="mt-4">
             <MultiSelect
               courses={state.courses}
               selected={state.completed}
@@ -147,18 +147,19 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.22 }}
-          className="onboarding-panel-soft flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]"
+          transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.16 }}
+          className="import-list-section rounded-[1.55rem] border-[rgba(255,204,0,0.18)] px-4 py-4 sm:px-5"
         >
           <div className="space-y-1">
-            <label className="text-base font-semibold text-ink-primary md:text-lg">
-              Classes you&apos;re taking right now
-            </label>
-            <p className="mt-0.5 text-xs text-ink-muted">
-              Whatever you&apos;re enrolled in right now.
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-light">In Progress</p>
+            <h3 className="text-[1.05rem] font-semibold tracking-[-0.02em] text-ink-primary">
+              Courses you&apos;re taking right now
+            </h3>
+            <p className="text-sm text-ink-secondary">
+              Keep current enrollment here. Use it after import to fix anything that landed in the wrong bucket.
             </p>
           </div>
-          <div className="mt-3">
+          <div className="mt-4">
             <MultiSelect
               courses={state.courses}
               selected={state.inProgress}
@@ -173,7 +174,6 @@ export function CoursesStep({ onWarningChange }: CoursesStepProps) {
           </div>
         </motion.div>
       </div>
-
       {inconsistencies.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}

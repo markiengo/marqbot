@@ -128,18 +128,151 @@ erDiagram
 
 ## Core CSVs
 
-| File | Role |
-|------|------|
-| `courses.csv` | Base course catalog. |
-| `parent_buckets.csv` | Top-level programs: major, track, minor, universal. |
-| `child_buckets.csv` | Requirement buckets within each parent. |
-| `master_bucket_courses.csv` | Explicit course membership for child buckets. |
-| `course_hard_prereqs.csv` | Hard eligibility gates only. |
-| `course_soft_prereqs.csv` | Soft warnings, raw prerequisite text, and audit detail columns. |
-| `course_offerings.csv` | Seasonal offering history. Currently disabled - all courses treated as offered every term. |
-| `course_equivalencies.csv` | Equivalency groups used for honors/grad alternatives, cross-listing, and no-double-count logic. |
-| `policies.csv` | Normalized registry of 76 Marquette academic policies with scope, runtime mode, implementation status, and source URLs. |
-| `policies_buckets.csv` | Policy-to-bucket join table (177 rows) mapping each policy to specific parent bucket IDs or group aliases (ALL, ALL_COBA, etc.). |
+### `courses.csv`
+
+Base course catalog (~5000 rows).
+
+| Column | Meaning |
+|--------|---------|
+| `course_code` | Primary key. e.g. `FINA 3001`. |
+| `course_name` | Human-readable course title. |
+| `credits` | Credit value. Usually an integer like `3`, but can be a range like `1-3`. |
+| `level` | Numeric course level (1000–6000). Derived from the first digit of the course number. |
+| `active` | Whether the course is active in the current catalog. |
+| `notes` | Freeform notes. |
+| `elective_pool_tag` | Tag for dynamic elective synthesis. Currently only `biz_elective` is used. Blank for most courses. |
+| `description` | Catalog description text. |
+
+### `parent_buckets.csv`
+
+Top-level program envelopes (39 rows): majors, tracks, minors, and universal requirement groups.
+
+| Column | Meaning |
+|--------|---------|
+| `parent_bucket_id` | Primary key. e.g. `FIN_MAJOR`, `BCC_CORE`, `MCC_FOUNDATION`. |
+| `parent_bucket_label` | Display name. e.g. `Finance`, `Business Common Core`. |
+| `type` | Program type: `major`, `track`, `minor`, or `universal`. |
+| `parent_major` | For tracks: the parent major this track belongs to. Blank for non-tracks. |
+| `active` | Whether this program is active and selectable. |
+| `requires_primary_major` | If true, this program can only be selected alongside a primary major. |
+| `double_count_family_id` | Family grouping for double-count policy. Buckets in the same family don't double-count by default. |
+| `required_major` | Optional major that must be declared to use this program. |
+| `is_default` | If true, this is the default major selection when none is chosen. |
+
+### `child_buckets.csv`
+
+Individual requirement slots inside each parent (~100 rows).
+
+| Column | Meaning |
+|--------|---------|
+| `parent_bucket_id` | FK to `parent_buckets.csv`. Which program this requirement belongs to. |
+| `child_bucket_id` | Primary key. e.g. `fina-req-core`, `bcc-required`. |
+| `child_bucket_label` | Display name. e.g. `Finance Core Requirements`. |
+| `requirement_mode` | How the bucket is satisfied: `required` (all courses), `choose_n` (pick N), or `credits_pool` (accumulate credits). |
+| `courses_required` | Number of courses needed. Used by `required` and `choose_n` modes. |
+| `credits_required` | Number of credits needed. Used by `credits_pool` mode. |
+| `min_level` | Minimum course level for this bucket. e.g. `3000` means only 3000+ courses count. Blank = no minimum. |
+| `notes` | Freeform notes. |
+
+### `master_bucket_courses.csv`
+
+Explicit course-to-child-bucket membership (~2000 rows). This is the checked-in mapping that says "this course can count toward this requirement."
+
+| Column | Meaning |
+|--------|---------|
+| `parent_bucket_id` | FK to `parent_buckets.csv`. |
+| `child_bucket_id` | FK to `child_buckets.csv`. |
+| `course_code` | FK to `courses.csv`. |
+| `notes` | Freeform notes. |
+
+### `course_hard_prereqs.csv`
+
+Hard eligibility gates (~800 rows). Only parseable, enforceable prerequisites.
+
+| Column | Meaning |
+|--------|---------|
+| `course_code` | FK to `courses.csv`. Owning course. |
+| `hard_prereq` | Parseable prerequisite expression consumed by `prereq_parser`. e.g. `ACCO 1031 and FINA 3001`. `none` if no hard prereq. |
+| `concurrent_with` | Same-term companion courses. e.g. `MATH 1451`. |
+| `min_standing` | Numeric standing gate. `1`=Freshman, `2`=Sophomore, `3`=Junior, `4`=Senior. Blank = no gate. |
+
+### `course_soft_prereqs.csv`
+
+Soft warnings, raw prerequisite text, and audit detail columns (~1500 rows).
+
+| Column | Meaning |
+|--------|---------|
+| `course_code` | FK to `courses.csv`. Owning course. |
+| `soft_prereq` | Semicolon-delimited tag list used by runtime warnings and manual review. |
+| `catalog_prereq_raw` | Full bulletin prerequisite line, verbatim. |
+| `notes` | Human-readable audit context retained from parsing. |
+
+See **Soft detail columns** section below for the full list of `soft_prereq_*` columns.
+
+### `course_offerings.csv`
+
+Seasonal offering history (~5000 rows). **Currently disabled** — all courses treated as offered every term.
+
+| Column | Meaning |
+|--------|---------|
+| `course_code` | FK to `courses.csv`. |
+| `Spring 2025` | Whether the course was offered in Spring 2025. |
+| `Summer 2025` | Whether the course was offered in Summer 2025. |
+| `Fall 2025` | Whether the course was offered in Fall 2025. |
+
+### `course_equivalencies.csv`
+
+Equivalency groups (~300 rows) stored in wide format with one row per group.
+
+| Column | Meaning |
+|--------|---------|
+| `id` | Group identifier. |
+| `course_1`, `course_2`, `course_3` | Member course codes for the group. |
+| `type` | Equivalency relationship: `equivalent`, `honors`, `grad`, `cross_listed`, or `no_double_count`. |
+| `parent_bucket` | Optional parent-bucket scope for bucket expansion rules. |
+| `child_bucket` | Optional child-bucket scope for bucket expansion rules. |
+
+### `policies.csv`
+
+Normalized registry of 76 Marquette academic policies.
+
+| Column | Meaning |
+|--------|---------|
+| `policy_id` | Primary key. e.g. `COBA_06`, `CRED_01`, `STAND_01`. |
+| `policy_name` | Human-readable name. e.g. `Maximum Business Majors`. |
+| `scope_type` | Scope level: `university`, `college`, or `bucket`. |
+| `scope_id` | Which scope this policy applies to. e.g. `marquette`, `business`, `BCC_CORE`. |
+| `policy_category` | Category grouping: `standing`, `credit_load`, `graduation`, `declaration`, `repeat`, `transfer`, `mcc`, `coba`, `cas`, `engineering`, `double_count`, `runtime`. |
+| `runtime_mode` | How the engine handles it: `block`, `warning`, `advisory`, `none`, or `rank_penalty`. |
+| `implementation_status` | Current build state: `runtime_ready`, `planned`, `deferred`, `advisory_only`, or `out_of_scope`. |
+| `requires_student_state` | What student data is needed to enforce this. e.g. `credits_earned`, `gpa`, `grades`. Blank if none. |
+| `applies_to_program_ids` | Comma-separated program IDs this policy applies to, or blank for all. |
+| `rule_summary` | One-line plain-English description of the rule. |
+| `source_url` | Marquette Bulletin URL where this policy is documented. |
+| `notes` | Implementation notes, edge cases, or reasoning. |
+
+### `policies_buckets.csv`
+
+Policy-to-bucket join table (177 rows). Maps each policy to the parent buckets it affects.
+
+| Column | Meaning |
+|--------|---------|
+| `policy_id` | FK to `policies.csv`. |
+| `parent_bucket_id` | FK to `parent_buckets.csv`, or a group alias like `ALL`, `ALL_COBA`, `ALL_CAS`, `ALL_ENGR`. |
+| `notes` | Freeform notes about why this mapping exists. |
+
+### `quips.csv`
+
+Rotating UI quips (~50 rows) used in the frontend.
+
+| Column | Meaning |
+|--------|---------|
+| `pool_type` | Which quip pool this belongs to. e.g. `progress`, `semester`. |
+| `pool_id` | Sub-pool identifier within the pool type. |
+| `slot` | Slot number within the sub-pool. |
+| `target` | Target value or condition for triggering this quip. |
+| `weight` | Relative weight for random selection. |
+| `text` | The quip text displayed to the user. |
 
 ## Operational Config
 
@@ -183,25 +316,7 @@ erDiagram
 
 ## Prerequisite Split
 
-### `course_hard_prereqs.csv`
-
-| Column | Meaning |
-|--------|---------|
-| `course_code` | Owning course. |
-| `hard_prereq` | Parseable prerequisite expression consumed by `prereq_parser`. |
-| `concurrent_with` | Same-term companion courses. |
-| `min_standing` | Numeric standing gate. |
-
-### `course_soft_prereqs.csv`
-
-| Column | Meaning |
-|--------|---------|
-| `course_code` | Owning course. |
-| `soft_prereq` | Semicolon-delimited tag list used by runtime warnings and manual review. |
-| `catalog_prereq_raw` | Full bulletin prerequisite line. |
-| `notes` | Human-readable audit context retained from parsing. |
-
-**Soft detail columns**
+**Soft detail columns** in `course_soft_prereqs.csv`
 
 | Column | Captures |
 |--------|----------|
@@ -241,16 +356,6 @@ At load time, courses tagged with `courses.elective_pool_tag = biz_elective` are
 - Elective pools can still overlap with other elective pools when the pairwise bucket policy allows it.
 
 ## Course Equivalencies
-
-`course_equivalencies.csv` is stored in a wide format with one row per equivalency group.
-
-| Column | Meaning |
-|--------|---------|
-| `id` | Group identifier. |
-| `course_1`, `course_2`, `course_3` | Member course codes for the group. |
-| `type` | Equivalency relationship: `equivalent`, `honors`, `grad`, `cross_listed`, or `no_double_count`. |
-| `parent_bucket` | Optional parent-bucket scope for bucket expansion rules. |
-| `child_bucket` | Optional child-bucket scope for bucket expansion rules. |
 
 Runtime behavior:
 - `equivalent`, `honors`, and `grad` groups expand prereq satisfaction and bucket mappings.

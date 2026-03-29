@@ -6,16 +6,11 @@ import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/shared/Button";
 import { Modal } from "@/components/shared/Modal";
 import { useAppContext } from "@/context/AppContext";
-import { useReducedEffects } from "@/context/EffectsContext";
-import { filterCourses } from "@/lib/utils";
-import type { Course, ImportResult, ImportRow, ImportStatus } from "@/lib/types";
-
-type ReviewDisposition = "completed" | "in_progress" | "skip";
+import type { ImportResult, ImportRow, ImportStatus } from "@/lib/types";
 
 interface ReviewResolution {
-  query: string;
   selectedCode: string;
-  reviewStatus: ReviewDisposition;
+  selected: boolean;
 }
 
 interface ReviewRow extends ImportRow {
@@ -62,7 +57,7 @@ function dedupeCodes(codes: string[]): string[] {
   return [...new Set(codes.filter(Boolean))];
 }
 
-function initialDisposition(row: ImportRow): ReviewDisposition {
+function initialDisposition(row: ImportRow): "completed" | "in_progress" | "skip" {
   if (row.status === "completed") return "completed";
   if (row.status === "in_progress") return "in_progress";
   return "skip";
@@ -113,7 +108,6 @@ function loadCourseHistoryParser() {
 
 export function CourseHistoryImport() {
   const { state, dispatch } = useAppContext();
-  const reducedEffects = useReducedEffects();
   const [status, setStatus] = useState<ImportStatus>("idle");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -123,12 +117,6 @@ export function CourseHistoryImport() {
   const [reviewResolutions, setReviewResolutions] = useState<Record<string, ReviewResolution>>({});
   const [applyNotice, setApplyNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const courseByCode = useMemo(() => {
-    const map = new Map<string, Course>();
-    state.courses.forEach((course) => map.set(course.course_code, course));
-    return map;
-  }, [state.courses]);
 
   const { completedMatches, inProgressMatches, needsReview } = useMemo(
     () => partitionResult(result),
@@ -149,9 +137,8 @@ export function CourseHistoryImport() {
         needsReview.map((row) => [
           row.reviewKey,
           {
-            query: "",
             selectedCode: row.course_code || row.suggested_matches?.[0] || "",
-            reviewStatus: initialDisposition(row),
+            selected: Boolean(row.course_code || row.suggested_matches?.[0]),
           },
         ]),
       ),
@@ -224,7 +211,7 @@ export function CourseHistoryImport() {
   const matchedCount = (result?.summary.completed_count ?? 0) + (result?.summary.in_progress_count ?? 0);
   const resolvedReviewCount = needsReview.reduce((count, row) => {
     const resolution = reviewResolutions[row.reviewKey];
-    if (!resolution || resolution.reviewStatus === "skip" || !resolution.selectedCode) return count;
+    if (!resolution || !resolution.selected || !resolution.selectedCode) return count;
     return count + 1;
   }, 0);
 
@@ -233,8 +220,8 @@ export function CourseHistoryImport() {
     const inProgress = new Set(selectedInProgress);
     needsReview.forEach((row) => {
       const resolution = reviewResolutions[row.reviewKey];
-      if (!resolution || resolution.reviewStatus === "skip" || !resolution.selectedCode) return;
-      if (resolution.reviewStatus === "completed") {
+      if (!resolution || !resolution.selected || !resolution.selectedCode) return;
+      if (initialDisposition(row) === "completed") {
         inProgress.delete(resolution.selectedCode);
         completed.add(resolution.selectedCode);
       } else {
@@ -306,7 +293,7 @@ export function CourseHistoryImport() {
       <div className="px-5 py-5 sm:px-6">
         {status !== "idle" && (
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-            <div className="onboarding-panel-soft rounded-[1.5rem] border-dashed px-4 py-4">
+            <div className="import-shell-muted rounded-[1.35rem] border border-dashed px-4 py-4">
               <p className="text-sm font-semibold text-ink-primary">Best results</p>
               <p className="mt-1 text-sm leading-relaxed text-ink-secondary">
                 Crop tightly around the table. JPG, PNG, WEBP, or GIF. Max 5MB. Footer notes and GPA lines
@@ -319,8 +306,8 @@ export function CourseHistoryImport() {
 
         {error && (
           <motion.div
-            initial={reducedEffects ? { opacity: 0 } : { opacity: 0, y: 10 }}
-            animate={reducedEffects ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             className="onboarding-panel-danger mt-4 rounded-[1.25rem] px-4 py-4 text-sm text-ink-primary"
           >
             {error}
@@ -328,8 +315,8 @@ export function CourseHistoryImport() {
         )}
         {applyNotice && (
           <motion.div
-            initial={reducedEffects ? { opacity: 0 } : { opacity: 0, y: 10 }}
-            animate={reducedEffects ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             className="onboarding-panel-success mt-4 rounded-[1.25rem] px-4 py-4 text-sm text-ink-primary"
           >
             {applyNotice}
@@ -339,27 +326,27 @@ export function CourseHistoryImport() {
         <AnimatePresence>
           {result && status === "parsed" && (
             <motion.div
-              initial={reducedEffects ? { opacity: 0 } : { opacity: 0, y: 12 }}
-              animate={reducedEffects ? { opacity: 1 } : { opacity: 1, y: 0 }}
-              exit={reducedEffects ? { opacity: 0 } : { opacity: 0, y: -10 }}
-              transition={{ duration: reducedEffects ? 0.16 : 0.24 }}
-              className="mt-5 space-y-4"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.24 }}
+              className="import-workspace mt-5 space-y-4 rounded-[1.65rem] p-4 sm:p-5"
             >
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
-                <div className="onboarding-panel-gold rounded-[1.4rem] px-4 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-light">Match rate</p>
-                  <p className="mt-2 text-[1.55rem] font-semibold tracking-[-0.04em] text-ink-primary">
-                    Matched {matchedCount} of {result.summary.total_rows} rows
-                  </p>
-                  <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
-                    Rows MarqBot can place cleanly are pre-checked. Anything ambiguous stays in review until you confirm it.
-                  </p>
-                </div>
-                <div className="onboarding-panel-soft rounded-[1.4rem] px-4 py-4">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="import-summary-rail rounded-[1.35rem] px-4 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-2xl">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-light">Match summary</p>
+                    <p className="mt-2 text-[1.35rem] font-semibold tracking-[-0.04em] text-ink-primary sm:text-[1.5rem]">
+                      Matched {matchedCount} of {result.summary.total_rows} rows
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
+                      Clean matches are pre-selected. Ambiguous rows stay in review until you confirm them.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
                     <StatChip label="Completed" value={result.summary.completed_count} />
                     <StatChip label="In Progress" value={result.summary.in_progress_count} />
-                    <StatChip label="Review" value={result.summary.unmatched_count} />
+                    <StatChip label="Flagged" value={needsReview.length} />
                     <StatChip label="Ignored" value={result.summary.ignored_count} />
                   </div>
                 </div>
@@ -383,17 +370,14 @@ export function CourseHistoryImport() {
               {needsReview.length > 0 && (
                 <NeedsReviewSection
                   rows={needsReview}
-                  courses={state.courses}
-                  courseByCode={courseByCode}
                   reviewResolutions={reviewResolutions}
                   onUpdate={updateResolution}
                 />
               )}
               {result.ignored_rows.length > 0 && <IgnoredSection rows={result.ignored_rows} />}
-              <div className="onboarding-panel-soft flex flex-wrap items-center justify-between gap-3 rounded-[1.45rem] px-4 py-4">
+              <div className="import-summary-rail sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] px-4 py-4">
                 <p className="text-sm leading-relaxed text-ink-secondary">
                   Apply what looks right now, then keep editing with the normal course chips below.
-                  {reducedEffects ? " Screenshot OCR may take a bit longer on lower-power setups." : ""}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -425,7 +409,7 @@ export function CourseHistoryImport() {
 
 function StatChip({ label, value }: { label: string; value: number }) {
   return (
-    <div className="onboarding-panel-soft rounded-[1rem] px-3 py-2 text-ink-secondary">
+    <div className="import-inline-stat rounded-[0.95rem] px-3 py-2 text-ink-secondary">
       <p className="text-[1.1rem] font-semibold tracking-[-0.03em] text-ink-primary">{value}</p>
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-muted">{label}</p>
     </div>
@@ -452,22 +436,22 @@ function MatchSection({
   const palette =
     tone === "blue"
       ? {
-          wrapper: "onboarding-panel border-[rgba(0,114,206,0.24)]",
+          wrapper: "import-list-section border-[rgba(0,114,206,0.18)]",
           badge: "onboarding-pill onboarding-pill-blue",
-          accent: "accent-ink-accent-blue",
+          accent: "text-[#8ec8ff]",
         }
       : {
-          wrapper: "onboarding-panel-gold",
+          wrapper: "import-list-section border-[rgba(255,204,0,0.18)]",
           badge: "onboarding-pill onboarding-pill-gold",
-          accent: "accent-gold",
+          accent: "text-gold-light",
         };
 
   return (
-    <section className={`rounded-[1.55rem] border px-4 py-4 sm:px-5 ${palette.wrapper}`}>
+    <section className={`rounded-[1.4rem] border px-4 py-4 sm:px-5 ${palette.wrapper}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-light">{title}</p>
-          <h4 className="mt-2 text-[1.2rem] font-semibold tracking-[-0.03em] text-ink-primary">
+          <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${palette.accent}`}>{title}</p>
+          <h4 className="mt-2 text-[1.1rem] font-semibold tracking-[-0.03em] text-ink-primary">
             {rows.length} {rows.length === 1 ? "row" : "rows"} ready to apply
           </h4>
           <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{subtitle}</p>
@@ -476,23 +460,30 @@ function MatchSection({
           {selectedCodes.size} selected
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="import-divider mt-4" />
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {rows.map((row) => {
           const code = row.course_code || "";
+          const isSelected = selectedCodes.has(code);
           return (
             <label
               key={`${code}-${row.term}`}
-              className="onboarding-panel-soft flex cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5"
+              className={`import-list-row flex cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 ${
+                isSelected ? "import-list-row-selected" : ""
+              }`}
             >
               <input
                 type="checkbox"
-                checked={selectedCodes.has(code)}
+                checked={isSelected}
                 onChange={(event) => onToggle(code, event.target.checked)}
-                className={`h-4 w-4 shrink-0 ${palette.accent}`}
+                className="h-4 w-4 shrink-0 accent-gold"
               />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-ink-primary">{code}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${palette.badge}`}>
+                    {title}
+                  </span>
                 </div>
                 <p className="truncate text-xs text-ink-secondary">{row.term || "term unknown"}</p>
               </div>
@@ -506,46 +497,42 @@ function MatchSection({
 
 function NeedsReviewSection({
   rows,
-  courses,
-  courseByCode,
   reviewResolutions,
   onUpdate,
 }: {
   rows: ReviewRow[];
-  courses: Course[];
-  courseByCode: Map<string, Course>;
   reviewResolutions: Record<string, ReviewResolution>;
   onUpdate: (key: string, patch: Partial<ReviewResolution>) => void;
 }) {
   const resolvedCount = rows.reduce((count, row) => {
     const resolution = reviewResolutions[row.reviewKey];
-    if (!resolution || resolution.reviewStatus === "skip" || !resolution.selectedCode) return count;
+    if (!resolution || !resolution.selected || !resolution.selectedCode) return count;
     return count + 1;
   }, 0);
 
   return (
-    <section className="onboarding-panel rounded-[1.55rem] border-[rgba(199,59,69,0.22)] px-4 py-4 sm:px-5">
+    <section className="import-list-section rounded-[1.4rem] border-[rgba(199,59,69,0.22)] px-4 py-4 sm:px-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-bad">Needs Review</p>
+        <div className="max-w-2xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-bad">Flagged Rows</p>
           <h4 className="mt-2 text-[1.2rem] font-semibold tracking-[-0.03em] text-ink-primary">
-            Resolve the rows MarqBot won&apos;t auto-apply.
+            These were lower-confidence matches.
           </h4>
           <p className="mt-1 text-sm leading-relaxed text-ink-secondary">
-            Use a suggestion, search the catalog manually, or skip the row.
+            Import the ones that look right. You can clean them up after this step.
           </p>
         </div>
         <div className="onboarding-pill onboarding-pill-danger rounded-full px-3 py-1 text-xs font-semibold">
-          {resolvedCount} resolved
+          {resolvedCount} selected
         </div>
       </div>
-      <div className="mt-4 space-y-3">
+
+      <div className="import-divider mt-4" />
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {rows.map((row) => (
-          <NeedsReviewCard
+          <FlaggedMatchRow
             key={row.reviewKey}
             row={row}
-            courses={courses}
-            courseByCode={courseByCode}
             resolution={reviewResolutions[row.reviewKey]}
             onUpdate={onUpdate}
           />
@@ -555,140 +542,53 @@ function NeedsReviewSection({
   );
 }
 
-function NeedsReviewCard({
+function FlaggedMatchRow({
   row,
-  courses,
-  courseByCode,
   resolution,
   onUpdate,
 }: {
   row: ReviewRow;
-  courses: Course[];
-  courseByCode: Map<string, Course>;
   resolution?: ReviewResolution;
   onUpdate: (key: string, patch: Partial<ReviewResolution>) => void;
 }) {
   const safeResolution = resolution ?? {
-    query: "",
-    selectedCode: "",
-    reviewStatus: initialDisposition(row),
+    selectedCode: row.course_code || row.suggested_matches?.[0] || "",
+    selected: false,
   };
-  const selectedCourse = safeResolution.selectedCode ? courseByCode.get(safeResolution.selectedCode) : null;
-  const suggestedCourses = (row.suggested_matches || [])
-    .map((code) => courseByCode.get(code))
-    .filter((course): course is Course => Boolean(course));
-  const searchResults = useMemo(() => {
-    if (!safeResolution.query.trim()) return [];
-    return filterCourses(safeResolution.query, new Set<string>(), courses);
-  }, [courses, safeResolution.query]);
+  const displayCode = safeResolution.selectedCode || row.course_code || row.suggested_matches?.[0] || "No catalog match";
+  const selectable = Boolean(safeResolution.selectedCode);
+  const statusLabel = initialDisposition(row) === "completed" ? "Completed" : initialDisposition(row) === "in_progress" ? "In Progress" : "Flagged";
 
   return (
-    <div className="onboarding-panel-soft rounded-[1.25rem] px-4 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="onboarding-pill onboarding-pill-danger rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]">
-              {row.reason || row.status}
-            </span>
-          </div>
-          <p className="text-sm font-semibold text-ink-primary">{row.source_text}</p>
-          <p className="text-xs uppercase tracking-[0.16em] text-ink-muted">{row.term || "term unknown"}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <DispositionButton
-            active={safeResolution.reviewStatus === "completed"}
-            tone="blue"
-            onClick={() => onUpdate(row.reviewKey, { reviewStatus: "completed" })}
-          >
-            Completed
-          </DispositionButton>
-          <DispositionButton
-            active={safeResolution.reviewStatus === "in_progress"}
-            tone="gold"
-            onClick={() => onUpdate(row.reviewKey, { reviewStatus: "in_progress" })}
-          >
-            In Progress
-          </DispositionButton>
-          <DispositionButton
-            active={safeResolution.reviewStatus === "skip"}
-            tone="neutral"
-            onClick={() => onUpdate(row.reviewKey, { reviewStatus: "skip" })}
-          >
-            Skip
-          </DispositionButton>
-        </div>
-      </div>
-
-      {suggestedCourses.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {suggestedCourses.map((course) => (
-            <button
-              key={course.course_code}
-              type="button"
-              onClick={() => onUpdate(row.reviewKey, { selectedCode: course.course_code })}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                safeResolution.selectedCode === course.course_code
-                  ? "onboarding-pill onboarding-pill-blue"
-                  : "onboarding-pill"
-              }`}
-            >
-              {course.course_code}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-4 space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
-          Search catalog
-        </label>
-        <input
-          type="text"
-          value={safeResolution.query}
-          onChange={(event) => onUpdate(row.reviewKey, { query: event.target.value })}
-          placeholder="Search for the right course code"
-          className="onboarding-input w-full rounded-xl px-4 py-3 text-sm"
-        />
-      </div>
-
-      {searchResults.length > 0 && (
-        <div className="onboarding-panel-soft mt-3 rounded-[1rem] p-2">
-          <div className="grid gap-2">
-            {searchResults.map((course) => (
-              <button
-                key={course.course_code}
-                type="button"
-                onClick={() => onUpdate(row.reviewKey, { selectedCode: course.course_code })}
-                className="flex items-start justify-between gap-3 rounded-[0.9rem] px-3 py-2 text-left transition-colors hover:bg-[rgba(141,170,224,0.12)]"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-mu-blue">{course.course_code}</p>
-                  <p className="text-xs text-ink-secondary">{course.course_name}</p>
-                </div>
-                <span className="text-xs font-semibold text-gold-light">{course.credits}cr</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="onboarding-panel-soft mt-3 rounded-[1rem] px-3 py-3 text-sm text-ink-secondary">
-        {selectedCourse ? (
-          <span>
-            Selected: <span className="font-semibold text-ink-primary">{selectedCourse.course_code}</span>
-            {selectedCourse.course_name ? ` - ${selectedCourse.course_name}` : ""}
+    <label
+      className={`import-list-row flex cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 ${
+        safeResolution.selected && selectable ? "import-list-row-selected" : ""
+      } ${!selectable ? "opacity-65" : ""}`}
+    >
+      <input
+        type="checkbox"
+        checked={safeResolution.selected && selectable}
+        disabled={!selectable}
+        onChange={(event) => onUpdate(row.reviewKey, { selected: event.target.checked })}
+        className="h-4 w-4 shrink-0 accent-gold"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-ink-primary">{displayCode}</span>
+          <span className="onboarding-pill onboarding-pill-danger rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]">
+            {statusLabel}
           </span>
-        ) : (
-          "No course selected yet."
-        )}
+        </div>
+        <p className="truncate text-xs text-ink-secondary">{row.term || "term unknown"}</p>
+        <p className="mt-1 truncate text-xs text-ink-muted">{row.source_text}</p>
       </div>
-    </div>
+    </label>
   );
 }
 
 function IgnoredSection({ rows }: { rows: ImportRow[] }) {
   return (
-    <section className="onboarding-panel-soft rounded-[1.55rem] px-4 py-4 sm:px-5">
+    <section className="import-list-section rounded-[1.4rem] px-4 py-4 sm:px-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-muted">Ignored</p>
       <h4 className="mt-2 text-[1.15rem] font-semibold tracking-[-0.03em] text-ink-primary">
         Informational rows MarqBot left out.
@@ -697,7 +597,7 @@ function IgnoredSection({ rows }: { rows: ImportRow[] }) {
         {rows.map((row, index) => (
           <div
             key={`${row.source_text}-${index}`}
-            className="onboarding-panel rounded-[1.15rem] px-3 py-3 text-sm text-ink-secondary opacity-80"
+            className="import-list-row rounded-[1rem] px-3 py-3 text-sm text-ink-secondary opacity-80"
           >
             <p className="font-medium text-ink-primary">{row.source_text}</p>
             <p className="mt-1 text-xs uppercase tracking-[0.14em] text-ink-muted">{row.reason || "ignored"}</p>
@@ -729,7 +629,7 @@ function ImportStatusBar({
   const isFailed = status === "failed";
 
   return (
-    <div className="onboarding-panel-soft rounded-[1.5rem] px-4 py-4" aria-live="polite">
+    <div className="import-shell-muted rounded-[1.35rem] px-4 py-4" aria-live="polite">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-light">Import status</p>
         {status === "parsed" && totalRows > 0 && (
@@ -771,7 +671,7 @@ function ImportStatusBar({
       </div>
 
       {isFailed && (
-        <p className="mt-2 text-xs text-bad">Import failed. Retry or add courses manually.</p>
+        <p className="mt-2 text-xs text-bad">Import failed. Retry with a clearer screenshot.</p>
       )}
     </div>
   );
@@ -894,7 +794,7 @@ function ImportTutorialModal({ open, onClose }: { open: boolean; onClose: () => 
                         <p className="mt-0.5 text-xs text-ink-secondary">Intro to Financial Management &middot; 2026 Sum</p>
                       </div>
                     </div>
-                    {/* Mock needs-review row */}
+                    {/* Mock flagged row */}
                     <div className="onboarding-panel-soft flex items-center gap-3 rounded-xl border-[rgba(199,59,69,0.22)] px-4 py-3 opacity-80">
                       <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-[rgba(199,59,69,0.38)] bg-[rgba(199,59,69,0.12)]">
                         <span className="text-[9px] font-bold text-bad">?</span>
@@ -902,7 +802,7 @@ function ImportTutorialModal({ open, onClose }: { open: boolean; onClose: () => 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-ink-primary">SOCI 9290</span>
-                          <span className="onboarding-pill onboarding-pill-danger rounded-full px-2 py-0.5 text-[10px] font-bold">Needs Review</span>
+                          <span className="onboarding-pill onboarding-pill-danger rounded-full px-2 py-0.5 text-[10px] font-bold">Flagged</span>
                         </div>
                         <p className="mt-0.5 text-xs text-ink-secondary">Something looked off, so you pick the right match.</p>
                       </div>
@@ -998,37 +898,3 @@ function ImportTutorialModal({ open, onClose }: { open: boolean; onClose: () => 
   );
 }
 
-function DispositionButton({
-  active,
-  tone,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  tone: "blue" | "gold" | "neutral";
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  const toneClass =
-    tone === "blue"
-      ? active
-        ? "border-[#1e9f61] bg-[rgba(30,159,97,0.18)] text-[#8ee0b6]"
-        : "onboarding-pill hover:border-[#1e9f61]/50 hover:bg-[rgba(30,159,97,0.1)] hover:text-[#8ee0b6]"
-      : tone === "gold"
-        ? active
-          ? "onboarding-pill onboarding-pill-gold"
-          : "onboarding-pill"
-        : active
-          ? "onboarding-pill onboarding-pill-danger"
-          : "onboarding-pill";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] transition-colors ${toneClass}`}
-    >
-      {children}
-    </button>
-  );
-}

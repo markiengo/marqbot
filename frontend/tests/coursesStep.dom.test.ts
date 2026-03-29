@@ -139,8 +139,7 @@ describe("CoursesStep prereq validation", () => {
 
     await user.upload(fileInput, file);
 
-    expect(await screen.findByText(/resolve the rows marqbot won't auto-apply/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /econ 1103/i }));
+    expect(await screen.findByText(/flagged rows/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /apply imported courses/i }));
 
     await screen.findByText(/imported 2 completed and 1 in-progress courses/i);
@@ -169,6 +168,6 @@ describe("CoursesStep prereq validation", () => {
     await user.upload(fileInput, file);
 
     expect(await screen.findByText(/parser offline/i)).toBeInTheDocument();
-    expect(screen.getByText(/retry or add courses manually/i)).toBeInTheDocument();
+    expect(screen.getByText(/retry with a clearer screenshot/i)).toBeInTheDocument();
   });
 });

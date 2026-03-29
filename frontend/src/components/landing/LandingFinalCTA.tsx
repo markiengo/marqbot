@@ -7,7 +7,7 @@ import { Button } from "@/components/shared/Button";
 import { AnchorLine } from "@/components/shared/AnchorLine";
 
 export function LandingFinalCTA() {
-  const ref = useRef(null);
+  const ref = useRef<HTMLElement | null>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (

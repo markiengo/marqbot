@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import type { AppState } from "@/lib/types";
 import { appReducer, initialState, type AppAction } from "./AppReducer";
-import { EffectsProvider } from "./EffectsContext";
 
 interface AppContextValue {
   state: AppState;
@@ -177,21 +176,19 @@ export function AppProvider({ children, initialStateValue }: AppProviderProps) {
   );
 
   return (
-    <EffectsProvider>
-      <CatalogContext.Provider value={catalogValue}>
-        <CourseHistoryContext.Provider value={courseHistoryValue}>
-          <ProgramSelectionContext.Provider value={programSelectionValue}>
-            <PreferencesContext.Provider value={preferencesValue}>
-              <UiContext.Provider value={uiValue}>
-                <RecommendationContext.Provider value={recommendationValue}>
-                  {children}
-                </RecommendationContext.Provider>
-              </UiContext.Provider>
-            </PreferencesContext.Provider>
-          </ProgramSelectionContext.Provider>
-        </CourseHistoryContext.Provider>
-      </CatalogContext.Provider>
-    </EffectsProvider>
+    <CatalogContext.Provider value={catalogValue}>
+      <CourseHistoryContext.Provider value={courseHistoryValue}>
+        <ProgramSelectionContext.Provider value={programSelectionValue}>
+          <PreferencesContext.Provider value={preferencesValue}>
+            <UiContext.Provider value={uiValue}>
+              <RecommendationContext.Provider value={recommendationValue}>
+                {children}
+              </RecommendationContext.Provider>
+            </UiContext.Provider>
+          </PreferencesContext.Provider>
+        </ProgramSelectionContext.Provider>
+      </CourseHistoryContext.Provider>
+    </CatalogContext.Provider>
   );
 }
 

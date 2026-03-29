@@ -315,7 +315,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
                       value={name}
                       onChange={(event) => setName(event.target.value)}
                       disabled={!isEditingMeta}
-                      className="w-full rounded-2xl border border-border-medium bg-surface-input/80 backdrop-blur-sm px-4 py-3 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors disabled:opacity-70"
+                      className="w-full rounded-2xl border border-border-medium bg-surface-input px-4 py-3 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors disabled:opacity-70"
                     />
                   </label>
                   <label className="block space-y-2">
@@ -325,7 +325,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
                       value={notes}
                       onChange={(event) => setNotes(event.target.value)}
                       disabled={!isEditingMeta}
-                      className="w-full rounded-2xl border border-border-medium bg-surface-input/80 backdrop-blur-sm px-4 py-3 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors disabled:opacity-70"
+                      className="w-full rounded-2xl border border-border-medium bg-surface-input px-4 py-3 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors disabled:opacity-70"
                       placeholder="Context like recruiter-heavy semester, transfer-credit version, or summer-heavy draft."
                     />
                   </label>

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { memo, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useCatalogContext, useUiContext } from "@/context/AppContext";
-import { useReducedEffects } from "@/context/EffectsContext";
 import { isCanTakeResultForQuery, useCanTake } from "@/hooks/useCanTake";
 import { SingleSelect } from "@/components/shared/SingleSelect";
 import { esc } from "@/lib/utils";
@@ -27,7 +26,7 @@ function CanTakeSectionInner({
   const { data, loading, error, checkCanTake, clearCanTake } = useCanTake();
   const didAutoFetch = useRef(false);
   const hasVisibleResult = isCanTakeResultForQuery(canTakeQuery, data);
-  const reduceMotion = useReducedMotion() || useReducedEffects();
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (canTakeQuery.trim()) return;
