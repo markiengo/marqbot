@@ -16,6 +16,18 @@ For current development state, active milestone, and decisions, read these first
 
 Active phase plans live in `.planning/phases/`. Archived phases live in `.planning/milestones/`.
 
+For deep codebase exploration, `.planning/codebase/` has pre-built maps:
+
+| File | What it covers |
+|------|----------------|
+| `.planning/codebase/ARCHITECTURE.md` | System design, data flow, deployment model |
+| `.planning/codebase/STACK.md` | Tech stack and version inventory |
+| `.planning/codebase/STRUCTURE.md` | Directory layout and file-by-file index |
+| `.planning/codebase/CONVENTIONS.md` | Naming, patterns, and coding conventions |
+| `.planning/codebase/INTEGRATIONS.md` | External services and API contracts |
+| `.planning/codebase/TESTING.md` | Test strategy, frameworks, and coverage |
+| `.planning/codebase/CONCERNS.md` | Known issues, tech debt, and open questions |
+
 ---
 
 ## Architecture Overview
