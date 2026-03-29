@@ -1,0 +1,50 @@
+# Roadmap: MarqBot
+
+## Current Milestone
+
+**v1.0 UI Upgrade**
+
+Upgrade the homepage UI so MarqBot's first impression matches the quality and confidence of the underlying planner while preserving the product's performance and reduced-effects philosophy.
+
+## Overview
+
+This milestone is being tracked as one focused phase: `Landing Page Redesign`. The phase groups the homepage redesign into one execution lane so the hero rebuild, scroll choreography, proof/trust refresh, and performance verification all stay attached to the same user-facing outcome.
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: Landing Page Redesign** - Rebuild the homepage visual story, handoff motion, trust flow, and fallback polish
+
+## Phase Details
+
+### Phase 1: Landing Page Redesign
+**Goal**: Ship the homepage UI upgrade for MarqBot while preserving product identity, performance, and reduced-effects behavior.
+**Depends on**: Nothing (first phase)
+**Requirements**: HERO-01, HERO-02, HERO-03, HERO-04, FLOW-01, FLOW-02, FLOW-03, FEAT-01, FEAT-02, FEAT-03, SYS-01, SYS-02, PERF-01, PERF-02, PERF-03
+**UI hint**: yes
+**Success Criteria** (what must be TRUE):
+  1. The homepage hero owns the first desktop viewport and makes the centered MarqBot mockup the obvious focal point.
+  2. The first scroll becomes one intentional handoff into a spotlight-style feature stage instead of an accidental section overlap.
+  3. Proof/trust returns quickly after the spectacle beat and the lower sections feel like part of the same upgraded visual system.
+  4. Reduced-effects, mobile, and common-laptop performance all hold up under verification.
+**Plans**: 4 plans
+
+Plans:
+- [ ] 01-01: Recompose the hero stage and centered mockup
+- [ ] 01-02: Build the hero handoff and spotlight feature stage
+- [ ] 01-03: Reinstate proof and retune lower landing sections
+- [ ] 01-04: Harden fallbacks, tests, and performance
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Landing Page Redesign | 0/4 | Not started | - |
