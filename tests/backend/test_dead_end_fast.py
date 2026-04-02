@@ -13,15 +13,12 @@ Target runtime: under 2 minutes on a normal dev machine.
 
 import pytest
 
-from conftest import get_nightly_collector
 from server import app
 from dead_end_utils import (
     PlanCase,
     run_case_and_assert,
     assert_graduates_by,
     seed_from_simulation,
-    classify_dead_end,
-    simulate_terms,
 )
 from semester_recommender import VALID_SCHEDULING_STYLES
 from helpers import (
@@ -39,7 +36,6 @@ from helpers import (
     assert_recommendation_shape,
     assert_selection_context,
 )
-from nightly_support import classify_graduation
 
 
 # ── Single-program regression cases (empty state only) ─────────────────────
@@ -237,21 +233,6 @@ _KNOWN_XFAIL = {
 }
 
 
-def _record_plan_setup_issue(label, case, *, reason, details=None):
-    collector = get_nightly_collector()
-    collector.record_supplemental_issue(
-        label=label,
-        issue_kind="catalog plan setup",
-        scenario_label="+".join(case.declared_majors + case.track_ids) or label,
-        declared_majors=list(case.declared_majors),
-        track_ids=list(case.track_ids),
-        declared_minors=list(case.declared_minors),
-        completed_courses=list(case.completed_courses),
-        reason=reason,
-        details=list(details or []),
-    )
-
-
 @pytest.mark.parametrize(
     "label,case",
     [(label, case) for label, case in _FAST_CASES],
@@ -262,40 +243,6 @@ def test_no_dead_end(label, case):
     """Assert no 2-term dead-end for this program selection and starting state."""
     if label in _KNOWN_XFAIL:
         pytest.xfail(_KNOWN_XFAIL[label])
-    collector = get_nightly_collector()
-    collector.supplemental_checks += 1
-    try:
-        semesters = simulate_terms(case, num_terms=9)
-    except ValueError as exc:
-        _record_plan_setup_issue(
-            label,
-            case,
-            reason=f"Program selection failed during baseline dead-end audit: {exc}",
-            details=["The planner could not build a valid starting program selection for this baseline case."],
-        )
-        raise AssertionError(
-            f"[{label}] baseline dead-end audit could not run because program selection failed: {exc}"
-        ) from exc
-    check = classify_dead_end(semesters, case)
-    if not check.failed:
-        return
-
-    collector.record_supplemental_issue(
-        label=label,
-        issue_kind="catalog dead end",
-        scenario_label="+".join(case.declared_majors + case.track_ids) or label,
-        declared_majors=list(case.declared_majors),
-        track_ids=list(case.track_ids),
-        declared_minors=list(case.declared_minors),
-        completed_courses=list(case.completed_courses),
-        unsatisfied_buckets=list(check.unsatisfied_buckets),
-        reason=f"The planner stalled at {check.semester_label} for this baseline program setup.",
-        details=[
-            f"failure kind: {check.failure_kind}",
-            f"manual review courses: {', '.join(check.manual_review_courses) if check.manual_review_courses else 'none'}",
-            f"eligible count: {check.eligible_count}",
-        ],
-    )
     run_case_and_assert(case, num_terms=9)
 
 
@@ -434,37 +381,4 @@ _GRAD_CASES = _expand_with_scheduling_styles(_graduation_cases())
 @pytest.mark.nightly
 def test_graduates_by_semester_8(label, case):
     """A fresh student in this major must satisfy all buckets within 8 semesters."""
-    collector = get_nightly_collector()
-    collector.supplemental_checks += 1
-    try:
-        semesters = simulate_terms(case, num_terms=9)
-    except ValueError as exc:
-        _record_plan_setup_issue(
-            label,
-            case,
-            reason=f"Program selection failed during baseline graduation audit: {exc}",
-            details=["The planner could not build a valid starting program selection for this baseline case."],
-        )
-        raise AssertionError(
-            f"[{label}] baseline graduation audit could not run because program selection failed: {exc}"
-        ) from exc
-    graduation = classify_graduation(semesters, case, max_semesters=8)
-    if not graduation.failed:
-        return
-
-    collector.record_supplemental_issue(
-        label=label,
-        issue_kind="catalog graduation gap",
-        scenario_label="+".join(case.declared_majors + case.track_ids) or label,
-        declared_majors=list(case.declared_majors),
-        track_ids=list(case.track_ids),
-        declared_minors=list(case.declared_minors),
-        completed_courses=list(case.completed_courses),
-        unsatisfied_buckets=list(graduation.unsatisfied_buckets),
-        reason=f"The baseline plan still had open requirement buckets by semester {graduation.max_semesters}.",
-        details=[
-            f"final semester checked: {graduation.semester_label}",
-            f"total recommendations: {graduation.total_recommendations}",
-        ],
-    )
     assert_graduates_by(case, max_semesters=8)
