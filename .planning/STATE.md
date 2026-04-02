@@ -83,6 +83,7 @@ None yet.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260402-o3h | delete the nightly autotune feature | 2026-04-02 | add0ccb | [260402-o3h-delete-the-nightly-autotune-feature](./quick/260402-o3h-delete-the-nightly-autotune-feature/) |
 
 ### Blockers/Concerns
 
