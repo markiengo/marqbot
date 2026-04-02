@@ -1,6 +1,6 @@
 # Technical Reference
 
-Last updated: March 29, 2026
+Last updated: April 2, 2026
 
 ## Project Context
 
@@ -166,7 +166,7 @@ Next.js 16 app with React 19, TypeScript 5, Tailwind CSS 4. Exported as a static
 |-----------|-----------|---------|
 | `landing/` | `LandingHeroSimple`, `BenefitsSection`, `HowItWorksClear`, `ProofSection`, `LandingFinalCTA` | Landing page sections |
 | `onboarding/` | `MajorStep`, `CoursesStep`, `PreferencesStep`, `RoadmapStep`, `CourseHistoryImport`, `StepIndicator`, `WizardLayout`, `OnboardingStepHeader` | Onboarding wizard steps and layout |
-| `planner/` | `PlannerLayout`, `RecommendationsPanel`, `InputSidebar`, `CourseCard`, `CourseRow`, `SemesterPreview`, `SemesterSelector`, `SemesterModal`, `ProgressDashboard`, `ProgressModal`, `ProgressRing`, `BucketProgressGrid`, `BucketSectionTabs`, `BucketCourseModal`, `CourseListModal`, `DegreeSummary`, `CanTakeSection`, `MajorGuideModal`, `FeedbackModal`, `PreferencesPanel`, `ProfileModal`, `ProfileCoursesTab`, `ProfileProgramTab`, `ProfilePreferencesTab` | Main planner UI |
+| `planner/` | `PlannerLayout`, `EditPlanModal`, `RecommendationsPanel`, `InputSidebar`, `CourseCard`, `CourseRow`, `SemesterPreview`, `SemesterSelector`, `SemesterModal`, `ProgressDashboard`, `ProgressModal`, `ProgressRing`, `BucketProgressGrid`, `BucketSectionTabs`, `BucketCourseModal`, `CourseListModal`, `DegreeSummary`, `CanTakeSection`, `MajorGuideModal`, `FeedbackModal`, `PreferencesPanel`, `ProfileModal`, `ProfileCoursesTab`, `ProfileProgramTab`, `ProfilePreferencesTab` | Main planner UI |
 | `saved/` | Saved plan components | Plan persistence and display |
 | `layout/` | `Navbar`, `Footer`, `PlaceholderPage` | App shell |
 | `shared/` | `Modal`, `Button`, `Chip`, `Tag`, `MultiSelect`, `SingleSelect`, `Skeleton`, `AnimatedNumber`, `AnchorLine`, `CourseDetailModal` | Reusable UI primitives |
@@ -178,7 +178,8 @@ Next.js 16 app with React 19, TypeScript 5, Tailwind CSS 4. Exported as a static
 |------|---------|
 | `AppContext.tsx` | React context with split sub-contexts: `CatalogContext` (courses, programs), `CourseHistoryContext` (completed, in-progress), `ProgramSelectionContext` (majors, tracks, minors), `PreferencesContext` (semester, style, stage) |
 | `AppReducer.ts` | Centralized reducer handling all state transitions |
-| `EffectsContext.tsx` | GPU capability detection and adaptive visual effects (blur, glow, motion fallback for weak renderers) |
+
+Adaptive effects no longer live in context. Components read the current preference through `useReducedEffects`.
 
 ### Hooks (`src/hooks/`)
 
@@ -190,7 +191,8 @@ Next.js 16 app with React 19, TypeScript 5, Tailwind CSS 4. Exported as a static
 | `useCourses` | Loads course catalog from `/api/courses` |
 | `useOnboarding` | Onboarding wizard state and navigation |
 | `useSavedPlans` | localStorage-backed saved plan CRUD |
-| `useSession` | Session ID management |
+| `useSession` | Restores and persists the lightweight planner snapshot plus the separate recommendation snapshot in localStorage |
+| `useReducedEffects` | Reads the active reduced-effects mode from the document/localStorage and lets components adapt blur, glow, and motion without a React context |
 | `useConfetti` | Celebration animation trigger |
 | `useAnimatedCounter` | Smooth number transitions |
 
@@ -262,8 +264,6 @@ config/ranking_overrides.json
 | File | Purpose |
 |------|---------|
 | `ranking_overrides.json` | Manual priority overrides for specific courses or buckets. Applied during ranking phase |
-| `data_investigation_queue.json` | Flagged data issues from nightly analysis. Human-reviewed before CSV edits |
-| `autotune_ledger.json` | Regression and boost-resistance detection for the nightly auto-tune flow |
 
 ---
 
@@ -271,7 +271,6 @@ config/ranking_overrides.json
 
 | Script | Purpose |
 |--------|---------|
-| `analyze_nightly.py` | Nightly auto-tune: runs student profiles, detects regressions, updates `ranking_overrides.json` and `data_investigation_queue.json` |
 | `run_local.py` | Launches both backend and frontend for local development |
 | `discover_equivalencies.py` | Discovers new equivalency relationships from catalog text |
 | `compile_quips.py` | Compiles quip bank from `data/quips.csv` to `quipBank.generated.ts` |
@@ -288,7 +287,6 @@ config/ranking_overrides.json
 |-----------|-----------|-------|----------|
 | `tests/backend/` | Pytest | 612+ | Allocator, eligibility, recommender, prereq parser, API contract, regression profiles, track-awareness, dead-end detection, schema migration, policy verification |
 | `tests/frontend/` | Vitest | — | Component and hook tests |
-| `tests/nightly_reports/` | — | — | Archived nightly analysis output |
 
 Key test files:
 - `test_semester_recommender.py` — core engine behavior

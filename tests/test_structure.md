@@ -1,6 +1,6 @@
 # Test Structure
 
-Last updated: 2026-03-28
+Last updated: 2026-04-02
 
 Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
@@ -10,11 +10,10 @@ Commands below assume a VS Code PowerShell terminal opened at the repo root.
 |---|---|---:|
 | **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 627 |
 | **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | ~45 |
-| **Nightly sweep** | `.\.venv\Scripts\python.exe -m pytest -m nightly -q` | 2250 sampled + nightly-only catalog audits |
-| **Frontend** | `cd frontend; npm run test` | 113 |
+| **Frontend** | `cd frontend; npm run test` | 110 |
+| **Claude hook smoke** | `node --test .claude/helpers/hook-handler.test.cjs` | 6 |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
-Nightly is now the home for data-sensitive catalog acceptance checks that are expected to drive course/major patch decisions from the report, not PR gating.
 
 ## When to Run What
 
@@ -23,9 +22,9 @@ Nightly is now the home for data-sensitive catalog acceptance checks that are ex
 | Narrow backend fix | Closest test file |
 | Broad backend change | Focused file + `.\.venv\Scripts\python.exe -m pytest -q` |
 | Planner / recommendation logic | Focused file + the planner smoke guardrail |
-| Release confidence | Nightly sweep (separately) |
 | Frontend helper | Closest test file |
 | Frontend broad / pre-push | `cd frontend; npm run test; npm run lint; npm run build` |
+| Claude/npm hook logic | `node --test .claude/helpers/hook-handler.test.cjs` |
 
 ## Backend Test Files
 
@@ -35,9 +34,7 @@ Nightly is now the home for data-sensitive catalog acceptance checks that are ex
 | `test_allocator.py` | 26 | Allocation routing, min-level, double-count policy |
 | `test_data_integrity.py` | 34 | CSV schema, FK integrity, prereq graph sanity |
 | `test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
-| `test_dead_end_fast.py` | ~201 total | Mixed file: PR smoke checks plus nightly-only catalog dead-end and graduation baselines; every case runs 3x (once per scheduling style: grinder, explorer, mixer) |
-| `test_dead_end_nightly.py` | 2250 default | Focused sampled nightly sweep with prereq-hardened seeded histories and semester-8 completion checks; each scenario runs across all 3 scheduling styles |
-| `test_dead_end_nightly_helpers.py` | 4 | Nightly sampler, seeded-history builder, budget guard, and report-format regression tests |
+| `test_dead_end_fast.py` | ~201 total | PR smoke checks plus `@pytest.mark.nightly` catalog dead-end and graduation baselines; every case runs 3x (once per scheduling style: grinder, explorer, mixer) |
 | `test_eligibility.py` | 42 | Eligibility filters, restrictions, bridge courses, can-take helpers |
 | `test_equivalencies.py` | 25 | Equivalency maps, prereq satisfaction, NDC blocking, schema checks |
 | `test_feedback_api.py` | 9 | `/api/feedback` contract, JSONL persistence, validation, rate limiting |
@@ -52,15 +49,14 @@ Nightly is now the home for data-sensitive catalog acceptance checks that are ex
 | `test_server_can_take.py` | 15 | `/can-take` endpoint contract |
 | `test_server_data_reload.py` | 3 | Hot-reload safety |
 | `test_server_security.py` | 6 | Health, security headers, rate limiting |
-| `test_nightly_analyze.py` | 6 | Nightly auto-tune analyzer: feasibility audit, concentration detector, ledger regression/boost-resistance |
 | `test_tier_invariants.py` | 7 | Stable recommendation tier ordering |
-| `test_track_aware.py` | 68 | Track allocation, aliases, merged progress; AIM catalog audits now run nightly-only |
+| `test_track_aware.py` | 68 | Track allocation, aliases, merged progress |
 | `test_unlocks.py` | 9 | Reverse prereq map, blocker warnings |
 | `test_validate_prereqs_endpoint.py` | 8 | `/validate-prereqs` endpoint contract |
 | `test_validate_track.py` | 45 | Publish-gate validation, V2 governance |
 | `test_policy_verification.py` | 10 | COBA_05/06 enforcement, CRED_01/02/04/10 credit-load warnings, summer cap, semester_warnings field |
 
-Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`, `nightly_support.py`
+Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 
 ### Student Stage Support
 
@@ -74,14 +70,13 @@ Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 - `"explorer"`: Reserves 2 discovery slots per semester. Demotes BCC from band 1 to 2 when the student has ≥ 4 semesters of runway.
 - `"mixer"`: Reserves 1 discovery + 2 core slots and interleaves picks.
 
-**How archetypes integrate into the nightly suite:**
+**How archetypes integrate into the test suite:**
 
-- `test_dead_end_fast.py`: Every baseline case (single-major, single-track, curated combos, graduation-by-8) is expanded 3x via `_expand_with_scheduling_styles()`. Each `PlanCase` variant gets a `scheduling_style` field and a label suffix `::style=grinder|explorer|mixer`. This triples the fast PR guardrail cases (~67 base x 3 = ~201 total).
-- `test_dead_end_nightly.py` + `nightly_support.py`: Inside `build_nightly_suite()`, each sampled scenario + profile + selection-variant combo is expanded across all 3 styles. The case budget was raised from 750 to 2250. Label format: `{scenario}/{profile}/v{n}::style={style}`.
+- `test_dead_end_fast.py`: Every baseline case (single-major, single-track, curated combos, graduation-by-8) is expanded 3x via `_expand_with_scheduling_styles()`. Each `PlanCase` variant gets a `scheduling_style` field and a label suffix `::style=grinder|explorer|mixer`. This triples the cases (~67 base x 3 = ~201 total).
 - `test_semester_recommender.py`: 8 dedicated unit tests verify grinder=default, explorer reserves discovery slots, explorer differs from grinder, mixer guarantees core+discovery mix, mixer differs from grinder, invalid styles fall back to grinder, and all styles respect max_recs.
-- `simulate_terms()` in `dead_end_utils.py` passes `scheduling_style` to `run_recommendation_semester()`, so every nightly simulation runs with the correct archetype.
+- `simulate_terms()` in `dead_end_utils.py` passes `scheduling_style` to `run_recommendation_semester()`, so every simulation runs with the correct archetype.
 
-The key safety property: all 3 scheduling styles must still graduate a fresh student within 8 semesters. If explorer defers BCC so far that a prereq chain can't complete in time, the nightly sweep catches it.
+The key safety property: all 3 scheduling styles must still graduate a fresh student within 8 semesters.
 
 ## Frontend Test Files
 
@@ -103,11 +98,13 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 | `frontend/tests/courseHistoryImportParser.test.ts` | 7 | Yes | Local OCR parser: golden fixture, row matching, grade classification |
 | `frontend/tests/coursesStep.dom.test.ts` | 4 | Yes | Screenshot import flow, prereq warnings, parsed-row apply |
 | `frontend/tests/effectsMode.test.ts` | 2 | Yes | Reduced-effects override persistence and modal fallback styling |
+| `frontend/tests/landingPage.dom.test.tsx` | 2 | Yes | Landing-page section order and copy regression coverage |
 | `frontend/tests/multiSelect.dom.test.ts` | 2 | Yes | Picker DOM interactions |
 | `frontend/tests/onboardingPage.dom.test.ts` | 5 | Yes | Onboarding DOM flow, loading state, secondary-program guard, alias search |
 | `frontend/tests/profileModal.dom.test.ts` | 4 | Yes | Profile modal submit/error flow, student-stage selector, alias search |
 | `frontend/tests/plannerCourseList.dom.test.ts` | 4 | Yes | Course list assumptions, stage-conflict warning, ranking explainer copy |
 | `frontend/tests/plannerFeedbackNudge.dom.test.ts` | 3 | Yes | Feedback lane, nudge timing, dismissal |
+| `frontend/tests/plannerLayout.dom.test.ts` | 1 | Yes | Semester-edit stale-response protection when candidate requests resolve out of order |
 | `frontend/tests/progressBucketDrillIn.test.ts` | 4 | Yes | Bucket drill-in detail rendering |
 | `frontend/tests/savedPlanDetailPage.dom.test.ts` | 1 | Yes | Saved-plan detail delete confirmation |
 | `frontend/tests/savedPlanViewModal.dom.test.ts` | 1 | Yes | Saved-plan modal delete confirmation |
@@ -116,19 +113,17 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 
 `tests/frontend/*.dom.test.ts` is excluded from the default Vitest run.
 `frontend/tests/*.dom.test.ts` is included in the default Vitest run.
-The default frontend run currently covers 113 cases across both `tests/frontend/*.test.ts` and `frontend/tests/*.test.ts`.
+The default frontend run currently covers 110 cases across both `tests/frontend/*.test.ts` and `frontend/tests/*.test.ts`.
+
+## Repo Helper Tests
+
+| File | Tests | Command | What it covers |
+|---|---:|---|---|
+| `.claude/helpers/hook-handler.test.cjs` | 6 | `node --test .claude/helpers/hook-handler.test.cjs` | Claude pre/post-bash guardrails for `npm` installs, exact pinning, rebuild allowlists, and post-command lockfile scanning |
 
 ## CI Workflow
 
-One unified workflow: `.github/workflows/nightly-sweep.yml`
-
-| Trigger | Jobs that run |
-|---|---|
-| **Pull request** | Backend Regression, Planner Fast Guardrail, Frontend Tests |
-| **Schedule** (2am CT daily) | Planner Fast Guardrail, Nightly Focused Sweep — **re-enabled 2026-03-26**. Auto-Tune job remains disabled (`if: false`). |
-| **Manual** (`workflow_dispatch`) | Planner Fast Guardrail, Nightly Focused Sweep (Auto-Tune job disabled — set `if: false` back to `github.event_name != 'pull_request'` to restore) |
-
-For the scheduled/manual nightly jobs, catalog-data assertion failures are treated as reportable review items, not release-blocking CI failures. The sweep stays green on pytest exit code `1` as long as the report artifact is produced; runner/internal pytest errors still fail the workflow. After a successful sweep, the auto-tune job reads the JSON sidecar, updates `config/ranking_overrides.json` plus `config/data_investigation_queue.json`, and opens a PR. Small override changes (`<= 3` bucket override edits) are set to auto-merge.
+No GitHub Actions workflows are currently configured. Tests run locally.
 
 ## Running Tests Locally
 
@@ -141,60 +136,12 @@ All tests run fully offline once dependencies already exist locally. Make sure `
 # Planner smoke guardrail only (~45 tests)
 .\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q
 
-# Nightly focused sweep plus nightly-only catalog audits
-.\.venv\Scripts\python.exe -m pytest -m nightly -q
-
-# Nightly with a specific seed in PowerShell (replay a past day's sampled combos/histories)
-$env:NIGHTLY_SEED='20260308'
-.\.venv\Scripts\python.exe -m pytest -m nightly -q
-
-# Reduced nightly smoke (1 combo x 5 profiles x 1 variant, plus any nightly catalog audits)
-$env:NIGHTLY_SAMPLE_SIZE='1'
-$env:NIGHTLY_SELECTION_VARIANTS='1'
-.\.venv\Scripts\python.exe -m pytest -m nightly -q
-Remove-Item Env:NIGHTLY_SAMPLE_SIZE
-Remove-Item Env:NIGHTLY_SELECTION_VARIANTS
-
-# Run one specific combo
-.\.venv\Scripts\python.exe -m pytest -m nightly -k "ACCO_MAJOR+AIM_IB_TRACK+INSY_MAJOR" -q
-
-# Analyze the latest nightly JSON locally without writing config changes
-.\.venv\Scripts\python.exe scripts\analyze_nightly.py --report tests\nightly_reports\YYYY-MM-DD.json --dry-run
-
 # Frontend
 cd frontend
 npm run test
+
+# Claude hook smoke test
+cd ..
+node --test .claude/helpers/hook-handler.test.cjs
 ```
 
-The nightly sweep generates `tests/nightly_reports/YYYY-MM-DD.md` plus `tests/nightly_reports/YYYY-MM-DD.json` after finishing.
-The Markdown report is the daily review surface for catalog-sensitive failures such as advisor-gold drift, baseline dead-ends, and baseline graduation gaps. The JSON sidecar is the machine-readable input for `scripts/analyze_nightly.py`.
-
-## Nightly Sweep Details
-
-The nightly sweep is now a focused sampled harness, not an exhaustive combinatorial sweep.
-
-- **Scenario selection**: by default it samples `30` valid multi-program combos from the full nightly pool using a date-based seed (`YYYYMMDD`)
-- **Profiles per combo**: `5` seeded student states: `foundation`, `early`, `mid`, `late`, `capstone`
-- **Course-selection variants**: `5` prereq-valid planner-seeded histories per profile, built chronologically from actual recommendation order
-- **Seeded history rules**: undergrad-only completed courses, no random course-universe sampling, no impossible prerequisite jumps, and invalid seeded histories are reported as first-class nightly issues
-- **Deadline rule**: each seeded student must both avoid dead-ends and still be on pace to finish within an overall `8`-semester path; the seeded semesters already taken count against that cap
-- **Expected count accounting**: the report shows planned samples, evaluated samples, invalid seeded histories, and whether the run was complete or partial
-- **Report layout**: plain-English health summary first, then priority fix list, data-investigation checklist, failures by program, biggest patterns, and an appendix with run details and student profile logs
-- **Catalog baseline section**: advisor-gold mismatches and baseline dead-end / graduation audits are summarized in a dedicated nightly report section
-- **JSON sidecar**: each run also writes `YYYY-MM-DD.json` with raw sampled-plan failures, baseline audit records, and derived priority/checklist sections
-- **Seed**: override combo/history replay with `NIGHTLY_SEED`
-- **Knobs**: `NIGHTLY_SAMPLE_SIZE`, `NIGHTLY_SELECTION_VARIANTS`, and `NIGHTLY_CASE_BUDGET`
-- **Auto-tune**: `scripts/analyze_nightly.py` classifies bucket failures as `DATA`, `ALGORITHM`, or `SETUP`, updates ranking overrides, and refreshes the human investigation queue
-- **Report artifact**: uploaded as one artifact named `nightly-sweep-report-YYYY-MM-DD` (14-day retention) and contains both the Markdown report and JSON sidecar
-- **Fallback**: if pytest crashes during collection, a fallback report captures the error output
-- **Where to find results**: [GitHub Actions -> Nightly Sweep](../../actions/workflows/nightly-sweep.yml) -> click a run -> scroll to Artifacts at the bottom -> download `nightly-sweep-report-YYYY-MM-DD`
-- **Local runs** generate the report pair at `tests/nightly_reports/YYYY-MM-DD.md` and `tests/nightly_reports/YYYY-MM-DD.json`
-
-### How the nightly sweep works
-
-1. Build the full valid nightly scenario pool from active multi-program combinations.
-2. Deterministically sample `30` combos from that pool for the current day.
-3. For each combo, generate `5` seeded student states by replaying planner recommendations from an empty start.
-4. For each seeded state, branch into `5` different prereq-safe course-selection variants.
-5. Simulate forward and fail if the student hits a dead-end, if the seeded history itself is invalid, or if the student cannot still finish by semester `8`.
-6. Write a report with explicit completeness metadata so partial runs are not presented as exhaustive.

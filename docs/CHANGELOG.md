@@ -10,6 +10,20 @@ Format per release:
 
 ## [Unreleased]
 
+### Changes
+
+- Removed nightly autotune pipeline: deleted `scripts/analyze_nightly.py`, the GitHub Actions `nightly-sweep.yml` workflow, `config/autotune_ledger.json`, `config/data_investigation_queue.json`, and all nightly-specific test files (`test_dead_end_nightly.py`, `test_dead_end_nightly_helpers.py`, `test_nightly_analyze.py`, `nightly_support.py`). The `test_no_dead_end` and `test_graduates_by_semester_8` tests in `test_dead_end_fast.py` are simplified to bare assertions and kept under `@pytest.mark.nightly`. `config/ranking_overrides.json` is retained; it is read by `semester_recommender.py` at runtime for manual tier adjustments.
+- Fixed planner semester-edit race handling in `frontend/src/components/planner/PlannerLayout.tsx`. Candidate swap pools now stay tied to the latest active semester edit request, and stale responses are ignored when users switch semesters or close the editor.
+- Restored a read-mode delete action on `frontend/src/components/saved/SavedPlanDetailPage.tsx`. Metadata edit mode is now scoped back to name/notes updates instead of owning plan deletion.
+- Added repo-local Claude/npm supply-chain guardrails in `.claude/helpers/hook-handler.cjs` and smoke coverage in `.claude/helpers/hook-handler.test.cjs`. Dependency mutations now require `npm`, `--ignore-scripts`, exact pins for new direct dependencies, and allowlisted `npm rebuild` targets.
+- Added `frontend/tests/plannerLayout.dom.test.ts` to lock in the semester-edit stale-response regression path and refreshed project docs to match the current planner, hook, and test layout.
+
+### Design Decisions
+
+- Semester-edit candidate state now follows the latest request rather than a shared modal slot so users cannot see or apply the wrong swap pool after switching semesters mid-fetch.
+- Delete remains a read-mode plan action because deleting a saved plan is not part of metadata editing and should stay reachable from the normal detail view.
+- npm lifecycle scripts are treated as an explicit follow-up step, not an automatic side effect of install, and the repo now backstops that rule with lockfile/script-package inspection after dependency commands.
+
 ---
 
 ## [v2.6.0] - 2026-03-29
