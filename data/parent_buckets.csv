@@ -37,3 +37,5 @@ OSCM_MINOR,Supply Chain Management,minor,,True,False,OSCM_MINOR,,False
 PRSL_MINOR,Professional Selling,minor,,True,False,PRSL_MINOR,,False
 REAL_MAJOR,Real Estate,major,,True,False,REAL_MAJOR,,False
 REAL_REAP_TRACK,Real Estate Asset Program Concentration,track,REAL_MAJOR,True,False,REAL_REAP_TRACK,,False
+INS_TRACK,Insurance Concentration,track,FIN_MAJOR,True,False,INS_TRACK,,False
+AIBM_MAJOR,Applied AI in Business,major,,True,True,AIBM_MAJOR,,False

@@ -2389,7 +2389,7 @@ FINA 4040,,FINA 3001.,,,,,,,,,,,,,
 FINA 4050,,FINA 3001.,,,,,,,,,,,,,
 FINA 4060,,FINA 3001.,,,,,,,,,,,,,
 FINA 4065,,FINA 3001.,,,,,,,,,,,,,
-FINA 4075,,FINA 3001.,,,,,,,,,,,,,
+FINA 4075,,FINA 3001.,,True,,,,,,,,,,
 FINA 4081,,FINA 3001 and FINA 4001.,,,,,,,,,,,,,
 FINA 4082,,FINA 3001.,,,,,,,,,,,,,
 FINA 4084,,FINA 3001.,,,,,,,,,,,,,
@@ -5301,3 +5301,10 @@ TRME 9993,instructor_consent,Consent required.,,Consent required,,,,,,,,,,,Conse
 TRME 9994,instructor_consent,Consent required.,,Consent required,,,,,,,,,,,Consent required.
 TRME 9995,instructor_consent,Consent required.,,Consent required,,,,,,,,,,,Consent required.
 TRME 9996,instructor_consent,Consent required.,,Consent required,,,,,,,,,,,Consent required.
+FINA 3020,,,,,,,,,,,,,,,
+FINA 3003,,,,,,,,,,,,,,,
+FINA 4300,,,,,,,,,,,,,,,
+FINA 4301,,,,,,,,,,,,,,,
+FINA 4962,,,,,,,,,,,,,,,
+FINA 4031,,,,,,,,,,,,,,,
+INSY 4180,,,,,,,,,,,,,,,

@@ -89,3 +89,9 @@ REAL_REAP_TRACK,reap-foundation-req,REAP Foundation Required Courses,required,2.
 REAL_REAP_TRACK,reap-model-dev-choose-1,REAP Modeling/Development Choose 1,choose_n,1.0,,3000.0,
 REAL_REAP_TRACK,reap-applied-req,REAP Applied Core,required,3.0,,,"Admission criteria, B- minimum, GPA/conduct/process clauses are advisory only (not runtime-enforced)."
 REAL_REAP_TRACK,reap-biz-elec-12,Four Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
+INS_TRACK,ins-req-core,Insurance Core,required,4.0,,,
+INS_TRACK,ins-elec-4,4 Business Electives (12 credits),credits_pool,,12.0,3000.0,Elective pool intentionally unmapped for now.
+AIBM_MAJOR,aibm-req-core,AIBM Required,required,1.0,,,
+AIBM_MAJOR,aibm-focus,Disruptive Tech or Machine Learning Focus,choose_n,2.0,,,
+AIBM_MAJOR,aibm-choose-2,Choose 2 Electives,choose_n,2.0,,,
+AIBM_MAJOR,aibm-elec-upper-15,Upper Division Business Electives (Primary Major),credits_pool,,15.0,3000.0,Elective pool intentionally unmapped for now.

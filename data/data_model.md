@@ -130,7 +130,7 @@ erDiagram
 
 ### `courses.csv`
 
-Base course catalog (~5000 rows).
+Base course catalog (5309 rows).
 
 | Column | Meaning |
 |--------|---------|
@@ -145,7 +145,7 @@ Base course catalog (~5000 rows).
 
 ### `parent_buckets.csv`
 
-Top-level program envelopes (39 rows): majors, tracks, minors, and universal requirement groups.
+Top-level program envelopes (40 rows): majors, tracks, minors, and universal requirement groups.
 
 | Column | Meaning |
 |--------|---------|
@@ -161,7 +161,7 @@ Top-level program envelopes (39 rows): majors, tracks, minors, and universal req
 
 ### `child_buckets.csv`
 
-Individual requirement slots inside each parent (~100 rows).
+Individual requirement slots inside each parent (96 rows).
 
 | Column | Meaning |
 |--------|---------|
@@ -176,7 +176,7 @@ Individual requirement slots inside each parent (~100 rows).
 
 ### `master_bucket_courses.csv`
 
-Explicit course-to-child-bucket membership (~2000 rows). This is the checked-in mapping that says "this course can count toward this requirement."
+Explicit course-to-child-bucket membership (1600 rows). This is the checked-in mapping that says "this course can count toward this requirement."
 
 | Column | Meaning |
 |--------|---------|
@@ -187,18 +187,18 @@ Explicit course-to-child-bucket membership (~2000 rows). This is the checked-in 
 
 ### `course_hard_prereqs.csv`
 
-Hard eligibility gates (~800 rows). Only parseable, enforceable prerequisites.
+Hard eligibility gates (5309 rows). One row per course. Only parseable, enforceable prerequisites.
 
 | Column | Meaning |
 |--------|---------|
 | `course_code` | FK to `courses.csv`. Owning course. |
-| `hard_prereq` | Parseable prerequisite expression consumed by `prereq_parser`. e.g. `ACCO 1031 and FINA 3001`. `none` if no hard prereq. |
+| `hard_prereq` | Parseable prerequisite expression consumed by `prereq_parser`. e.g. `ACCO 1031 and FINA 3001`. `none` if the course has no hard prereq. |
 | `concurrent_with` | Same-term companion courses. e.g. `MATH 1451`. |
 | `min_standing` | Numeric standing gate. `1`=Freshman, `2`=Sophomore, `3`=Junior, `4`=Senior. Blank = no gate. |
 
 ### `course_soft_prereqs.csv`
 
-Soft warnings, raw prerequisite text, and audit detail columns (~1500 rows).
+Soft warnings, raw prerequisite text, and audit detail columns (5309 rows). One row per course.
 
 | Column | Meaning |
 |--------|---------|
@@ -211,7 +211,7 @@ See **Soft detail columns** section below for the full list of `soft_prereq_*` c
 
 ### `course_offerings.csv`
 
-Seasonal offering history (~5000 rows). **Currently disabled** — all courses treated as offered every term.
+Seasonal offering history (547 rows). **Currently disabled** — all courses are treated as offered every term.
 
 | Column | Meaning |
 |--------|---------|
@@ -222,7 +222,7 @@ Seasonal offering history (~5000 rows). **Currently disabled** — all courses t
 
 ### `course_equivalencies.csv`
 
-Equivalency groups (~300 rows) stored in wide format with one row per group.
+Equivalency groups (276 rows) stored in wide format with one row per group.
 
 | Column | Meaning |
 |--------|---------|
@@ -263,7 +263,7 @@ Policy-to-bucket join table (177 rows). Maps each policy to the parent buckets i
 
 ### `quips.csv`
 
-Rotating UI quips (~50 rows) used in the frontend.
+Rotating UI quips (904 rows) used in the frontend.
 
 | Column | Meaning |
 |--------|---------|
@@ -278,8 +278,7 @@ Rotating UI quips (~50 rows) used in the frontend.
 
 | File | Role |
 |------|------|
-| `config/ranking_overrides.json` | Checked-in deterministic ranking adjustments learned from nightly report analysis. Same CSVs + same overrides + same inputs = same planner output. |
-| `config/data_investigation_queue.json` | Nightly-generated queue of data issues to review manually in the CSVs or bulletin. This is repo state, not a direct planner input. |
+| `config/ranking_overrides.json` | Checked-in deterministic ranking adjustments for manual tier adjustments. Same CSVs + same overrides + same inputs = same planner output. |
 
 ## Parent/Child Program Model
 

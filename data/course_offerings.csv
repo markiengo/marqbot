@@ -80,7 +80,7 @@ FINA 4075,True,False,True
 FINA 4081,True,False,False
 FINA 4082,False,False,False
 FINA 4084,False,False,True
-FINA 4085,True,False,False
+FINA 4085,False,False,True
 FINA 4121,False,False,False
 FINA 4122,False,False,False
 FINA 4123,False,False,False
@@ -539,3 +539,10 @@ POSC 4661,False,False,False
 POSC 4731,False,False,False
 SPAN 4320,False,False,False
 SPAN 4450,False,False,False
+FINA 3020,False,False,True
+FINA 3003,False,False,True
+FINA 4300,True,False,False
+FINA 4301,True,False,False
+FINA 4962,False,False,True
+FINA 4031,False,False,True
+INSY 4180,True,False,True
