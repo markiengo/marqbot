@@ -39,12 +39,12 @@
 - Location: `backend/`
 - Contains: `backend/data_loader.py`, `backend/allocator.py`, `backend/eligibility.py`, `backend/semester_recommender.py`, `backend/scheduling_styles.py`, `backend/requirements.py`, `backend/prereq_parser.py`, `backend/validators.py`, `backend/student_stage.py`, `backend/unlocks.py`, `backend/normalizer.py`
 - Depends on: `data/`, `config/ranking_overrides.json`, pandas dataframes, and shared runtime indexes assembled during load
-- Used by: `backend/server.py`, backend tests in `tests/backend/`, and maintenance scripts such as `scripts/validate_track.py` and `scripts/analyze_nightly.py`
+- Used by: `backend/server.py`, backend tests in `tests/backend/`, and maintenance scripts such as `scripts/validate_track.py` and `scripts/scrape_undergrad_policies.py`
 
 **Data and configuration layer:**
 - Purpose: Provide the source-of-truth catalog, program structure, equivalencies, policies, and manual ranking overrides.
 - Location: `data/`, `config/`
-- Contains: `data/courses.csv`, `data/parent_buckets.csv`, `data/child_buckets.csv`, `data/master_bucket_courses.csv`, `data/course_hard_prereqs.csv`, `data/course_soft_prereqs.csv`, `data/course_equivalencies.csv`, `data/policies.csv`, `config/ranking_overrides.json`, `config/data_investigation_queue.json`, `config/autotune_ledger.json`
+- Contains: `data/courses.csv`, `data/parent_buckets.csv`, `data/child_buckets.csv`, `data/master_bucket_courses.csv`, `data/course_hard_prereqs.csv`, `data/course_soft_prereqs.csv`, `data/course_equivalencies.csv`, `data/policies.csv`, `data/policies_buckets.csv`, `config/ranking_overrides.json`
 - Depends on: manual editing and the loaders in `backend/data_loader.py` and `backend/semester_recommender.py`
 - Used by: the backend runtime, nightly scripts in `scripts/`, and integrity tests in `tests/backend/`
 

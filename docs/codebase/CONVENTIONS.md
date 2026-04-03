@@ -14,7 +14,7 @@
 **Functions:**
 - React components and providers are `PascalCase`, such as `CoursesStep`, `Button`, `RootLayout`, and `AppProvider` in `frontend/src/components/onboarding/CoursesStep.tsx`, `frontend/src/components/shared/Button.tsx`, `frontend/src/app/layout.tsx`, and `frontend/src/context/AppContext.tsx`.
 - Frontend hooks and helpers are `camelCase`, with hooks always prefixed `use`, such as `useRecommendations`, `fetchCoursesOnce`, `normalizeSessionSnapshot`, and `loadPrograms` in `frontend/src/hooks/useRecommendations.ts`, `frontend/src/hooks/useCourses.ts`, `frontend/src/context/AppReducer.ts`, and `frontend/src/lib/api.ts`.
-- Python functions are `snake_case`; private helpers use a leading underscore, such as `_reload_data_if_changed`, `_build_in_progress_note`, `_write_csv`, and `_payload` in `backend/server.py`, `backend/semester_recommender.py`, `tests/backend/test_nightly_analyze.py`, and `tests/backend/test_recommend_api_contract.py`.
+- Python functions are `snake_case`; private helpers use a leading underscore, such as `_reload_data_if_changed`, `_build_in_progress_note`, `_payload`, and `_expand_with_scheduling_styles` in `backend/server.py`, `backend/semester_recommender.py`, `tests/backend/test_recommend_api_contract.py`, and `tests/backend/test_dead_end_fast.py`.
 - Reducer action names are uppercase string literals, such as `"SET_COURSES"`, `"LOAD_PROGRAMS_FAILURE"`, and `"APPLY_PLANNER_SNAPSHOT"` in `frontend/src/context/AppReducer.ts`.
 
 **Variables:**
@@ -34,7 +34,7 @@
 - Frontend code uses 2-space indentation, semicolons, double quotes, and trailing commas in multiline arrays, objects, and function calls. Representative files: `frontend/src/context/AppReducer.ts`, `frontend/src/context/AppContext.tsx`, `frontend/src/lib/api.ts`, and `frontend/tests/onboardingPage.dom.test.ts`.
 - JSX prefers early-return guards and direct inline handlers when the action is simple, such as the `dispatch({ type: "ADD_COMPLETED", ... })` and `setWhyModalOpen(true)` handlers in `frontend/src/components/onboarding/CoursesStep.tsx`.
 - Client components declare `"use client";` as the first statement when they depend on hooks or browser APIs, as in `frontend/src/hooks/useRecommendations.ts`, `frontend/src/components/onboarding/CoursesStep.tsx`, `frontend/src/components/shared/Button.tsx`, and `frontend/src/context/AppContext.tsx`.
-- Python code uses 4-space indentation, docstrings for modules and non-trivial helpers, blank lines between logical sections, and trailing commas in multiline signatures and literals. Representative files: `backend/validators.py`, `backend/server.py`, `tests/backend/helpers.py`, and `tests/backend/test_nightly_analyze.py`.
+- Python code uses 4-space indentation, docstrings for modules and non-trivial helpers, blank lines between logical sections, and trailing commas in multiline signatures and literals. Representative files: `backend/validators.py`, `backend/server.py`, `tests/backend/helpers.py`, and `tests/backend/test_scrape_undergrad_policies.py`.
 - No dedicated Prettier, Black, Ruff, Flake8, or Mypy config was detected in the repo root or `frontend/`. Existing file style plus lint/test gates are the practical formatter.
 
 **Linting:**
@@ -54,7 +54,7 @@
 - Frontend uses `@/* -> ./src/*` from `frontend/tsconfig.json`, and `frontend/vitest.config.ts` mirrors that alias for tests.
 - Frontend tests in `frontend/tests/` import app code through `@/...` or `../src/...`, as shown in `frontend/tests/courseHistoryImportParser.test.ts`, `frontend/tests/onboardingPage.dom.test.ts`, and `frontend/tests/plannerCourseList.dom.test.ts`.
 - Backend runtime modules import sibling files directly because `backend/server.py` prepends `backend/` to `sys.path`.
-- Backend tests prepend both `backend/` and `scripts/` to `sys.path` in `tests/backend/conftest.py`, then import modules directly as `import server` or `from analyze_nightly import analyze_report`.
+- Backend tests prepend both `backend/` and `scripts/` to `sys.path` in `tests/backend/conftest.py`, then import modules directly as `import server` or script modules such as `scrape_undergrad_policies`.
 
 ## Error Handling
 
@@ -85,7 +85,7 @@
 
 ## Function Design
 
-**Size:** Use small pure helpers for validation, parsing, normalization, and payload shaping, as in `backend/validators.py`, `frontend/src/lib/api.ts`, `frontend/src/hooks/useCourses.ts`, and `tests/backend/test_nightly_analyze.py`. Large orchestrator functions are accepted only where the module owns a full workflow, such as `backend/server.py` for HTTP orchestration and `backend/semester_recommender.py` for ranking/selection; extend those files by extracting helpers instead of adding more nested branches inline.
+**Size:** Use small pure helpers for validation, parsing, normalization, and payload shaping, as in `backend/validators.py`, `frontend/src/lib/api.ts`, `frontend/src/hooks/useCourses.ts`, and `tests/backend/test_scrape_undergrad_policies.py`. Large orchestrator functions are accepted only where the module owns a full workflow, such as `backend/server.py` for HTTP orchestration and `backend/semester_recommender.py` for ranking/selection; extend those files by extracting helpers instead of adding more nested branches inline.
 
 **Parameters:** Prefer typed payload objects and prop interfaces in TypeScript, as in `frontend/src/lib/api.ts`, `frontend/src/context/AppReducer.ts`, and `frontend/src/components/onboarding/CoursesStep.tsx`. Python helpers use explicit parameters plus keyword-only options for readability, such as `recommend_payload(...)` in `tests/backend/helpers.py` and `_env_float(...)` in `backend/server.py`.
 

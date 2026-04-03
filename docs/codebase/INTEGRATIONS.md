@@ -1,6 +1,6 @@
 # External Integrations
 
-**Analysis Date:** 2026-03-28
+**Analysis Date:** 2026-04-03
 
 ## APIs & External Services
 
@@ -15,7 +15,7 @@
   - Auth: `SENTRY_DSN`.
 
 **External Content Source (maintenance-only):**
-- Marquette Bulletin - Policy text scraping is implemented in `scripts/scrape_undergrad_policies.py` and writes output to `docs/memos/webscrape_policies.md`.
+- Marquette Bulletin - Policy text scraping is implemented in `scripts/scrape_undergrad_policies.py` and writes output to `docs/memos/policies.md` by default.
   - SDK/Client: `requests` plus an optional `beautifulsoup4` import inside `scripts/scrape_undergrad_policies.py`.
   - Auth: None detected; the script fetches public pages at `https://bulletin.marquette.edu`.
 
@@ -25,9 +25,9 @@
   - Auth: Not applicable; OCR runs locally on the client.
 
 **Source Control Automation:**
-- GitHub Actions / GitHub API - CI jobs and a disabled nightly PR automation flow are defined in `.github/workflows/nightly-sweep.yml`.
-  - SDK/Client: `actions/*` steps and `gh` CLI calls inside `.github/workflows/nightly-sweep.yml`.
-  - Auth: `${{ github.token }}` when the disabled auto-tune job is re-enabled.
+- GitHub Actions plus local GitHub tooling. The repo now includes `.github/workflows/nightly-sweep.yml` for the focused `@nightly` planner sweep, while other review and ship flows remain local through `git` and optional `gh`.
+  - SDK/Client: GitHub-hosted Actions runners, local `git`, and optional `gh` usage from developer workflow scripts and skills.
+  - Auth: GitHub-hosted workflow token for Actions; developer-local GitHub auth when `gh` is used.
 
 ## Data Storage
 
@@ -71,10 +71,10 @@
 - Production image is built from `infra/docker/Dockerfile`, which compiles the frontend static export and runs Gunicorn against `backend/server.py`.
 
 **CI Pipeline:**
-- GitHub Actions workflow `.github/workflows/nightly-sweep.yml`.
-- Pull-request and manual jobs run backend regression tests, fast planner guardrails, and frontend tests.
-- Scheduled nightly runs generate artifacts under `tests/nightly_reports/`.
-- A disabled `nightly-analyze` job in `.github/workflows/nightly-sweep.yml` can analyze nightly reports, commit changes to `config/ranking_overrides.json` and `config/data_investigation_queue.json`, and create/update PRs when re-enabled.
+- `.github/workflows/nightly-sweep.yml` runs the `@nightly` pytest suite on a guarded three-day cadence at 4:00 AM America/Chicago and also supports manual dispatch.
+- The workflow uploads a markdown summary plus raw `nightly_output.txt` as artifacts and fails the run when nightly tests fail.
+- Backend regression tests, planner guardrails, frontend tests, and helper smoke tests are still expected to run locally before shipping changes.
+- Historical nightly artifacts remain under `tests/nightly_reports/`, and the checked-in workflow now regenerates fresh nightly artifacts for the focused sweep.
 
 ## Environment Configuration
 
@@ -86,7 +86,7 @@
 **Secrets location:**
 - Root `.env` and `.env.example` exist and are discovered by `load_dotenv()` in `backend/server.py`; contents were not read.
 - Render-managed environment variables are referenced by `render.yaml` but secret values are expected outside the repo.
-- GitHub workflow credentials use `${{ github.token }}` inside `.github/workflows/nightly-sweep.yml`.
+- GitHub-hosted workflow credentials are managed by Actions; no custom repo secrets are referenced by the checked-in nightly workflow.
 
 ## Webhooks & Callbacks
 
@@ -96,7 +96,7 @@
 
 **Outgoing:**
 - `scripts/scrape_undergrad_policies.py` performs HTTP GET requests to `https://bulletin.marquette.edu` and linked policy pages.
-- `.github/workflows/nightly-sweep.yml` can call GitHub APIs through `gh pr list`, `gh pr edit`, `gh pr create`, and `gh pr merge` when the disabled nightly auto-tune flow is turned back on.
+- The checked-in nightly workflow uses GitHub Actions only for scheduling, checkout, and artifact upload. Local developer workflows may still call GitHub APIs through `gh`.
 - Frontend runtime code in `frontend/src/lib/api.ts` only calls same-origin backend routes (`/api/courses`, `/api/programs`, `/api/program-buckets`, `/api/recommend`, `/api/validate-prereqs`, `/api/can-take`, `/api/feedback`) or `http://localhost:5000` during local server-side dev execution.
 
 ---

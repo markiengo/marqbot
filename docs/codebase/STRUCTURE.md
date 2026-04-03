@@ -21,7 +21,7 @@
 ├── infra/docker/         # Container build files used by Render
 ├── scripts/              # Local tooling and data-maintenance scripts
 ├── tests/                # Pytest backend suite plus legacy frontend tests
-├── .planning/codebase/   # Generated mapping documents for GSD tooling
+├── docs/codebase/       # Generated mapping documents and technical reference
 ├── .claude/              # Claude workflow automation, not product runtime
 ├── .codex/               # Codex and GSD workflow automation, not product runtime
 ├── README.md             # Human project overview
@@ -87,29 +87,29 @@
 - Key files: `data/courses.csv`, `data/parent_buckets.csv`, `data/child_buckets.csv`, `data/master_bucket_courses.csv`, `data/course_hard_prereqs.csv`, `data/course_soft_prereqs.csv`
 
 **`config/`:**
-- Purpose: Hold runtime tuning and issue-tracking JSON files used by the backend and nightly scripts.
-- Contains: ranking overrides and investigation ledgers
-- Key files: `config/ranking_overrides.json`, `config/data_investigation_queue.json`, `config/autotune_ledger.json`
+- Purpose: Hold runtime JSON configuration used by the backend.
+- Contains: deterministic ranking overrides
+- Key files: `config/ranking_overrides.json`
 
 **`scripts/`:**
 - Purpose: Hold local operator tooling and data-maintenance utilities.
-- Contains: `scripts/run_local.py`, `scripts/ensure_frontend_build.py`, `scripts/analyze_nightly.py`, `scripts/validate_track.py`, `scripts/discover_equivalencies.py`, `scripts/compile_quips.py`
-- Key files: `scripts/run_local.py`, `scripts/ensure_frontend_build.py`, `scripts/analyze_nightly.py`
+- Contains: `scripts/run_local.py`, `scripts/ensure_frontend_build.py`, `scripts/validate_track.py`, `scripts/discover_equivalencies.py`, `scripts/compile_quips.py`, `scripts/scrape_undergrad_policies.py`, `scripts/eval_advisor_match.py`
+- Key files: `scripts/run_local.py`, `scripts/ensure_frontend_build.py`, `scripts/validate_track.py`
 
 **`docs/`:**
 - Purpose: Hold product and technical documentation that explains behavior outside the code.
-- Contains: algorithm and technical docs in `docs/algorithm.md` and `docs/technical_reference.md`; collected feedback under `docs/feedbacks/`; memos under `docs/memos/`
-- Key files: `docs/algorithm.md`, `docs/technical_reference.md`, `docs/CHANGELOG.md`
+- Contains: generated codebase maps and the technical reference in `docs/codebase/`; collected feedback under `docs/feedbacks/`; memos and the algorithm explainer under `docs/memos/`
+- Key files: `docs/codebase/tech_readme.md`, `docs/memos/algorithm.md`, `docs/CHANGELOG.md`
 
 **`infra/docker/`:**
 - Purpose: Hold container-build assets used by deployment.
 - Contains: the Docker configuration referenced by `render.yaml`
 - Key files: `infra/docker/`
 
-**`.planning/codebase/`:**
-- Purpose: Hold generated codebase maps consumed by later GSD planning and execution commands.
-- Contains: output files such as `.planning/codebase/ARCHITECTURE.md`, `.planning/codebase/STRUCTURE.md`, and the other mapper documents created by adjacent focus runs
-- Key files: `.planning/codebase/ARCHITECTURE.md`, `.planning/codebase/STRUCTURE.md`
+**`docs/codebase/`:**
+- Purpose: Hold generated codebase maps and the checked-in technical reference consumed during later planning and documentation work.
+- Contains: `docs/codebase/ARCHITECTURE.md`, `docs/codebase/STRUCTURE.md`, `docs/codebase/STACK.md`, `docs/codebase/CONVENTIONS.md`, `docs/codebase/INTEGRATIONS.md`, `docs/codebase/TESTING.md`, and `docs/codebase/tech_readme.md`
+- Key files: `docs/codebase/ARCHITECTURE.md`, `docs/codebase/STRUCTURE.md`
 
 ## Key File Locations
 
@@ -182,7 +182,7 @@
 
 ## Special Directories
 
-**`.planning/codebase/`:**
+**`docs/codebase/`:**
 - Purpose: generated mapping docs consumed by GSD commands
 - Generated: Yes
 - Committed: Yes

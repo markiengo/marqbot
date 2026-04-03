@@ -11,8 +11,8 @@
 **Secondary:**
 - JavaScript (ESM/CommonJS) - Frontend build and tool config in `frontend/next.config.js`, `frontend/postcss.config.js`, and `frontend/eslint.config.mjs`.
 - CSS - Global design system and page styling in `frontend/src/app/globals.css`.
-- YAML - Deployment and CI definitions in `render.yaml` and `.github/workflows/nightly-sweep.yml`.
-- Markdown - Operator and technical docs in `README.md`, `backend/TECHNICAL_README.md`, `frontend/TECHNICAL_README.md`, and `docs/technical_reference.md`.
+- YAML - Deployment definitions in `render.yaml`.
+- Markdown - Operator and technical docs in `README.md`, `docs/codebase/tech_readme.md`, `docs/memos/algorithm.md`, and the other `docs/codebase/*.md` files.
 
 ## Runtime
 
@@ -21,7 +21,7 @@
 - Node.js for Next.js build/dev tooling in `frontend/package.json` and `frontend/next.config.js`.
 - Flask + Gunicorn for the backend HTTP service in `backend/server.py` and `infra/docker/Dockerfile`.
 - Production container images are `node:20-bookworm-slim` for the frontend build stage and `python:3.11-slim` for the runtime stage in `infra/docker/Dockerfile`.
-- CI uses Python 3.12 and Node 22 in `.github/workflows/nightly-sweep.yml`.
+- Checked-in automation currently consists of `.github/workflows/nightly-sweep.yml` for the focused `@nightly` backend sweep. Broader test, lint, and build gates still run locally through pytest, Vitest, and the documented npm/node commands.
 
 **Package Manager:**
 - `npm` - Frontend app dependencies and scripts are declared in `frontend/package.json`; the repo root `package.json` only proxies `npm --prefix frontend run dev`.
@@ -85,7 +85,7 @@
 - `frontend/vitest.config.ts` defines frontend test roots and path aliases.
 - `pytest.ini` scopes backend test discovery to `tests/backend/`.
 - `infra/docker/Dockerfile` builds `frontend/out`, copies `backend/`, `data/`, and `config/`, then launches Gunicorn.
-- Runtime tuning/config JSON lives in `config/ranking_overrides.json`, `config/data_investigation_queue.json`, and `config/autotune_ledger.json`.
+- Runtime JSON configuration lives in `config/ranking_overrides.json`.
 
 ## Platform Requirements
 
