@@ -23,15 +23,15 @@ Backend tests protect:
   Examples: `test_data_integrity.py`, `test_recommendation_quality.py`, `test_equivalencies.py`
 
 - Planner safety tests
-  Examples: `test_dead_end_fast.py`, `test_dead_end_nightly.py`, `test_regression_profiles.py`
+  Examples: `test_dead_end_fast.py`, `test_regression_profiles.py`, `test_advisor_match.py`
 
 ## Which Command To Use
 
 ### Default backend regression
 
-`.\.venv\Scripts\python.exe -m pytest -q`
+`.\.venv\Scripts\python.exe -m pytest tests/backend -q`
 
-Use this for normal development and PR checks.
+Use this for normal development. `pytest.ini` already excludes `nightly`.
 
 ### Fast planner guardrail
 
@@ -41,9 +41,9 @@ Run this when touching planner selection, eligibility, or recommendation orderin
 
 ### Nightly-only planner sweep
 
-`.\.venv\Scripts\python.exe -m pytest -m nightly tests/backend/test_dead_end_nightly.py -q`
+`.\.venv\Scripts\python.exe -m pytest tests/backend -m nightly -q`
 
-This is the focused sampled nightly planner pass. It also writes the nightly Markdown + JSON report pair. Do not treat it as a normal local command.
+This is the focused nightly-only pass across the backend suite. Do not treat it as a normal local command.
 
 ### Full backend suite
 
@@ -51,11 +51,9 @@ This is the focused sampled nightly planner pass. It also writes the nightly Mar
 
 Use only when you explicitly want to override the default `pytest.ini` nightly exclusion.
 
-## CI Split
+## Release Gate
 
-- Normal CI uses the default backend regression lane from `pytest.ini` (nightly excluded).
-- Fast planner guardrail runs as its own CI job.
-- The focused nightly sweep stays in the nightly workflow only, and the follow-up auto-tune job reads its JSON artifact.
+The repo now includes `.github/workflows/nightly-sweep.yml` for the focused `@nightly` backend sweep. Treat the commands above as the broader local backend release gate outside that workflow.
 
 ## Practical Rule
 

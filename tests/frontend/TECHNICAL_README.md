@@ -29,7 +29,9 @@ Run from `frontend/`:
 
 `npm test`
 
-This is the default frontend lane used by the normal regression workflow.
+For the local release gate, also run:
+
+`npm run lint && npm run build`
 
 ## Important Note
 
@@ -43,4 +45,5 @@ If you add or rename `.dom.test.*` files, make sure the Vitest config and the in
 
 When changing frontend code:
 - run `npm test`
+- use `npm test && npm run lint && npm run build` before treating the branch as releasable
 - if the change is UI-flow heavy, confirm whether the relevant DOM/component tests are in the default run or need a focused command

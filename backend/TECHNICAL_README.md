@@ -55,6 +55,9 @@ It loads the catalog and degree data, decides what counts toward progress, check
 
 ## Main routes
 
+- `/health` and `/api/health`
+  Readiness endpoints. Return `200` only when the static frontend export is present, otherwise `503` with readiness details.
+
 - `/api/programs`
   Program metadata and bucket labels.
 
@@ -85,4 +88,5 @@ This folder is where the actual degree logic lives.
 ## Notes
 
 - Production serves the static Next export from `frontend/out`.
-- Feedback storage defaults to `feedback.jsonl` unless `FEEDBACK_PATH` is set.
+- Production feedback is expected at `FEEDBACK_PATH`; the checked-in Render blueprint uses `/var/data/marqbot/feedback.jsonl`.
+- Local feedback storage falls back to `feedback.jsonl` at the repo root when `FEEDBACK_PATH` is unset.

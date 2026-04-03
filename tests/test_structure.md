@@ -1,17 +1,17 @@
 # Test Structure
 
-Last updated: 2026-04-02
+Last updated: 2026-04-03
 
 Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
 ## Quick Reference
 
-| What to run | Command | Tests |
-|---|---|---:|
-| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest -q` | 627 |
-| **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | ~45 |
-| **Frontend** | `cd frontend; npm run test` | 110 |
-| **Claude hook smoke** | `node --test .claude/helpers/hook-handler.test.cjs` | 6 |
+| What to run | Command | Coverage |
+|---|---|---|
+| **Standard suite** | `.\.venv\Scripts\python.exe -m pytest tests/backend -q` | Full backend suite under `tests/backend/` |
+| **Planner smoke guardrail** | `.\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q` | Fast planner/regression guardrail |
+| **Frontend** | `cd frontend; npm run test` | Active Vitest suites in `frontend/tests/` plus the included legacy suites from `tests/frontend/` |
+| **Claude hook smoke** | `node --test .claude/helpers/hook-handler.test.cjs` | Local npm/Claude hook guardrails |
 
 The standard suite runs everything in `tests/backend/` except `nightly`-marked tests (configured in `pytest.ini`).
 
@@ -20,7 +20,7 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 | Change type | Run these |
 |---|---|
 | Narrow backend fix | Closest test file |
-| Broad backend change | Focused file + `.\.venv\Scripts\python.exe -m pytest -q` |
+| Broad backend change | Focused file + `.\.venv\Scripts\python.exe -m pytest tests/backend -q` |
 | Planner / recommendation logic | Focused file + the planner smoke guardrail |
 | Frontend helper | Closest test file |
 | Frontend broad / pre-push | `cd frontend; npm run test; npm run lint; npm run build` |
@@ -45,6 +45,7 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 | `test_recommendation_quality.py` | 37 | Cross-major recommendation invariants, multi-semester quality |
 | `test_regression_profiles.py` | 39 | Realistic student-profile regressions |
 | `test_schema_migration.py` | 38 | Schema migration, loader compatibility, clean-mode |
+| `test_scrape_undergrad_policies.py` | 4 | Bulletin policy scrape parsing and markdown rendering |
 | `test_semester_recommender.py` | 38 | Ranking heuristics, concurrent picks, caps, standing recovery, scheduling style archetypes |
 | `test_server_can_take.py` | 15 | `/can-take` endpoint contract |
 | `test_server_data_reload.py` | 3 | Hot-reload safety |
@@ -97,15 +98,17 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 | `utils.test.ts` | 9 | Yes | Bucket labels, note formatting |
 | `frontend/tests/courseHistoryImportParser.test.ts` | 7 | Yes | Local OCR parser: golden fixture, row matching, grade classification |
 | `frontend/tests/coursesStep.dom.test.ts` | 4 | Yes | Screenshot import flow, prereq warnings, parsed-row apply |
-| `frontend/tests/effectsMode.test.ts` | 2 | Yes | Reduced-effects override persistence and modal fallback styling |
-| `frontend/tests/landingPage.dom.test.tsx` | 2 | Yes | Landing-page section order and copy regression coverage |
+| `frontend/tests/effectsMode.test.ts` | 4 | Yes | Reduced-effects override persistence and reduced-motion/system preference handling |
+| `frontend/tests/landingPage.dom.test.tsx` | 4 | Yes | Landing-page structure, story CTA, product-story state changes, and reduced-effects coverage |
 | `frontend/tests/multiSelect.dom.test.ts` | 2 | Yes | Picker DOM interactions |
 | `frontend/tests/onboardingPage.dom.test.ts` | 5 | Yes | Onboarding DOM flow, loading state, secondary-program guard, alias search |
 | `frontend/tests/profileModal.dom.test.ts` | 4 | Yes | Profile modal submit/error flow, student-stage selector, alias search |
 | `frontend/tests/plannerCourseList.dom.test.ts` | 4 | Yes | Course list assumptions, stage-conflict warning, ranking explainer copy |
 | `frontend/tests/plannerFeedbackNudge.dom.test.ts` | 3 | Yes | Feedback lane, nudge timing, dismissal |
 | `frontend/tests/plannerLayout.dom.test.ts` | 1 | Yes | Semester-edit stale-response protection when candidate requests resolve out of order |
+| `frontend/tests/plannerPreferencesEdit.dom.test.tsx` | 1 | Yes | Preserve edited semesters across preference reruns |
 | `frontend/tests/progressBucketDrillIn.test.ts` | 4 | Yes | Bucket drill-in detail rendering |
+| `frontend/tests/recommendationsPanel.dom.test.tsx` | 2 | Yes | Recommendations term switching and reduced-effects rendering path |
 | `frontend/tests/savedPlanDetailPage.dom.test.ts` | 1 | Yes | Saved-plan detail delete confirmation |
 | `frontend/tests/savedPlanViewModal.dom.test.ts` | 1 | Yes | Saved-plan modal delete confirmation |
 | `frontend/tests/semesterModal.dom.test.ts` | 3 | Yes | Semester modal copy, compact cards, course-detail planner context |
@@ -113,7 +116,7 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 
 `tests/frontend/*.dom.test.ts` is excluded from the default Vitest run.
 `frontend/tests/*.dom.test.ts` is included in the default Vitest run.
-The default frontend run currently covers 110 cases across both `tests/frontend/*.test.ts` and `frontend/tests/*.test.ts`.
+The frontend test footprint currently spans 34 test files across both roots. Use the live Vitest summary for exact case counts instead of treating this document as the source of truth for totals.
 
 ## Repo Helper Tests
 
@@ -123,7 +126,7 @@ The default frontend run currently covers 110 cases across both `tests/frontend/
 
 ## CI Workflow
 
-No GitHub Actions workflows are currently configured. Tests run locally.
+The repo includes `.github/workflows/nightly-sweep.yml` for the focused `@nightly` backend sweep on a guarded three-day cadence plus manual dispatch. The broader release gate still runs locally.
 
 ## Running Tests Locally
 
@@ -131,7 +134,7 @@ All tests run fully offline once dependencies already exist locally. Make sure `
 
 ```powershell
 # Standard suite (~10 min)
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest tests/backend -q
 
 # Planner smoke guardrail only (~45 tests)
 .\.venv\Scripts\python.exe -m pytest tests/backend/test_dead_end_fast.py -m "not nightly" -q

@@ -1,8 +1,8 @@
 """Shared test helpers for backend test suite.
 
 Centralizes catalog lookups, payload builders, and assertion helpers
-that were previously duplicated across test_program_smoke,
-test_recommendation_quality, test_dead_end_fast, and test_dead_end_nightly.
+that were previously duplicated across planner safety and recommendation
+regression tests such as test_recommendation_quality and test_dead_end_fast.
 """
 
 from __future__ import annotations

@@ -4,7 +4,7 @@ This repo now groups deploy/runtime assets under `infra/` where possible.
 
 ## Paths
 - Docker image build: `infra/docker/Dockerfile`
-- Render service config: `render.yaml` (root, points to `infra/docker/Dockerfile`)
+- Render service config: `render.yaml` (root, points to `infra/docker/Dockerfile` and provisions the feedback disk)
 
 ## Why some files stay at repo root
 - `.gitignore` must stay at repo root for Git ignore rules.
@@ -16,5 +16,6 @@ This repo now groups deploy/runtime assets under `infra/` where possible.
 Keep infra implementation files in `infra/`, but keep root-level integration entrypoints that external tools expect.
 
 ## Feedback storage
-- In production, set `FEEDBACK_PATH` to a file on a mounted Render persistent disk, for example `/var/data/marqbot/feedback.jsonl`.
+- The checked-in Render Blueprint mounts `/var/data` and sets `FEEDBACK_PATH=/var/data/marqbot/feedback.jsonl`.
 - In local dev, `FEEDBACK_PATH` can be omitted and the app will default to `feedback.jsonl` at the repo root.
+- `/api/health` is used as a readiness check and returns `503` when the frontend export is missing.

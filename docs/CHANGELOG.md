@@ -3,1138 +3,623 @@
 All notable changes to MarqBot are documented here.
 
 Format per release:
-- `Changes`: what shipped.
-- `Design Decisions`: why those changes were made.
+- `User`: student/advisor-facing changes in plain language.
+- `Technical`: compact engineering context using Goal + Problem + Decisions + Outcome.
 
 ---
 
 ## [Unreleased]
 
-### Changes
+---
 
-- Removed nightly autotune pipeline: deleted `scripts/analyze_nightly.py`, the GitHub Actions `nightly-sweep.yml` workflow, `config/autotune_ledger.json`, `config/data_investigation_queue.json`, and all nightly-specific test files (`test_dead_end_nightly.py`, `test_dead_end_nightly_helpers.py`, `test_nightly_analyze.py`, `nightly_support.py`). The `test_no_dead_end` and `test_graduates_by_semester_8` tests in `test_dead_end_fast.py` are simplified to bare assertions and kept under `@pytest.mark.nightly`. `config/ranking_overrides.json` is retained; it is read by `semester_recommender.py` at runtime for manual tier adjustments.
-- Fixed planner semester-edit race handling in `frontend/src/components/planner/PlannerLayout.tsx`. Candidate swap pools now stay tied to the latest active semester edit request, and stale responses are ignored when users switch semesters or close the editor.
-- Restored a read-mode delete action on `frontend/src/components/saved/SavedPlanDetailPage.tsx`. Metadata edit mode is now scoped back to name/notes updates instead of owning plan deletion.
-- Added repo-local Claude/npm supply-chain guardrails in `.claude/helpers/hook-handler.cjs` and smoke coverage in `.claude/helpers/hook-handler.test.cjs`. Dependency mutations now require `npm`, `--ignore-scripts`, exact pins for new direct dependencies, and allowlisted `npm rebuild` targets.
-- Added `frontend/tests/plannerLayout.dom.test.ts` to lock in the semester-edit stale-response regression path and refreshed project docs to match the current planner, hook, and test layout.
+## [v2.7.0] - 2026-04-03
 
-### Design Decisions
+### User
 
-- Semester-edit candidate state now follows the latest request rather than a shared modal slot so users cannot see or apply the wrong swap pool after switching semesters mid-fetch.
-- Delete remains a read-mode plan action because deleting a saved plan is not part of metadata editing and should stay reachable from the normal detail view.
-- npm lifecycle scripts are treated as an explicit follow-up step, not an automatic side effect of install, and the repo now backstops that rule with lockfile/script-package inspection after dependency commands.
+- Updated Fall 2026 business catalog coverage, including the new Insurance concentration, the Applied AI in Business secondary major, and corrected prerequisite and MCC mapping rules.
+- Fixed semester editing so swap suggestions stay attached to the semester you are actually editing, and restored delete from the normal saved-plan detail view.
+- Reworked the landing and About pages around a stronger Marquette visual system, interactive product-story previews, and more consistent CTA behavior.
+- Tightened the landing, onboarding, and planner chrome so more of the actual product fits on screen, and made the product story switch only on a 9-second timer or direct step clicks.
+- Simplified reduced-effects behavior so full effects stay on by default unless reduced motion or a manual reduced-effects preference is active.
+- Removed the nightly auto-tune pipeline and tightened local dependency-install guardrails.
+- Deployment defaults now keep planner feedback on the Render disk, and the documented backend/frontend release checks are green again.
+
+### Technical
+
+- Goal: align planner data with Fall 2026 CoBA guidance. Problem: course renumberings, new programs, stale prereqs, and MCC mappings had drifted from advising updates. Decisions: add the new FINA and INSY catalog rows, introduce `INS_TRACK` and `AIBM_MAJOR`, deactivate `FINA 4020`, add equivalencies, and update BULA and MARK prerequisite and bucket rules. Outcome: the planner can model the new insurance and applied-AI paths with current catalog logic.
+- Goal: make semester editing and saved-plan actions reliable. Problem: async swap pools could bleed across modal sessions, and delete had been buried inside metadata edit mode. Decisions: tie candidate pools to the active edit request, ignore stale responses, and move delete back to read mode. Outcome: users no longer see the wrong swap options, and plan deletion is reachable from the normal detail view.
+- Goal: make the public pages look intentional without detaching them from the actual planner. Problem: the landing and About surfaces had drifted into a mix of old and new layouts, while the product-story section was too wordy and visually inconsistent. Decisions: restore the older hero/final-CTA hierarchy, keep the newer interactive story section, add real planner-style previews, unify CTA styling, and bring About closer to the landing shell. Outcome: the public pages now present one coherent Marquette-branded visual system and a clearer product narrative.
+- Goal: keep the richer frontend predictable while reclaiming more usable space in the planner and onboarding surfaces. Problem: the public pages and planner chrome had grown dense enough that key content and controls were competing for vertical space, and the product-story rail was switching both on scroll and on a timer. Decisions: compact the shared navbar, compress planner and onboarding headers, move Step 3 onboarding toggles into the available side space, enlarge the product-story step rail text, and keep story switching on a 9-second timer plus manual clicks only. Outcome: more of the actual planner and story content fits on one screen without removing the current interaction model.
+- Goal: keep effects behavior understandable instead of heuristic-heavy. Problem: the reduced-effects manager had drifted into save-data, hardware-hint, and frame-probe heuristics that made motion behavior harder to predict while the UI was still changing rapidly. Decisions: keep `EffectsModeManager`, but resolve reduced-effects mode only from OS reduced-motion or a manual reduced-effects preference, and leave full effects on by default otherwise. Outcome: cursor-reactive landing/About treatments and planner tilt effects stay available by default, while reduced-effects mode still changes presentation only.
+- Goal: reduce maintenance risk from autonomous tuning and dependency scripts. Problem: the nightly autotune path had become stale and noisy, and package install commands could still execute risky defaults. Decisions: remove the nightly autotune jobs and files, keep manual ranking overrides, and enforce exact-pinned `npm --ignore-scripts` guardrails in the Claude hook handler. Outcome: less unattended churn and tighter local supply-chain controls.
+- Goal: make the current deployment contract truthful and repeatable. Problem: the default test gates had drifted red, feedback persistence was only documented instead of provisioned, and health checks reported success even when the frontend build was missing. Decisions: repair backend collection and frontend release checks, make `/health` and `/api/health` readiness endpoints, mount a Render disk in `render.yaml`, and wire `FEEDBACK_PATH` to `/var/data/marqbot/feedback.jsonl`. Outcome: the checked-in Render blueprint now matches the intended production shape and the local release gate passes end-to-end.
 
 ---
 
 ## [v2.6.0] - 2026-03-29
 
-### Changes
+### User
 
-- Completed landing page redesign milestone (v1.0). Phase docs archived to `.planning/milestones/v1.0-phases/`.
-- Fixed hero heading alignment. The three headline lines ("Know what to take next.", "Before registration", "turns into a side quest.") now center correctly at all viewport sizes.
-- Added a scroll cue to the hero section — an animated `↓` link anchored to `#feature-spotlight` appears at the bottom of the viewport on `sm+` screens, using the pre-defined `.landing-scroll-cue` CSS class.
-- Rewrote `BenefitsSection` as a 2×2 equal-weight grid. The old 3-card horizontal row was replaced with four benefits ("Take now", "Catch early", "Plan ahead", "Track it all"), each in a `feature-spotlight-step` card with hover glow, decorative step number, and staggered entry animation.
-- Extracted `frontend/src/hooks/useReducedEffects.ts` from `EffectsContext.tsx`. The new hook reads `document.documentElement.dataset.effectsMode` and `localStorage.marqbot_effects_preference` directly, removing a React context layer. `EffectsContext.tsx` was deleted; all consumers were updated to import from `useReducedEffects`.
-- Renamed `docs/technical_reference.md` to `docs/tech_readme.md`. Added a "Project Context" section at the top with a table pointing to `.planning` files and a `.planning/codebase/` map table.
-- Added `.codex/` to `.gitignore` under the local-only IDE/agent state block.
-- Removed stale `queryByText(/active benefit/)` assertion from `frontend/tests/effectsMode.test.ts` — the redesigned `BenefitsSection` has no active-benefit text node.
+- Finished the landing-page redesign with a cleaner hero, a scroll cue, and a balanced four-card benefits layout.
+- Kept reduced-effects behavior intact while simplifying the implementation behind it.
+- Reorganized the technical docs so repo context is easier to navigate.
 
-### Design Decisions
+### Technical
 
-- The 2×2 grid replaces the earlier asymmetric "spotlight dominant card" layout because equal-weight cards read more naturally in a scrollable landing context — no card should appear secondary at first glance.
-- A fourth benefit ("Plan ahead — see the next three semesters, not just the next one") was added to complete the grid and give the multi-semester planner its own callout separate from the degree-map tracking point.
-- The scroll cue was added because the hero section occupies the full viewport, giving no visual hint that content continues below the fold. A subtle animated anchor resolves the discoverability gap without adding visual weight above the fold.
-- `useReducedEffects` was extracted as a plain hook (not a context) because the value it reads — a DOM attribute and a localStorage key — is already globally accessible. A context layer added overhead without benefit.
+- Goal: finish the landing refresh without changing the core message. Problem: hero alignment and the old three-card spotlight layout felt unbalanced and hid content below the fold. Decisions: center the headline, add a viewport-bottom anchor cue, and replace the asymmetric benefits layout with a 2x2 grid plus a dedicated "Plan ahead" benefit. Outcome: the first screen is easier to scan and does a better job selling multi-semester planning.
+- Goal: simplify reduced-effects plumbing and repo orientation. Problem: `EffectsContext` duplicated state already available in the DOM and localStorage, and the technical reference naming no longer matched repo usage. Decisions: replace the context read path with `useReducedEffects`, rename the technical reference to `docs/tech_readme.md`, and add `.planning` and codebase-map links. Outcome: less frontend indirection and easier repo onboarding.
 
 ---
 
 ## [v2.5.4] - 2026-03-28
 
-### Changes
+### User
 
-- Created `data/policies.csv` — a normalized registry of 76 Marquette academic policies with machine-readable schema (scope, runtime mode, implementation status, source URLs).
-- Created `data/policies_buckets.csv` — a 177-row join table mapping each policy to the specific parent bucket IDs it affects, using group aliases (ALL, ALL_COBA, ALL_CAS, etc.).
-- Added COBA_06 enforcement in `server.py`: CoBA students may declare a maximum of three business majors. A fourth triggers a hard block.
-- Added COBA_05 enforcement in `server.py`: CoBA students who declare a business minor receive a warning suggesting a second business major instead.
-- Added per-semester credit-load warnings in `semester_recommender.py`: below-full-time (< 12 credits), above-normal (> 18), CoBA overload (> 19 requires dean approval), and summer cap (> 16).
-- Added `semester_warnings` field to each semester in the `/recommend` response.
-- Rewrote `docs/algorithm.md` as a non-technical walkthrough of how MarqBot plans a degree — written for students and advisors, not engineers.
-- Created `docs/tech_readme.md` covering the entire codebase: backend modules, API routes, engine pipeline, frontend pages/components/state/hooks, data layer, config, scripts, tests, and infrastructure.
-- Expanded `README.md` with a Documentation section, full subfolder directory tree, and links to both the non-technical guide and technical reference.
-- Added `tests/backend/test_policy_verification.py` with 10 scenarios verifying COBA_05, COBA_06, CRED_01/02/04/10, summer cap, and semester_warnings field presence.
+- Added policy-aware warnings for business-major limits, business-minor guidance, and semester credit-load issues.
+- Split documentation by audience so students and advisors get a plain-English planning guide while engineers get a separate technical reference.
 
-### Design Decisions
+### Technical
 
-- Policy data is split into two CSVs (registry + bucket join) so the registry stays flat and readable while bucket mappings can fan out to multiple rows per policy.
-- COBA_05 is a warning rather than a hard block because non-CoBA students can legitimately minor in business — only CoBA students get the advisory.
-- Credit-load warnings are attached per-semester rather than globally because different semesters can have different load profiles (summer vs. fall/spring).
-- The algorithm.md rewrite was motivated by the doc serving two audiences poorly. Non-technical users now get a plain-English walkthrough; engineers get the full technical reference separately.
+- Goal: move policy support from ad hoc checks to a traceable registry. Problem: policy enforcement and documentation were scattered and hard to audit. Decisions: add `data/policies.csv` plus `data/policies_buckets.csv`, enforce COBA_05 and COBA_06 in `server.py`, and emit per-semester `semester_warnings` from `semester_recommender.py`. Outcome: policy coverage is data-backed, testable, and visible in recommendation responses.
+- Goal: separate docs by audience. Problem: a single algorithm doc was trying to serve non-technical readers and engineers at once. Decisions: rewrite `docs/algorithm.md` for students and advisors, create `docs/tech_readme.md` for engineering context, and link both from `README.md`. Outcome: user docs get simpler without losing system detail.
 
 ---
 
 ## [v2.5.3] - 2026-03-27
 
-### Changes
+### User
 
-- Updated the onboarding and profile-edit major search so it also matches major codes/aliases from the catalog, letting queries like `OSCM` find Operations & Supply Chain Management.
-- Added an adaptive reduced-effects system on the frontend. `frontend/src/context/EffectsContext.tsx` now resolves `full` vs `reduced` effects automatically using motion preference, low-capability browser hints, and a short frame-cadence probe, then stamps the result on the root document for shared styling.
-- Added a manual visual-effects override in planner preferences (`Auto`, `Full effects`, `Reduced effects`) and persisted it in browser storage under `marqbot_effects_preference`.
-- Flattened the most expensive planner, onboarding, and shared-modal rendering paths when reduced effects are active. Critical surfaces now drop blur-heavy backdrops, large glow stacks, and some heavier motion while keeping the same layout, color system, and core interactions.
-- Simplified screenshot OCR review UI by removing user-facing confidence percentages from import results and tutorial mock rows. Internal confidence scoring still routes low-confidence rows into manual review, so behavior stays the same without exposing the score.
-- Simplified the planner header CTA. The separate `Save Plan` button was removed, and the remaining primary header action is now a yellow `Save Plan` button.
-- Added frontend regression coverage for the reduced-effects mode and updated onboarding DOM coverage to match the current preferences -> roadmap -> planner flow.
-- Fixed bucket counting so non-elective buckets (`required`, `choose_n`) beat `credits_pool` elective pools in recommendation views and completed-course allocation.
-- Added overflow handling for same-slot completions: when a required slot is already full, extra completed courses can spill into eligible elective pools instead of being dropped. Updated the ranking explainers and bucket guide copy to reflect the rule.
-- Deduplicated shared bucket helpers (`bucket_family_key`, `order_buckets_same_family`) from allocator and eligibility into `requirements.py` so both modules use the same code path.
-- Moved `eval/advisor_gold.json` into `tests/backend/fixtures/` and updated the eval script default path. Test fixtures now live with their test suite.
-- Replaced the horizontal-scroll about-page timeline layout with a responsive grid that wraps properly on smaller screens.
-- Fixed pre-existing frontend test failures: added missing `EffectsProvider` context to `semesterModal` and `progressBucketDrillIn` test renders, added `scheduling_style` to the feedback test expected payload, and updated the about-content assertions for the current timeline structure.
-- Rewrote `README.md` with a feature table, badges, mermaid flow diagram, and collapsible local-setup section.
+- Major search now understands program codes such as `OSCM`.
+- MarqBot can automatically reduce visual effects on weaker browsers, with a manual override if you want fuller motion.
+- Screenshot import review is simpler, the primary save action is clearer, and recommendation and progress logic handles required work more accurately.
 
-### Design Decisions
+### Technical
 
-- This patch targets "works on average laptops even without browser hardware acceleration" rather than assuming GPU-assisted compositing is always available.
-- The reduced-effects pass preserves brand color, hierarchy, and spacing while degrading blur, glow, and animation first. The goal is a cleaner rendering path, not a visual redesign.
-- Effects mode is automatic by default because most students should never need to know why a browser is struggling, but a manual override remains available for edge cases and personal preference.
-- OCR confidence scoring remains internal because it still improves import triage; only the visible confidence badges were removed.
-- Bucket counting now favors the narrower requirement interpretation first because explicit required work should not disappear into a broad elective pool.
-- Extra same-slot completions should stay useful when policy allows it, so overflow can spill into elective pools, but only after the non-elective slot is satisfied.
+- Goal: keep the frontend usable on average laptops. Problem: blur, glow, and motion-heavy rendering paths were too expensive on lower-capability browsers. Decisions: add auto-detected reduced-effects mode plus a manual override, flatten heavy surfaces in reduced mode, and remove user-facing OCR confidence badges while keeping internal triage. Outcome: the same planner flow runs on a lighter render path with less visual noise.
+- Goal: make requirement allocation more faithful to curriculum intent. Problem: broad elective pools could steal credit from narrower required buckets, and extra same-slot completions could disappear. Decisions: prioritize `required` and `choose_n` over `credits_pool`, allow overflow spill into eligible elective pools after narrow requirements are filled, and centralize bucket-family helpers in `requirements.py`. Outcome: progress and recommendations better reflect the intended degree rules.
+- Goal: keep docs and tests aligned with the shipped frontend. Problem: fixture placement, about-page layout, and DOM test wiring had drifted. Decisions: move advisor-gold fixtures under `tests/backend/fixtures`, fix missing effects providers and payload expectations, and refresh `README.md`. Outcome: documentation and regression coverage match the current UI.
 
 ---
 
 ## [v2.5.2] - 2026-03-27
 
-### Changes
+### User
 
-- Split planner session persistence in `frontend/src/hooks/useSession.ts`: the lightweight planner snapshot stays under `marqbot_session_v1`, while `lastRecommendationData` now persists separately under `marqbot_session_recommendation_v1`. Restore logic merges both snapshots on load instead of re-serializing the full recommendation payload on every planner change.
-- Reduced broad planner rerenders by splitting `frontend/src/context/AppContext.tsx` into narrower context slices (catalog, course history, program selection, preferences, UI, recommendations). `useRecommendations`, `useCanTake`, `CanTakeSection`, `ProgressDashboard`, and `RecommendationsPanel` were moved toward narrower subscriptions, and `frontend/src/app/planner/page.tsx` now isolates `useSession()` in a null child so the route component itself is not the persistence subscriber.
-- Trimmed modal-open work in the shared shell and planner modals. `frontend/src/components/shared/Modal.tsx` now defers blur/focus setup by one animation frame and adds compositor hints; `frontend/src/components/planner/PlannerLayout.tsx` memoizes course-detail lookups instead of re-flattening recommendation arrays on every open; `ProgressModal.tsx`, `CourseListModal.tsx`, and `CourseDetailModal.tsx` skip heavier derived work while closed.
-- Reduced always-on paint/compositing cost across landing/about/planner surfaces. `frontend/src/app/globals.css` no longer keeps perpetual pulse/float/parallax effects running by default, `frontend/src/components/layout/Navbar.tsx` drops backdrop blur, landing/about glow layers were converted from large blurred blobs to static gradients, and `frontend/src/components/about/Doodles.tsx` now renders plain SVG instead of motion-wrapped doodles.
-- Moved screenshot OCR parsing fully onto the user-triggered path. `frontend/src/components/onboarding/CourseHistoryImport.tsx` now lazy-loads the parser only when a screenshot import actually starts, instead of keeping that code on the normal planner-side import path.
-- Bounded backend response caches in `backend/server.py` so long exploratory sessions do not keep growing resident memory. Added per-cache entry caps and existing TTL/max-byte enforcement for recommendation, can-take, and program-data caches, plus env knobs `REQUEST_CACHE_SIZE`, `RECOMMEND_CACHE_SIZE`, `CAN_TAKE_CACHE_SIZE`, `PROGRAM_DATA_CACHE_SIZE`, and `SLOW_REQUEST_LOG_MS`.
+- Planner performance improved, especially around modal opens, long sessions, and repeated recommendation work.
+- Screenshot import parsing now loads only when you actually use it.
 
-### Design Decisions
+### Technical
 
-- The investigation started from a browser-specific lag report (Edge smooth, Brave much worse, especially with GPU acceleration off), so the optimization target was render-path sensitivity and repeated client work rather than assuming the recommender backend was the primary bottleneck.
-- The goal of this pass was behavior-preserving performance cleanup: no intended visual redesigns, no recommendation-policy changes, and no API contract changes beyond documenting new backend cache controls.
-- Recommendation payload persistence was split out because it is the heaviest browser-local object in normal planner use; keeping it out of the hot session snapshot lowers storage churn during routine edits like course toggles, modal opens, and preference changes.
-- Backend cache limits were made explicit and configurable because recommendation-heavy browsing sessions can repeatedly hit the same endpoints; bounded caches keep those wins without turning into silent memory growth over time.
+- Goal: remove browser-side lag without changing planning behavior. Problem: session persistence, broad context subscriptions, modal setup, and always-on effects were doing too much work on every interaction. Decisions: split hot vs heavy session storage, narrow context slices, defer modal focus and blur work, memoize course-detail lookups, and reduce default paint and compositing cost. Outcome: faster planner interactions with unchanged recommendation logic.
+- Goal: stop long sessions from growing memory and startup work unnecessarily. Problem: OCR parsing code loaded too early and backend caches could expand during exploratory use. Decisions: lazy-load screenshot parsing on demand and add bounded cache-size env controls in `backend/server.py`. Outcome: lower client startup cost and safer backend memory behavior.
 
 ---
 
 ## [v2.5.1] - 2026-03-24
 
-### Changes
+### User
 
-- Disabled nightly cron schedule and auto-tune PR job while the codebase is under heavy daily changes. The sweep still runs on `workflow_dispatch` if needed.
-- Redesigned landing page: removed ProofSection, tightened copy across Hero, Benefits, How It Works, and Final CTA sections.
-- Replaced `ABOUT_RECENT_CHANGES` and `ABOUT_BUILD_CARDS` with a unified `ABOUT_TIMELINE` array using `shipped | building | planned` status tags. About page now renders a single timeline instead of separate "recent" and "roadmap" sections.
-- Trimmed About page copy: shorter Known Issues block, condensed AboutCTA, and streamlined NowNextSection layout.
-- Updated onboarding PreferencesStep, SavedPlansLibraryPage, and PlaceholderPage copy and layout.
-- Added `.scrollbar-hide` CSS utility for horizontal-scroll containers.
+- Landing and About pages were tightened up with cleaner copy, simpler layouts, and a single timeline view.
+- The nightly auto-tune job was paused while the product was changing quickly.
 
-### Design Decisions
+### Technical
 
-- Nightly pause: auto-tune diffs were going stale before review, and `nightly-tuning/*` branches added noise. Manual `workflow_dispatch` remains available for on-demand sweeps.
-- Unified timeline: two separate card arrays (`RECENT_CHANGES` + `BUILD_CARDS`) created redundant rendering paths. A single `ABOUT_TIMELINE` with status enum is simpler to maintain and display.
+- Goal: reduce content sprawl in the marketing and About surfaces. Problem: separate roadmap and recent-change structures created redundant rendering paths and weaker scanning. Decisions: consolidate into one `ABOUT_TIMELINE`, trim CTA and placeholder copy, and add a shared scrollbar utility. Outcome: fewer content branches and a cleaner public narrative.
+- Goal: stop noisy unattended tuning during heavy iteration. Problem: nightly auto-tune branches were going stale before review. Decisions: disable the cron and auto-PR path but keep manual `workflow_dispatch`. Outcome: fewer stale maintenance branches while preserving on-demand sweeps.
 
 ---
 
 ## [v2.5.0] - 2026-03-18
 
-### Changes
+### User
 
-- Added Major Guide: a grouped-column bucket education view showing all degree requirements at a glance. Programs (majors, tracks, BCC, MCC) display as side-by-side columns with expandable bucket cards inside each.
-- Added tutorial language to the guide explaining what buckets are, what Required/Choose N/Credit Pool mean, and how double-counting works.
-- Added onboarding step 4 ("Your Buckets") so students see their degree structure before reaching the planner for the first time. Completing onboarding marks the guide as seen.
-- Added `GET /api/program-buckets` backend endpoint returning the bucket tree for any set of program IDs. Read-only, no recommendation engine involved.
-- Clicking the program label (e.g. "Accounting & Marketing") in the planner header now opens the Major Guide. Underlines on hover.
-- Restored the standalone "How ranking works" button in the recommendations panel.
-- Redesigned scheduling style picker (Build Explainer) from a flat table to color-coded cards with gradient washes and radio selection.
-- Reworked onboarding step indicator: 4 steps ("Pick Major", "Add Courses", "Set Pace", "Your Buckets"), labels in gold, removed "Done"/"Current" tags and progress bars.
+- Added Major Guide so students can see their full bucket structure before planning and reopen it from the planner header.
+- Onboarding now includes a "Your Buckets" step, and the scheduling-style picker was redesigned to be easier to choose from.
 
-### Design Decisions
+### Technical
 
-- Grouped columns over force-directed graphs or bubble SVGs: NNGroup research shows area is not a preattentive attribute — text in cards is far more readable than text crammed into circles. Columns let students see all programs at once without stepping through one at a time.
-- Tutorial language follows branding.md: clear before clever, medium humor budget for planner explainer surfaces, no slang in structural UI.
-- Onboarding step 4 sets `marqbot_major_guide_seen` in localStorage so the planner does not re-show the guide on first "Get My Plan" click.
+- Goal: teach students how MarqBot thinks about degree requirements before showing a plan. Problem: buckets and double-counting rules were opaque, so recommendation output lacked context. Decisions: add grouped-column Major Guide UI, expose `GET /api/program-buckets`, wire the planner header to reopen the guide, and add onboarding step 4 plus updated explainer copy. Outcome: requirement structure is visible and reusable without invoking the recommender.
+- Goal: make preference selection clearer. Problem: the scheduling-style control and onboarding step indicator were too table-like and low-signal. Decisions: redesign them as card-based selectors with a four-step indicator. Outcome: setup choices read faster and feel more intentional.
 
 ---
 
 ## [v2.4.7] - 2026-03-18
 
-### Changes
+### User
 
-- Added visual modal tutorial for screenshot import onboarding — 3-step carousel with annotated screenshot example, mock review rows, and apply preview instead of inline text walkthrough.
-- Replaced import status text with an animated progress bar showing Upload / Preparing / Reading / Done stages with spring-animated fill and matched/total count.
-- Changed match section layout from 1-per-line to 2-column grid for completed and in-progress course rows.
-- Audited and replaced all off-palette hardcoded hex colors in `CourseHistoryImport.tsx` with Marquette design tokens (mu-blue, gold, ink-accent-blue, ok, warn, bad).
-- Changed onboarding step indicator from horizontal 3-column grid to vertical stacked layout with larger text.
-- Shortened copy on Courses and AI Advisor placeholder pages; switched bullet layout from 2-column to vertical stack.
-- Updated brand copy: "The student behind the planner" → "The student behind MarqBot", "already taken" → "right now", step labels "Lore" → "Progress" / "Step" → "Next".
-- Rewrote "How MarqBot uses your courses" modal with dry humor per branding guide v3.
-- Added assumptions on/off toggle to Credits Completed modal — lets students see which courses MarqBot inferred via prereq chains vs what they entered.
-- Increased text sizes ~10% in course explanation and tutorial modals, ~25% in step indicator labels, ~30% in placeholder page bullet panes.
+- Screenshot import got a visual walkthrough, clearer progress feedback, larger text, and easier-to-scan match review.
+- Students can now toggle assumed courses on and off when reviewing credits completed.
 
-### Design Decisions
+### Technical
 
-- Modal tutorial over inline walkthrough: students can see exactly what to screenshot (with the real coursehistory.jpg annotated) without being overwhelmed by text on first load.
-- Assumptions toggle: students wanted to understand what MarqBot added vs what they entered. Toggle defaults to ON; OFF shows only user-entered courses with assumption notes hidden.
-- Palette audit at 70% strictness: base hues must come from the Marquette palette tokens, but alpha/opacity variants of palette colors are acceptable for states and overlays.
+- Goal: make screenshot import understandable at first use. Problem: inline walkthrough copy and small text asked users to imagine the process instead of seeing it. Decisions: replace inline explanation with a modal tutorial, add staged progress UI, switch matched courses to a two-column grid, and enlarge key modal text. Outcome: the import flow is easier to follow and review.
+- Goal: expose inferred-course behavior without changing allocation logic. Problem: users could not distinguish what they entered from what prerequisite chains implied. Decisions: add an assumptions toggle in the credits-completed modal and keep palette and copy aligned with MarqBot tokens. Outcome: review surfaces explain planner assumptions without changing the underlying data model.
 
 ---
 
 ## [v2.4.6] - 2026-03-17
 
-### Changes
+### User
 
-- Moved MCC Culminating Course (MCC_CULM) from tier 6 (lowest) to tier 5 (MCC Late), fixing 514 of 584 "not graduated" nightly failures caused by the planner never scheduling CORE 4929 before semester 8.
-- Condensed nightly report from 750 individual student logs (~385KB) to ~10 representative cases with a test methodology header explaining sampling, profiles, and pass/fail criteria. Full data remains in the JSON snapshot.
-- Upgraded GitHub Actions `upload-artifact` and `download-artifact` from v4 to v5, removing Node.js 20 deprecation warnings.
-- Added three new autotune capabilities to `scripts/analyze_nightly.py`:
-  - **Feasibility Auditor**: flags program combos requiring more than 48 courses as infeasible by curriculum design.
-  - **Concentration Detector**: flags any bucket causing >15% of failures with a targeted recommendation.
-  - **Resolved-Issue Ledger** (`config/autotune_ledger.json`): tracks past fixes to detect regressions and boost-resistant buckets.
+- The planner stopped missing the MCC culminating course late in the degree, and nightly planning audits became easier to read.
+- Internal auto-tune analysis got better at spotting impossible program combinations and concentrated failure points.
 
-### Design Decisions
+### Technical
 
-- MCC_CULM tier change: the culminating course was starved at tier 6 because discovery buckets (also tier 6) have wider course pools and consumed the remaining slots. Moving it to tier 5 keeps it deferred below major/track work but ensures it schedules before discovery.
-- Report condensing: 750 student logs were unreadable. Representative cases are selected for diversity across failure types, unsatisfied buckets, and program combos.
-- Feasibility audit uses per-family course counting: since every parent bucket has a unique `double_count_family_id`, requirements within the same family cannot overlap. Summing per-family gives the true minimum unique courses needed.
+- Goal: reduce false "not graduated" outcomes in nightly sweeps. Problem: `MCC_CULM` sat too low in the tier order and could be starved by broader discovery buckets. Decisions: move it from tier 6 to tier 5 and update the nightly logic around it. Outcome: CORE 4929 schedules before discovery filler and most late-stage nightly failures disappear.
+- Goal: make nightly output actionable instead of overwhelming. Problem: hundreds of raw student logs and shallow analyzer output made triage slow. Decisions: condense reports to representative cases, add feasibility, concentration, and ledger analysis to `scripts/analyze_nightly.py`, and upgrade artifact actions. Outcome: nightly review focuses on patterns rather than raw volume.
 
 ---
 
 ## [v2.4.5] - 2026-03-17
 
-### Changes
+### User
 
-- Moved course-history screenshot parsing from backend (GPT-4o vision) to browser-only OCR using tesseract.js. No data leaves the student's device.
-- Added local parser with canvas preprocessing, header/row reconstruction, wrapped-title merging, footer skipping, and department-code fuzzy matching.
-- Removed backend `/api/import-course-history` route, `backend/import_service.py`, and associated backend tests.
-- Added golden OCR fixture and parser tests (`courseHistoryImportParser.test.ts`) covering 11 completed / 10 in-progress / 1 unmatched / 2 ignored rows.
-- Updated `CourseHistoryImport.tsx` status copy for local parsing stages (`preprocessing`, `parsing`).
-- Updated `ImportStatus` type to replace `uploading` with `preprocessing`.
+- Course-history screenshot import moved fully into the browser, so transcript screenshots no longer need a backend AI call.
+- Import status text now matches local OCR processing steps.
 
-### Design Decisions
+### Technical
 
-- Local OCR eliminates the OpenAI API dependency for import, removing per-import cost and the `OPENAI_API_KEY` requirement for this feature.
-- tesseract.js worker is lazily initialized and reused across retries to avoid repeated WASM startup.
-- Canvas preprocessing (grayscale, contrast boost, thresholding) improves OCR accuracy on CheckMarq's table layout.
+- Goal: remove the server dependency from screenshot import. Problem: backend GPT-based OCR added cost, latency, and an API-key requirement for a feature that could run locally. Decisions: replace the backend route with browser-only `tesseract.js`, add reusable worker and preprocessing logic, and add parser fixtures and tests. Outcome: import runs on-device with deterministic coverage and no server OCR dependency.
+- Goal: align UI states with the new local pipeline. Problem: old upload-oriented status labels assumed a backend round trip. Decisions: rename states around preprocessing and parsing and remove backend import code paths. Outcome: status copy now matches the actual import lifecycle.
 
 ---
 
 ## [v2.4.4] - 2026-03-16
 
-### Changes
+### User
 
-- Full frontend language revamp: rewrote copy across 25+ components for max humor per the branding guide — landing, about, onboarding, planner, saved plans, placeholder pages.
-- Added spring physics animations (hero cards, wizard steps, buttons, modals, mobile menu) and micro-interactions (parallax orbs, tooltip bounce, hover ripple, animated stat counters).
-- New CSS keyframes and utility classes: `spring-up`, `tooltip-bounce`, `ripple-out`, `parallax-slow`, `parallax-fast`, `count-pop`, `.hover-ripple`, `.flip-card`.
-- New hooks: `useConfetti` (gold/blue particle burst on CTA clicks) and `useAnimatedCounter` (scroll-triggered count-up for stats).
-- All new animations respect `prefers-reduced-motion: reduce`.
-- Fixed nightly collection crashes caused by archived migration imports.
-- Added structured nightly JSON output alongside the Markdown report, with new report sections for priority fixes, CSV investigation guidance, and failures grouped by program.
-- Added nightly auto-tune analysis via `scripts/analyze_nightly.py`, plus checked-in `config/ranking_overrides.json` and `config/data_investigation_queue.json` for deterministic follow-up actions.
-- Updated the nightly GitHub Actions workflow to upload the JSON sidecar, run the analyzer after scheduled/manual sweeps, and open auto-tune PRs for config-only changes.
-- Fixed track-parent lookup for program helpers so track baselines use `parent_major_id` correctly instead of producing false setup failures for AIM tracks.
+- Frontend copy got a full brand-language rewrite, and the app added richer animation and motion polish with reduced-motion support.
+- Nightly planning started producing machine-readable reports and auto-tune follow-up configs.
 
-### Design Decisions
+### Technical
 
-- Copy tone targets campus humor without stacking slang or mixing campus refs with slang on the same line. No humor in error or warning states.
-- Nightly self-improvement is limited to checked-in config changes, not direct CSV edits or arbitrary code edits.
-- Auto-tuned changes should land through PRs rather than direct commits to `main`, so nightly behavior changes stay reviewable and reversible.
-- Nightly collection should not fail just because a non-nightly archived migration test imports tooling that has been moved out of the active script path.
+- Goal: align product voice and motion with the branding guide. Problem: the app sounded inconsistent and had little shared animation vocabulary. Decisions: rewrite copy across major surfaces, add reusable motion utilities and hooks, and respect `prefers-reduced-motion`. Outcome: the UI has a more distinct voice and a more coherent interaction language.
+- Goal: make nightly tuning reviewable and deterministic. Problem: nightly investigation data lived mostly in prose and follow-up changes were manual. Decisions: emit JSON alongside Markdown, add analyzer and config files, and open config-only PRs from nightly sweeps. Outcome: nightly output becomes structured and semi-automated without allowing direct code mutation.
 
 ---
 
 ## [v2.4.3] - 2026-03-12
 
-### Changes
+### User
 
-- Updated the GitHub Actions workflow to Node 24-safe action versions (`actions/checkout@v5`, `actions/setup-node@v5`, `actions/setup-python@v6`, `actions/upload-artifact@v6`).
-- Split CI expectations cleanly: pull requests run only stable backend/frontend/planner guardrail checks, while nightly-only catalog audits stay out of the PR gate.
-- Expanded the nightly report so advisor-gold mismatches, track catalog audits, baseline graduation gaps, and track-only program-setup failures are all captured in one report section with readable course-history logging.
-- Refreshed `tests/test_structure.md` and `docs/prompts/file_cleanup.md` to document the report-driven nightly workflow and the stable-vs-nightly test split.
-- Added frontend CSS polish: text gradients, gradient borders, shimmer effects, breathing glow, underline-reveal nav links, frosted panels, and stagger-enter animations with reduced-motion fallbacks.
-- Rewrote about page copy to be funnier and more student-facing.
-- Fixed recommendation sort key: wired `soft_prereq_penalty`, `discovery_foundation_penalty`, `discovery_affinity_penalty`, and `is_core_prereq_blocker` into the actual ranking (were computed but unused).
-- Fixed rate-limit tracker memory leak: expired IP keys now get evicted instead of accumulating as empty lists.
-- Fixed empty-bucket (0/0) satisfaction: buckets with no count or credit threshold are now marked satisfied instead of blocking progress.
-- Deleted 14 dead frontend files (unused components, orphaned lib module, stale CSV).
-- Archived 7 one-time migration/scraping scripts to `scripts/archive/`.
+- CI and nightly checks were separated more cleanly, About page copy was refreshed, and the frontend got another round of visual polish.
+- Recommendation sorting now honors several ranking signals that had been computed but accidentally ignored.
 
-### Design Decisions
+### Technical
 
-- Stable product behavior should be protected by green PR-facing checks; course and major data drift should be reviewed from the nightly report instead of blocking merges.
-- The scheduled nightly workflow should stay green when pytest reports catalog-data mismatches (`exit code 1`) as long as the report artifact is produced, but it should still fail on real runner, collection, or internal pytest errors.
-- CSS effects use safe box-shadow approach instead of mask-composite to avoid Safari/Framer Motion composited-layer breaks.
-- Shimmer limited to the primary hero CTA only to avoid diluting the visual signal across multiple buttons.
+- Goal: keep PR checks focused on stable product guarantees. Problem: catalog-drift audits and nightly-only checks were too intertwined with normal CI. Decisions: move data-drift expectations into the nightly report, upgrade GitHub actions, and document the stable-vs-nightly split. Outcome: PR gates protect product behavior while nightly artifacts track catalog issues.
+- Goal: make ranking and runtime housekeeping accurate. Problem: key ranking penalties were dead code and rate-limit keys could accumulate. Decisions: wire the missing sort terms into the live ranking, evict expired limiter entries, mark zero-threshold buckets satisfied, and archive dead frontend files and scripts. Outcome: recommendation ordering and operational cleanup match intended behavior.
 
 ---
 
 ## [v2.4.2] - 2026-03-12
 
-### Changes
+### User
 
-- Tightened the landing hero so the headline stays dominant, the copy gets to the point faster, and the right-side preview reads more like a clear ranked plan than a crowded dashboard.
-- Refreshed the landing navbar with a cleaner centered link pill and a stronger landing-page CTA treatment.
+- The landing-page hero was tightened up so the value proposition, preview, and CTA read faster.
 
-### Design Decisions
+### Technical
 
-- The first screen should sell the outcome quickly: headline first, curiosity second, product proof third.
-- Landing copy can be more Marquette-specific and playful as long as the structure stays clear and the CTA remains easy to find.
+- Goal: improve first-screen clarity. Problem: the hero carried too much visual and copy weight before showing the product payoff. Decisions: shorten the headline and copy, rebalance the preview, and strengthen navbar CTA treatment. Outcome: the landing page communicates outcome first and detail second.
 
 ---
 
 ## [v2.4.1] - 2026-03-12
 
-### Changes
+### User
 
-- Bucket mappings now come solely from `master_bucket_courses.csv` — equivalency expansion no longer adds phantom courses to buckets.
-- Added prereq courses (ACCO 4050, OSCM 4020) to their major's required buckets and bumped `courses_required` for ACCO, BUAN, and OSCM accordingly.
-- Removed bad REAL 4061/REAL 4100 equivalency that was treating two distinct required courses as interchangeable.
-- Fixed graduation check in both fast tests and nightly sweep to evaluate progress after all semesters' recommendations are applied (was off by one).
-- Rewrote core prereq blocker detection to use actual remaining buckets instead of a broken role-based lookup.
+- Fixed bucket mappings, graduation checks, and prerequisite blocker logic so plans stop failing on phantom mappings and late-stage off-by-one errors.
 
-### Design Decisions
+### Technical
 
-- `master_bucket_courses.csv` is the single source of truth for which courses map to which buckets. Equivalency expansion was causing grad-level phantom courses to appear in undergrad buckets.
-- Prereq courses that gate required courses belong in the required bucket — the engine needs to see them as required work to schedule them early enough.
-- Graduation progress must be checked after the final semester's recommendations are applied, not before. The prior off-by-one caused false graduation failures.
+- Goal: restore correctness in bucket materialization and graduation projection. Problem: equivalency expansion was creating phantom bucket memberships, some prerequisite courses were missing from required buckets, and final-semester graduation checks ran one step early. Decisions: make `master_bucket_courses.csv` the sole bucket-mapping authority, add missing prerequisite mappings, remove the bad REAL equivalency, and evaluate completion after the final semester is applied. Outcome: fewer false blockers and more accurate graduation detection.
 
 ---
 
 ## [v2.4.0] - 2026-03-10
 
-### Changes
+### User
 
-- Added student stage selector (undergraduate, graduate, doctoral) to the planner profile, onboarding, and profile edit flows.
-- Recommendations and can-take checks now enforce a hard course-level gate based on the selected stage: undergrad gets 1000-4000, graduate gets 5000-7999, doctoral gets 8000+.
-- Stage is inferred automatically from course history when not explicitly set; defaults to undergraduate for new students.
-- Course search and transcript entry remain full-catalog so users can still record unusual history.
-- A warning banner appears when the selected stage conflicts with recorded course history.
-- Removed the planner's old requirement-diversity balancing layer and switched recommendations to one fixed order: BCC required, MCC core, ESSV1, major requirements, later BCC work, then track work.
-- Business freshman plans now pull math bridge work like `MATH 1200` back into the first semester when it unlocks required core progress, even if the source data carries a noisy standing tag.
-- Retired the old planner balance-policy chips in the semester modal because the recommender no longer uses family-cap or declared-min quota passes.
-- Bumped CI timeout caps from 30 minutes to 360 minutes for backend regression and nightly sweep jobs.
-- Adapted all backend test helpers (`PlanCase`, `recommend_payload`, `payload_for_major`) to accept and pass through the `student_stage` parameter.
-- Fixed frontend feedback nudge test to match updated "Contact Markie" link text.
+- Added student-stage selection (undergraduate, graduate, doctoral), and recommendations now respect course-level stage boundaries.
+- Planner warning and ordering behavior were simplified so foundational work appears in a more predictable order.
 
-### Design Decisions
+### Technical
 
-- Stage is a hard gate on future recommendations, not a validator on past history. Students with unusual transcripts should still be able to record what they took.
-- Level bands (1000-4000, 5000-7999, 8000+) match the current Marquette catalog better than mapping 7000+ directly to doctoral.
-- Server-side inference mirrors the frontend default so older clients without the field still get correct filtering.
-- Planner ordering should be one global policy, not a separate balancing system that can reshuffle obvious priorities.
-- Foundational business math should beat filler when it opens required core progress, even if the workbook's standing metadata is noisy.
-- CI timeouts were removed as a practical constraint — GitHub's 6-hour job limit is the only real cap needed.
+- Goal: stop the planner from recommending the wrong course level. Problem: students with mixed histories needed a hard gate for future recommendations without invalidating completed work. Decisions: add `student_stage` across onboarding, profile flows, and tests, infer a default when missing, keep full-catalog history entry, and enforce level bands server-side. Outcome: future recommendations stay in the chosen stage while past transcript data remains recordable.
+- Goal: reduce ranking complexity and standing-related deadlocks. Problem: the old diversity balancing and noisy standing metadata could bury obvious foundational courses. Decisions: replace family-cap balancing with one fixed global order, pull bridge math forward when it unlocks core progress, and remove obsolete UI chips. Outcome: recommendation order is simpler to reason about and less likely to stall.
 
 ---
 
 ## [v2.3.2] - 2026-03-09
 
-### Changes
+### User
 
-- Added planner bucket drill-ins so progress cards can open the courses and source details behind each requirement bucket.
-- Refined planner, semester, and saved-plan modals so course details and progress review are easier to scan.
-- Rewrote the frontend copy across landing, onboarding, planner, saved plans, About, and placeholder pages to match the updated voice guide: clearer first, drier humor second, and more Marquette-specific without sounding sloppy.
-- Tightened planner-facing microcopy: recommendation explainer, feedback modal, can-take panel, saved-plan states, and profile/settings surfaces now explain tradeoffs more directly.
-- Audited the planner quip system against the new voice guide so progress and semester quips sound more like Marquette students and less like internet bits.
-- Moved local feedback storage from `docs_local/` to ignored `docs/feedbacks/feedback.jsonl` so feedback logs stay inside the docs area without becoming pushable repo history.
-- Added a frontend language audit memo and refreshed the branding guide so future copy work has explicit humor limits, tone rules, and surface-by-surface guidance.
-- Redesigned the nightly dead-end sweep into a focused sampled harness with prereq-hardened seeded histories, semester-8 completion checks, and student-first completeness reporting.
-- Renamed the nightly Actions job to `Nightly Focused Sweep` and refreshed test docs with the new nightly defaults and reduced smoke commands.
+- Progress cards can now open detailed bucket drill-ins, modal scanning improved, and the app's voice and copy were tightened across major surfaces.
+- Nightly testing shifted toward more realistic sampled student histories.
 
-### Design Decisions
+### Technical
 
-- Progress drill-ins should explain why a bucket is incomplete without making users decode raw requirement data by hand.
-- Humor should target system friction, not the student. The product can be funny without sounding unserious about degree rules.
-- Voice should stay clearer than it is quirky. If a joke makes an instruction weaker, the joke loses.
-- Local feedback logs now live under `docs/feedbacks/` but stay git-ignored so docs can be pushable without leaking student submissions.
-- Nightly confidence should come from realistic seeded student histories, not brute-force random course sampling.
+- Goal: make progress views explain themselves. Problem: incomplete buckets were hard to diagnose from summary cards alone. Decisions: add planner bucket drill-ins, refine modals, and tighten planner-facing copy and quips around a clearer-first voice guide. Outcome: users can inspect why a requirement is incomplete without reading raw bucket data.
+- Goal: make nightly confidence reflect real students. Problem: brute-force random sweeps produced noisy coverage and awkward local feedback storage. Decisions: focus the nightly harness on seeded histories, rename the Actions job, and move local feedback logs into ignored `docs/feedbacks/`. Outcome: better signal from nightly runs and safer local feedback handling.
 
 ---
 
 ## [v2.3.1] - 2026-03-07
 
-### Changes
+### User
 
-- Migrated `course_equivalencies.csv` from long format (571 rows, one per group member) to wide format (275 rows, one per equivalency group) with columns: `id`, `course_1`, `course_2`, `course_3`, `type`, `parent_bucket`, `child_bucket`, `notes`.
-- Updated `_load_v2_equivalencies()` in `data_loader.py` to detect wide format and unpivot to internal long format via new `_unpivot_wide_equivalencies()` helper. Legacy long format still supported as fallback.
-- Updated `discover_equivalencies.py` to output wide format.
-- Redesigned nightly dead-end tests: triple-combo sweep with randomized student profiles (8,248 tests, down from 14,382 pairwise). Date-based seed for daily reproducibility.
-- Trimmed fast dead-end regression suite from 93 to 55 tests. Single programs use empty-state only; curated combos keep state variants.
-- Added `NightlyFailureCollector` for report aggregation and CI artifact upload.
-- Updated `test_structure.md` with new counts and simplified layout.
-- Dynamic warning suppression: `standing_requirement` soft tag is now suppressed when the student's current standing meets or exceeds the course's `min_standing`. A sophomore no longer sees "sophomore standing required" on courses they're already eligible for. `major_restriction` and `college_restriction` were already dynamically cleared.
-- Disabled course offering filtering: all courses now treated as offered every term (Fall, Spring, Summer) with high confidence. `course_offerings.csv` is still loaded but ignored. `not_frequently_offered` tag injection removed. `low_confidence` warnings no longer fire.
-- Added REAL 4061 = REAL 4100 equivalency (catalog "or" alternative).
-- xfail'd REAL REAP track dead-end tests (`combo-REAL+REAP/mid`, `combo-REAL+REAP/late`) — the 4210→4220→4230 sequential chain requires summer terms which the test cases exclude.
-- Updated about page: moved course equivalencies off the roadmap (shipped), added "Semester offering awareness" as a future feature.
-- Updated `data_model.md` and `algorithm.md` to reflect disabled offerings.
-- Equivalency CSV schema: replaced generic `equivalent` type with `honors` (35 groups) and `grad` (200 groups) for self-documenting equivalency categories. Dropped `notes` column — the type now carries the semantic meaning.
-- Honors student dedup: when `is_honors_student=True`, base courses are removed from eligible candidates when their H variant is also eligible. H variants replace base courses in recommendations instead of appearing alongside them.
-- Equivalency-aware greedy selection: `selected_codes_set` in the recommendation loop now expands via `_expand_with_equivalents()` so picking ECON 1103H also blocks ECON 1103 from being selected later.
+- Course equivalencies became easier to maintain, honors students stop seeing duplicate base and honors recommendations, and standing warnings are hidden when the student already qualifies.
+- Semester-offering filtering was temporarily turned off so good courses are not wrongly excluded.
 
-### Design Decisions
+### Technical
 
-- Wide CSV format is human-readable and editable — one row per equivalency group instead of 2-3 rows. The loader unpivots at load time so all downstream code (map builders, allocator, prereq checker) is unchanged.
-- Standing warning suppression follows the same `cleared_tags` pattern already used for `major_restriction` and `college_restriction` — `current_standing` is threaded into `get_eligible_courses()` and the tag is removed from `soft_tags` before results are built. No frontend changes needed; the frontend already renders only the tags it receives.
-- `course_3` column handles triples (21 groups have 3 members); empty for pairs.
-- `parent_bucket` replaces `scope_program_id` for clarity — it names which parent bucket the equivalency applies to.
-- Nightly test redesign targets triple combos (major + track + minor) which better reflect real student declarations than pairwise. Randomized profiles add variety without manual curation.
-- Offering filtering was causing false dead-ends (REAP track) and adding complexity without reliable data. Disabling it removes a source of incorrect recommendations while the offering data is curated. The infrastructure remains in place for re-enablement.
-- Five equivalency types (`honors`, `grad`, `cross_listed`, `no_double_count`, `equivalent`) replace the old three-type model. `honors` and `grad` behave like `equivalent` for prereq satisfaction and bucket expansion, but the type is self-documenting and enables type-specific logic (e.g., honors dedup).
-- Honors dedup happens at the eligibility stage (candidate filtering), not just ranking. This guarantees the base course is never a candidate when the H variant is available — no sort-key ordering issues.
+- Goal: make equivalency data readable without changing runtime semantics. Problem: long-format equivalency rows were hard to edit and downstream logic could recommend both honors and base versions. Decisions: move to a wide-format CSV with loader unpivoting, expand selected-course equivalency blocking, and deduplicate honors variants at eligibility time. Outcome: cleaner data maintenance and better recommendation deduplication.
+- Goal: reduce false negatives from standing and offering data. Problem: already-qualified students still saw standing warnings, and incomplete offering data was causing dead ends. Decisions: dynamically suppress standing tags when already satisfied and disable offer-term filtering while keeping the data path in place. Outcome: warnings match reality and recommendations stay available while offering data matures.
+- Goal: keep nightly tests representative. Problem: pairwise combos and manual curation missed realistic declaration patterns. Decisions: redesign nightly sweeps around randomized triple-combo profiles and add failure aggregation. Outcome: broader but still reproducible coverage.
 
 ---
 
 ## [v2.3.0] - 2026-03-07
 
-### Changes
+### User
 
-- Fixed dead-end planner failures for AIM, Marketing, and Entrepreneurship majors caused by incorrect `complex_hard_prereq` tags on courses with parseable prerequisites (ACCO 4080, MARK 4060, FINA 4210, ENTP 3001).
-- Corrected FINA 4210 hard prerequisite from `none` to `FINA 3002;MANA 3001`.
-- Corrected ENTP 3001 hard prerequisite from `none` to `BUAD 1001`.
-- Updated health endpoint version to 2.3.0.
-- Frontend lint fixes for saved plan components.
+- Fixed dead-end recommendation gaps caused by bad prerequisite tagging, especially in AIM, Marketing, and Entrepreneurship paths.
 
-### Design Decisions
+### Technical
 
-- `complex_hard_prereq` should only exist on courses with genuinely unparseable prerequisites. Courses with parseable AND/OR prereqs must not carry this tag, as it prevents recommendation.
-- Soft prereq tags were corrected to match actual restriction types (e.g., `major_restriction` instead of `complex_hard_prereq`).
+- Goal: stop valid courses from being hidden by bad prerequisite metadata. Problem: parseable prerequisites had been mislabeled as `complex_hard_prereq`, making the engine treat recommendable courses as unavailable. Decisions: correct the affected course rows and reserve the complex tag for genuinely unparseable cases. Outcome: dead-end planner failures drop and recommendation eligibility matches real prerequisites.
 
 ---
 
 ## [v2.2.5] - 2026-03-06
 
-### Changes
+### User
 
-- Activated MCC requirement programs for live planning:
-  - `MCC_ESSV2`, `MCC_WRIT`, and discovery theme tracks `MCC_DISC_BNJ`, `MCC_DISC_CB`, `MCC_DISC_CMI`, `MCC_DISC_EOH`, `MCC_DISC_IC` are now `active=True`.
-  - `MCC_DISC` remains `active=False` as the container parent.
-- Expanded bucket mappings:
-  - Added 813 new Discovery course mappings to `data/master_bucket_courses.csv`.
-  - Added `ACCO_MAJOR,acco-req-core,BULA 3001` and updated `ACCO_MAJOR/acco-req-core` from `7` to `8` required courses.
-- Backend updates:
-  - `backend/server.py`: auto-includes `discovery_theme` in `selected_track_ids` so theme child buckets materialize.
-  - `backend/server.py`: `/api/courses` now includes `description`.
-  - `backend/data_loader.py`: elective purge now targets only `credits_pool` buckets; `choose_n` buckets like Discovery `_ELEC` keep mappings.
-  - `backend/semester_recommender.py`: removed ESSV2/WRIT "coming soon" note injection.
-  - `backend/eligibility.py`: non-integer credit courses are excluded from recommendation candidates.
-- Frontend updates:
-  - Enabled Discovery Theme selection in onboarding and planner sidebar.
-  - Recommendation payloads now consistently include discovery theme track IDs (initial run + semester edit reruns).
-  - Removed ESSV2/WRIT/Discovery caveat text from recommendation panels.
-  - ESSV2/WRIT are now visible in progress rendering with explicit label fallbacks.
-  - Added clickable course detail modal support using catalog descriptions.
-  - Improved course picker UX (scroll anchoring + Enter-select behavior), with matching frontend tests.
-- Test/data gate updates:
-  - `tests/backend/test_data_integrity.py`: active track parent validation now accepts active `major` and `universal` parents.
-  - `tests/backend/test_data_integrity.py`: prereq orphan threshold updated from `30` to `50`.
-  - `tests/backend/test_recommendation_quality.py`: senior standing seed recalibrated from `6` to `7` semesters.
-  - `tests/backend/test_eligibility.py`: added coverage for non-integer-credit recommendation filtering.
+- Discovery themes, ESSV2, and WRIT moved into live planning, course details became clickable, and recommendations now include descriptions.
+- Discovery theme selection works in onboarding and planner flows.
 
-### Design Decisions
+### Technical
 
-- Discovery themes now run as first-class selectable tracks while preserving `MCC_DISC` as a non-selectable container.
-- Discovery elective mappings must persist in `choose_n` buckets, so purge logic is scoped to `credits_pool` buckets only.
-- With full-catalog descriptions injected, course detail views can be shown directly from canonical course data.
-- Non-integer-credit offerings remain excluded from deterministic recommendation output to avoid schedule ambiguity.
+- Goal: graduate hidden MCC requirement data into live planning. Problem: Discovery, ESSV2, and WRIT existed in the model but were partially inactive and inconsistently surfaced. Decisions: activate the relevant programs and tracks, auto-include discovery theme IDs in request handling, preserve `choose_n` discovery mappings, and remove "coming soon" caveats. Outcome: the planner can recommend and display those MCC areas directly.
+- Goal: make course detail and filtering safer. Problem: recommendation output lacked descriptions and non-integer-credit courses created ambiguity. Decisions: expose descriptions on `/api/courses`, add clickable detail modals, and filter non-integer-credit offerings from deterministic recommendations. Outcome: richer detail views with more stable scheduling output.
 
 ---
 
 ## [v2.2.4] - 2026-03-06
 
-### Changes
+### User
 
-- Added `scripts/scrape_catalog.py` for a one-time full Marquette bulletin scrape into `data/webscrape_1/`.
-- Added `scripts/merge_scraped_catalog.py` to merge scraped catalog data into production CSVs with automatic pre-merge backups.
-- Expanded production catalog data:
-  - `data/courses.csv`: `540` -> `5302` rows.
-  - `data/course_prereqs.csv`: `540` -> `5302` rows.
-- Added generated scrape artifacts for review:
-  - `data/webscrape_1/all_courses_raw.csv`
-  - `data/webscrape_1/course_prereqs_proposed.csv`
-  - `data/webscrape_1/scrape_summary.json`
-- Added backup snapshots:
-  - `data/courses.pre_merge_backup.csv`
-  - `data/course_prereqs.pre_merge_backup.csv`
+- Catalog coverage expanded from a small curated set to a much larger scraped Marquette course dataset.
 
-### Design Decisions
-- Kept schema compatibility with existing production CSV contracts and backend loaders.
-- Preserved existing hand-curated prerequisite rows during merge and only appended new course prereq rows.
-- Preserved non-empty existing curated fields during merge while injecting scraped descriptions and new catalog coverage.
+### Technical
+
+- Goal: massively expand course coverage without breaking existing loaders. Problem: the hand-maintained catalog was too small, but fully replacing it risked overwriting curated fields. Decisions: add scrape and merge scripts, keep CSV schema compatibility, append new rows conservatively, and preserve existing curated data when non-empty. Outcome: thousands of catalog rows become available with controlled merge behavior.
 
 ---
 
 ## [v2.2.3] - 2026-03-06
 
-### Changes
+### User
 
-- Simplified recommendation ranking key from 10 positions to 7:
-  - `tier`, `core_prereq_blocker`, `bridge`, `course_level`, `chain_depth`, `multi_bucket_score`, `course_code`.
-- Removed obsolete/dead ranking branches and helpers:
-  - BCC decay toggle path
-  - accounting-major tie-break boost
-  - soft-tag demotion tie-break
-  - prereq-level tie-break
-  - freshman level-balance deferral pass
-- Replaced old BCC decay unit coverage with stable tier-invariant tests.
-- Updated debug trace fields to match simplified ranking inputs.
-- Fixed debug trace `chain_depth` to report the same chain-depth map used by ranking.
-- Fixed standing-credit parsing to correctly handle decimal and range credit values (e.g., `1.5`, `1-3`).
+- Recommendation ranking became simpler and more consistent.
 
-### Design Decisions
-- Prioritized explainability and deterministic behavior over stacked heuristic tie-breakers.
-- Kept bridge/program-balance/rescue safeguards while reducing sort complexity.
-- Preserved existing API response shape while simplifying internal ranking semantics.
+### Technical
+
+- Goal: reduce heuristic sprawl in course ranking. Problem: the sort key had too many branches, some tied to stale BCC-decay and freshman-balance logic. Decisions: cut the ranking key from 10 positions to 7, remove dead branches, keep bridge and blocker safeguards, and fix debug-trace and credit parsing behavior. Outcome: ranking is easier to explain and debug while preserving deterministic behavior.
 
 ---
 
 ## [v2.2.2] - 2026-03-05
 
-### Changes
+### User
 
-- test_data_integrity.py: validates required CSV presence/schema/non-empty, uniqueness, cross-file links, prereq sanity (no self/cycles), bucket rule fields, active program metadata, parseable offering flags, and runtime materialization for active non-minor programs.
-- test_dead_end_fast.py: verifies active majors/tracks keep producing recommendations across empty/early/mid/late states, plus high-risk combos, minor smoke, 3-semester smoke, include_summer behavior, and coherent selection context.
-- test_recommendation_quality.py: enforces foundation-first behavior, standing gates, no duplicate/repeated recs, non-degrading unmet requirements, semester cap compliance, unmet-bucket usefulness, and stable selected-program IDs (including summer runs).
-- test_recommend_api_contract.py: validates /recommend 400 behavior for malformed inputs and contract correctness for successful responses.
-- test_recommend_api_contract.py (scenario checks): confirms include_summer true/false changes semester labels correctly and target_semester_count bounds are honored (1 and 8).
-- test_validate_prereqs_endpoint.py: verifies both prereq-validation routes return identical shape/output, correctly report direct/transitive conflicts, and handle empty/valid/unknown/malformed inputs safely.
-- test_validate_track.py + test_regression_profiles.py + eval/advisor_gold.json: enforce full live validate_track --all pass and protect recommendation/ranking behavior against regression profiles and advisor-gold expectations.
+- No major visible product changes. This release focused on making planning results safer to ship with broader regression coverage.
 
-### Design Decisions
-- v2.2.2 focused on making release gates explicit around data integrity, dead-end prevention, recommendation quality, API contracts, prereq validation, and advisor-baseline regression safety.
+### Technical
+
+- Goal: make quality gates explicit before further feature growth. Problem: correctness expectations were spread across ad hoc tests and not framed as release-blocking coverage. Decisions: define targeted suites for data integrity, fast dead-end planning, recommendation quality, API contracts, prerequisite validation, and advisor-gold regression. Outcome: releases now have named guardrails around the highest-risk planner behaviors.
 
 ---
+
 ## [v2.2.1] - 2026-03-04
 
-### Changes
+### User
 
-**Saved Plans is now live**
-- You can save recommendation runs, reopen them later, and compare plan snapshots without rerunning onboarding each time.
-- Saved plan pages now show clearer progress KPIs so alternatives are easier to compare before registration.
+- Saved Plans went live, and saved-plan pages now make plan comparisons easier.
+- Progress displays became more consistent between live planning and saved plans.
 
-**Planner progress display is more consistent**
-- Progress cards, modal views, and bucket breakdowns were refactored to use shared rendering components.
-- Assumption notes are surfaced in the progress modal so inferred prerequisite chains are visible to users.
+### Technical
 
-**Program data rules are stricter**
-- Program metadata now supports explicit default-major selection and required-major gating for dependent tracks.
-- Course/catalog and validation updates tighten recommendation behavior around program constraints.
-
-### Design Decisions
-- Saved-plan UX was implemented as reusable components so planner and saved views share the same progress semantics.
-- Program selection logic is now data-driven from `parent_buckets.csv` (`required_major`, `is_default`) to reduce hardcoded behavior.
-- Focused API-contract and rendering tests were prioritized for closeout speed while preserving high-risk coverage.
+- Goal: let students keep and revisit recommendation snapshots. Problem: rerunning onboarding for every comparison was slow, and progress rendering differed across surfaces. Decisions: ship saved-plan views, reuse shared progress components, surface assumption notes in progress modals, and move program-selection defaults and gates into data. Outcome: saved plans behave like first-class planner states with less hardcoded selection logic.
 
 ---
 
 ## [v2.2.0] - 2026-03-03
 
-### Changes
+### User
 
-**Planner avoids senior-standing dead ends**
-- If your last required course is blocked only by class standing, MarqBot now keeps recommending credit-building courses instead of returning an empty semester. This prevents cases like Business Administration getting stuck just short of Senior standing before `MANA 4101`.
+- The planner no longer dead-ends when class standing is the last blocker, startup failures show retryable errors, stale can-take answers are cleared, and failed refreshes keep the last plan visible.
+- Nightly dead-end sweeps started running automatically, and product quips were rewritten in a more student-life voice.
 
-**Planner startup can recover from load failures**
-- Onboarding and Planner no longer sit on an endless spinner if the course catalog or program list fails to load. You now get a clear error message and a retry button.
+### Technical
 
-**Can-take answers no longer go stale**
-- If a `Can I take this?` request fails, MarqBot no longer leaves the old course answer on screen under the new course name.
-
-**Recommendation refresh keeps your last plan visible**
-- Refreshing recommendations no longer wipes out your current plan before the next request succeeds. If the refresh fails, your last good plan stays visible.
-
-**Nightly dead-end sweep now runs automatically**
-- Added a GitHub Actions workflow that runs the nightly dead-end test sweep every day at 2:39 AM Milwaukee time, with a manual run option too.
-
-**Quips got a student-life rewrite**
-- Progress and semester one-liners now sound more like actual Marquette students: more campus references, more student-life humor, and stronger Gen Z phrasing without getting inappropriate.
-
-### Design Decisions
-- Standing is still credit-based, not semester-based. The planner only uses filler recommendations when requirements remain but the path forward is blocked by standing.
-- Startup data loading now has explicit `loading / error / retry` behavior so the UI can recover cleanly from failed bootstrap fetches.
-- The nightly workflow uses two UTC cron entries plus an `America/Chicago` time check so `2:39 AM` stays correct across CST and CDT.
+- Goal: make the app resilient to common failure states. Problem: standing-gated degrees could return empty semesters, bootstrap fetch failures trapped the UI on spinners, and stale can-take or recommendation states lingered after errors. Decisions: add a late-stage rescue pass, explicit loading, error, and retry flows, stale-answer clearing, and last-good-plan preservation. Outcome: fewer broken states without changing core API shapes.
+- Goal: operationalize regression detection and refresh product tone. Problem: dead-end sweeps were manual and quips felt off-brand. Decisions: add the nightly workflow with DST-safe time handling and rewrite quips around Marquette and student-life language. Outcome: automation catches planning regressions while the product voice becomes more consistent.
 
 ---
 
 ## [v2.1.1] - 2026-03-02
 
-### Changes
+### User
 
-**Dead-end prevention test suite**
-- New automated tests that simulate your full degree path — every major, track, and combo — and check that the planner never gets stuck with no courses to recommend. 73 test scenarios covering empty, early, mid, and late progress states.
+- Added full-path dead-end prevention tests, made OSCM 4997 recommendable, expanded International Business study-abroad options, and taught the planner to keep recommending useful credit-builders instead of returning empty semesters.
 
-**OSCM 4997 (Capstone) now recommendable**
-- Previously required manual advisor review. The prereq (OSCM 3001 + OSCM 4010 + one of OSCM 4020/4025/4040 + Senior standing) is now fully understood by the engine and the course appears in recommendations when you're eligible.
+### Technical
 
-**International Business study abroad options expanded**
-- The study abroad requirement bucket now includes 30+ eligible courses (HIST, POSC, SPAN, ANTH, CHNS, ITAL, and more) — previously only 5 were mapped, and 4 of those were non-recommendable "Topics in" courses.
-
-**Smarter recommendation engine**
-- When the planner would have returned an empty semester with unsatisfied requirements, it now keeps recommending — even if it means overfilling a bucket that's already at its soft cap. Filling a bucket twice beats giving you nothing.
-
-### Design Decisions
-- The prereq parser now supports mixed AND/OR patterns (e.g., "A and B and (C or D or E)"). This is used only for OSCM 4997 today but supports future courses with similar prereq structures.
-- Non-recommendable course groups (courses the engine will never suggest, but still count if completed): **internships**, **work periods**, **independent studies**, and **"Topics in..." courses**. These have variable content or require special enrollment.
-- Dead-end tests run in the PR gate (~60s). A separate nightly sweep covers pairwise program combos and adversarial states.
-- The rescue pass only fires as a last resort — after both the main selection loop and the balance-deferral pass return nothing. Normal bucket caps and diversity spreading are preserved for all other cases.
+- Goal: reduce empty-semester outcomes in real degree paths. Problem: complex prerequisites, thin study-abroad mapping, and strict bucket caps could still strand students with unmet requirements. Decisions: extend the prereq parser for mixed AND/OR patterns, broaden International Business abroad mappings, add a last-resort rescue pass, and create broad dead-end tests. Outcome: more late-stage plans keep moving toward graduation instead of stalling.
 
 ---
 
 ## [v2.1.0] - 2026-03-01
 
-### Changes
+### User
 
-**Contextual quips in modals**
-- Progress and Semester modals now show a contextual one-liner based on your data — standing, progress, season, course load, and more. 500+ messages, deterministic (same data = same quip), no external AI.
+- Added contextual one-liners in progress and semester modals, a new About page, and corrected landing-page stats.
 
-**About page**
-- New "Meet the Builder" page with founder intro, social links, project roadmap, and CTA section. Accessible from the navbar.
+### Technical
 
-**Landing page stat accuracy**
-- "Courses Tracked" and "Majors Supported" numbers now reflect real data (540+ courses, 12 majors). Feature card stats are larger for better readability.
-
-### Design Decisions
-- Quip selection uses a djb2 hash over student dimensions — no Math.random(), fully deterministic. Quips are authored in `data/quips.csv` and compiled to TypeScript via `scripts/compile_quips.py`. The generated file is committed to git so fresh checkouts work without running the script.
-- About page uses a scrapbook visual style with polaroid frames, sticky notes, washi tape, and hand-drawn doodles to match the brand personality.
+- Goal: add personality without randomness or API dependence. Problem: static modal copy felt flat and the product lacked a dedicated story page. Decisions: compile `data/quips.csv` into deterministic TypeScript using hashed student context and build a scrapbook-style About page. Outcome: modals feel more contextual, and the product has a clearer builder narrative.
 
 ---
 
 ## [v2.0.3] - 2026-03-01
 
-### Changes
+### User
 
-**Business Economics electives fix**
-- Fixed a bug where upper-division ECON elective courses were not counting toward the "Upper-Division ECON Electives" bucket for Business Economics majors. Courses like ECON 3042, ECON 4005, ECON 4020 now correctly fill the ECON electives requirement.
-- Removed 7 incorrectly mapped courses from the ECON electives bucket (required core courses and curriculum-excluded courses like ECON 3399).
+- Business Economics elective counting was fixed, non-recommendable courses stopped appearing in plans, and BUAN Advanced rules were corrected.
 
-**Non-recommendable course filtering**
-- Internships, independent studies, and "Topics in" courses are no longer recommended by the planner. They still count toward your progress if you've already completed or enrolled in them.
+### Technical
 
-**BUAN Advanced bucket fix**
-- Corrected BUAN Advanced requirement from 2 courses to 1 course (BUAN 4061 only).
-
-**Regression test coverage**
-- Added smoke tests for 5 previously untested majors (BADM, BECO, INBU, MARK, REAL) and 7 tracks (AIM CFA, AIM FinTech, AIM IB, Financial Planning, HURE Leadership, MARK Professional Selling, REAL REAP).
-
-**Modal and heading polish**
-- Modal titles sized down from h2 to h3 for better visual hierarchy.
-- Major section headings in progress and semester modals now use Marquette blue and bold styling for better visibility.
-- ESSV2/WRIT/Discovery disclaimer text made bold and 15% larger.
-
-### Design Decisions
-- BECO ECON electives bucket changed from `credits_pool` to `choose_n` mode to give it allocation priority over the general business electives bucket. This leverages the allocator's built-in priority ordering (`required → choose_n → credits_pool`).
-- Non-recommendable courses are filtered by name pattern matching (not a CSV column) to automatically catch future courses without data maintenance.
+- Goal: tighten bucket mapping and recommendation hygiene. Problem: BECO electives were misallocated, BUAN Advanced was overstated, and internships or topics-like courses polluted recommendations. Decisions: change the BECO bucket to `choose_n`, filter non-recommendable course patterns at selection time, correct BUAN bucket requirements, and extend smoke coverage for under-tested majors and tracks. Outcome: recommendation output better matches curriculum rules and avoids low-value suggestions.
 
 ---
 
 ## [v2.0.2] - 2026-03-01
 
-### Changes
+### User
 
-**UI revamp — Marquette design language integration**
-- Applied Marquette brand visual language across landing, onboarding, and planner: section color banding, gold/blue accent borders, serif italic accents, stat-card decorations, hash-mark section labels, anchor-line dividers.
-- Updated branding copy across planner, onboarding, and empty states to match `docs/branding.md` voice (student-built, witty upperclassman tone).
-- Responsive typography via CSS `clamp()` on h1–h3 element selectors.
-- 4 new shared components: `StatCard`, `SplitCard`, `AnchorLine`, `HashMark`.
+- Applied a broader Marquette visual language across landing, onboarding, and planner surfaces.
+- Progress and semester views now group major requirements by program, which makes multi-major plans easier to read.
 
-**Progress modals — major sub-grouping**
-- "Major Requirements" and "Tracks & Minors" sections in both ProgressModal and SemesterModal now sub-group buckets by individual program (e.g., separate "BUAN", "Marketing", "Real Estate" headings).
-- Primary major listed first when applicable, otherwise follows user's selected order.
-- New `groupProgressByTierWithMajors()` in `rendering.ts`; `programOrder` derived from `selection_context.selected_program_ids`.
+### Technical
 
-**Planner polish**
-- "Get My Plan" button glow: two-layer gold shadow (`24px @ 35%` + `48px @ 15%`).
-- "How Marqbot Recommends Courses" modal title: gold color, h3-scale sizing.
-- Semester heading in recommendations panel: h4 (no clamp override) for tighter fit.
-- KPI tiles: removed `stat-card-decor` gradient, kept `text-3xl` bold numbers.
-- Course code/title font bumped 20% across all density tiers.
-- Semester heading in recommendations reduced 30%.
-- Projected progress in SemesterModal restyled to match ProgressModal's bucket cards.
-
-### Design Decisions
-- Sub-grouping majors inside tier sections gives multi-major students a clearer mental model without breaking the MCC → BCC → Major → Track hierarchy.
-- CSS `clamp()` on heading elements ensures consistent responsive sizing but requires `h4` (no clamp rule) for small UI headings to avoid inflation.
-- Gold glow on the primary CTA reinforces Marquette brand while drawing attention to the main action.
+- Goal: align the new UI with brand and multi-major readability. Problem: the initial Next.js planner needed stronger shared visual primitives and major-level grouping inside tier sections. Decisions: add shared design components, use responsive heading clamps, subgroup progress by program order, and restyle CTA, modal, and KPI surfaces. Outcome: the UI feels more intentional, and complex plans are easier to scan.
 
 ---
 
 ## [v2.0.1] - 2026-03-01
 
-### Changes
+### User
 
-**Prerequisite cleanup — removed phantom course recommendations**
-- Cleaned up ~40 OR-alternative prerequisites that were causing unrelated courses (MATH 1700, COMM 1700, SOCI 2060, etc.) to appear in recommendations as "unlock targets."
-- OR alternatives replaced with the primary business course (usually BUAD 1560 for stats) or converted to AND where all prereqs are truly required.
-- Future `course_equivalencies` sheet will handle OR equivalences for completed/in-progress credit only — they no longer affect recommendations.
+- Removed phantom prerequisite recommendations, rewrote the ranking explainer in plainer language, and cleaned up incorrect course data.
 
-**Core prereq blocker fix**
-- Fixed a bug where universal buckets (BCC_REQUIRED, MCC_CORE, etc.) were included in the core_prereq_blocker scoring, causing random non-major courses to get boosted in recommendations.
-- The existing BCC::/MCC:: prefix filter was dead code — bucket IDs are plain strings, not namespaced. Replaced with proper parent-type lookup.
+### Technical
 
-**"How Marqbot Recommends" rewrite**
-- Rewrote the explainer modal from 7 jargon-heavy steps to 5 plain-English steps a student can actually understand.
-
-**Data cleanup**
-- Removed MATH 4720 and ECON 1001 from all data files (not real courses students take).
-- Restored MATH 1200 (prereq for MATH 1400 which is BCC_REQUIRED).
-- Updated all 14 advisor gold profiles with corrected expected recommendations.
-
-### Design Decisions
-- OR-alternative prereqs were the root cause of phantom recommendations — the engine treated every OR branch as an unlock target. Stripping them from prereq data and deferring equivalency logic to a future `course_equivalencies` sheet keeps the recommendation engine clean.
-- `hard_prereq_complex` tag added to INSY 4158 (choose 2 from 5) and OSCM 4997 (choose 1 from 3) — genuinely unparseable patterns.
-- CORE 1929 (`THEO 1001 or PHIL 1001`) kept as OR — commonly known and intentional.
+- Goal: stop unrelated OR prerequisites from spawning bad suggestions. Problem: the engine treated every OR branch as an unlock target, and universal buckets were leaking into prerequisite-blocker scoring. Decisions: strip noisy OR alternatives from prerequisite data, fix core-blocker lookup to use parent types, keep only genuinely complex prerequisite tags, and correct data plus advisor-gold expectations. Outcome: fewer phantom recommendations and clearer ranking explanations.
 
 ---
 
 ## [v2.0.0] - 2026-02-28
 
-### Changes
+### User
 
-**Smarter recommendations — chain depth, multi-bucket scoring, and dual-major balance**
-- Courses that start long prerequisite chains now rank higher. FINA 3001 (depth 4 — unlocks a 5-semester sequence to AIM 4430) gets scheduled before standalone electives with no downstream dependencies.
-- Multi-bucket score is now prioritized over direct unlock count. A course counting toward your major, BCC, and a track requirement simultaneously ranks above one that only fills a single bucket.
-- Dual-major students now get balanced picks. If Finance already has 3 picks and INSY has 0, the next FINA course is deferred so INSY can catch up. No major gets starved.
-- Removed `hard_prereq_complex` tag from all courses with parseable prerequisites (~80 courses unblocked, including all INSY 4051-4055 core courses and AIM 4310-4430 track chain).
-- Lowered FINA 3001 standing gate from Senior (90 credits) to Sophomore (24 credits), unblocking the AIM FinTech chain much earlier in the plan.
+- Recommendations got smarter about long prerequisite chains, multi-bucket efficiency, and dual-major balance.
+- The planner can now show a graduation message when requirements are projected complete instead of returning a blank late semester.
 
-**Graduation projection**
-- When a future semester has no eligible courses and all degree requirements are projected as satisfied, the planner now shows "You will have graduated!" instead of "No eligible courses."
-- Both the main semester view and the sidebar semester list display the graduation indicator.
-- Added a disclaimer: "ESSV2, WRIT, and Discovery courses are not yet considered."
+### Technical
 
-**Bug fix — BCC progress satisfaction**
-- Fixed a bug where course-count buckets (like BCC Required: 18 courses) could show as unsatisfied even when all courses were completed, because the satisfaction check was comparing credits (52) against an estimated credit target (54) instead of using the actual course count (18/18).
-- Satisfaction now uses OR logic: if either the course-count OR credit threshold is met, the bucket is satisfied.
-
-**"How Marqbot Recommends Courses" — rewrite**
-- Updated the explainer modal to match the actual 7-step algorithm: Eligibility Filter, Requirement Tiers, Prereq Blocker Priority, Chain Depth, Multi-Bucket Score, Direct Unlockers, Program Diversity.
-
-**Code audit and cleanup (from prior session)**
-- Removed duplicate helper functions, dead frontend utility, button typo fix, archived migration scripts.
-- Fixed 9 backend test expectations + 4 frontend lint errors. All 377 tests pass.
-- Rewrote README as a student-friendly intro. Added `docs/data_model.md`.
-- Fixed standing gate deadlock in multi-semester recommendations.
-- Deactivated MCC_ESSV2, MCC_DISC, and all 5 Discovery Theme tracks until course data is injected.
-
-### Design Decisions
-- Chain depth is computed once at startup via memoized recursive traversal (O(V+E), ~300 courses). No per-request cost.
-- Program balance uses a threshold of 2: a program must have ≥ min_picks + 2 before deferral kicks in. Single-major students see no change.
-- Satisfaction OR logic ensures that mixed-unit buckets (both course-count and credit targets) don't falsely block graduation projection.
-- `hard_prereq_complex` removal was a data cleanup — the prereq parser already handles "or" prereqs correctly; the tag was a leftover TODO from data migration.
+- Goal: make ranking reward true degree leverage. Problem: standalone electives could outrank long unlock chains, and dual-major plans could starve one program. Decisions: add chain-depth and multi-bucket scoring, defer overrepresented programs, and clean up stale `hard_prereq_complex` tags and standing gates. Outcome: recommendations better prioritize degree-progress leverage across single- and dual-major plans.
+- Goal: make late-stage projection trustworthy. Problem: mixed-unit buckets could show false incompletion, and empty final semesters looked like failures instead of graduation. Decisions: switch satisfaction to course-count-or-credit-threshold logic and add explicit graduation indicators with temporary MCC caveats. Outcome: progress display and end-of-plan messaging better reflect actual completion state.
 
 ---
 
 ## [v1.9.8] - 2026-02-28
 
-### Changes
+### User
 
-**Requirement progress — grouped hierarchy view**
-- Progress panels (Degree Summary, Progress Modal, Semester Modal) now group bucket entries by parent program instead of a flat sorted list.
-- Each group shows a labeled section header (e.g. "Finance", "MCC Foundation") with child buckets indented beneath it.
-- Hidden parents (`MCC_ESSV2`, `MCC_WRIT`) are filtered from the display until their data is fully injected.
+- Progress views were reorganized by program, summer planning gained better UX, max semesters increased to eight, and AIM now warns when it is selected without a primary major.
+- Discovery theme and minors were shown as not-yet-ready instead of acting like live inputs.
 
-**Planning Settings moved to Preferences pane**
-- The "Include Summer Semesters" toggle was in the wrong pane (Your Profile). Moved it to the Preferences pane, right below Semesters and Max Courses.
+### Technical
 
-**Max semesters raised to 8**
-- Semester count now accepts 1–8 (was 1–4). Both the UI options list and backend validation/clamp updated.
-
-**Summer semester UX polish**
-- Added a gold-tinted note inside the Semester Detail modal when the selected semester is a summer: "Summer semesters are capped at 4 courses (max 12 credits)."
-- Suppressed the "You requested N, but only 4 eligible" warning for summer semesters since the 4-course cap is by design.
-
-**Coming Soon — Discovery Theme and Minors**
-- Discovery Theme dropdown in the profile modal now shows a translucent "Coming Soon" overlay and is non-interactive. Data not yet injected.
-- Minors dropdown similarly marked Coming Soon; no minor data injected yet.
-
-**"How Marqbot Recommends Courses" modal — rewrite**
-- Rewrote the explainer modal (accessible via link next to the Can I Take search bar) in a first-person, student-facing voice.
-- Now covers 7 steps (0–6): Reality Check First, MCC Foundation, Business Core (BCC), Major Requirements, Tracks & Minors, Course Unlockers, Multi-Bucket Efficiency.
-- Removed the redundant "Standing Gates" step (already covered by step 0). Added BCC as its own step. Added Multi-Bucket Efficiency as the final step.
-
-**MCC Writing Intensive (WRIT) bucket deactivated**
-- Set `MCC_WRIT active=False` in `data/parent_buckets.csv`. WRIT courses no longer appear in recommendations until the bucket is re-activated after full data review.
-- Deactivating the parent bucket cascades through the runtime: its sub-buckets are dropped via inner join, course mappings are removed from the eligibility pool, and WRIT-only courses are skipped (no eligible bucket).
-
-**AIM primary major enforcement**
-- Set `AIM_MAJOR requires_primary_major=True` in `data/parent_buckets.csv`. AIM is now correctly treated as a secondary-only major alongside BUAN and INBU.
-- Removed the hardcoded `majorId === "AIM_MAJOR" ? true : ...` override from `frontend/src/lib/api.ts` — the data carries the correct value now.
-- Added frontend warning in both the onboarding Major step and the planner profile modal: when every selected major has `requires_primary_major=True`, a yellow banner prompts the student to add a standalone primary major.
-- Backend already returned `PRIMARY_MAJOR_REQUIRED` (HTTP 400) for this case; the frontend warning now surfaces it before the API call.
-
-### Design Decisions
-- Grouping progress by parent gives students a clearer mental model of their degree structure (e.g. all Finance sub-requirements under one "Finance" header) rather than a flat alphabetical list.
-- WRIT deactivation is a data-readiness gate, not a feature removal. The bucket and its 103 course mappings remain in the CSV; flipping `active` back to `True` re-enables it instantly.
-- AIM primary major rule is enforced at both data and frontend layers: data is the source of truth, frontend gives early feedback, backend is the hard gate.
+- Goal: make plan structure and long-horizon planning clearer. Problem: flat bucket lists, limited semester counts, and hidden summer constraints made larger plans hard to interpret. Decisions: group progress by parent, move the summer toggle into preferences, raise the semester cap to 8, and add summer-specific messaging. Outcome: long plans are easier to configure and understand.
+- Goal: enforce data readiness and program constraints earlier. Problem: WRIT mappings were not ready for live use, and AIM's primary-major rule was only a backend concern. Decisions: deactivate `MCC_WRIT`, mark Discovery and minors as coming soon, and surface AIM primary-major warnings in the frontend while keeping backend hard gates. Outcome: users get earlier feedback and fewer misleading selections.
 
 ---
 
 ## [v1.9.7] - 2026-02-28
 
-### Changes
+### User
 
-**MCC course data — ESSV2, WRIT, CULM buckets now populated**
-- Added 107 Engaging Social Systems & Values 2 (ESSV2) approved courses to the data model; MCC_ESSV2 bucket now has full course mappings.
-- Added 103 Writing Intensive (WRIT) approved courses; MCC_WRIT bucket now has full course mappings.
-- Added CORE 4929 as the Culminating Experience (CULM) course; MCC_CULM bucket now has a mapping.
-- All three buckets previously returned no recommendations; students needing these requirements now receive course suggestions.
+- ESSV2, WRIT, and Culminating Experience course data started showing up in recommendations.
+- Summer semesters and running class standing became first-class planning features.
 
-**Summer semester recommendations**
-- New "Include Summer Semesters" toggle in Planning Settings (default Off).
-- When enabled, summer semesters appear in the plan capped at 4 courses, showing only summer-available offerings.
-- When disabled, summer semesters are skipped and the plan delivers the requested number of non-summer semesters.
+### Technical
 
-**Running academic standing**
-- Marqbot now tracks your academic standing (Freshman / Sophomore / Junior / Senior) across each planned semester.
-- Standing is computed from your completed courses at the start and projected forward as you complete each semester's recommendations.
-- Courses requiring a minimum standing (e.g. Junior-only seminars) are automatically held until you qualify.
-- Each semester card now shows a standing badge: e.g. "Semester 1 – Fall 2025 · Freshman Standing".
-
-**"How Marqbot Recommends Courses" explainer**
-- Added a link near the course search bar in the Recommendations panel.
-- Opens a modal describing the five recommendation tiers: Foundation First, Major Requirements, Tracks & Minors, Standing Gates, and Prerequisite Chains.
-
-**Bug fixes**
-- Fixed a crash when using the CSV data source: prerequisite standing values were read as strings, causing a type error during eligibility checks.
-- Restored BCC (Business Core Curriculum) decay behavior: once core BCC requirements are substantially complete, lower-priority BCC courses are deprioritized in favor of major-specific courses.
-
-### Design Decisions
-- ESSV2 and WRIT bucket course data is live in the data model; the frontend "coming soon" treatment for those buckets will land in a future patch.
-- Summer course cap of 4 matches typical summer session load limits at Marquette.
-- Standing projection is additive: each semester's recommended credits accumulate before the next semester's eligibility gate runs, so a student finishing Semester 1 as a Freshman may start Semester 2 as a Sophomore.
+- Goal: expand live planning beyond the initial core buckets. Problem: MCC late-stage buckets had no usable mappings, summer planning was absent, and standing progression was static. Decisions: populate ESSV2, WRIT, and CULM mappings, add an `Include Summer Semesters` toggle with a 4-course cap, project standing across semesters, and expose a recommendation explainer. Outcome: late-MCC coverage, summer planning, and standing-aware eligibility become visible product features.
 
 ---
 
 ## [v1.9.6] - 2026-02-27
 
-### Changes
+### User
 
-**Data source migration: Excel → CSV directory**
-- Changed `_DEFAULT_DATA_PATH` in `backend/server.py` from `marquette_courses_full.xlsx` to `data/`. Backend now reads from the six CSV files in `data/` by default; Excel remains as a manual override via `DATA_PATH` env var.
-- Fixed `_canonical_program_label` in `backend/server.py`: was hardcoded to ignore CSV labels for `kind=major` and always generate `"{code} Major"` format. Now uses the CSV `parent_bucket_label` as priority; falls back to generated format only when label is absent.
-- Removed `MAJOR_LABEL_OVERRIDES` dict from `frontend/src/lib/api.ts` — was an Excel-era workaround that mapped abbreviated labels (e.g. "ACCO Major" → "Accounting"). No longer needed since labels now come directly from CSVs.
-- Deleted `marquette_courses_full.xlsx`; removed xlsx COPY line from `infra/docker/Dockerfile`; updated `scripts/validate_track.py` default `--path` to `data/`.
+- The planner switched permanently to CSV-based catalog data, added more majors, minors, and tracks, cleaned up program labels, and redesigned program selection in onboarding.
 
-**Stage 1 data injection — `data/courses.csv`, `data/course_prereqs.csv`, `data/course_offerings.csv`**
-- Injected 268 business school catalog entries (ACCO, AIM, BUAD, BUAN, BULA, ECON, ENTP, FINA, HURE, INBU, INSY, LEAD, MANA, MARK, OSCM, REAL) via `scripts/inject_stage1.py`.
-- CSV BOM fix: changed `read_csv` in inject script to use `encoding="utf-8-sig"` to handle UTF-8 BOM on first column.
+### Technical
 
-**Stage 2 data injection — `data/parent_buckets.csv`, `data/child_buckets.csv`, `data/master_bucket_courses.csv`**
-- Added 5 new majors: Marketing (MARK_MAJOR), Real Estate (REAL_MAJOR), Business Economics (BECO_MAJOR), Business Administration (BADM_MAJOR), International Business (INBU_MAJOR).
-- Added 7 minors: Business Administration, Entrepreneurship, Human Resources, Information Systems, Marketing, Supply Chain Management, Professional Selling.
-- Added 2 new tracks: Professional Selling Concentration (MARK_PRSL_TRACK), Real Estate Asset Program Concentration (REAL_REAP_TRACK).
-
-**CSV integrity fixes**
-- AIM 4410: removed ghost prereq `FINA 5075` (graduate code), corrected to `FINA 4075`; fixed `min_standing` from 5.0 → 4.0; removed erroneous `may_be_concurrent`/`instructor_consent` warnings; kept `major_restriction` only.
-- MATH 1200: cleared all prereqs and warnings (was incorrectly flagging `instructor_consent;standing_requirement`).
-- HOPR 2956H, INPS 2010: fixed `prereq_warnings` separator from `;` to `,`.
-- REAL 4002: added to all three CSVs as a cross-listing of FINA 4002 (Commercial Real Estate Finance); resolves orphaned prereq references in REAL 4xxx courses.
-
-**Label cleanup — `data/parent_buckets.csv`**
-- Removed "Major" suffix from all major display labels (e.g. "Finance Major" → "Finance", "Accounting Major" → "Accounting").
-- Removed "Minor" suffix from all minor display labels (e.g. "Entrepreneurship Minor" → "Entrepreneurship").
-- Set AIM label to "AIM - Accelerating Ingenuity in Markets".
-- Prefixed Discovery tier track labels with "MCC Discovery:" for clarity in the UI.
-
-**Frontend — MajorStep redesign (`frontend/src/components/onboarding/MajorStep.tsx`)**
-- Restructured from a single-column conditional layout to 4 explicit sections: Major(s), Minor(s), Concentration / Track, Discovery Theme.
-- Concentration/Track section always visible; shows placeholder text when no major with tracks is selected.
-- Added Discovery Theme section: single-select combobox for MCC_DISC tracks (CMI, BNJ, CB, EOH, IC), using existing track selection state keyed by `MCC_DISC`.
-- Compacted spacing and font sizes; removed `<hr>` dividers between sections.
-- Updated heading to "What's your program?".
-
-### Design Decisions
-- CSV directory is the permanent data source going forward; Excel file deleted. All future data changes go through the CSV files.
-- Label authority lives in `parent_bucket_label` column — no frontend overrides. Keeps display names in one place and avoids frontend/data drift.
-- Discovery themes are tracks (not a separate entity type) to reuse existing `SET_TRACK` dispatch and `selectedTracks` state without new reducer logic.
+- Goal: move the data model off the old workbook file. Problem: Excel-era label overrides and loading paths were brittle and hard to extend. Decisions: make `data/` CSVs the default source, delete the workbook from normal runtime, use `parent_bucket_label` as the label authority, and update validation scripts. Outcome: data edits become file-based and less coupled to frontend overrides.
+- Goal: expand catalog and program coverage using the new structure. Problem: business catalog data and several programs and tracks were missing or inconsistent. Decisions: inject new catalog rows, add new majors, minors, and tracks, fix prerequisite errors, and redesign `MajorStep` around majors, minors, tracks, and discovery. Outcome: broader program coverage with cleaner selection UX.
 
 ---
 
 ## [v1.9.3] - 2026-02-27
 
-### Changes
-- Redesigned planner to a 45/55 dual-column layout: Progress on the left, Recommendations on the right.
-- Merged Profile and Preferences into one side-by-side modal (edit pencil icon in the header).
-- Added "Get Recommendations" button inside the modal — it auto-closes and fetches your plan.
-- Moved "Can I Take This?" inline above the semester tabs for quicker access.
-- Removed the left sidebar — all settings now live in the Profile & Preferences modal.
-- Enlarged text in semester detail views for easier reading.
-- Standardized all warnings to red for clearer visibility (removed yellow warning icons).
-- Completed degree buckets now show in green in the Degree Summary.
-- Scaled up progress ring, KPI cards, and degree summary for the wider layout.
-- Semester tab buttons auto-adapt height based on how many semesters are shown.
+### User
 
-### Design Decisions
-- 45/55 split gives recommendations more horizontal space since they contain the most detail, while progress and degree summary benefit from full vertical height.
-- Merging profile and preferences into one modal reduces clicks and keeps the main viewport focused on results.
-- Inline Can-I-Take above semester tabs is contextually closer to the recommendations it relates to.
-- Red-only warnings are simpler to scan than mixed yellow/red severity levels.
+- Planner layout shifted to a two-column, results-first design, profile and preferences were merged into one modal, and can-take moved closer to recommendations.
+
+### Technical
+
+- Goal: give recommendations more space and reduce setup friction. Problem: the old sidebar layout hid results behind configuration and spread related controls across multiple surfaces. Decisions: adopt a 45/55 layout, merge profile and preferences into one modal with in-modal submit, and simplify warning and progress color treatment. Outcome: the main viewport stays focused on results while settings remain accessible.
 
 ---
 
 ## [v1.9.2] - 2026-02-25
 
-### Changes
-- Improved planner responsiveness so recommendation and eligibility requests return faster on larger plans.
-- Fixed deployment packaging so Render consistently serves both backend APIs and the latest frontend build from one service.
-- Added a single local run command (`python scripts/run_local.py`) that auto-builds the frontend export when needed.
-- Archived older one-time migration and investigation scripts under `scripts/archive/` to keep active maintenance scripts easier to navigate.
-- Removed duplicate root-level `PRD.md` and `CHANGELOG.md`; canonical product and release docs are now under `mds/`.
+### User
 
-### Design Decisions
-- Kept behavior-preserving refactors focused on runtime speed and operational reliability.
-- Moved historical scripts to archive instead of permanently deleting them so prior migration history remains available.
+- Startup reliability and deployment flow improved, and local development got a single command that builds the frontend automatically when needed.
+
+### Technical
+
+- Goal: make the app easier to run and ship. Problem: startup packaging, build orchestration, and script sprawl made local and deployed behavior brittle. Decisions: ensure frontend export serving works consistently on Render, add `python scripts/run_local.py`, archive one-off scripts, and centralize canonical docs under `mds/`. Outcome: more reliable local startup and cleaner maintenance structure.
 
 ---
 
 ## [v1.9.1] - 2026-02-25
 
-### Changes
-- Removed unused code: dead imports, orphaned constants, unused component (KpiCards), and stub functions.
-- Removed unused dependencies: root Jest/jsdom devDeps, `array.prototype.flatmap` polyfill.
-- Fixed stale README references to `PRD.md` and `CHANGELOG.md` (now point to `mds/`).
+### User
 
-### Design Decisions
-- Cleanup-only release. No behavior changes. All 270 backend tests pass, frontend lint and build clean.
+- MarqBot moved onto a new Next.js frontend with a full landing page, onboarding flow, planner, saved plans, and placeholder product pages.
+- The planner UI was rebuilt around a 2x2 desktop layout, and early crash cases in course and program loading were fixed.
+- This release also included cleanup of dead code and unused dependencies.
+
+### Technical
+
+- Goal: replace the old SPA shell with a more scalable frontend architecture. Problem: the earlier client had brittle routing and state patterns and weak landing-page and SEO support. Decisions: introduce a separate Next.js, TypeScript, and Tailwind app, add App Router pages for landing, onboarding, planner, saved, and placeholder surfaces, and adopt React context plus reducer session state. Outcome: MarqBot gets a full new frontend foundation that later evolves into the current `frontend/` app.
+- Goal: make the new planner usable at launch. Problem: API shape mismatches, track and major ID mapping issues, stale request races, and missing major selection created crashes or broken empty states. Decisions: unwrap Flask course payloads, normalize program IDs, accept string and array course lists server-side, harden routes and error handling, add stale-request cancellation, and ship the 2x2 planner plus immersive placeholder pages. Outcome: the new frontend can load and submit plans reliably on the existing backend.
+- Goal: stabilize the release after the migration. Problem: the new codebase carried dead assets, dead components, and unused dependencies. Decisions: prune unreferenced assets, remove dead code such as `KpiCards`, and clean dependency drift. Outcome: the migration ships with less leftover scaffolding.
 
 ---
 
 ## [v1.9.0] - 2026-02-24
 
-### Changes
-- **BCC progress-aware decay (5-tier system)**: `_bucket_hierarchy_tier_v2()` now accepts
-  `bcc_decay_active` param. When `BCC_DECAY_ENABLED=true` (env flag, default off) and a student
-  has >=12 courses applied to BCC_REQUIRED, BCC_REQUIRED demotes from Tier 1 -> Tier 4 (below
-  track). Demoted BCC children (BCC_ETHICS/ANALYTICS/ENHANCE) shift from Tier 4 -> Tier 5.
-  `_count_bcc_required_done()` helper computes the done count from `build_progress_output`.
-- **Production hardening**: Added `GET /health` endpoint (`{"status":"ok","version":"1.9.0"}`),
-  `@app.after_request` security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy),
-  and manual token-bucket rate limiting on `/recommend` (10 req/min per IP, bypassed in TESTING
-  mode).
-- **Feedback infrastructure**: Added `POST /feedback` endpoint (validates course_code + rating,
-  rank/tier integer shape, and appends JSON lines to `FEEDBACK_PATH`, default `feedback.jsonl`).
-  Added `postFeedback()` to `frontend/modules/api.js`, feedback strip buttons to every
-  recommendation card in `renderCard()`, and click handlers in `app.js` with session_id
-  generation and double-submission guard.
-- **Gold dataset + advisor match eval**: Created `eval/advisor_gold.json` (14 freshman profiles
-  covering all active business majors, including BUAN as a secondary-major case). Created
-  `scripts/eval_advisor_match.py` (>=4/6 overlap case pass, >=80% passing-case release gate, hard
-  fail on zero-overlap profile). Added `tests/backend/test_advisor_match.py` (offline
-  variant using Flask test client).
-- **Regression profiles expanded**: Added `TestFinMajorJuniorBccSaturated` and
-  `TestFinMajorSeniorBccFull` BCC-saturation profiles to `test_regression_profiles.py`.
-- **Test suite growth**: Backend 326 -> 376 (+50), Frontend 62 -> 98 (+36).
+### User
 
-### Design Decisions
-- BCC decay behind env flag (`BCC_DECAY_ENABLED`) for safe rollout: enable only after Advisor
-  Match baseline confirms >=80%.
-- 5-tier instead of 4-tier: decayed BCC_REQUIRED at Tier 4 (below track Tier 3) preserves major
-  course priority without disrupting existing tier semantics.
-- Demoted BCC children (BCC_ETHICS etc.) promoted from Tier 4 -> Tier 5: now always below decayed
-  BCC_REQUIRED, preserving relative ordering intent.
-- Rate limiting uses manual token bucket (no new deps) rather than Flask-Limiter.
-- Feedback uses append-only JSONL on a Render persistent disk (provision separately).
+- Added optional BCC decay so late-stage business-core work can fall behind major and track priorities once enough core progress is complete.
+- Added health, security, and rate-limit hardening, recommendation feedback capture, and advisor-baseline regression evaluation.
 
----
+### Technical
 
-## [Unreleased]
-
-### Changes
-- Removed recommendation-card feedback feature end-to-end:
-  - Removed feedback buttons from card rendering.
-  - Removed frontend feedback wiring and API helper.
-  - Removed backend `POST /feedback` endpoint and feedback file-writing logic.
-  - Removed feedback backend test suite.
-- **Next.js frontend (`frontend/`)**: Complete migration from vanilla JS SPA to Next.js 16 +
-  TypeScript + Tailwind CSS 4 with App Router and static export.
-  - 53 source files across `src/lib/`, `src/context/`, `src/hooks/`, `src/components/`, `src/app/`.
-  - Dark navy theme with gold/blue accents, glassmorphic cards, atmospheric CSS orb backgrounds.
-  - Routes: `/` landing, `/onboarding` 3-step wizard, `/planner` main app, `/courses`, `/saved`,
-    `/ai-advisor` coming-soon pages.
-  - Fonts: Sora (headings) + Plus Jakarta Sans (body) via `next/font/google`.
-  - Framer Motion (via `motion/react`) for page transitions and micro-interactions.
-  - React Context + useReducer for state, localStorage session persistence.
-- **Planner crash fixes**: `loadCourses()` now unwraps Flask `{courses: [...]}` wrapper.
-  `loadPrograms()` maps `major_id`/`track_id` to frontend `id` field. Defensive `Array.isArray`
-  guard in `RESTORE_SESSION` reducer.
-- **Request payload contract**: `useRecommendations` and `useCanTake` hooks now send
-  `completed_courses`/`in_progress_courses` as comma-delimited strings (matching backend
-  `normalize_input`). `declared_majors` omitted when empty. `track_id` only sent when a real track
-  is selected (no more `FIN_MAJOR` major-as-track fallback).
-- **Backend input tolerance**: Added `_coerce_course_list()` helper so `/recommend` and `/can-take`
-  accept both comma-delimited strings and JSON arrays for course lists.
-- **Error handling**: `postRecommend`/`postCanTake` parse backend error JSON for user-friendly
-  messages. Invalid-input response now returns HTTP 400 (was 200).
-- **Route hardening**: Added `/api/<path>` catch-all returning JSON 404. SPA catch-all now returns
-  404 for missing static assets instead of serving `index.html`.
-- **Planner 2x2 layout**: Full-viewport quad grid on desktop (>1200px) — TL: profile inputs +
-  submit, TR: progress + degree summary, BL: preferences + can-take, BR: recommendations.
-  Responsive: 2-col tablet, single-col mobile. New `PreferencesPanel` component extracted from
-  `InputSidebar`.
-- **Empty state UX**: "Pick your major to get started" card shown in recommendations quad when no
-  major selected. Get Recommendations button disabled with inline hint until major is chosen.
-- **Coming Soon pages**: Redesigned `PlaceholderPage` to full-viewport immersive experience with
-  blurred background image, dark gradient overlay, staggered motion animations, and gold badge.
-- **Performance**: Memoized `excludeSet`/`defaultMatches` in `MultiSelect`. Added stale-request
-  cancellation via `useRef` counter in recommendation and can-take hooks.
-- **ESLint fix**: Downgraded from ESLint 10 to 9 for `eslint-config-next` compatibility. Replaced
-  broken `FlatCompat` bridge with native flat config import. Fixed `SingleSelect` lint error.
-- **Cleanup**: Deleted `.xlsx.bak` backups, stray `nul` file. Updated `.gitignore` for Next.js
-  build artifacts.
-
-### Design Decisions
-- Feedback controls added UI noise without improving core recommendation quality for students.
-- Next.js chosen for SEO-friendly landing page, file-based routing, and static export compatibility
-  with existing Flask serving.
-- Dark navy theme aligns with Marquette branding while differentiating from generic light SaaS UIs.
-- 2x2 planner grid maximizes information density on desktop — all four concern areas visible without
-  scrolling the page.
-- Backend accepts both string and array formats for course lists to be tolerant of client variations.
-- Stale-request cancellation prevents race conditions when users rapidly re-submit recommendations.
+- Goal: let major-specific work surface once BCC saturation is high. Problem: strict four-tier ordering could keep late-stage BCC work ahead of more valuable major and track courses. Decisions: introduce env-gated five-tier BCC decay based on completed BCC courses and add regression plus advisor-match tests around it. Outcome: BCC prioritization becomes tunable without changing default behavior.
+- Goal: harden operations and collect recommendation-quality signals. Problem: the service lacked basic health, security, and rate-limit plumbing, and there was no structured feedback or eval path. Decisions: add `GET /health`, response security headers, manual token-bucket limiting, JSONL feedback capture, advisor-gold evaluation, and extra regression profiles. Outcome: the backend becomes safer to operate and easier to benchmark.
 
 ---
 
 ## [v1.8.3] - 2026-02-24
 
-### Changes
-- Switched dashboard KPI logic to credit-based metrics using workbook course credits.
-- Added standing classification from completed credits:
-  - Freshman: 0-23
-  - Sophomore: 24-59
-  - Junior: 60-89
-  - Senior: 90+
-- Updated progress ring to use credit denominator (`124`) with completed + in-progress visualization.
-- Removed low-value recommendation/progress surfaces:
-  - double-counted courses section
-  - courses remaining / estimated terms timeline cards
-- Enforced deterministic same-family child assignment order:
-  - `required` -> `choose_n` -> `credits_pool`
-  - then priority
-  - then lexical bucket ID tie-break
-- Fixed ranking tier behavior so any course that fills `BCC_REQUIRED` is treated as Tier 1 (even when not primary bucket).
-- Completed workbook integrity audit and refreshed data model docs.
+### User
 
-### Design Decisions
-- Shift KPI framing from bucket-slot counts to credit reality because students understand credits better than internal allocation counters.
-- Keep same-family assignment deterministic to eliminate random routing and inconsistent `fills_buckets` interpretation.
-- Remove UI sections that add cognitive load without improving course-taking decisions.
-- Preserve cross-family sharing defaults while preventing same-family elective leakage.
+- Progress KPIs switched to credit-based metrics, standing labels were added, and low-value dashboard clutter was removed.
+
+### Technical
+
+- Goal: make progress read like a real degree audit. Problem: bucket-slot counts were less intuitive than credits, and some surfaces added noise without helping decisions. Decisions: move KPIs and the progress ring to credit framing, add credit-based standing bands, remove low-value sections, and make same-family assignment and tier handling deterministic. Outcome: progress displays are simpler for users and more stable for the allocator.
 
 ---
 
 ## [v1.8.2] - 2026-02-24
 
-### Changes
-- Brought recommender selection behavior in line with allocator semantics.
-- Applied same-family non-elective-first routing during semester packing.
-- Enforced pairwise double-count policy checks during selection.
-- Corrected credits-pool virtual consumption to use course credits.
+### User
 
-### Design Decisions
-- Recommendation packing and progress allocation must obey the same rules; divergence creates trust failures.
-- Credits-pool logic must be credit-native end-to-end (not inferred via course count).
+- Recommendation packing now follows the same double-count and credit-pool rules used by progress allocation.
+
+### Technical
+
+- Goal: align selection with allocation semantics. Problem: recommender packing and progress allocation could disagree, which undermined trust. Decisions: apply same-family non-elective-first routing, pairwise double-count checks, and credit-based consumption in the selection path. Outcome: recommended courses follow the same rules that completed-course allocation uses.
 
 ---
 
 ## [v1.8.1] - 2026-02-24
 
-### Changes
-- Refreshed documentation of recommender hierarchy and tie-break behavior.
-- Clarified and validated cross-major elective sharing behavior.
-- Normalized recommendation bucket-tag capitalization.
+### User
 
-### Design Decisions
-- Policy clarity in docs is part of product correctness for advisor-facing systems.
-- Cross-major sharing should be explicit and test-backed, not implicit.
+- No major visible product changes. This release focused on clarifying recommender hierarchy and cross-major sharing behavior in docs and labels.
+
+### Technical
+
+- Goal: make planner policy easier to understand and audit. Problem: cross-major sharing and bucket tags were correct in code but underdocumented or inconsistently labeled. Decisions: refresh hierarchy docs, clarify sharing behavior, and normalize bucket-tag capitalization. Outcome: policy explanations better match runtime behavior.
 
 ---
 
 ## [v1.8.0] - 2026-02-24
 
-### Changes
-- Fixed credits-pool runtime integrity for `needed_credits` and `requirement_mode` projection paths.
-- Corrected elective pool bucket progress display (e.g., `0/0` issues on credit-based buckets).
-- Consolidated decision documentation to a single canonical file.
+### User
 
-### Design Decisions
-- Preserve workbook semantics through every runtime projection path.
-- Favor one canonical architecture rationale source to avoid decision drift.
+- Fixed credit-pool progress math and consolidated architecture rationale into a single canonical doc.
+
+### Technical
+
+- Goal: preserve workbook semantics through runtime projection. Problem: credit-based buckets could show broken progress such as `0/0`, and decision rationale was split across docs. Decisions: fix `needed_credits` and `requirement_mode` projection handling and consolidate decision documentation. Outcome: progress display and architecture references become more reliable.
 
 ---
 
 ## [v1.7.11] - 2026-02-24
 
-### Changes
-- Locked tier hierarchy:
-  - Tier 1: MCC + `BCC_REQUIRED`
-  - Tier 2: major buckets
-  - Tier 3: selected track buckets
-  - Tier 4: demoted BCC children (`BCC_ETHICS`, `BCC_ANALYTICS`, `BCC_ENHANCE`)
-- Introduced dynamic elective pool synthesis from `courses.elective_pool_tag`.
-- Added same-family non-elective-first routing.
-- Replaced hard diversity cap with soft-cap auto-relax behavior.
+### User
 
-### Design Decisions
-- Keep foundational curriculum visible but avoid elective capture ahead of core/choose requirements in the same family.
-- Model elective pools dynamically to reduce static map maintenance risk.
+- Tier hierarchy, elective-pool handling, and diversity balancing were made more predictable.
+
+### Technical
+
+- Goal: make bucket priority and elective synthesis deterministic. Problem: same-family electives could compete with narrower requirements, and the old diversity cap was too rigid. Decisions: lock the four-tier hierarchy, synthesize elective pools from `elective_pool_tag`, prefer non-elective siblings first, and switch to soft-cap auto-relax behavior. Outcome: recommendation ordering becomes easier to reason about.
 
 ---
 
 ## [v1.7.10] - 2026-02-24
 
-### Changes
-- Migrated to canonical parent/child workbook model:
-  - `parent_buckets`
-  - `child_buckets`
-  - `master_bucket_courses`
-- Preserved one-release compatibility for legacy runtime loading paths.
-- Added track-family-aware double-count governance.
+### User
 
-### Design Decisions
-- Keep workbook schema explicit and scalable for majors/tracks/minors.
-- Use family-based defaults plus targeted overrides instead of hardcoding special cases.
+- The data model moved to the canonical parent and child bucket workbook layout, and double-count rules became track-family aware.
+
+### Technical
+
+- Goal: give the workbook a scalable structure for majors, tracks, and minors. Problem: the earlier schema and double-count governance were too implicit for continued expansion. Decisions: adopt `parent_buckets`, `child_buckets`, and `master_bucket_courses`, preserve one release of compatibility, and add track-family-aware governance. Outcome: the runtime can evolve without hardcoding every special case.
 
 ---
 
 ## [v1.7.9] - 2026-02-23
 
-### Changes
-- Implemented greedy bucket-aware recommendation selection.
-- Applied MCC/BCC tier parity.
-- Fixed MCC label capitalization and rendering consistency.
+### User
 
-### Design Decisions
-- Avoid recommendation list collapse into a single bucket when multiple unmet buckets exist.
-- Treat universal overlays consistently across MCC/BCC for student-visible fairness.
+- Recommendation selection became bucket-aware, and MCC and BCC priority treatment was made consistent.
+
+### Technical
+
+- Goal: stop the recommender from collapsing onto one unmet area. Problem: greedy selection could overfill one bucket while ignoring other active needs. Decisions: implement bucket-aware greedy selection, align MCC and BCC tier treatment, and fix MCC labeling. Outcome: recommendations spread more fairly across unmet requirements.
 
 ---
 
 ## [v1.6.x to v1.7.8] - 2026-02-22 to 2026-02-23
 
-### Changes
-- Completed V2 runtime/data-model migration and governance hardening.
-- Added MCC universal overlay and expanded workbook integrations.
-- Rolled out left-rail + 2x2 planner UI architecture and modal/selector refinements.
-- Added scalable semester planning controls and recommendation caps.
-- Fixed already-satisfied bucket recommendation leakage.
+### User
 
-### Design Decisions
-- Prioritize deterministic planner behavior over speculative recommendation heuristics.
-- Keep public API contracts stable while evolving workbook schema and runtime internals.
+- This period established the V2 planner runtime, expanded workbook integration, rolled out the early multi-panel planner UI, and fixed already-satisfied bucket leakage.
+
+### Technical
+
+- Goal: transition from early prototype logic to a deterministic V2 planner. Problem: runtime, data-model contracts, and UI architecture were still shifting quickly. Decisions: harden governance, add MCC overlay support, expand workbook integrations, introduce scalable semester controls and recommendation caps, and close leaks from already-satisfied buckets. Outcome: the app reaches a usable V2 baseline for later release-line iteration.
 
 ---
 
 ## [v1.0.0 to v1.5.0] - 2026-02-20 to 2026-02-21
 
-### Changes
-- Established stable deterministic runtime baseline.
-- Introduced policy-driven allocation and track selection behaviors.
-- Improved reliability, validation, and UI workflow foundations.
+### User
 
-### Design Decisions
-- Commit to data-driven governance and modular backend/frontend boundaries early.
-- Prefer incremental contract-safe refactors over one-shot rewrites.
+- The first release window established the deterministic planner baseline, core allocation rules, and the initial frontend and backend workflow.
+
+### Technical
+
+- Goal: turn the project into a usable planning product. Problem: early planner logic and repo structure still needed stable, data-driven contracts. Decisions: establish policy-driven allocation, modular backend and frontend boundaries, and contract-safe iterative refactors instead of big-bang rewrites. Outcome: later releases build on a stable deterministic foundation.

@@ -32,9 +32,9 @@ MarqBot is a planning tool for Marquette Business students. Pick your program, a
 | **Eligibility check** | Instant yes/no on whether you can take a course right now |
 | **Progress tracking** | See where you stand across every requirement bucket |
 | **Multi-semester plans** | Map out more than one term at a time |
-| **Saved plans** | Snapshots stored in your browser. Come back anytime. |
+| **Saved plans** | Snapshots stored in your browser. Compare paths and come back anytime. |
 | **Scheduling styles** | Grinder, Explorer, or Mixer — pick how you balance core vs. discovery |
-| **Adaptive visual effects** | Keeps the richer UI on capable machines and automatically falls back to a lighter rendering mode on weaker or software-rendered browsers |
+| **Adaptive visual effects** | Keeps the richer UI on by default and falls back to a lighter rendering mode only when reduced motion or a manual reduced-effects preference is active |
 | **Feedback form** | Found a bug or have an idea? Send it from inside the app. |
 
 Same inputs, same outputs. Every time.
@@ -56,10 +56,10 @@ Under the hood, MarqBot runs a deterministic recommendation engine:
 3. Pick       — fills your semester in ranked order, with caps to keep things balanced
 ```
 
-Your scheduling style adjusts the balance between core requirements and discovery electives. For the full breakdown, see [How MarqBot Plans Your Degree](docs/algorithm.md). For engine internals, see the [Technical Reference](docs/technical_reference.md).
+Your scheduling style adjusts the balance between core requirements and discovery electives. For the full breakdown, see [How MarqBot Plans Your Degree](docs/memos/algorithm.md). For engine internals, see the [Technical Reference](docs/codebase/tech_readme.md).
 
 When a required or choose-from bucket collides with a broad elective pool, MarqBot counts the narrower requirement first. If two completed courses overfill the same required slot, the extra course can still spill into an eligible elective pool.
-The frontend also adapts its visual effects to the device. On weaker browsers, MarqBot automatically tones down blur, glow, and heavier motion so the planner stays usable without changing the actual planning logic.
+The frontend also adapts its visual effects to the active preference state. When reduced motion or a manual reduced-effects preference is active, MarqBot tones down blur, glow, and heavier motion without changing the actual planning logic.
 
 ## What It Is Not
 
@@ -79,8 +79,8 @@ Use it to plan faster. Then confirm with your advisor before you register.
 
 | Doc | What it covers |
 |---|---|
-| [How MarqBot Plans Your Degree](docs/algorithm.md) | Non-technical walkthrough of the recommendation engine, requirements, and policies |
-| [Technical Reference](docs/technical_reference.md) | Data inputs, pipeline internals, ranking tuples, API endpoints, module map |
+| [How MarqBot Plans Your Degree](docs/memos/algorithm.md) | Non-technical walkthrough of the recommendation engine, requirements, and policies |
+| [Technical Reference](docs/codebase/tech_readme.md) | Data inputs, pipeline internals, ranking tuples, API endpoints, module map |
 | [Changelog](docs/CHANGELOG.md) | Version history and release notes |
 
 ## Project Directory
@@ -114,6 +114,7 @@ frontend/                 Next.js student UI
     context/                React context providers
     hooks/                  Custom React hooks
     lib/                    Utility functions
+  tests/                    Active frontend Vitest suite
   public/assets/            Static images and branding
 
 data/                     CSV course catalog (manual edits only)
@@ -124,34 +125,32 @@ data/                     CSV course catalog (manual edits only)
   course_hard_prereqs.csv   Hard prerequisite graph edges
   course_soft_prereqs.csv   Warning-only and manual-review prereq metadata
   course_equivalencies.csv  Honors, cross-list, and no-double-count relationships
-  course_offerings.csv      Term scheduling history (currently disabled)
+  course_offerings.csv      Term availability history (retained for future offering-aware planning)
   policies.csv              Normalized academic policy registry (76 policies)
   policies_buckets.csv      Policy-to-bucket join table (177 mappings)
   quips.csv                 Rotating UI quips
 
 config/                   Runtime configuration
   ranking_overrides.json    Manual priority overrides for specific courses
-  data_investigation_queue.json  Flagged data issues from nightly analysis
-  autotune_ledger.json      Regression/boost-resistance detection for nightly tuning
 
-scripts/                  Data utilities and nightly analysis
-  analyze_nightly.py        Nightly auto-tune flow
+scripts/                  Data utilities and local maintenance
   run_local.py              Local dev server launcher
+  ensure_frontend_build.py  Frontend build presence check
   discover_equivalencies.py Equivalency discovery utility
   compile_quips.py          Quip compilation
   validate_track.py         Track validation checks
+  scrape_undergrad_policies.py Bulletin policy scrape utility
+  eval_advisor_match.py     Advisor-match evaluation utility
 
 tests/                    Test suites
-  backend/                  Pytest backend tests (612+ cases)
-  frontend/                 Frontend tests
+  backend/                  Pytest backend tests
+  frontend/                 Legacy frontend test root
   nightly_reports/          Archived nightly analysis reports
 
 docs/                     Documentation
-  algorithm.md              Non-technical system explainer
-  technical_reference.md    Technical internals reference
   CHANGELOG.md              Version history
-  memos/                    Working memos and planning docs
-  prompts/                  Session prompts and templates
+  codebase/                 Technical reference and generated codebase maps
+  memos/                    Algorithm explainer and working memos
   feedbacks/                Collected feedback records
 
 infra/                    Infrastructure
@@ -174,7 +173,12 @@ cd ..
 |---|---|
 | Backend only | `.\.venv\Scripts\python.exe backend/server.py` |
 | Frontend dev | `cd frontend && npm run dev` |
-| Backend tests | `.\.venv\Scripts\python.exe -m pytest -q` |
+| Backend tests | `.\.venv\Scripts\python.exe -m pytest tests/backend -q` |
 | Frontend checks | `cd frontend && npm run test && npm run lint && npm run build` |
+
+Production notes:
+- `render.yaml` is the checked-in Render Blueprint for the monolith deploy.
+- Production feedback is written to `FEEDBACK_PATH` on the mounted Render disk at `/var/data/marqbot/feedback.jsonl`.
+- `/api/health` is a readiness check and returns `503` until the static frontend export is present.
 
 </details>
