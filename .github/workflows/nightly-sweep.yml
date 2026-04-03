@@ -1,0 +1,153 @@
+name: Nightly Focused Sweep
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub Actions cron is UTC. These daily entries cover 4:00 AM
+    # America/Chicago across DST shifts; the job itself skips unless the
+    # local time is 04:00 and the three-day cadence matches.
+    - cron: "0 9 * * *"
+    - cron: "0 10 * * *"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+concurrency:
+  group: nightly-sweep
+  cancel-in-progress: false
+
+jobs:
+  nightly-sweep:
+    name: Nightly Focused Sweep
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Resolve local schedule and seed
+        id: meta
+        shell: bash
+        run: |
+          anchor_date="2026-04-03"
+          local_date="$(TZ=America/Chicago date +%F)"
+          local_time="$(TZ=America/Chicago date +%H:%M)"
+          local_hour="$(TZ=America/Chicago date +%H)"
+          nightly_seed="$(TZ=America/Chicago date +%Y%m%d%H%M%S)"
+
+          echo "anchor_date=$anchor_date" >> "$GITHUB_OUTPUT"
+          echo "local_date=$local_date" >> "$GITHUB_OUTPUT"
+          echo "local_time=$local_time" >> "$GITHUB_OUTPUT"
+          echo "seed=$nightly_seed" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "skip_reason=manual dispatch" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$local_hour" != "04" ]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "skip_reason=not 4 AM America/Chicago" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          days_since_anchor=$(( ($(date -d "$local_date" +%s) - $(date -d "$anchor_date" +%s)) / 86400 ))
+          if [ $((days_since_anchor % 3)) -eq 0 ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "skip_reason=matched three-day cadence" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "skip_reason=off the three-day cadence" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Show schedule decision
+        shell: bash
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "local_date=${{ steps.meta.outputs.local_date }}"
+          echo "local_time=${{ steps.meta.outputs.local_time }}"
+          echo "seed=${{ steps.meta.outputs.seed }}"
+          echo "should_run=${{ steps.meta.outputs.should_run }}"
+          echo "reason=${{ steps.meta.outputs.skip_reason }}"
+
+      - name: Install backend dependencies
+        if: steps.meta.outputs.should_run == 'true'
+        run: python -m pip install -r requirements.txt
+
+      - name: Run nightly-marked planner suite
+        if: steps.meta.outputs.should_run == 'true'
+        id: nightly
+        shell: bash
+        env:
+          NIGHTLY_SEED: ${{ steps.meta.outputs.seed }}
+        run: |
+          set +e
+          python -m pytest -m nightly -q 2>&1 | tee nightly_output.txt
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Build nightly report artifact
+        if: steps.meta.outputs.should_run == 'true'
+        shell: bash
+        run: |
+          mkdir -p nightly-artifacts
+          report_path="nightly-artifacts/${{ steps.meta.outputs.local_date }}.md"
+          title="# Nightly Planner Report"
+
+          if grep -q "ERROR collecting" nightly_output.txt; then
+            title="# Nightly Planner Report - COLLECTION ERROR"
+          elif [ "${{ steps.nightly.outputs.exit_code }}" != "0" ]; then
+            title="# Nightly Planner Report - FAILURES"
+          fi
+
+          {
+            echo "$title"
+            echo
+            echo "- Local schedule: ${{ steps.meta.outputs.local_date }} ${{ steps.meta.outputs.local_time }} America/Chicago"
+            echo "- Three-day anchor: ${{ steps.meta.outputs.anchor_date }}"
+            echo "- Seed: \`${{ steps.meta.outputs.seed }}\`"
+            echo
+            if [ "${{ steps.nightly.outputs.exit_code }}" = "0" ]; then
+              echo "Pytest completed successfully."
+            else
+              echo "Pytest exited with code ${{ steps.nightly.outputs.exit_code }}."
+            fi
+            echo
+            echo '```'
+            tail -n 200 nightly_output.txt
+            echo '```'
+          } > "$report_path"
+
+      - name: Upload nightly artifacts
+        if: steps.meta.outputs.should_run == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: nightly-sweep-report
+          path: |
+            nightly-artifacts/*.md
+            nightly_output.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Stop after schedule skip
+        if: steps.meta.outputs.should_run != 'true'
+        shell: bash
+        run: |
+          echo "nightly-sweep skipped: ${{ steps.meta.outputs.skip_reason }}"
+
+      - name: Fail workflow when nightly tests fail
+        if: steps.meta.outputs.should_run == 'true' && steps.nightly.outputs.exit_code != '0'
+        shell: bash
+        run: exit 1
