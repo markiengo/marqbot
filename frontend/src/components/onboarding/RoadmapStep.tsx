@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { loadProgramBuckets } from "@/lib/api";
@@ -121,28 +121,41 @@ function ProgramColumn({ program, index }: { program: ProgramBucketTree; index: 
 export function RoadmapStep() {
   const { state } = useAppContext();
   const [trees, setTrees] = useState<ProgramBucketTree[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const programIds = [
+  const programIds = useMemo(
+    () => [
       ...state.selectedMajors,
       ...state.selectedTracks,
       ...state.selectedMinors,
       ...UNIVERSAL_PROGRAM_IDS,
-    ];
-    if (programIds.length === 0) { setLoading(false); return; }
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    loadProgramBuckets(programIds)
-      .then((data) => { if (!cancelled) setTrees(data); })
-      .catch((err) => { if (!cancelled) setError(err?.message || "Could not load program data."); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [state.selectedMajors, state.selectedTracks, state.selectedMinors]);
+    ],
+    [state.selectedMajors, state.selectedTracks, state.selectedMinors],
+  );
+  const hasPrograms = programIds.length > 0;
 
-  if (loading) {
+  useEffect(() => {
+    if (!hasPrograms) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+      loadProgramBuckets(programIds)
+        .then((data) => { if (!cancelled) setTrees(data); })
+        .catch((err) => { if (!cancelled) setError(err?.message || "Could not load program data."); })
+        .finally(() => { if (!cancelled) setLoading(false); });
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [hasPrograms, programIds]);
+
+  const visibleTrees = hasPrograms ? trees : [];
+  const visibleError = hasPrograms ? error : null;
+
+  if (hasPrograms && loading) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="h-7 w-7 animate-spin rounded-full border-2 border-gold border-t-transparent" />
@@ -150,11 +163,11 @@ export function RoadmapStep() {
     );
   }
 
-  if (error) {
-    return <div className="rounded-lg bg-bad-light px-3 py-2.5 text-sm text-bad">{error}</div>;
+  if (visibleError) {
+    return <div className="rounded-lg bg-bad-light px-3 py-2.5 text-sm text-bad">{visibleError}</div>;
   }
 
-  if (trees.length === 0) {
+  if (visibleTrees.length === 0) {
     return <p className="text-sm text-ink-faint text-center py-6">No programs selected. Go back and pick a major.</p>;
   }
 
@@ -194,7 +207,7 @@ export function RoadmapStep() {
       {/* Columns board — horizontal scroll */}
       <div className="overflow-x-auto -mx-1 px-1 pb-1">
         <div className="flex gap-2.5 items-start" style={{ minWidth: "min-content" }}>
-          {trees.map((program, i) => (
+          {visibleTrees.map((program, i) => (
             <ProgramColumn key={program.program_id} program={program} index={i} />
           ))}
         </div>

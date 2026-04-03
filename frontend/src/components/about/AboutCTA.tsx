@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { AnchorLine } from "@/components/shared/AnchorLine";
+import { Button } from "@/components/shared/Button";
 import styles from "./about.module.css";
 import { ABOUT_CONTACT_LINKS } from "./aboutContent";
 import type { AboutContactLink } from "./aboutContent";
@@ -91,25 +92,33 @@ export function AboutCTA() {
               {...viewAnim(12, 0.14)}
               className="mx-auto mt-4 max-w-[36rem] font-[family-name:var(--font-sora)] text-[2rem] font-bold leading-tight text-white sm:text-[2.6rem]"
             >
-              Found a bug? Have a feature idea? <span className="text-emphasis-blue">Need to vent?</span>
+              Found a bug? Have a feature idea? <span className="text-gold-light">Need to vent?</span>
             </motion.h2>
 
             <motion.div
               {...viewAnim(10, 0.28)}
               className="mt-8 flex flex-wrap items-center justify-center gap-3"
             >
-              <Link
-                href="/onboarding"
-                className="inline-flex min-w-[170px] items-center justify-center rounded-xl bg-gold px-5 py-3 text-sm font-semibold text-navy-dark shadow-[0_0_24px_rgba(255,204,0,0.22)] transition-colors hover:bg-gold-light pulse-gold-soft"
+              <Button
+                asChild
+                variant="gold"
+                size="lg"
+                className="min-w-[220px] rounded-[1.45rem] border border-gold/55 px-8 shadow-[0_0_28px_rgba(255,204,0,0.18)]"
               >
-                Try MarqBot
-              </Link>
-              <a
-                href="mailto:markie.ngo@marquette.edu"
-                className="inline-flex min-w-[170px] items-center justify-center rounded-xl glass-card px-5 py-3 text-sm font-medium text-ink-primary transition-all hover:border-gold/25"
+                <Link href="/onboarding">
+                  Get My Plan
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="gold"
+                size="lg"
+                className="min-w-[220px] rounded-[1.45rem] border border-gold/55 px-8 shadow-[0_0_28px_rgba(255,204,0,0.18)]"
               >
-                Email Markie
-              </a>
+                <a href="mailto:markie.ngo@marquette.edu">
+                  Send Feedback
+                </a>
+              </Button>
             </motion.div>
 
             <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">

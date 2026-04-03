@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/shared/Button";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
@@ -44,16 +45,77 @@ const heroProof = [
 
 export function LandingHeroSimple() {
   const reduceEffects = useReducedEffects();
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const glowRef = useRef<HTMLDivElement | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const targetPos = useRef({ x: 0.5, y: 0.4, opacity: 0 });
+  const currentPos = useRef({ x: 0.5, y: 0.4, opacity: 0 });
+
+  useEffect(() => {
+    if (reduceEffects) return;
+
+    const tick = () => {
+      const target = targetPos.current;
+      const current = currentPos.current;
+      current.x += (target.x - current.x) * 0.12;
+      current.y += (target.y - current.y) * 0.12;
+      current.opacity += (target.opacity - current.opacity) * 0.1;
+
+      const glow = glowRef.current;
+      if (glow) {
+        glow.style.setProperty("--gx", `${current.x * 100}%`);
+        glow.style.setProperty("--gy", `${current.y * 100}%`);
+        glow.style.opacity = String(current.opacity);
+      }
+
+      frameRef.current = requestAnimationFrame(tick);
+    };
+
+    frameRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+  }, [reduceEffects]);
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (reduceEffects) return;
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const rect = section.getBoundingClientRect();
+    targetPos.current = {
+      x: (event.clientX - rect.left) / rect.width,
+      y: (event.clientY - rect.top) / rect.height,
+      opacity: 1,
+    };
+  };
+
+  const handlePointerLeave = () => {
+    if (!reduceEffects) targetPos.current.opacity = 0;
+  };
 
   return (
     <section
-      id="landing-hero"
+      ref={sectionRef}
+      id="overview"
       data-testid="landing-hero"
       data-reduced-motion={reduceEffects ? "true" : "false"}
       className="landing-hero-shell relative overflow-hidden band-deep"
       style={{ background: "#07101e" }}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
     >
       <div className="landing-hero-ambient pointer-events-none absolute inset-0">
+        <div
+          ref={glowRef}
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background: "radial-gradient(circle 18rem at var(--gx, 50%) var(--gy, 40%), rgba(255,204,0,0.22), transparent 50%), radial-gradient(circle 30rem at calc(var(--gx, 50%) + 5rem) calc(var(--gy, 40%) - 4rem), rgba(0,114,206,0.14), transparent 58%)",
+            filter: "blur(22px)",
+            opacity: 0,
+          }}
+        />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_88%_62%_at_50%_0%,rgba(0,114,206,0.2),transparent_58%),radial-gradient(ellipse_74%_48%_at_78%_22%,rgba(255,204,0,0.14),transparent_56%),radial-gradient(ellipse_54%_40%_at_20%_78%,rgba(0,114,206,0.16),transparent_62%)]" />
         {!reduceEffects && (
           <>
@@ -86,24 +148,26 @@ export function LandingHeroSimple() {
           </p>
 
           <div className="landing-hero-cta mx-auto mt-8 grid w-full max-w-[34rem] grid-cols-1 gap-3 sm:grid-cols-2">
-            <Link href="/onboarding" className="flex w-full">
-              <Button
-                variant="gold"
-                size="lg"
-                className="w-full justify-center border border-gold/60 pulse-gold-soft shadow-[0_0_30px_rgba(255,204,0,0.22)]"
-              >
+            <Button
+              asChild
+              variant="gold"
+              size="lg"
+              className="w-full justify-center border border-gold/60 pulse-gold-soft shadow-[0_0_30px_rgba(255,204,0,0.22)]"
+            >
+              <Link href="/onboarding">
                 Get My Plan
-              </Button>
-            </Link>
-            <Link href="#how-it-works" className="flex w-full">
-              <Button
-                variant="secondary"
-                size="lg"
-                className="w-full justify-center border-white/14 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(0,114,206,0.10))] text-white shadow-[0_0_26px_rgba(0,114,206,0.14)] hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.10),rgba(0,114,206,0.14))]"
-              >
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="secondary"
+              size="lg"
+              className="w-full justify-center border-white/14 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(0,114,206,0.10))] text-white shadow-[0_0_26px_rgba(0,114,206,0.14)] hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.10),rgba(0,114,206,0.14))]"
+            >
+              <Link href="#story">
                 See How It Works
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
@@ -260,9 +324,8 @@ export function LandingHeroSimple() {
           </div>
         </motion.div>
 
-        {/* Scroll cue — pinned to bottom of first viewport, hidden on mobile */}
         <Link
-          href="#feature-spotlight"
+          href="#story"
           className="landing-scroll-cue absolute bottom-7 left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full px-4 py-2.5 sm:flex"
           aria-label="Continue to features"
         >

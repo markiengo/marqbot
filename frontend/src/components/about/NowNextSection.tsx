@@ -18,14 +18,12 @@ function FlipCard({
   entry,
   index,
   isFlipped,
-  isDimmed,
   onFlip,
   reduce,
 }: {
   entry: TimelineEntry;
   index: number;
   isFlipped: boolean;
-  isDimmed: boolean;
   onFlip: () => void;
   reduce: boolean | null;
 }) {
@@ -33,22 +31,23 @@ function FlipCard({
   const cfg = STATUS_CONFIG[status];
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
       initial={reduce ? undefined : { opacity: 0, y: 20 }}
       whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.45, delay: 0.08 * index }}
-      whileHover={isFlipped ? undefined : { y: -4 }}
-      animate={{ opacity: isDimmed ? 0.35 : 1 }}
-      className="h-full min-w-0 cursor-pointer"
+      whileHover={isFlipped || reduce ? undefined : { y: -4 }}
+      aria-pressed={isFlipped}
+      className="h-full min-w-0 cursor-pointer text-left"
       onClick={onFlip}
     >
       <div
-        className={`relative overflow-hidden rounded-xl border ${cfg.border} ${
+        className={`relative flex h-full flex-col overflow-hidden rounded-xl border p-5 transition-shadow duration-300 ${cfg.border} ${
           isFlipped
             ? "bg-[linear-gradient(145deg,rgba(14,30,58,0.98),rgba(10,24,50,0.95))] shadow-[0_8px_32px_rgba(0,0,0,0.24)]"
             : "bg-[linear-gradient(145deg,rgba(10,24,50,0.96),rgba(8,19,39,0.90))] shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
-        } flex h-full flex-col p-5 transition-shadow duration-300`}
+        }`}
       >
         <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.03),transparent_60%)]" />
 
@@ -72,7 +71,7 @@ function FlipCard({
                 {entry.body}
               </p>
               <p className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">
-                Tap to read more
+                Open details
               </p>
             </motion.div>
           ) : (
@@ -91,13 +90,13 @@ function FlipCard({
                 {entry.detail}
               </p>
               <p className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">
-                Tap to close
+                Hide details
               </p>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </motion.button>
   );
 }
 
@@ -125,20 +124,17 @@ export function NowNextSection() {
       ? "grid gap-4 md:grid-cols-2"
       : "grid gap-4 md:grid-cols-2 xl:grid-cols-3";
 
-  const handleFlip = useCallback(
-    (globalIdx: number) => {
-      setFlippedSet((prev) => {
-        const next = new Set(prev);
-        if (next.has(globalIdx)) {
-          next.delete(globalIdx);
-        } else {
-          next.add(globalIdx);
-        }
-        return next;
-      });
-    },
-    [],
-  );
+  const handleFlip = useCallback((globalIdx: number) => {
+    setFlippedSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(globalIdx)) {
+        next.delete(globalIdx);
+      } else {
+        next.add(globalIdx);
+      }
+      return next;
+    });
+  }, []);
 
   return (
     <section className="relative overflow-hidden py-16 band-blue band-fade-top">
@@ -152,7 +148,7 @@ export function NowNextSection() {
         style={{ background: "radial-gradient(circle, rgba(24,68,160,0.14) 0%, rgba(24,68,160,0.06) 42%, transparent 74%)" }}
       />
 
-      <div className="relative z-10 mx-auto max-w-[64rem] px-5 sm:px-7 lg:px-10">
+      <div className="relative z-10 mx-auto max-w-[72rem] px-5 sm:px-7 lg:px-10">
         <div className="mb-10 text-center">
           <motion.p
             {...viewAnim(8)}
@@ -170,7 +166,6 @@ export function NowNextSection() {
 
         <AnchorLine variant="gold" className="mb-10" />
 
-        {/* ── Building lane ────────────────────────── */}
         <div className="mb-8">
           <div className="mb-4 flex items-center gap-3">
             <div className="h-px w-6 bg-[#8ec8ff]/40" />
@@ -189,7 +184,6 @@ export function NowNextSection() {
                   entry={entry}
                   index={laneIdx}
                   isFlipped={flippedSet.has(globalIdx)}
-                  isDimmed={false}
                   onFlip={() => handleFlip(globalIdx)}
                   reduce={reduce}
                 />
@@ -198,7 +192,6 @@ export function NowNextSection() {
           </div>
         </div>
 
-        {/* ── Planned lane ─────────────────────────── */}
         <div className="mb-10">
           <div className="mb-4 flex items-center gap-3">
             <div className="h-px w-6 bg-gold/40" />
@@ -217,7 +210,6 @@ export function NowNextSection() {
                   entry={entry}
                   index={laneIdx}
                   isFlipped={flippedSet.has(globalIdx)}
-                  isDimmed={false}
                   onFlip={() => handleFlip(globalIdx)}
                   reduce={reduce}
                 />
@@ -226,7 +218,6 @@ export function NowNextSection() {
           </div>
         </div>
 
-        {/* ── Want to add on? CTA ──────────────────── */}
         <motion.div
           {...viewAnim(18, 0.2)}
           className="rounded-xl border border-white/8 bg-white/[0.03] px-5 py-5"
@@ -241,24 +232,26 @@ export function NowNextSection() {
               </p>
             </div>
             <div className="flex shrink-0 gap-3">
-              <a href="https://www.instagram.com/_markie.tan/" target="_blank" rel="noopener noreferrer">
-                <Button
-                  variant="gold"
-                  size="sm"
-                  className="border border-gold/60 shadow-[0_0_20px_rgba(255,204,0,0.18)]"
-                >
+              <Button
+                asChild
+                variant="gold"
+                size="sm"
+                className="border border-gold/60 shadow-[0_0_20px_rgba(255,204,0,0.18)]"
+              >
+                <a href="https://www.instagram.com/_markie.tan/" target="_blank" rel="noopener noreferrer">
                   Text Me
-                </Button>
-              </a>
-              <Link href="/planner">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="border-white/14 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(0,114,206,0.10))] text-white hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.10),rgba(0,114,206,0.14))]"
-                >
+                </a>
+              </Button>
+              <Button
+                asChild
+                variant="gold"
+                size="sm"
+                className="min-w-[150px] border border-gold/60 shadow-[0_0_20px_rgba(255,204,0,0.18)]"
+              >
+                <Link href="/planner">
                   Use the Planner
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </div>
         </motion.div>

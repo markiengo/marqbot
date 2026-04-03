@@ -32,7 +32,10 @@ export function AboutHero() {
         };
 
   return (
-    <section className="relative overflow-hidden py-20 sm:py-28" style={{ background: "#07101e" }}>
+    <section
+      className="relative overflow-hidden py-20 sm:py-28"
+      style={{ background: "linear-gradient(180deg,#07101e_0%,#081526_50%,#0a1730_100%)" }}
+    >
       {/* Atmospheric layers */}
       <div className={styles.heroBackdrop} />
       <div className={styles.gridOverlay} />
@@ -59,7 +62,7 @@ export function AboutHero() {
             className="font-[family-name:var(--font-sora)] text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl md:text-6xl"
           >
             {headlineLead}
-            <span className="text-emphasis-blue">MarqBot</span>
+            <span className="text-gold-light">MarqBot</span>
             {headlineTail}
           </motion.h1>
         </div>

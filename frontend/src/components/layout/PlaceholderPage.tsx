@@ -139,24 +139,26 @@ export function PlaceholderPage({
               transition={{ duration: 0.45, delay: 0.48 }}
               className="flex flex-col items-center justify-center gap-3 sm:flex-row"
             >
-              <Link href={primaryHref}>
-                <Button
-                  variant="gold"
-                  size="lg"
-                  className="min-w-[170px] border border-gold/60 shadow-[0_0_28px_rgba(255,204,0,0.24)]"
-                >
+              <Button
+                asChild
+                variant="gold"
+                size="lg"
+                className="min-w-[170px] border border-gold/60 shadow-[0_0_28px_rgba(255,204,0,0.24)]"
+              >
+                <Link href={primaryHref}>
                   {primaryLabel}
-                </Button>
-              </Link>
-              <Link href={secondaryHref}>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className="min-w-[170px] border-white/14 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(0,114,206,0.10))] text-white shadow-[0_0_26px_rgba(0,114,206,0.14)] hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.10),rgba(0,114,206,0.14))]"
-                >
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="secondary"
+                size="lg"
+                className="min-w-[170px] border-white/14 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(0,114,206,0.10))] text-white shadow-[0_0_26px_rgba(0,114,206,0.14)] hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.10),rgba(0,114,206,0.14))]"
+              >
+                <Link href={secondaryHref}>
                   {secondaryLabel}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </motion.div>
           </div>
         </div>

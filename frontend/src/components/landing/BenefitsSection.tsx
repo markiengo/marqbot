@@ -1,140 +1,130 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useInView } from "motion/react";
+import { motion } from "motion/react";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
 
-type Benefit = {
-  num: string;
-  kicker: string;
-  title: string;
-  body: string;
-  accent: "gold" | "blue";
-};
-
-const benefits: Benefit[] = [
+const capabilityCards = [
   {
-    num: "01",
-    kicker: "Take now",
-    title: "See what you can actually take.",
-    body: "MarqBot checks prereqs, standing, and offering status before surfacing anything. No more planning around a class CheckMarq will reject.",
-    accent: "gold",
+    id: "take-now",
+    eyebrow: "Take now",
+    signal: "Prereqs + offering status",
+    title: (
+      <>
+        <span className="text-white">See what you can actually </span>
+        <span className="text-gold-light">take now</span>
+        <span className="text-white">.</span>
+      </>
+    ),
+    body: "The rank only starts after prereqs, standing, and offering status clear.",
   },
   {
-    num: "02",
-    kicker: "Catch early",
-    title: "Spot bottlenecks before they spiral.",
-    body: "Some courses quietly gate half your future. MarqBot surfaces those early — before they become a senior-year problem.",
-    accent: "blue",
+    id: "bottlenecks",
+    eyebrow: "Catch early",
+    signal: "Course chains",
+    title: (
+      <>
+        <span className="text-white">Spot bottlenecks before they get </span>
+        <span className="text-gold-light">dramatic</span>
+        <span className="text-white">.</span>
+      </>
+    ),
+    body: "If one class controls three others, it shows up early enough to fix the term.",
   },
   {
-    num: "03",
-    kicker: "Plan ahead",
-    title: "See the next three semesters, not just the next one.",
-    body: "Map out multiple terms at once. Scheduling traps are a lot easier to dodge when you can see them coming.",
-    accent: "blue",
+    id: "see-farther",
+    eyebrow: "Plan ahead",
+    signal: "Multi-term drafts",
+    title: (
+      <>
+        <span className="text-white">See farther than </span>
+        <span className="text-gold-light">one term</span>
+        <span className="text-white">.</span>
+      </>
+    ),
+    body: "Draft more than one semester before internship timing and hard classes collide.",
   },
   {
-    num: "04",
-    kicker: "Track it all",
-    title: "Keep the whole degree map in view.",
-    body: "Major, track, MCC, minors, and supporting buckets stay attached to every recommendation. Nothing falls through.",
-    accent: "gold",
+    id: "whole-map",
+    eyebrow: "Track it all",
+    signal: "Bucket context attached",
+    title: (
+      <>
+        <span className="text-white">Keep the whole degree map in </span>
+        <span className="text-gold-light">view</span>
+        <span className="text-white">.</span>
+      </>
+    ),
+    body: "Major, track, MCC, minors, and support buckets stay attached to every suggestion.",
   },
-];
+] as const;
 
 export function BenefitsSection() {
-  const sectionRef = useRef<HTMLElement | null>(null);
   const reduceEffects = useReducedEffects();
-  const inView = useInView(sectionRef, { once: true, margin: "-80px" });
 
   return (
     <section
-      id="feature-spotlight"
-      data-testid="feature-spotlight"
+      id="features"
+      data-testid="landing-features"
       data-reduced-motion={reduceEffects ? "true" : "false"}
-      ref={sectionRef}
-      className="feature-spotlight-shell relative overflow-hidden py-20 band-blue band-fade-top"
+      className="relative overflow-hidden bg-[linear-gradient(180deg,#061425_0%,#07192e_100%)] py-16 sm:py-20"
     >
-      {/* Hero-to-spotlight seam */}
-      <div className="feature-spotlight-seam absolute top-0 left-0 right-0 h-[2px] w-full" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(255,204,0,0.10),transparent_26%),radial-gradient(circle_at_84%_16%,rgba(0,114,206,0.08),transparent_30%)]" />
 
-      {!reduceEffects && (
-        <div className="absolute inset-0 -z-10 pointer-events-none">
-          <div className="absolute left-[10%] top-12 h-[20rem] w-[20rem] rounded-full bg-[radial-gradient(circle,rgba(255,204,0,0.08),rgba(255,204,0,0.04)_40%,transparent_74%)] opacity-90" />
-          <div className="absolute bottom-8 right-[8%] h-[18rem] w-[18rem] rounded-full bg-[radial-gradient(circle,rgba(0,114,206,0.14),rgba(0,114,206,0.07)_42%,transparent_74%)] opacity-95" />
-        </div>
-      )}
-
-      <div className="mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
-        <div className="mx-auto max-w-[48rem] text-center">
-          <motion.p
-            initial={reduceEffects ? false : { opacity: 0, y: 8 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: reduceEffects ? 0.18 : 0.35 }}
-            className="text-xs font-semibold uppercase tracking-[0.24em] text-gold"
-          >
+      <div className="relative mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
+        <div className="mx-auto max-w-[52rem] text-center">
+          <p className="text-[0.96rem] font-semibold uppercase tracking-[0.24em] text-gold-light">
             Why it helps
-          </motion.p>
-          <motion.h2
-            initial={reduceEffects ? false : { opacity: 0, y: 14 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: reduceEffects ? 0.18 : 0.45, delay: reduceEffects ? 0 : 0.08 }}
-            className="mt-3 text-[clamp(1.8rem,5vw,4rem)] font-bold leading-[0.96] tracking-[-0.03em] text-white"
-          >
-            Less <span className="text-gold">anxiety.</span> More <span className="text-emphasis-blue">clarity.</span>
-          </motion.h2>
-          <motion.p
-            initial={reduceEffects ? false : { opacity: 0, y: 10 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: reduceEffects ? 0.18 : 0.4, delay: reduceEffects ? 0 : 0.16 }}
-            className="mx-auto mt-4 max-w-[38rem] text-[0.98rem] leading-relaxed text-slate-300"
-          >
-            MarqBot narrows the next move fast, flags bottlenecks early, and keeps the whole degree map attached to the recommendation.
-          </motion.p>
+          </p>
+          <h2 className="mt-4 text-[clamp(2.45rem,6vw,4.8rem)] font-bold leading-[0.94] tracking-[-0.05em] text-white">
+            Less <span className="text-[#b6dcff]">guesswork.</span> More <span className="text-gold-light">clarity.</span>
+          </h2>
+          <p className="mx-auto mt-4 max-w-[42rem] text-[1.05rem] leading-relaxed text-slate-300">
+            MarqBot narrows the next move fast, flags blockers early, and keeps the degree map attached to the recommendation.
+          </p>
         </div>
 
-        {/* 2×2 benefit grid */}
-        <div className="feature-spotlight-rail mt-10 grid gap-5 sm:grid-cols-2">
-          {benefits.map((benefit, index) => (
+        <div className="mt-10 grid gap-5 lg:grid-cols-2">
+          {capabilityCards.map((card, index) => (
             <motion.article
-              key={benefit.title}
-              data-benefit={benefit.kicker.toLowerCase().replace(/\s+/g, "-")}
-              initial={reduceEffects ? false : { opacity: 0, y: 24 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: reduceEffects ? 0.18 : 0.5, delay: reduceEffects ? 0 : 0.12 + index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-              whileHover={reduceEffects ? undefined : { y: -5, scale: 1.015 }}
-              className="feature-spotlight-step group relative overflow-hidden rounded-[1.5rem] border p-6 shine-sweep"
+              key={card.id}
+              initial={reduceEffects ? false : { opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              whileHover={reduceEffects ? undefined : { y: -8, scale: 1.01 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: reduceEffects ? 0.18 : 0.42, delay: reduceEffects ? 0 : index * 0.05 }}
+              className="group relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,24,46,0.92),rgba(7,20,38,0.96))] p-7 shadow-[0_26px_80px_rgba(0,0,0,0.24)] transition-shadow duration-300 hover:shadow-[0_32px_100px_rgba(0,0,0,0.30)]"
             >
-              {/* Hover glow */}
-              <div
-                className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                style={{
-                  background: benefit.accent === "gold"
-                    ? "radial-gradient(circle at 40% 0%, rgba(255,204,0,0.08), transparent 62%)"
-                    : "radial-gradient(circle at 40% 0%, rgba(0,114,206,0.10), transparent 62%)",
-                }}
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_90%_14%,rgba(255,204,0,0.08),transparent_22%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <motion.div
+                aria-hidden="true"
+                className="pointer-events-none absolute left-7 right-7 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,204,0,0.9),transparent)]"
+                initial={reduceEffects ? false : { opacity: 0.35, scaleX: 0.45 }}
+                whileInView={{ opacity: 1, scaleX: 1 }}
+                whileHover={reduceEffects ? undefined : { scaleX: 1.12, opacity: 1 }}
+                transition={{ duration: reduceEffects ? 0.16 : 0.45, delay: reduceEffects ? 0 : index * 0.06 }}
               />
-              {/* Decorative step number */}
-              <span className="pointer-events-none absolute right-5 top-4 select-none text-[3.8rem] font-bold leading-none text-white/[0.04]">
-                {benefit.num}
-              </span>
-
-              <div className="relative">
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${
-                    benefit.accent === "gold" ? "bg-gold/12 text-gold" : "bg-blue-400/10 text-[#8ec8ff]"
-                  }`}
-                >
-                  {benefit.kicker}
-                </span>
-                <h3 className="mt-4 text-[1.08rem] font-bold leading-tight text-white">
-                  {benefit.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                  {benefit.body}
-                </p>
+              <div className="pointer-events-none absolute right-5 top-5 text-[4.6rem] font-semibold leading-none tracking-[-0.08em] text-white/[0.05]">
+                {String(index + 1).padStart(2, "0")}
               </div>
+
+              <p className="relative text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-gold-light">
+                {card.eyebrow}
+              </p>
+              <h3 className="relative mt-5 max-w-[20ch] text-[clamp(1.8rem,3vw,2.55rem)] font-semibold leading-[1.02] tracking-[-0.045em]">
+                {card.title}
+              </h3>
+              <p className="relative mt-5 max-w-[34rem] text-[1.04rem] leading-relaxed text-slate-300">
+                {card.body}
+              </p>
+              <motion.div
+                initial={reduceEffects ? false : { opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: reduceEffects ? 0.16 : 0.34, delay: reduceEffects ? 0 : 0.12 + index * 0.05 }}
+                className="relative mt-6 inline-flex max-w-fit items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#9fd1ff]"
+              >
+                {card.signal}
+              </motion.div>
             </motion.article>
           ))}
         </div>

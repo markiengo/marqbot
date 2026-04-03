@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Modal } from "@/components/shared/Modal";
 import { Button } from "@/components/shared/Button";
@@ -365,7 +365,7 @@ function RankingStep() {
         <p className="text-[0.9rem] leading-relaxed text-ink-faint">
           Deterministic rules, not guesswork.{" "}
           <a
-            href="https://github.com/markiengo/marqbot/blob/main/docs/algorithm.md"
+            href="https://github.com/markiengo/marqbot/blob/main/docs/memos/algorithm.md"
             target="_blank"
             rel="noreferrer"
             className="text-gold underline underline-offset-2 hover:text-gold-light transition-colors"
@@ -408,26 +408,28 @@ function StepDots({ total, current, onJump }: { total: number; current: number; 
 /* ── Main Modal (2 steps: board + ranking) ────────────────────────── */
 export function MajorGuideModal({ open, onClose, programs, onFinish }: MajorGuideModalProps) {
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const totalSteps = 2; // board + ranking
   const isLastStep = step === 1;
-  const directionRef = useRef<1 | -1>(1);
 
   const handleNext = useCallback(() => {
     if (isLastStep) {
       setStep(0);
+      setDirection(1);
       onFinish();
       return;
     }
-    directionRef.current = 1;
+    setDirection(1);
     setStep(1);
   }, [isLastStep, onFinish]);
 
   const handleBack = useCallback(() => {
-    directionRef.current = -1;
+    setDirection(-1);
     setStep(0);
   }, []);
 
   const handleClose = useCallback(() => {
+    setDirection(1);
     setStep(0);
     onClose();
   }, [onClose]);
@@ -442,7 +444,14 @@ export function MajorGuideModal({ open, onClose, programs, onFinish }: MajorGuid
     >
       <div className="flex flex-col gap-4 min-h-[40vh]">
         <div className="flex items-center justify-between">
-          <StepDots total={totalSteps} current={step} onJump={(i) => { directionRef.current = i > step ? 1 : -1; setStep(i); }} />
+          <StepDots
+            total={totalSteps}
+            current={step}
+            onJump={(i) => {
+              setDirection(i > step ? 1 : -1);
+              setStep(i);
+            }}
+          />
           <span className="text-[0.75rem] text-ink-faint tabular-nums">
             {step + 1} / {totalSteps}
           </span>
@@ -452,9 +461,9 @@ export function MajorGuideModal({ open, onClose, programs, onFinish }: MajorGuid
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={step}
-              initial={{ opacity: 0, x: directionRef.current * 36 }}
+              initial={{ opacity: 0, x: direction * 36 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: directionRef.current * -36 }}
+              exit={{ opacity: 0, x: direction * -36 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
               {isLastStep ? <RankingStep /> : <AllProgramsBoard programs={programs} />}

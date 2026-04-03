@@ -36,7 +36,7 @@ export default function PlannerPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+      <div className="h-[calc(100dvh-4rem)] overflow-hidden flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-ink-muted">Loading planner data...</p>
@@ -47,7 +47,7 @@ export default function PlannerPage() {
 
   if (bootstrapError) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
+      <div className="h-[calc(100dvh-4rem)] overflow-hidden flex items-center justify-center px-4">
         <div className="max-w-md text-center space-y-4 rounded-2xl border border-border-subtle bg-surface-card/70 p-6">
           <div className="space-y-2">
             <h1 className="text-xl font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
@@ -69,7 +69,9 @@ export default function PlannerPage() {
   return (
     <>
       <PlannerSessionPersistence />
-      <PlannerLayout />
+      <div className="h-[calc(100dvh-4rem)] overflow-hidden">
+        <PlannerLayout />
+      </div>
     </>
   );
 }

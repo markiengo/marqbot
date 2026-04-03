@@ -3,6 +3,7 @@ import { Sora, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { Navbar } from "@/components/layout/Navbar";
+import { EffectsModeManager } from "@/components/shared/EffectsModeManager";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -50,6 +51,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sora.variable} ${jakarta.variable}`}>
       <body className="min-h-screen bg-orbs">
+        <EffectsModeManager />
         <AppProvider>
           <Navbar />
           <main>{children}</main>

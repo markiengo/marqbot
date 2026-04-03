@@ -41,15 +41,6 @@ export const ABOUT_INTRO_COPY = {
   note: "This started as a \u201cquick side project.\u201d That was a lie and I fell for it.",
 } as const;
 
-export const ABOUT_KNOWN_ISSUES = {
-  eyebrow: "Work in progress",
-  title: "Sequenced-course recommendations",
-  body:
-    "MarqBot sometimes suggests advanced courses to students who haven\u2019t taken the earlier classes in that sequence. Actively fixing.",
-  detail:
-    "Some courses have requirements the bulletin doesn\u2019t list clearly \u2014 instructor consent, college restrictions, or implied sequences. MarqBot doesn\u2019t catch all of these yet. If you see something off, hit Feedback so I can close the gap.",
-} as const;
-
 export const ABOUT_TIMELINE: TimelineEntry[] = [
   {
     status: "shipped",

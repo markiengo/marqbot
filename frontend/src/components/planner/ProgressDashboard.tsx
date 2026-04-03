@@ -48,14 +48,14 @@ function ProgressDashboardInner({ onViewDetails, onCompletedClick, onInProgressC
   const hasData = completed.size > 0 || inProgress.size > 0;
 
   return (
-    <div className="lg:h-full lg:min-h-0 rounded-2xl glass-card gradient-border p-3 flex flex-col gap-1.5 relative overflow-hidden">
+    <div className="lg:h-full lg:min-h-0 rounded-2xl glass-card gradient-border p-2.5 flex flex-col gap-1 relative overflow-hidden">
       {/* Atmospheric glow overlay */}
       <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{
         background: "radial-gradient(ellipse 60% 50% at 80% 15%, rgba(30, 159, 97, 0.06), transparent), radial-gradient(ellipse 50% 40% at 15% 85%, rgba(255, 204, 0, 0.05), transparent)"
       }} />
 
       <div className="relative z-[1] flex flex-col gap-1.5 flex-1 min-h-0">
-        <p className="section-kicker">
+        <p className="section-kicker !text-[0.55rem] !tracking-[0.12em] gap-1.5 before:w-3">
           Planning tool. Not official advising. Check with your advisor and CheckMarq.
         </p>
 

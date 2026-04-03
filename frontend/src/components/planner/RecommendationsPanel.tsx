@@ -6,6 +6,7 @@ import type { RecommendationResponse, BucketProgress } from "@/lib/types";
 import { esc } from "@/lib/utils";
 import { CourseRow } from "./CourseRow";
 import { SemesterSelector } from "./SemesterSelector";
+import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 interface RecommendationsPanelProps {
   data: RecommendationResponse | null;
@@ -19,6 +20,7 @@ function RecommendationsPanelInner({
   onCourseClick,
 }: RecommendationsPanelProps) {
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const reduceEffects = useReducedEffects();
   const semesters = data?.semesters || [];
 
   if (!data) return null;
@@ -80,7 +82,11 @@ function RecommendationsPanelInner({
     courseCount >= 6 ? "px-1.5 py-1.5" : courseCount >= 5 ? "px-2 py-1.5" : "px-2 py-2";
 
   return (
-    <div className="relative h-full min-h-0 overflow-hidden rounded-xl glass-card p-2">
+    <div
+      data-testid="recommendations-panel"
+      data-reduced-motion={reduceEffects ? "true" : "false"}
+      className="relative h-full min-h-0 overflow-hidden rounded-xl glass-card p-2"
+    >
       <div
         className="absolute inset-0 rounded-xl pointer-events-none"
         style={{
@@ -102,8 +108,21 @@ function RecommendationsPanelInner({
         )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg glass-card">
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gold/15 px-3 py-2">
-            <h4 className="hash-mark font-[family-name:var(--font-sora)] text-[11px] font-bold leading-[1.25] tracking-[0.01em] text-gold md:text-[13px]">
+          <div className="relative flex shrink-0 items-center justify-between gap-2 border-b border-gold/15 px-3 py-2">
+            {!reduceEffects && (
+              <motion.div
+                aria-hidden="true"
+                animate={{ x: [0, 4, 0], y: [0, -5, 0] }}
+                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+                className="pointer-events-none absolute inset-x-3 inset-y-1 rounded-md opacity-70"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 40% 80% at 20% 40%, rgba(255,204,0,0.10), transparent), radial-gradient(ellipse 55% 70% at 85% 50%, rgba(0,114,206,0.10), transparent)",
+                }}
+              />
+            )}
+
+            <h4 className="relative hash-mark font-[family-name:var(--font-sora)] text-[11px] font-bold leading-[1.25] tracking-[0.01em] text-gold md:text-[13px]">
               Semester {selectedIdx + 1}
               {activeSemester.target_semester && ` - ${activeSemester.target_semester}`}
             </h4>
@@ -111,7 +130,7 @@ function RecommendationsPanelInner({
               <button
                 type="button"
                 onClick={() => onExpandSemester(selectedIdx)}
-                className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gold/25 text-gold/70 transition-all hover:border-gold/50 hover:bg-gold/8 hover:text-gold"
+                className="relative inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gold/25 text-gold/70 transition-all hover:border-gold/50 hover:bg-gold/8 hover:text-gold"
                 aria-label={`Expand semester ${selectedIdx + 1} details`}
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -150,10 +169,10 @@ function RecommendationsPanelInner({
                   const pp = activeSemester.projected_progress;
                   const isBucketSatisfied = (b: BucketProgress): boolean => {
                     if (b.satisfied) return true;
-                    const nc = b.needed_count ?? 0;
-                    if (nc > 0) {
+                    const neededCount = b.needed_count ?? 0;
+                    if (neededCount > 0) {
                       const total = (b.completed_courses ?? 0) + (b.in_progress_courses ?? 0);
-                      if (total >= nc) return true;
+                      if (total >= neededCount) return true;
                     }
                     const needed = b.needed ?? 0;
                     if (needed > 0) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { Modal } from "@/components/shared/Modal";
@@ -35,14 +35,14 @@ export function ProfileModal({
 }: ProfileModalProps) {
   const { state } = useAppContext();
   const [activeTab, setActiveTab] = useState<TabKey>("program");
-  const prevTabIdx = useRef(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
 
   const activeIdx = TABS.findIndex((t) => t.key === activeTab);
-  const direction = activeIdx >= prevTabIdx.current ? 1 : -1;
 
   const handleTabChange = (key: TabKey) => {
-    prevTabIdx.current = activeIdx;
+    const nextIdx = TABS.findIndex((t) => t.key === key);
+    setDirection(nextIdx >= activeIdx ? 1 : -1);
     setActiveTab(key);
   };
 

@@ -72,7 +72,7 @@ export function PreferencesStep() {
             className={`${item.panel} flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]`}
           >
             <div className="space-y-1">
-              <label className="text-sm font-medium text-ink-primary">{item.label}</label>
+              <label className="text-sm font-medium text-gold-light">{item.label}</label>
               <p className="mt-0.5 text-xs text-ink-muted">{item.hint}</p>
             </div>
             <div className="mt-auto pt-3">
@@ -98,7 +98,7 @@ export function PreferencesStep() {
           className="onboarding-panel-soft flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]"
         >
           <div className="space-y-1">
-            <label className="text-sm font-medium text-ink-primary">
+            <label className="text-sm font-medium text-gold-light">
               Academic stage
             </label>
             <p className="mt-0.5 text-xs text-ink-muted">
@@ -126,15 +126,18 @@ export function PreferencesStep() {
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.32 }}
-          className="onboarding-panel flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]"
-        >
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.32 }}
+        className="grid gap-4 lg:grid-cols-2"
+      >
+        <div className="onboarding-panel flex flex-col rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-ink-primary">What&apos;s your build?</label>
+              <label className="text-sm font-medium text-gold-light">What&apos;s your build?</label>
               <button
                 type="button"
                 onClick={() => setBuildInfoOpen(true)}
@@ -163,56 +166,41 @@ export function PreferencesStep() {
               {SCHEDULING_STYLE_OPTIONS.find((o) => o.value === state.schedulingStyle)?.helper}
             </p>
           </div>
-        </motion.div>
-      </div>
+        </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.40 }}
-        className="grid gap-4 lg:grid-cols-2"
-      >
-        <label className="onboarding-panel flex cursor-pointer items-center justify-between gap-4 rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]">
-          <div className="space-y-1">
-            <span className="text-sm font-medium text-ink-primary">
+        <div className="grid gap-3">
+          <label className="onboarding-panel flex min-h-[5.5rem] cursor-pointer items-center justify-between gap-3 rounded-[1.5rem] px-4 py-3">
+            <span className="text-sm font-medium leading-tight text-gold-light">
               Are you an honors student?
             </span>
-            <p className="text-xs text-ink-muted">
-              Unlocks honors sections in recommendations.
-            </p>
-          </div>
-          <div className="relative shrink-0">
-            <input
-              type="checkbox"
-              checked={state.isHonorsStudent}
-              onChange={(e) => dispatch({ type: "SET_HONORS_STUDENT", payload: e.target.checked })}
-              className="peer sr-only"
-            />
-            <div className="h-7 w-12 rounded-full border border-border-subtle bg-[rgba(22,43,80,0.5)] transition-colors peer-checked:border-gold/40 peer-checked:bg-[rgba(255,204,0,0.18)]" />
-            <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-ink-muted transition-all peer-checked:left-[1.375rem] peer-checked:bg-gold-light" />
-          </div>
-        </label>
+            <div className="relative shrink-0">
+              <input
+                type="checkbox"
+                checked={state.isHonorsStudent}
+                onChange={(e) => dispatch({ type: "SET_HONORS_STUDENT", payload: e.target.checked })}
+                className="peer sr-only"
+              />
+              <div className="h-7 w-12 rounded-full border border-border-subtle bg-[rgba(22,43,80,0.5)] transition-colors peer-checked:border-gold/40 peer-checked:bg-[rgba(255,204,0,0.18)]" />
+              <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-ink-muted transition-all peer-checked:left-[1.375rem] peer-checked:bg-gold-light" />
+            </div>
+          </label>
 
-        <label className="onboarding-panel-soft flex cursor-pointer items-center justify-between gap-4 rounded-[1.8rem] p-[clamp(1rem,1.6vw,1.35rem)]">
-          <div className="space-y-1">
-            <span className="text-sm font-medium text-ink-primary">
+          <label className="onboarding-panel-soft flex min-h-[5.5rem] cursor-pointer items-center justify-between gap-3 rounded-[1.5rem] px-4 py-3">
+            <span className="text-sm font-medium leading-tight text-gold-light">
               Do you take summer classes?
             </span>
-            <p className="text-xs text-ink-muted">
-              Includes summer terms in your plan.
-            </p>
-          </div>
-          <div className="relative shrink-0">
-            <input
-              type="checkbox"
-              checked={state.includeSummer}
-              onChange={(e) => dispatch({ type: "SET_INCLUDE_SUMMER", payload: e.target.checked })}
-              className="peer sr-only"
-            />
-            <div className="h-7 w-12 rounded-full border border-border-subtle bg-[rgba(22,43,80,0.5)] transition-colors peer-checked:border-gold/40 peer-checked:bg-[rgba(255,204,0,0.18)]" />
-            <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-ink-muted transition-all peer-checked:left-[1.375rem] peer-checked:bg-gold-light" />
-          </div>
-        </label>
+            <div className="relative shrink-0">
+              <input
+                type="checkbox"
+                checked={state.includeSummer}
+                onChange={(e) => dispatch({ type: "SET_INCLUDE_SUMMER", payload: e.target.checked })}
+                className="peer sr-only"
+              />
+              <div className="h-7 w-12 rounded-full border border-border-subtle bg-[rgba(22,43,80,0.5)] transition-colors peer-checked:border-gold/40 peer-checked:bg-[rgba(255,204,0,0.18)]" />
+              <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-ink-muted transition-all peer-checked:left-[1.375rem] peer-checked:bg-gold-light" />
+            </div>
+          </label>
+        </div>
       </motion.div>
 
       <Modal

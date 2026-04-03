@@ -14,22 +14,22 @@ const stepMeta = {
   majors: {
     eyebrow: "Step 1 of 4",
     title: "Pick your major.",
-    body: "Start with what you've declared. Add tracks if they're official.",
+    body: "Declared major first. Tracks after.",
   },
   courses: {
     eyebrow: "Step 2 of 4",
     title: "Add your courses.",
-    body: "What you've finished and what you're taking now.",
+    body: "Finished first. In-progress too.",
   },
   preferences: {
     eyebrow: "Step 3 of 4",
     title: "Set your preferences.",
-    body: "Next term, planning horizon, and course load.",
+    body: "Term, pace, and how far ahead.",
   },
   roadmap: {
     eyebrow: "Step 4 of 4",
     title: "Know your buckets.",
-    body: "Your degree is split into requirement buckets. This is what you're working toward.",
+    body: "See the buckets before MarqBot ranks the plan.",
   },
 } as const;
 
@@ -43,11 +43,12 @@ export function WizardLayout({
   const meta = stepMeta[stepKey];
 
   return (
-    <div className="warm-page min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+    <div className="warm-page warm-page-noise min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-[96rem]">
         <div className="grid gap-5 xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)] xl:items-start">
-          <aside className="warm-card-muted rounded-[2rem] p-5 sm:p-6 xl:sticky xl:top-28">
-            <div className="onboarding-panel-gold rounded-[1.5rem] px-5 py-5">
+          <aside className="warm-card-muted overflow-hidden rounded-[2rem] p-5 sm:p-6 xl:sticky xl:top-28">
+            <div className="onboarding-panel-gold relative overflow-hidden rounded-[1.5rem] px-5 py-5">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_0%,rgba(255,204,0,0.12),transparent_26%),radial-gradient(circle_at_12%_82%,rgba(0,114,206,0.14),transparent_30%)]" />
               <p className="warm-kicker">{meta.eyebrow}</p>
               <h3 className="mt-4 max-w-[10ch] font-[family-name:var(--font-sora)] text-[2rem] font-semibold leading-[0.98] tracking-[-0.04em] text-ink-primary">
                 {meta.title}
