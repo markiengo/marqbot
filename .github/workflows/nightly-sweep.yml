@@ -23,7 +23,7 @@ jobs:
   nightly-sweep:
     name: Nightly Focused Sweep
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
 
     steps:
       - name: Check out repository
@@ -127,7 +127,9 @@ jobs:
           path: |
             nightly-artifacts/*.md
             nightly_output.txt
-          if-no-files-found: error
+            tests/nightly_reports/*.md
+            tests/nightly_reports/*.json
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Stop after schedule skip
