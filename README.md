@@ -34,8 +34,6 @@ MarqBot is a planning tool for Marquette Business students. Pick your program, a
 | **Multi-semester plans** | Map out more than one term at a time |
 | **Saved plans** | Snapshots stored in your browser. Compare paths and come back anytime. |
 | **Scheduling styles** | Grinder, Explorer, or Mixer — pick how you balance core vs. discovery |
-| **Adaptive visual effects** | Keeps the richer UI on by default and falls back to a lighter rendering mode only when reduced motion or a manual reduced-effects preference is active |
-| **Feedback form** | Found a bug or have an idea? Send it from inside the app. |
 
 Same inputs, same outputs. Every time.
 
@@ -59,7 +57,6 @@ Under the hood, MarqBot runs a deterministic recommendation engine:
 Your scheduling style adjusts the balance between core requirements and discovery electives. For the full breakdown, see [How MarqBot Plans Your Degree](docs/memos/algorithm.md). For engine internals, see the [Technical Reference](docs/codebase/tech_readme.md).
 
 When a required or choose-from bucket collides with a broad elective pool, MarqBot counts the narrower requirement first. If two completed courses overfill the same required slot, the extra course can still spill into an eligible elective pool.
-The frontend also adapts its visual effects to the active preference state. When reduced motion or a manual reduced-effects preference is active, MarqBot tones down blur, glow, and heavier motion without changing the actual planning logic.
 
 ## What It Is Not
 
