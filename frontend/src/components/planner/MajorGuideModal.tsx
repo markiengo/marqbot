@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Modal } from "@/components/shared/Modal";
 import { Button } from "@/components/shared/Button";
+import { sortProgramsForBucketMap } from "@/lib/programBucketMapOrder";
 import type { ProgramBucketTree, BucketSlot } from "@/lib/types";
 
 /* ── Ranking rules (shared with PlannerLayout) ────────────────────── */
@@ -229,6 +230,7 @@ export function ProgramStep({ program }: { program: ProgramBucketTree }) {
 }
 
 function AllProgramsBoard({ programs }: { programs: ProgramBucketTree[] }) {
+  const orderedPrograms = sortProgramsForBucketMap(programs);
   return (
     <div className="space-y-4">
       {/* Tutorial intro */}
@@ -273,7 +275,7 @@ function AllProgramsBoard({ programs }: { programs: ProgramBucketTree[] }) {
       {/* Horizontal scrolling board of program columns */}
       <div className="overflow-x-auto pb-2 -mx-2 px-2">
         <div className="flex gap-3 items-start" style={{ minWidth: "min-content" }}>
-          {programs.map((program, i) => (
+          {orderedPrograms.map((program, i) => (
             <ProgramColumn key={program.program_id} program={program} index={i} />
           ))}
         </div>

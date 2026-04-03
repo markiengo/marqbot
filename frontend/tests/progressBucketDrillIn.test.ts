@@ -11,6 +11,14 @@ import { SemesterModal } from "../src/components/planner/SemesterModal";
 import type { BucketProgress, CreditKpiMetrics, SemesterData } from "../src/lib/types";
 import { renderWithApp, makeAppState } from "./testUtils";
 
+const { loadProgramBucketsSpy } = vi.hoisted(() => ({
+  loadProgramBucketsSpy: vi.fn(),
+}));
+
+vi.mock("@/lib/api", () => ({
+  loadProgramBuckets: loadProgramBucketsSpy,
+}));
+
 const state = makeAppState();
 
 const baseMetrics: CreditKpiMetrics = {
@@ -78,6 +86,41 @@ describe("Progress bucket drill-in", () => {
       expect(screen.queryByRole("heading", { name: /mcc core \(2\)/i })).not.toBeInTheDocument();
     });
     expect(screen.getByRole("heading", { name: /degree progress/i })).toBeInTheDocument();
+  });
+
+  test("opens the bucket map help from current progress", async () => {
+    loadProgramBucketsSpy.mockResolvedValue([
+      {
+        program_id: "MCC_FOUNDATION",
+        program_label: "MCC Foundation",
+        type: "universal",
+        buckets: [],
+      },
+      {
+        program_id: "FIN_MAJOR",
+        program_label: "Finance",
+        type: "major",
+        buckets: [],
+      },
+    ]);
+
+    renderWithApp(
+      createElement(ProgressModal, {
+        open: true,
+        onClose: () => {},
+        metrics: baseMetrics,
+        currentProgress: { MCC_CORE: makeBucketProgress() },
+        courses: courseCatalog,
+      }),
+      makeAppState({
+        selectedMajors: new Set(["FIN_MAJOR"]),
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /open bucket map help/i }));
+
+    expect(await screen.findByRole("heading", { name: /bucket map/i })).toBeInTheDocument();
+    expect(await screen.findByText(/same map as onboarding step 4/i)).toBeInTheDocument();
   });
 
   test("escape closes only the topmost bucket modal and returns focus to the bucket card", async () => {
@@ -173,5 +216,60 @@ describe("Projected bucket drill-in", () => {
     expect(bucketDialog).not.toBeNull();
     expect(within(bucketDialog as HTMLElement).getByText("In Progress / Planned")).toBeInTheDocument();
     expect(within(bucketDialog as HTMLElement).queryByText("Taken / Counted")).not.toBeInTheDocument();
+  });
+
+  test("opens the bucket map help from projected progress", async () => {
+    loadProgramBucketsSpy.mockResolvedValue([
+      {
+        program_id: "MCC_FOUNDATION",
+        program_label: "MCC Foundation",
+        type: "universal",
+        buckets: [],
+      },
+      {
+        program_id: "CB_TRACK",
+        program_label: "Commercial Banking Track",
+        type: "track",
+        buckets: [],
+      },
+    ]);
+
+    const semester: SemesterData = {
+      target_semester: "Fall 2026",
+      standing_label: "Sophomore",
+      recommendations: [],
+      projected_progress: {
+        MCC_CORE: makeBucketProgress({
+          completed_applied: [],
+          in_progress_applied: ["FINA 3001"],
+          completed_courses: 0,
+          in_progress_courses: 1,
+          completed_done: 0,
+          in_progress_increment: 1,
+        }),
+      },
+      projection_note: "Preview of progress after this semester.",
+    };
+
+    renderWithApp(
+      createElement(SemesterModal, {
+        open: true,
+        onClose: () => {},
+        semester,
+        index: 0,
+        totalCount: 1,
+        requestedCount: 3,
+        courses: courseCatalog,
+      }),
+      makeAppState({
+        selectedMajors: new Set(["FIN_MAJOR"]),
+        selectedTracks: ["CB_TRACK"],
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /open bucket map help/i }));
+
+    expect(await screen.findByRole("heading", { name: /bucket map/i })).toBeInTheDocument();
+    expect(await screen.findByText(/same map as onboarding step 4/i)).toBeInTheDocument();
   });
 });

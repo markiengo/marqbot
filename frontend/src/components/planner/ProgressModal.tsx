@@ -10,6 +10,7 @@ import { groupProgressByTierWithMajors, buildCourseCreditMap, sumCreditsForCours
 import { getProgressQuip } from "@/lib/quips";
 import { BucketSectionTabs } from "./BucketSectionTabs";
 import { BucketCourseModal } from "./BucketCourseModal";
+import { BucketMapModal } from "./BucketMapModal";
 
 interface ProgressModalProps {
   open: boolean;
@@ -21,6 +22,8 @@ interface ProgressModalProps {
   programLabelMap?: Map<string, string>;
   programOrder?: string[];
   declaredMajors?: string[];
+  declaredTracks?: string[];
+  declaredMinors?: string[];
   onCourseClick?: (courseCode: string) => void;
   rawCompleted?: Set<string>;
   rawInProgress?: Set<string>;
@@ -36,13 +39,22 @@ export function ProgressModal({
   programLabelMap,
   programOrder,
   declaredMajors,
+  declaredTracks,
+  declaredMinors,
   onCourseClick,
   rawCompleted,
   rawInProgress,
 }: ProgressModalProps) {
   const sections = useMemo(
-    () => (open ? groupProgressByTierWithMajors(currentProgress, programLabelMap, programOrder) : []),
-    [open, currentProgress, programLabelMap, programOrder],
+    () => (
+      open
+        ? groupProgressByTierWithMajors(currentProgress, programLabelMap, programOrder, {
+            declaredTracks,
+            declaredMinors,
+          })
+        : []
+    ),
+    [open, currentProgress, programLabelMap, programOrder, declaredTracks, declaredMinors],
   );
   const allNotes = useMemo(
     () => (open ? (assumptionNotes || []).map((n) => n.trim()).filter(Boolean) : []),
@@ -59,6 +71,7 @@ export function ProgressModal({
   const hasAssumptions = allNotes.length > 0 && rawCompleted !== undefined;
   const [assumptionsOn, setAssumptionsOn] = useState(true);
   const [bucketDetail, setBucketDetail] = useState<BucketDetailState | null>(null);
+  const [bucketMapOpen, setBucketMapOpen] = useState(false);
   const bucketTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const creditMap = useMemo(
@@ -76,6 +89,7 @@ export function ProgressModal({
 
   const handleClose = () => {
     setBucketDetail(null);
+    setBucketMapOpen(false);
     onClose();
   };
 
@@ -239,9 +253,19 @@ export function ProgressModal({
 
           {sections.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-[0.88rem] font-semibold uppercase tracking-wider text-gold hash-mark">
-                Requirement Breakdown
-              </h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-[0.88rem] font-semibold uppercase tracking-wider text-gold hash-mark">
+                  Requirement Breakdown
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setBucketMapOpen(true)}
+                  aria-label="Open bucket map help"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold/22 bg-gold/10 text-base font-semibold text-gold transition-colors hover:border-gold/38 hover:bg-gold/16"
+                >
+                  ?
+                </button>
+              </div>
               <BucketSectionTabs
                 sections={sections}
                 programLabelMap={programLabelMap}
@@ -265,6 +289,10 @@ export function ProgressModal({
           onCourseClick={handleBucketCourseClick}
         />
       )}
+      <BucketMapModal
+        open={bucketMapOpen}
+        onClose={() => setBucketMapOpen(false)}
+      />
     </>
   );
 }

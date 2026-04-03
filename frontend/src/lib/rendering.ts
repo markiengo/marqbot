@@ -186,8 +186,18 @@ type ProgressSectionKey =
   | "mcc"
   | "bcc"
   | "major"
-  | "track_minor"
-  | "other";
+  | "track"
+  | "minor";
+
+function isTrackProgressBucket(bucketId: string): boolean {
+  const parentId = parentBucketId(bucketId);
+  return parentId.endsWith("_TRACK");
+}
+
+function isMinorProgressBucket(bucketId: string): boolean {
+  const parentId = parentBucketId(bucketId);
+  return parentId.endsWith("_MINOR");
+}
 
 function inferProgressSection(
   bucketId: string,
@@ -215,15 +225,18 @@ function inferProgressSection(
     bucketId.startsWith("BCC::") ||
     localId.startsWith("BCC_")
   ) {
-    return { key: "bcc", label: "Business Core (BCC)", rank: 1 };
+    return { key: "bcc", label: "BCC", rank: 1 };
   }
-  if (tier === 3 || parentId.endsWith("_TRACK") || parentId.endsWith("_MINOR")) {
-    return { key: "track_minor", label: "Tracks & Minors", rank: 3 };
+  if (isTrackProgressBucket(bucketId)) {
+    return { key: "track", label: "Tracks", rank: 3 };
+  }
+  if (isMinorProgressBucket(bucketId)) {
+    return { key: "minor", label: "Minors", rank: 4 };
   }
   if (tier === 2) {
-    return { key: "major", label: "Major Requirements", rank: 2 };
+    return { key: "major", label: "Majors", rank: 2 };
   }
-  return { key: "other", label: "Additional Requirements", rank: 4 };
+  return { key: "major", label: "Majors", rank: 2 };
 }
 
 export function sortBucketsByTier(bucketIds: string[]): string[] {
@@ -313,6 +326,7 @@ export interface ProgressSection {
   sectionKey: ProgressSectionKey;
   label: string;
   entries: [string, BucketProgress][];
+  emptyMessage?: string;
 }
 
 export interface ProgressSubGroup {
@@ -322,8 +336,39 @@ export interface ProgressSubGroup {
 }
 
 export interface ProgressSectionWithGroups extends ProgressSection {
-  /** Sub-groups by program within the section (only for major/track_minor). */
+  /** Sub-groups by program within the section (only for major/track/minor). */
   subGroups?: ProgressSubGroup[];
+}
+
+export interface ProgressSectionGroupOptions {
+  declaredTracks?: string[];
+  declaredMinors?: string[];
+}
+
+const PROGRESS_SECTION_META: Record<
+  ProgressSectionKey,
+  { label: string; rank: number }
+> = {
+  mcc: { label: "MCC", rank: 0 },
+  bcc: { label: "BCC", rank: 1 },
+  major: { label: "Majors", rank: 2 },
+  track: { label: "Tracks", rank: 3 },
+  minor: { label: "Minors", rank: 4 },
+};
+
+function buildProgressSectionEmptyMessage(
+  key: "track" | "minor",
+  selectedIds: string[] | undefined,
+): string {
+  const count = Array.isArray(selectedIds) ? selectedIds.filter(Boolean).length : 0;
+  if (count > 0) {
+    return key === "track"
+      ? "Declared track requirements are not showing here yet."
+      : "Declared minor requirements are not showing here yet.";
+  }
+  return key === "track"
+    ? "No track selected. Add one in Edit Profile to see track progress here."
+    : "No minor selected. Add one in Edit Profile to see minor progress here.";
 }
 
 function bucketOrderingLabel(
@@ -393,11 +438,32 @@ export function groupProgressByTierWithMajors(
   progressObj: Record<string, BucketProgress> | null | undefined,
   programLabelMap?: Map<string, string>,
   programOrder?: string[],
+  options?: ProgressSectionGroupOptions,
 ): ProgressSectionWithGroups[] {
   const base = groupProgressByTierSections(progressObj);
-  const needsSubGroups = new Set<ProgressSectionKey>(["major", "track_minor", "mcc"]);
+  const sectionMap = new Map(
+    base.map((section) => [section.sectionKey, section] satisfies [ProgressSectionKey, ProgressSection]),
+  );
 
-  return base.map((section) => {
+  (["track", "minor"] as const).forEach((sectionKey) => {
+    if (sectionMap.has(sectionKey)) return;
+    sectionMap.set(sectionKey, {
+      sectionKey,
+      label: PROGRESS_SECTION_META[sectionKey].label,
+      entries: [],
+      emptyMessage: buildProgressSectionEmptyMessage(
+        sectionKey,
+        sectionKey === "track" ? options?.declaredTracks : options?.declaredMinors,
+      ),
+    });
+  });
+
+  const orderedSections = [...sectionMap.values()].sort(
+    (a, b) => PROGRESS_SECTION_META[a.sectionKey].rank - PROGRESS_SECTION_META[b.sectionKey].rank,
+  );
+  const needsSubGroups = new Set<ProgressSectionKey>(["major", "track", "minor", "mcc"]);
+
+  return orderedSections.map((section) => {
     if (!needsSubGroups.has(section.sectionKey) || section.entries.length === 0) {
       return section;
     }

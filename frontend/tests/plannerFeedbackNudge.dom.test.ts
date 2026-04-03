@@ -4,20 +4,12 @@ import "./setupTests";
 
 import { createElement, type ReactNode } from "react";
 import { act, fireEvent, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { PlannerLayout } from "../src/components/planner/PlannerLayout";
-import { PLANNER_FEEDBACK_NUDGE_STORAGE_KEY } from "../src/lib/constants";
 import { makeAppState, renderWithApp } from "./testUtils";
 
-const {
-  createPlanSpy,
-  fetchRecommendationsSpy,
-  postFeedbackSpy,
-  recommendationData,
-} = vi.hoisted(() => ({
-  createPlanSpy: vi.fn(),
-  fetchRecommendationsSpy: vi.fn(),
+const { postFeedbackSpy, recommendationData } = vi.hoisted(() => ({
   postFeedbackSpy: vi.fn(),
   recommendationData: {
     mode: "recommendations" as const,
@@ -52,21 +44,19 @@ vi.mock("@/hooks/useRecommendations", () => ({
     requestedCount: 3,
     loading: false,
     error: null,
-    fetchRecommendations: fetchRecommendationsSpy,
+    fetchRecommendations: vi.fn(),
   }),
 }));
 
 vi.mock("@/hooks/useSavedPlans", () => ({
   useSavedPlans: () => ({
     hydrated: true,
-    createPlan: createPlanSpy,
+    createPlan: vi.fn(),
   }),
 }));
 
 vi.mock("@/hooks/useCanTake", () => ({
-  isCanTakeResultForQuery: (query: string, data: { requested_course?: string } | null) =>
-    query.trim().toUpperCase() !== "" &&
-    query.trim().toUpperCase() === String(data?.requested_course || "").trim().toUpperCase(),
+  isCanTakeResultForQuery: () => false,
   useCanTake: () => ({
     data: null,
     loading: false,
@@ -110,6 +100,12 @@ vi.mock("../src/components/planner/CourseListModal", () => ({
   CourseListModal: () => null,
 }));
 
+vi.mock("../src/components/planner/MajorGuideModal", () => ({
+  MajorGuideModal: () => null,
+  rankingExplainerItems: [],
+  tierLadder: [],
+}));
+
 vi.mock("@/components/saved/SavePlanModal", () => ({
   SavePlanModal: () => null,
 }));
@@ -148,6 +144,7 @@ vi.mock("@/components/shared/Modal", () => ({
 vi.mock("@/lib/api", () => ({
   postFeedback: postFeedbackSpy,
   postRecommend: vi.fn().mockResolvedValue(recommendationData),
+  loadProgramBuckets: vi.fn().mockResolvedValue([]),
 }));
 
 function renderPlanner() {
@@ -172,13 +169,8 @@ function renderPlanner() {
   );
 }
 
-describe("Planner feedback nudge", () => {
+describe("Planner feedback entry point", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-03-09T12:00:00.000Z"));
-    window.localStorage.clear();
-    fetchRecommendationsSpy.mockReset();
-    createPlanSpy.mockReset();
     postFeedbackSpy.mockReset();
     postFeedbackSpy.mockResolvedValue({
       ok: true,
@@ -187,69 +179,29 @@ describe("Planner feedback nudge", () => {
     });
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  test("removes the header feedback button and opens the modal from the feedback lane", async () => {
+  test("moves feedback into the ranking header and removes the old left-panel CTA", () => {
     renderPlanner();
 
-    expect(screen.getAllByRole("button", { name: /^feedback$/i })).toHaveLength(1);
-    expect(screen.getByRole("link", { name: /contact me/i })).toHaveAttribute("href", "/about");
+    expect(screen.getByRole("button", { name: /how ranking works/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^feedback$/i })).toBeInTheDocument();
+    expect(screen.queryByText(/have feedback on this plan/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /contact me/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /^feedback$/i }));
-
     expect(screen.getByRole("heading", { name: /send feedback/i })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-    expect(screen.queryByRole("heading", { name: /send feedback/i })).not.toBeInTheDocument();
   });
 
-  test("expands after idle timing, opens from the pill, and dismissal blocks future nudges", async () => {
-    renderPlanner();
-
-    act(() => {
-      vi.advanceTimersByTime(45_000);
-    });
-
-    expect(screen.getByRole("button", { name: /^feedback$/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /dismiss feedback nudge/i })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /^feedback$/i }));
-
-    expect(screen.getByRole("heading", { name: /send feedback/i })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-    expect(screen.queryByRole("heading", { name: /send feedback/i })).not.toBeInTheDocument();
-
-    act(() => {
-      vi.advanceTimersByTime(180_000);
-    });
-
-    expect(screen.getByRole("button", { name: /^feedback$/i })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /dismiss feedback nudge/i }));
-
-    const stored = JSON.parse(window.localStorage.getItem(PLANNER_FEEDBACK_NUDGE_STORAGE_KEY) || "{}");
-    expect(stored.dismissedUntil).toBeGreaterThan(Date.now());
-
-    act(() => {
-      vi.advanceTimersByTime(180_000);
-    });
-
-    expect(screen.getByRole("button", { name: /^feedback$/i })).toBeInTheDocument();
-  });
-
-  test("successful submit suppresses later auto-nudges", async () => {
+  test("submits feedback from the new header button and shows success state", async () => {
     renderPlanner();
 
     fireEvent.click(screen.getByRole("button", { name: /^feedback$/i }));
     fireEvent.click(screen.getByRole("button", { name: /rate marqbot 4 out of 5/i }));
     fireEvent.change(screen.getByLabelText(/what happened/i), {
       target: {
-        value: "The planner warning copy was confusing after I added my finance major.",
+        value: "The majors, tracks, and minors split is much clearer now.",
       },
     });
+
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /^send feedback$/i }));
       await Promise.resolve();
@@ -258,15 +210,5 @@ describe("Planner feedback nudge", () => {
 
     expect(postFeedbackSpy).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/feedback sent\./i)).toBeInTheDocument();
-
-    const stored = JSON.parse(window.localStorage.getItem(PLANNER_FEEDBACK_NUDGE_STORAGE_KEY) || "{}");
-    expect(stored.submittedUntil).toBeGreaterThan(Date.now());
-
-    act(() => {
-      vi.advanceTimersByTime(240_000);
-    });
-
-    expect(screen.queryByRole("button", { name: /dismiss feedback nudge/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^feedback$/i })).toBeInTheDocument();
   });
 });

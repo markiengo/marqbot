@@ -28,8 +28,10 @@ export function BucketSectionTabs({
   layoutId = "bucket-section-tabs",
 }: BucketSectionTabsProps) {
   const [activeKey, setActiveKey] = useState(sections[0]?.sectionKey ?? "");
-
-  const activeSection = sections.find((s) => s.sectionKey === activeKey) ?? sections[0];
+  const resolvedActiveKey = sections.some((section) => section.sectionKey === activeKey)
+    ? activeKey
+    : sections[0]?.sectionKey ?? "";
+  const activeSection = sections.find((s) => s.sectionKey === resolvedActiveKey) ?? sections[0];
   if (!activeSection || sections.length === 0) return null;
 
   // Single section — skip tabs entirely
@@ -103,6 +105,21 @@ function SectionContent({
   animate?: boolean;
   onBucketClick?: BucketSectionTabsProps["onBucketClick"];
 }) {
+  if (section.entries.length === 0 && section.emptyMessage) {
+    return (
+      <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.045] px-5 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm">
+        <div className="mx-auto max-w-sm rounded-[1rem] border border-white/8 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] px-4 py-5">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-gold/75">
+            {section.label}
+          </p>
+          <p className="mt-2 text-[0.92rem] leading-relaxed text-ink-faint">
+            {section.emptyMessage}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (section.subGroups) {
     return (
       <div className="space-y-3">

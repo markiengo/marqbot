@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { loadProgramBuckets } from "@/lib/api";
+import { sortProgramsForBucketMap } from "@/lib/programBucketMapOrder";
 import type { ProgramBucketTree, BucketSlot } from "@/lib/types";
 
 const UNIVERSAL_PROGRAM_IDS = [
@@ -152,7 +153,10 @@ export function RoadmapStep() {
     };
   }, [hasPrograms, programIds]);
 
-  const visibleTrees = hasPrograms ? trees : [];
+  const visibleTrees = useMemo(
+    () => (hasPrograms ? sortProgramsForBucketMap(trees) : []),
+    [hasPrograms, trees],
+  );
   const visibleError = hasPrograms ? error : null;
 
   if (hasPrograms && loading) {

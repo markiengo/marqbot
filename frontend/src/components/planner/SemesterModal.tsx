@@ -12,6 +12,7 @@ import { groupProgressByTierWithMajors, sortBucketsByTier } from "@/lib/renderin
 import { getSemesterQuip } from "@/lib/quips";
 import { BucketSectionTabs } from "./BucketSectionTabs";
 import { BucketCourseModal } from "./BucketCourseModal";
+import { BucketMapModal } from "./BucketMapModal";
 import { bucketLabel, esc } from "@/lib/utils";
 
 interface SemesterModalProps {
@@ -30,6 +31,8 @@ interface SemesterModalProps {
   onNext?(): void;
   onBack?(): void;
   declaredMajors?: string[];
+  declaredTracks?: string[];
+  declaredMinors?: string[];
   // Edit mode props — omit to hide edit button
   candidatePool?: RecommendedCourse[];
   candidatePoolLoading?: boolean;
@@ -48,6 +51,8 @@ export function SemesterModal({
   requestedCount,
   courses,
   declaredMajors,
+  declaredTracks,
+  declaredMinors,
   programLabelMap,
   bucketLabelMap,
   programOrder,
@@ -64,6 +69,7 @@ export function SemesterModal({
   const [applyLoading, setApplyLoading] = useState(false);
   const [editApplied, setEditApplied] = useState(false);
   const [bucketDetail, setBucketDetail] = useState<BucketDetailState | null>(null);
+  const [bucketMapOpen, setBucketMapOpen] = useState(false);
   const [editDetailCode, setEditDetailCode] = useState<string | null>(null);
   const bucketTriggerRef = useRef<HTMLButtonElement | null>(null);
   const autoEnteredEditRef = useRef(false);
@@ -77,6 +83,7 @@ export function SemesterModal({
       setApplyLoading(false);
       setEditApplied(false);
       setBucketDetail(null);
+      setBucketMapOpen(false);
       setEditDetailCode(null);
     }
   }, [open]);
@@ -297,14 +304,27 @@ export function SemesterModal({
               <>
               <div className="divider-fade" />
               <div className="space-y-4">
-                <h3 className="text-[0.98rem] font-semibold text-gold uppercase tracking-wider hash-mark">
-                  Projected Progress
-                </h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-[0.98rem] font-semibold text-gold uppercase tracking-wider hash-mark">
+                    Projected Progress
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setBucketMapOpen(true)}
+                    aria-label="Open bucket map help"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold/22 bg-gold/10 text-base font-semibold text-gold transition-colors hover:border-gold/38 hover:bg-gold/16"
+                  >
+                    ?
+                  </button>
+                </div>
                 {semester.projection_note && (
                   <p className="text-[0.92rem] text-ink-faint">{esc(semester.projection_note)}</p>
                 )}
                 <BucketSectionTabs
-                  sections={groupProgressByTierWithMajors(semesterProgress, programLabelMap, programOrder)}
+                  sections={groupProgressByTierWithMajors(semesterProgress, programLabelMap, programOrder, {
+                    declaredTracks,
+                    declaredMinors,
+                  })}
                   programLabelMap={programLabelMap}
                   animate={false}
                   onBucketClick={openBucketDetail}
@@ -358,6 +378,10 @@ export function SemesterModal({
         plannerWarnings={editDetailCourse?.warning_text ? [editDetailCourse.warning_text] : undefined}
         programLabelMap={programLabelMap}
         bucketLabelMap={bucketLabelMap}
+      />
+      <BucketMapModal
+        open={bucketMapOpen}
+        onClose={() => setBucketMapOpen(false)}
       />
     </>
   );

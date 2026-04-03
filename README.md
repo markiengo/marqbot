@@ -80,8 +80,18 @@ Use it to plan faster. Then confirm with your advisor before you register.
 | Doc | What it covers |
 |---|---|
 | [How MarqBot Plans Your Degree](docs/memos/algorithm.md) | Non-technical walkthrough of the recommendation engine, requirements, and policies |
+| [Policy Guide](docs/memos/policies.md) | Navigation-first guide to scraped Marquette undergraduate policies, grouped by lifecycle with university and college-specific sections kept separate |
+| [Product Overview](docs/memos/ogprd.md) | Fast product-context memo for what MarqBot is, who it serves, and what it is not |
+| [Branding Notes](docs/memos/branding.md) | Brand direction, messaging, and presentation notes |
 | [Technical Reference](docs/codebase/tech_readme.md) | Data inputs, pipeline internals, ranking tuples, API endpoints, module map |
 | [Changelog](docs/CHANGELOG.md) | Version history and release notes |
+
+The [`docs/memos/`](docs/memos/) folder is useful if you want fast project context without reading the whole codebase. Start with:
+
+- [`docs/memos/algorithm.md`](docs/memos/algorithm.md) for the planner logic in plain English.
+- [`docs/memos/policies.md`](docs/memos/policies.md) for bulletin-policy lookup, academic-rule validation, and college-specific policy differences.
+- [`docs/memos/ogprd.md`](docs/memos/ogprd.md) for the short product framing.
+- [`docs/memos/branding.md`](docs/memos/branding.md) for voice and brand direction.
 
 ## Project Directory
 
@@ -150,7 +160,7 @@ tests/                    Test suites
 docs/                     Documentation
   CHANGELOG.md              Version history
   codebase/                 Technical reference and generated codebase maps
-  memos/                    Algorithm explainer and working memos
+  memos/                    Useful product, policy, algorithm, and branding memos for fast project context
   feedbacks/                Collected feedback records
 
 infra/                    Infrastructure

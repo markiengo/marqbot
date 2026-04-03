@@ -22,16 +22,6 @@ import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
 import { postRecommend, loadProgramBuckets } from "@/lib/api";
-import {
-  getPlannerFeedbackCooldownUntil,
-  PLANNER_FEEDBACK_DISMISS_COOLDOWN_MS,
-  PLANNER_FEEDBACK_IDLE_DELAY_MS,
-  PLANNER_FEEDBACK_INITIAL_DELAY_MS,
-  PLANNER_FEEDBACK_REPEAT_DELAY_MS,
-  PLANNER_FEEDBACK_SUBMIT_COOLDOWN_MS,
-  readPlannerFeedbackNudgeRecord,
-  writePlannerFeedbackNudgeRecord,
-} from "@/lib/plannerFeedbackNudge";
 import { buildRecommendationWarnings, getProgramLabelMap, sanitizeRecommendationWhy } from "@/lib/rendering";
 import { getCurrentCourseLists } from "@/lib/progressSources";
 import { buildSavedPlanInputsFromAppState } from "@/lib/savedPlans";
@@ -79,8 +69,6 @@ export function PlannerLayout() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccessName, setSaveSuccessName] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
-  const [feedbackCtaExpanded, setFeedbackCtaExpanded] = useState(false);
-  const [canTakeFeedbackEligible, setCanTakeFeedbackEligible] = useState(false);
   const [semEditCandidates, setSemEditCandidates] = useState<RecommendedCourse[] | null>(null);
   const [semEditLoading, setSemEditLoading] = useState(false);
   const [semesterModalMode, setSemesterModalMode] = useState<"view" | "edit">("view");
@@ -89,20 +77,9 @@ export function PlannerLayout() {
   const [courseListModal, setCourseListModal] = useState<"completed" | "in-progress" | null>(null);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
-  const plannerMountedAtRef = useRef(Date.now());
-  const feedbackLastActiveAtRef = useRef(Date.now());
-  const feedbackLastNudgedAtRef = useRef<number | null>(null);
-  const feedbackNudgeRecordRef = useRef(readPlannerFeedbackNudgeRecord());
-  const feedbackCtaExpandedRef = useRef(false);
   const semEditAbortRef = useRef<AbortController | null>(null);
   const semEditRequestIdRef = useRef(0);
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
-  const hasMeaningfulPlannerUse = Boolean(state.lastRecommendationData) || canTakeFeedbackEligible;
-
-  const setFeedbackCtaExpandedState = useCallback((expanded: boolean) => {
-    feedbackCtaExpandedRef.current = expanded;
-    setFeedbackCtaExpanded(expanded);
-  }, []);
 
   // Description lookup map from loaded courses
   const descriptionMap = useMemo(() => {
@@ -120,11 +97,6 @@ export function PlannerLayout() {
     return map;
   }, [state.courses]);
 
-  // Auto-fetch once when arriving fresh from onboarding with no existing recs
-  useEffect(() => {
-    feedbackNudgeRecordRef.current = readPlannerFeedbackNudgeRecord();
-  }, []);
-
   useEffect(() => {
     if (
       didAutoFetch.current ||
@@ -139,84 +111,14 @@ export function PlannerLayout() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.onboardingComplete, state.lastRecommendationData, hasProgram, state.courses.length]);
 
-  useEffect(() => {
-    const markActivity = () => {
-      feedbackLastActiveAtRef.current = Date.now();
-      if (feedbackCtaExpandedRef.current) {
-        feedbackCtaExpandedRef.current = false;
-        setFeedbackCtaExpanded(false);
-      }
-    };
-    const captureOptions = { capture: true } as const;
-    const passiveCaptureOptions = { capture: true, passive: true } as const;
-
-    window.addEventListener("keydown", markActivity, captureOptions);
-    window.addEventListener("pointerdown", markActivity, passiveCaptureOptions);
-    window.addEventListener("touchstart", markActivity, passiveCaptureOptions);
-    window.addEventListener("scroll", markActivity, passiveCaptureOptions);
-
-    return () => {
-      window.removeEventListener("keydown", markActivity, captureOptions);
-      window.removeEventListener("pointerdown", markActivity, passiveCaptureOptions);
-      window.removeEventListener("touchstart", markActivity, passiveCaptureOptions);
-      window.removeEventListener("scroll", markActivity, passiveCaptureOptions);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!hasMeaningfulPlannerUse) return;
-
-    const maybeOpenFeedbackNudge = () => {
-      if (feedbackModalOpen) return;
-      if (document.visibilityState !== "visible") return;
-
-      const now = Date.now();
-      const cooldownUntil = getPlannerFeedbackCooldownUntil(feedbackNudgeRecordRef.current);
-      if (cooldownUntil > now) return;
-
-      if (now - feedbackLastActiveAtRef.current < PLANNER_FEEDBACK_IDLE_DELAY_MS) return;
-
-      const lastNudgedAt = feedbackLastNudgedAtRef.current;
-      const nextEligibleAt = lastNudgedAt === null
-        ? plannerMountedAtRef.current + PLANNER_FEEDBACK_INITIAL_DELAY_MS
-        : lastNudgedAt + PLANNER_FEEDBACK_REPEAT_DELAY_MS;
-      if (now < nextEligibleAt) return;
-
-      feedbackLastNudgedAtRef.current = now;
-      setFeedbackCtaExpandedState(true);
-    };
-
-    maybeOpenFeedbackNudge();
-    const timer = window.setInterval(maybeOpenFeedbackNudge, 1000);
-    return () => window.clearInterval(timer);
-  }, [feedbackModalOpen, hasMeaningfulPlannerUse, setFeedbackCtaExpandedState]);
-
   const openFeedbackModal = useCallback(() => {
     setFeedbackSuccess(false);
-    setFeedbackCtaExpandedState(false);
     setFeedbackModalOpen(true);
-  }, [setFeedbackCtaExpandedState]);
-
-  const dismissFeedbackNudge = useCallback(() => {
-    const nextRecord = {
-      ...feedbackNudgeRecordRef.current,
-      dismissedUntil: Date.now() + PLANNER_FEEDBACK_DISMISS_COOLDOWN_MS,
-    };
-    feedbackNudgeRecordRef.current = nextRecord;
-    writePlannerFeedbackNudgeRecord(nextRecord);
-    setFeedbackCtaExpandedState(false);
-  }, [setFeedbackCtaExpandedState]);
+  }, []);
 
   const handleFeedbackSubmitted = useCallback(() => {
-    const nextRecord = {
-      ...feedbackNudgeRecordRef.current,
-      submittedUntil: Date.now() + PLANNER_FEEDBACK_SUBMIT_COOLDOWN_MS,
-    };
-    feedbackNudgeRecordRef.current = nextRecord;
-    writePlannerFeedbackNudgeRecord(nextRecord);
     setFeedbackSuccess(true);
-    setFeedbackCtaExpandedState(false);
-  }, [setFeedbackCtaExpandedState]);
+  }, []);
 
   const openProgressModal = useCallback(() => {
     setProgressModalOpen(true);
@@ -792,12 +694,7 @@ export function PlannerLayout() {
             </div>
 
             <div className="lg:flex-[2] lg:min-h-0">
-              <CanTakeSection
-                feedbackExpanded={feedbackCtaExpanded}
-                onFeedbackOpen={openFeedbackModal}
-                onFeedbackDismiss={dismissFeedbackNudge}
-                onFeedbackNudgeEligibilityChange={setCanTakeFeedbackEligible}
-              />
+              <CanTakeSection />
             </div>
           </div>
         </div>
@@ -809,7 +706,7 @@ export function PlannerLayout() {
               <p className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[#8ec8ff]">
                 Rule-aware ranking
               </p>
-              <div className="mt-1.5 flex items-center justify-between gap-2">
+              <div className="mt-1.5 flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-[0.98rem] md:text-[1.08rem] font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
                     Your <span className="text-emphasis-blue">next</span> moves.
@@ -818,13 +715,22 @@ export function PlannerLayout() {
                     Eligibility, requirement value, and unlock impact.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setExplainerOpen(true)}
-                  className="shrink-0 rounded-full border border-gold/20 bg-gold/10 px-2.5 py-0.5 text-[10px] text-gold transition-all hover:bg-gold/15 hover:border-gold/35"
-                >
-                  How ranking works
-                </button>
+                <div className="flex shrink-0 flex-col items-stretch gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setExplainerOpen(true)}
+                    className="rounded-full border border-gold/20 bg-gold/10 px-2.5 py-0.5 text-[10px] text-gold transition-all hover:bg-gold/15 hover:border-gold/35"
+                  >
+                    How ranking works
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openFeedbackModal}
+                    className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[10px] text-ink-secondary transition-all hover:border-gold/25 hover:text-gold"
+                  >
+                    Feedback
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -932,6 +838,8 @@ export function PlannerLayout() {
         programLabelMap={programLabelMap}
         programOrder={programOrder}
         declaredMajors={[...state.selectedMajors]}
+        declaredTracks={state.selectedTracks}
+        declaredMinors={[...state.selectedMinors]}
         onCourseClick={setCourseDetailCode}
         rawCompleted={state.completed}
         rawInProgress={state.inProgress}
@@ -951,6 +859,8 @@ export function PlannerLayout() {
         programLabelMap={programLabelMap}
         bucketLabelMap={bucketLabelMap}
         programOrder={programOrder}
+        declaredTracks={state.selectedTracks}
+        declaredMinors={[...state.selectedMinors]}
         candidatePool={semEditCandidates ?? undefined}
         candidatePoolLoading={semEditLoading}
         onRequestCandidates={handleRequestSemesterCandidates}

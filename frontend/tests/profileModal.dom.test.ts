@@ -75,7 +75,7 @@ describe("ProfileModal recommendation submit flow", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
   });
 
-  test("renders the student stage selector in profile edit", async () => {
+  test("renders the onboarding preferences layout in profile edit", async () => {
     const user = userEvent.setup();
 
     renderWithApp(
@@ -98,6 +98,12 @@ describe("ProfileModal recommendation submit flow", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /preferences/i }));
+
+    expect(
+      await screen.findByText(/1 for next term, or up to 5 to plan ahead\./i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/unlocks honors sections in recommendations\./i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/includes summer terms in your plan\./i)).not.toBeInTheDocument();
 
     const selector = await screen.findByLabelText(/student stage/i);
     expect(selector).toHaveValue("undergrad");
