@@ -344,6 +344,29 @@ def _frontend_missing_response():
 def _frontend_ready() -> bool:
     return os.path.isfile(os.path.join(FRONTEND_DIR, "index.html"))
 
+
+def _feedback_storage_configured() -> bool:
+    return bool(str(os.environ.get("FEEDBACK_PATH", "")).strip())
+
+
+def _health_payload() -> dict:
+    frontend_ready = _frontend_ready()
+    return {
+        "status": "ok" if frontend_ready else "degraded",
+        "ready": frontend_ready,
+        "frontend_ready": frontend_ready,
+        "checks": {
+            "frontend_ready": frontend_ready,
+            "feedback_storage_configured": _feedback_storage_configured(),
+        },
+        "paths": {
+            "data_path": DATA_PATH,
+            "feedback_path": _feedback_path(),
+        },
+        "courses_loaded": len(_data.get("catalog_codes", [])),
+        "version": os.environ.get("RENDER_GIT_COMMIT", "dev")[:7],
+    }
+
 # ── Startup data load ──────────────────────────────────────────────────────────
 try:
     _data = load_data(DATA_PATH)
@@ -468,12 +491,8 @@ def _add_security_headers(response):
 # -- Health endpoint --------------------------------------------------------
 @app.route("/health", methods=["GET"])
 def health_endpoint():
-    return jsonify({
-        "status": "ok",
-        "courses_loaded": len(_data.get("catalog_codes", [])),
-        "frontend_ready": _frontend_ready(),
-        "version": os.environ.get("RENDER_GIT_COMMIT", "dev")[:7],
-    })
+    payload = _health_payload()
+    return jsonify(payload), (200 if payload["ready"] else 503)
 
 
 # -- Input validation ------------------------------------------------------
@@ -1910,7 +1929,15 @@ def _dedupe_codes(codes):
     return list(dict.fromkeys([c for c in codes if c]))
 
 
-def _build_current_progress(completed, in_progress, data, track_id):
+def _build_current_progress(
+    completed,
+    in_progress,
+    data,
+    track_id,
+    *,
+    input_completed=None,
+    input_in_progress=None,
+):
     """
     Build current progress snapshot using:
       - completed-only counts
@@ -1938,48 +1965,105 @@ def _build_current_progress(completed, in_progress, data, track_id):
         double_count_policy_df=data.get("v2_double_count_policy_df"),
         runtime_indexes=data.get("runtime_indexes"),
     )
+    raw_completed = _dedupe_codes(input_completed if input_completed is not None else completed)
+    raw_in_progress = _dedupe_codes(input_in_progress if input_in_progress is not None else in_progress)
+    raw_completed_alloc = allocate_courses(
+        raw_completed,
+        raw_in_progress,
+        data["buckets_df"],
+        data["course_bucket_map_df"],
+        data["courses_df"],
+        data["equivalencies_df"],
+        track_id=track_id,
+        double_count_policy_df=data.get("v2_double_count_policy_df"),
+        runtime_indexes=data.get("runtime_indexes"),
+    )
+    raw_assumed_alloc = allocate_courses(
+        _dedupe_codes(raw_completed + raw_in_progress),
+        [],
+        data["buckets_df"],
+        data["course_bucket_map_df"],
+        data["courses_df"],
+        data["equivalencies_df"],
+        track_id=track_id,
+        double_count_policy_df=data.get("v2_double_count_policy_df"),
+        runtime_indexes=data.get("runtime_indexes"),
+    )
 
     bucket_order = list(dict.fromkeys(
         completed_only_alloc.get("bucket_order", [])
         + assumed_alloc.get("bucket_order", [])
+        + raw_completed_alloc.get("bucket_order", [])
+        + raw_assumed_alloc.get("bucket_order", [])
         + list(completed_only_alloc.get("applied_by_bucket", {}).keys())
         + list(assumed_alloc.get("applied_by_bucket", {}).keys())
+        + list(raw_completed_alloc.get("applied_by_bucket", {}).keys())
+        + list(raw_assumed_alloc.get("applied_by_bucket", {}).keys())
     ))
 
     out = {}
     for bucket_id in bucket_order:
         baseline = completed_only_alloc.get("applied_by_bucket", {}).get(bucket_id, {})
         assumed = assumed_alloc.get("applied_by_bucket", {}).get(bucket_id, {})
+        raw_baseline = raw_completed_alloc.get("applied_by_bucket", {}).get(bucket_id, {})
+        raw_assumed = raw_assumed_alloc.get("applied_by_bucket", {}).get(bucket_id, {})
+        requirement_mode = (
+            baseline.get("requirement_mode")
+            or assumed.get("requirement_mode")
+            or raw_baseline.get("requirement_mode")
+            or raw_assumed.get("requirement_mode")
+            or "required"
+        )
+        display_baseline = raw_baseline if requirement_mode == "credits_pool" else baseline
+        display_assumed = raw_assumed if requirement_mode == "credits_pool" else assumed
 
-        completed_done = get_applied_bucket_progress_units(baseline)
-        assumed_done = get_applied_bucket_progress_units(assumed)
+        completed_done = get_applied_bucket_progress_units(display_baseline)
+        assumed_done = get_applied_bucket_progress_units(display_assumed)
         in_progress_increment = max(0, assumed_done - completed_done)
 
         out[bucket_id] = {
-            "label": str(assumed.get("label") or baseline.get("label") or bucket_id),
-            "needed": assumed.get("needed", baseline.get("needed")),
+            "label": str(
+                display_assumed.get("label")
+                or display_baseline.get("label")
+                or assumed.get("label")
+                or baseline.get("label")
+                or bucket_id
+            ),
+            "needed": (
+                display_assumed.get("needed")
+                or display_baseline.get("needed")
+                or assumed.get("needed", baseline.get("needed"))
+            ),
             "completed_done": completed_done,
             "in_progress_increment": in_progress_increment,
             "assumed_done": assumed_done,
             "satisfied": _compute_satisfied(
                 {
-                    "needed": assumed.get("needed", baseline.get("needed")),
-                    "needed_count": (
-                        baseline.get("needed_count")
-                        if baseline.get("needed_count") is not None
-                        else assumed.get("needed_count")
+                    "needed": (
+                        display_assumed.get("needed")
+                        or display_baseline.get("needed")
+                        or assumed.get("needed", baseline.get("needed"))
                     ),
-                    "completed_applied": baseline.get("completed_applied", []),
-                    "in_progress_applied": baseline.get("in_progress_applied", []),
+                    "needed_count": (
+                        display_baseline.get("needed_count")
+                        if display_baseline.get("needed_count") is not None
+                        else display_assumed.get("needed_count")
+                    ),
+                    "completed_applied": display_baseline.get("completed_applied", []),
+                    "in_progress_applied": display_baseline.get("in_progress_applied", []),
                 },
                 assumed_done,
             ),
-            "requirement_mode": (baseline.get("requirement_mode") or assumed.get("requirement_mode", "required")),
-            "needed_count": (baseline.get("needed_count") if baseline.get("needed_count") is not None else assumed.get("needed_count")),
-            "completed_courses": len(baseline.get("completed_applied", [])),
-            "in_progress_courses": len(baseline.get("in_progress_applied", [])),
-            "completed_applied": baseline.get("completed_applied", []),
-            "in_progress_applied": baseline.get("in_progress_applied", []),
+            "requirement_mode": requirement_mode,
+            "needed_count": (
+                display_baseline.get("needed_count")
+                if display_baseline.get("needed_count") is not None
+                else display_assumed.get("needed_count")
+            ),
+            "completed_courses": len(display_baseline.get("completed_applied", [])),
+            "in_progress_courses": len(display_baseline.get("in_progress_applied", [])),
+            "completed_applied": display_baseline.get("completed_applied", []),
+            "in_progress_applied": display_baseline.get("in_progress_applied", []),
         }
     return annotate_progress_with_recommendation_hierarchy(out, data, track_id)
 
@@ -2519,6 +2603,8 @@ def recommend():
         in_progress,
         effective_data,
         effective_track_id,
+        input_completed=completed_input,
+        input_in_progress=in_progress_input,
     )
 
     requested_course = None

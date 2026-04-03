@@ -4,6 +4,10 @@ services:
     runtime: docker
     dockerfilePath: ./infra/docker/Dockerfile
     dockerContext: .
+    disk:
+      name: marqbot-data
+      mountPath: /var/data
+      sizeGB: 1
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
@@ -18,3 +22,5 @@ services:
         value: "128"
       - key: SLOW_REQUEST_LOG_MS
         value: "750"
+      - key: FEEDBACK_PATH
+        value: "/var/data/marqbot/feedback.jsonl"

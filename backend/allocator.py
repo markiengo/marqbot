@@ -602,6 +602,8 @@ def allocate_courses(
     }
     double_counted: list[dict] = []
     notes: list[str] = []
+    completed_assignments: list[dict[str, object]] = []
+    primary_filled_buckets: set[str] = set()
 
     def update_satisfied(bid: str):
         meta = bucket_meta[bid]
@@ -692,11 +694,42 @@ def allocate_courses(
         if not assigned_to:
             continue
 
-        # N-way assignment: each additional bucket must be pairwise-compatible
-        # with all already-assigned buckets.
-        for bucket_info in assignment_pool:
+        # Mark NDC group as allocated so subsequent members are blocked.
+        if assigned_to and ndc_gi is not None:
+            ndc_allocated_groups[ndc_gi] = course_code
+
+        if assigned_to:
+            primary_filled_buckets.add(assigned_to[0])
+            completed_assignments.append(
+                {
+                    "course_code": course_code,
+                    "credits": credits,
+                    "ordered_buckets": ordered_buckets,
+                    "assigned_to": assigned_to,
+                    "primary_bucket": assigned_to[0],
+                }
+            )
+
+    # Step 3: add valid double-count placements after every course has a
+    # primary home. This preserves overflow behavior by preferring unique
+    # courses before reusing one across multiple buckets.
+    for assignment in completed_assignments:
+        course_code = str(assignment["course_code"])
+        credits = int(assignment["credits"])
+        ordered_buckets = assignment["ordered_buckets"]
+        assigned_to = assignment["assigned_to"]
+        primary_bucket = str(assignment["primary_bucket"])
+
+        for bucket_info in ordered_buckets:
             bid = bucket_info["bucket_id"]
             if bid in assigned_to:
+                continue
+
+            if (
+                str(bucket_meta[bid].get("requirement_mode", "") or "").strip().lower() == "credits_pool"
+                and primary_bucket != bid
+                and bid in primary_filled_buckets
+            ):
                 continue
 
             pairwise_ok = True
@@ -717,10 +750,6 @@ def allocate_courses(
             assign_completed_to_bucket(course_code, bid, credits)
             assigned_to.append(bid)
 
-        # Mark NDC group as allocated so subsequent members are blocked.
-        if assigned_to and ndc_gi is not None:
-            ndc_allocated_groups[ndc_gi] = course_code
-
         if len(assigned_to) > 1:
             double_counted.append(
                 {
@@ -729,7 +758,7 @@ def allocate_courses(
                 }
             )
 
-    # Step 3: in-progress display only.
+    # Step 4: in-progress display only.
     # Respect pairwise double-count policy so in-progress courses don't appear
     # in multiple same-parent buckets simultaneously (visual double-count bug).
     for course_code in in_progress:
@@ -758,7 +787,7 @@ def allocate_courses(
                     applied[bid]["in_progress_credits_applied"] += credits
                     ip_assigned_to.append(bid)
 
-    # Step 4: remaining view.
+    # Step 5: remaining view.
     completed_set = set(completed)
     in_progress_set = set(in_progress)
     remaining: dict[str, dict] = {}
@@ -780,7 +809,7 @@ def allocate_courses(
             "is_credit_based": meta["needed_count"] is None,
         }
 
-    # Step 5: finalized applied output.
+    # Step 6: finalized applied output.
     applied_by_bucket: dict[str, dict] = {}
     for bid in bucket_order:
         if bid not in applied:
