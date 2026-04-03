@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { ProgressDashboard, useProgressMetrics } from "./ProgressDashboard";
 import { ProgressModal } from "./ProgressModal";
 import { SemesterModal } from "./SemesterModal";
+import { EditPlanModal } from "./EditPlanModal";
 import { ProfileModal } from "./ProfileModal";
 import { CanTakeSection } from "./CanTakeSection";
 import { RecommendationsPanel } from "./RecommendationsPanel";
@@ -35,13 +36,23 @@ import { buildRecommendationWarnings, getProgramLabelMap, sanitizeRecommendation
 import { getCurrentCourseLists } from "@/lib/progressSources";
 import { buildSavedPlanInputsFromAppState } from "@/lib/savedPlans";
 import { getStudentStageHistoryConflict, studentStageLabel, studentStageLevelLabel } from "@/lib/studentStage";
-import type { RecommendedCourse, RecommendationResponse, SemesterData, ProgramBucketTree } from "@/lib/types";
+import type { Course, RecommendedCourse, RecommendationResponse, SemesterData, ProgramBucketTree } from "@/lib/types";
 
 function formatPlanDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function getFollowupSemesterLabel(currentLabel: string | undefined, includeSummer: boolean): string {
+  const match = /^(Spring|Summer|Fall)\s+(\d{4})$/i.exec(String(currentLabel || "").trim());
+  if (!match) return includeSummer ? "Summer 2026" : "Fall 2026";
+  const term = match[1].toLowerCase();
+  const year = Number(match[2]);
+  if (term === "spring") return includeSummer ? `Summer ${year}` : `Fall ${year}`;
+  if (term === "summer") return `Fall ${year}`;
+  return `Spring ${year + 1}`;
 }
 
 /* Universal program IDs that every business student uses */
@@ -52,8 +63,8 @@ const UNIVERSAL_PROGRAM_IDS = [
 const MAJOR_GUIDE_SEEN_KEY = "marqbot_major_guide_seen";
 
 export function PlannerLayout() {
-  const { state, dispatch } = useAppContext();
-  const { data, requestedCount, loading, error, fetchRecommendations } =
+  const { state } = useAppContext();
+  const { data, requestedCount, loading, error, fetchRecommendations, runRecommendationRequest, applyRecommendationData } =
     useRecommendations();
   const { hydrated: savedPlansReady, createPlan } = useSavedPlans();
   const [progressModalOpen, setProgressModalOpen] = useState(false);
@@ -63,6 +74,7 @@ export function PlannerLayout() {
   const [majorGuideData, setMajorGuideData] = useState<ProgramBucketTree[]>([]);
   const [explainerOpen, setExplainerOpen] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [editPlanModalOpen, setEditPlanModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccessName, setSaveSuccessName] = useState<string | null>(null);
@@ -71,6 +83,8 @@ export function PlannerLayout() {
   const [canTakeFeedbackEligible, setCanTakeFeedbackEligible] = useState(false);
   const [semEditCandidates, setSemEditCandidates] = useState<RecommendedCourse[] | null>(null);
   const [semEditLoading, setSemEditLoading] = useState(false);
+  const [semesterModalMode, setSemesterModalMode] = useState<"view" | "edit">("view");
+  const [lockedSemesterCount, setLockedSemesterCount] = useState(0);
   const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
   const [courseListModal, setCourseListModal] = useState<"completed" | "in-progress" | null>(null);
   const metrics = useProgressMetrics();
@@ -80,6 +94,8 @@ export function PlannerLayout() {
   const feedbackLastNudgedAtRef = useRef<number | null>(null);
   const feedbackNudgeRecordRef = useRef(readPlannerFeedbackNudgeRecord());
   const feedbackCtaExpandedRef = useRef(false);
+  const semEditAbortRef = useRef<AbortController | null>(null);
+  const semEditRequestIdRef = useRef(0);
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
   const hasMeaningfulPlannerUse = Boolean(state.lastRecommendationData) || canTakeFeedbackEligible;
 
@@ -97,7 +113,7 @@ export function PlannerLayout() {
     return m;
   }, [state.courses]);
   const catalogCourseMap = useMemo(() => {
-    const map = new Map<string, (typeof state.courses)[number]>();
+    const map = new Map<string, Course>();
     for (const course of state.courses) {
       map.set(course.course_code, course);
     }
@@ -346,6 +362,7 @@ export function PlannerLayout() {
   const defaultSaveName = `${primaryProgramLabel || "Plan"} - ${state.targetSemester} - ${formatPlanDate(new Date())}`;
   const modalSemester =
     semesterModalIdx !== null ? data?.semesters?.[semesterModalIdx] ?? null : null;
+  const canOpenEditPlan = Boolean(data?.semesters?.length);
 
   const handleSavePlan = ({ name, notes }: { name: string; notes: string }) => {
     if (!data || data.mode === "error") {
@@ -368,8 +385,134 @@ export function PlannerLayout() {
     setSaveModalOpen(false);
   };
 
-  const fetchCandidatesForSemester = async (semIdx: number) => {
+  const resetSemesterEditFetch = useCallback((clearCandidates = true) => {
+    semEditRequestIdRef.current += 1;
+    semEditAbortRef.current?.abort();
+    semEditAbortRef.current = null;
+    setSemEditLoading(false);
+    if (clearCandidates) setSemEditCandidates(null);
+  }, []);
+
+  useEffect(() => {
+    if (semesterModalMode === "edit" && semesterModalIdx !== null) {
+      return;
+    }
+    resetSemesterEditFetch();
+  }, [resetSemesterEditFetch, semesterModalIdx, semesterModalMode]);
+
+  useEffect(() => {
+    return () => {
+      semEditAbortRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    setLockedSemesterCount(0);
+  }, [
+    state.completed,
+    state.inProgress,
+    state.selectedMajors,
+    state.selectedTracks,
+    state.selectedMinors,
+    state.discoveryTheme,
+  ]);
+
+  const handleProfileSubmitRecommendations = useCallback(async () => {
+    const maxRecommendations = Number(state.maxRecs) || 3;
+    const desiredSemesterCount = Math.max(1, Number(state.semesterCount) || 3);
+    const lockedSemesters = data?.semesters?.slice(0, Math.min(lockedSemesterCount, desiredSemesterCount)) ?? [];
+
+    if (lockedSemesters.length === 0) {
+      const fresh = await fetchRecommendations();
+      if (fresh) setLockedSemesterCount(0);
+      return fresh;
+    }
+
+    const remainingCount = desiredSemesterCount - lockedSemesters.length;
+    if (remainingCount <= 0) {
+      const nextData: RecommendationResponse = {
+        ...data!,
+        semesters: lockedSemesters,
+      };
+      applyRecommendationData(nextData, maxRecommendations);
+      setLockedSemesterCount(lockedSemesters.length);
+      return nextData;
+    }
+
+    const lockedCourseCodes = lockedSemesters.flatMap(
+      (semester) => (semester.recommendations ?? []).map((course) => course.course_code),
+    );
+    const completedCodes = new Set([
+      ...state.completed,
+      ...state.inProgress,
+      ...lockedCourseCodes,
+    ]);
+    const downstreamStart =
+      data?.semesters?.[lockedSemesters.length]?.target_semester ??
+      getFollowupSemesterLabel(lockedSemesters[lockedSemesters.length - 1]?.target_semester, state.includeSummer);
+
+    const majors = [...state.selectedMajors];
+    const payload: Record<string, unknown> = {
+      completed_courses: [...completedCodes].join(", "),
+      in_progress_courses: "",
+      target_semester: downstreamStart,
+      target_semester_primary: downstreamStart,
+      target_semester_count: remainingCount,
+      max_recommendations: maxRecommendations,
+      student_stage: state.studentStage,
+      scheduling_style: state.schedulingStyle,
+    };
+    if (majors.length > 0) payload.declared_majors = majors;
+    const trackIds = [...state.selectedTracks];
+    if (state.discoveryTheme && !trackIds.includes(state.discoveryTheme)) {
+      trackIds.push(state.discoveryTheme);
+    }
+    if (trackIds.length > 0) payload.track_ids = trackIds;
+    if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
+    if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
+    if (state.includeSummer) payload.include_summer = true;
+    if (state.isHonorsStudent) payload.is_honors_student = true;
+
+    const downstream = await runRecommendationRequest(payload);
+    if (!downstream) return null;
+
+    const nextData: RecommendationResponse = {
+      ...downstream,
+      semesters: [
+        ...lockedSemesters,
+        ...(downstream.semesters ?? []),
+      ],
+    };
+    applyRecommendationData(nextData, maxRecommendations);
+    setLockedSemesterCount(lockedSemesters.length);
+    return nextData;
+  }, [
+    applyRecommendationData,
+    data,
+    fetchRecommendations,
+    lockedSemesterCount,
+    runRecommendationRequest,
+    state.completed,
+    state.discoveryTheme,
+    state.inProgress,
+    state.includeSummer,
+    state.isHonorsStudent,
+    state.maxRecs,
+    state.schedulingStyle,
+    state.selectedMajors,
+    state.selectedMinors,
+    state.selectedTracks,
+    state.semesterCount,
+    state.studentStage,
+  ]);
+
+  const fetchCandidatesForSemester = useCallback(async (semIdx: number) => {
     if (!data?.semesters) return;
+    const requestId = semEditRequestIdRef.current + 1;
+    semEditRequestIdRef.current = requestId;
+    semEditAbortRef.current?.abort();
+    const controller = new AbortController();
+    semEditAbortRef.current = controller;
     setSemEditLoading(true);
     setSemEditCandidates(null);
     try {
@@ -401,16 +544,42 @@ export function PlannerLayout() {
       if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
       if (state.includeSummer) payload.include_summer = true;
       if (state.isHonorsStudent) payload.is_honors_student = true;
-      const result = await postRecommend(payload);
+      const result = await postRecommend(payload, { signal: controller.signal });
+      if (controller.signal.aborted || requestId !== semEditRequestIdRef.current) return;
       setSemEditCandidates(result.semesters?.[0]?.recommendations ?? []);
-    } catch {
+    } catch (error) {
+      if (
+        controller.signal.aborted ||
+        requestId !== semEditRequestIdRef.current ||
+        (error instanceof DOMException && error.name === "AbortError")
+      ) {
+        return;
+      }
       setSemEditCandidates([]); // surface empty pool rather than leaving null
     } finally {
-      setSemEditLoading(false);
+      if (requestId === semEditRequestIdRef.current) {
+        setSemEditLoading(false);
+      }
+      if (semEditAbortRef.current === controller) {
+        semEditAbortRef.current = null;
+      }
     }
-  };
+  }, [
+    data?.semesters,
+    state.completed,
+    state.inProgress,
+    state.targetSemester,
+    state.selectedMajors,
+    state.selectedTracks,
+    state.selectedMinors,
+    state.discoveryTheme,
+    state.includeSummer,
+    state.isHonorsStudent,
+    state.studentStage,
+    state.schedulingStyle,
+  ]);
 
-  const handleSemesterEditApply = async (semIdx: number, chosenCourses: RecommendedCourse[]) => {
+  const handleSemesterEditApply = useCallback(async (semIdx: number, chosenCourses: RecommendedCourse[]) => {
     if (!data?.semesters) return;
     const totalSems = data.semesters.length;
     const remainingCount = totalSems - semIdx - 1;
@@ -432,11 +601,9 @@ export function PlannerLayout() {
         ...data,
         semesters: newSemesters,
       };
-      dispatch({
-        type: "SET_RECOMMENDATIONS",
-        payload: { data: newData, count: Number(state.maxRecs) || 3 },
-      });
-      setSemEditCandidates(null);
+      applyRecommendationData(newData, Number(state.maxRecs) || 3);
+      setLockedSemesterCount(semIdx + 1);
+      resetSemesterEditFetch();
       return;
     }
 
@@ -483,29 +650,61 @@ export function PlannerLayout() {
       ...downstream,
       semesters: newSemesters,
     };
-    dispatch({
-      type: "SET_RECOMMENDATIONS",
-      payload: { data: newData, count: Number(state.maxRecs) || 3 },
-    });
-    setSemEditCandidates(null);
-  };
+    applyRecommendationData(newData, Number(state.maxRecs) || 3);
+    setLockedSemesterCount(semIdx + 1);
+    resetSemesterEditFetch();
+  }, [
+    applyRecommendationData,
+    data,
+    resetSemesterEditFetch,
+    state.completed,
+    state.discoveryTheme,
+    state.inProgress,
+    state.includeSummer,
+    state.isHonorsStudent,
+    state.maxRecs,
+    state.schedulingStyle,
+    state.selectedMajors,
+    state.selectedMinors,
+    state.selectedTracks,
+    state.studentStage,
+    state.targetSemester,
+  ]);
+
+  const handleSemesterEditClose = useCallback(() => {
+    resetSemesterEditFetch();
+    setSemesterModalIdx(null);
+    setSemesterModalMode("view");
+  }, [resetSemesterEditFetch]);
+
+  const handleEditSemesterSelect = useCallback((index: number) => {
+    resetSemesterEditFetch();
+    setEditPlanModalOpen(false);
+    setSemesterModalMode("edit");
+    setSemesterModalIdx(index);
+  }, [resetSemesterEditFetch]);
+
+  const handleRequestSemesterCandidates = useCallback(() => {
+    if (semesterModalIdx === null) return;
+    void fetchCandidatesForSemester(semesterModalIdx);
+  }, [fetchCandidatesForSemester, semesterModalIdx]);
 
   return (
     <div className="planner-shell bg-orbs">
       {/* ── Header bar ────────────────────────────────────────────── */}
       {hasProgram ? (
-        <div className="px-3 sm:px-4 py-2 mb-2 rounded-xl surface-depth-2 shine-sweep flex flex-wrap items-center justify-between gap-2 accent-top-gradient">
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <span className="text-xs sm:text-sm text-ink-faint shrink-0">Planning for:</span>
+        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-1.5 rounded-[0.95rem] px-3 py-1.5 surface-depth-2 shine-sweep accent-top-gradient sm:px-3.5">
+          <div className="flex min-w-0 items-center gap-1 sm:gap-1.5">
+            <span className="shrink-0 text-[0.68rem] text-ink-faint sm:text-[0.78rem]">Planning for:</span>
             <button
               type="button"
               onClick={() => openMajorGuide()}
-              className="text-xs sm:text-sm font-semibold font-[family-name:var(--font-sora)] text-gold truncate hover:underline underline-offset-2 decoration-gold/50 transition-all cursor-pointer"
+              className="truncate text-[0.74rem] font-semibold font-[family-name:var(--font-sora)] text-gold hover:underline underline-offset-2 decoration-gold/50 transition-all cursor-pointer sm:text-[0.84rem]"
             >
               {primaryProgramLabel}
             </button>
             {majorLabels.length > 0 && trackLabels.length > 0 && (
-              <span className="hidden sm:inline text-sm text-ink-secondary truncate">
+              <span className="hidden truncate text-[0.78rem] text-ink-secondary sm:inline">
                 &bull; {trackLabels.join(" & ")}
               </span>
             )}
@@ -521,10 +720,19 @@ export function PlannerLayout() {
               </svg>
             </button>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex w-full items-center gap-1.5 sm:w-auto">
+            <Button
+              variant="ink"
+              size="xs"
+              onClick={() => setEditPlanModalOpen(true)}
+              disabled={!canOpenEditPlan}
+              className="shrink-0 border-white/10"
+            >
+              Edit Plan
+            </Button>
             <Button
               variant="gold"
-              size="sm"
+              size="xs"
               onClick={() => {
                 setSaveError(null);
                 setSaveModalOpen(true);
@@ -597,18 +805,23 @@ export function PlannerLayout() {
         {/* RIGHT: Recommendations (60%) */}
         <div className="planner-panel planner-right">
           <div className="h-full min-h-0 flex flex-col">
-            <div className="mb-2">
-              <p className="section-kicker">
-                Ranked by eligibility, requirement value, and what each course opens next.
+            <div className="mb-2 rounded-[1.05rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
+              <p className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[#8ec8ff]">
+                Rule-aware ranking
               </p>
-              <div className="flex items-center justify-between gap-2 mt-2">
-                <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
-                  Your next moves.
-                </h3>
+              <div className="mt-1.5 flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-[0.98rem] md:text-[1.08rem] font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
+                    Your <span className="text-emphasis-blue">next</span> moves.
+                  </h3>
+                  <p className="mt-0.5 text-[0.7rem] text-ink-faint">
+                    Eligibility, requirement value, and unlock impact.
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setExplainerOpen(true)}
-                  className="shrink-0 text-[11px] text-gold bg-gold/8 border border-gold/20 rounded-full px-3 py-1 hover:bg-gold/15 hover:border-gold/35 transition-all"
+                  className="shrink-0 rounded-full border border-gold/20 bg-gold/10 px-2.5 py-0.5 text-[10px] text-gold transition-all hover:bg-gold/15 hover:border-gold/35"
                 >
                   How ranking works
                 </button>
@@ -690,7 +903,10 @@ export function PlannerLayout() {
               <div className="flex-1 min-h-0">
                 <RecommendationsPanel
                   data={data}
-                  onExpandSemester={setSemesterModalIdx}
+                  onExpandSemester={(index) => {
+                    setSemesterModalMode("view");
+                    setSemesterModalIdx(index);
+                  }}
                   onCourseClick={setCourseDetailCode}
                 />
               </div>
@@ -700,6 +916,12 @@ export function PlannerLayout() {
       </div>
 
       {/* ── Modals ────────────────────────────────────────────────── */}
+      <EditPlanModal
+        open={editPlanModalOpen}
+        onClose={() => setEditPlanModalOpen(false)}
+        semesters={data?.semesters ?? []}
+        onEditSemester={handleEditSemesterSelect}
+      />
       <ProgressModal
         open={progressModalOpen}
         onClose={() => setProgressModalOpen(false)}
@@ -716,7 +938,8 @@ export function PlannerLayout() {
       />
       <SemesterModal
         open={semesterModalIdx !== null && modalSemester !== null}
-        onClose={() => { setSemesterModalIdx(null); setSemEditCandidates(null); }}
+        onClose={handleSemesterEditClose}
+        openMode={semesterModalMode}
         semester={modalSemester}
         index={semesterModalIdx ?? 0}
         totalCount={data?.semesters?.length ?? 0}
@@ -730,7 +953,7 @@ export function PlannerLayout() {
         programOrder={programOrder}
         candidatePool={semEditCandidates ?? undefined}
         candidatePoolLoading={semEditLoading}
-        onRequestCandidates={() => { if (semesterModalIdx !== null) fetchCandidatesForSemester(semesterModalIdx); }}
+        onRequestCandidates={handleRequestSemesterCandidates}
         onEditApply={(courses) => {
           if (semesterModalIdx === null) return Promise.resolve();
           return handleSemesterEditApply(semesterModalIdx, courses);
@@ -742,7 +965,7 @@ export function PlannerLayout() {
         onClose={() => setProfileModalOpen(false)}
         loading={loading}
         error={error}
-        onSubmitRecommendations={fetchRecommendations}
+        onSubmitRecommendations={handleProfileSubmitRecommendations}
       />
       <MajorGuideModal
         open={majorGuideOpen}
@@ -820,7 +1043,7 @@ export function PlannerLayout() {
             <p className="text-[0.92rem] leading-relaxed text-ink-muted">
               Deterministic rules, not guesswork.{" "}
               <a
-                href="https://github.com/markiengo/marqbot/blob/main/docs/algorithm.md"
+                href="https://github.com/markiengo/marqbot/blob/main/docs/memos/algorithm.md"
                 target="_blank"
                 rel="noreferrer"
                 className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"

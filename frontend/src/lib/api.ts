@@ -64,11 +64,13 @@ export async function loadProgramBuckets(programIds: string[]): Promise<ProgramB
 
 export async function postRecommend(
   payload: Record<string, unknown>,
+  options?: { signal?: AbortSignal },
 ): Promise<RecommendationResponse> {
   const res = await fetch(`${API_BASE}/api/recommend`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+    signal: options?.signal,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);

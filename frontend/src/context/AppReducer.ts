@@ -418,14 +418,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, isHonorsStudent: action.payload };
 
     case "SET_SCHEDULING_STYLE":
-      return { ...state, schedulingStyle: action.payload, lastRecommendationData: null };
+      return { ...state, schedulingStyle: action.payload };
 
     case "SET_STUDENT_STAGE":
       return {
         ...state,
         studentStage: action.payload,
         studentStageIsExplicit: true,
-        lastRecommendationData: null,
       };
 
     case "SET_CAN_TAKE_QUERY":

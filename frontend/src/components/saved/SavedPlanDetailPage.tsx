@@ -107,6 +107,10 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
     return map;
   }, [courses]);
   const recommendationData = plan?.recommendationData ?? null;
+  const totalCourses = recommendationData?.semesters?.reduce(
+    (sum, s) => sum + (s.recommendations?.length ?? 0),
+    0,
+  ) ?? 0;
   const modalSemester =
     semesterModalIdx !== null
       ? recommendationData?.semesters?.[semesterModalIdx] ?? null
@@ -187,9 +191,9 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
           <p className="text-sm text-ink-secondary">
             This local saved-plan record is missing. It may have been deleted in another tab or browser session.
           </p>
-          <Link href="/saved" className="inline-flex">
-            <Button variant="gold">Back to Library</Button>
-          </Link>
+          <Button asChild variant="gold">
+            <Link href="/saved">Back to Library</Link>
+          </Button>
         </div>
       </div>
     );
@@ -202,185 +206,256 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
           <section className="planner-panel planner-left relative">
             <div className="absolute inset-0 bg-[linear-gradient(155deg,rgba(6,18,38,0.99),rgba(9,34,66,0.96)_52%,rgba(34,24,8,0.9))]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.22),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(0,114,206,0.18),transparent_30%),repeating-linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.045)_1px,transparent_1px,transparent_16px)] opacity-90" />
-            <div className="relative min-h-0 flex flex-col gap-2">
-              <div className="shrink-0 rounded-xl glass-card shine-sweep shadow-[inset_0_1px_0_rgba(122,179,255,0.08)] p-4 overflow-hidden">
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="space-y-2">
-                      <Link href="/saved" className="section-kicker hover:text-gold transition-colors">
-                        Saved Library
-                      </Link>
-                      <h3 className="max-w-[22ch] text-[10px] font-semibold leading-[1.2] text-ink-primary">
-                        {plan.name}
-                      </h3>
-                    </div>
-                    <FreshnessBadge freshness={freshness} />
-                  </div>
+            <div className="relative h-full min-h-0 flex flex-col gap-2">
+              {/* ── Single compact card ── */}
+              <div className="shrink-0 rounded-xl glass-card shine-sweep shadow-[inset_0_1px_0_rgba(122,179,255,0.08)] p-3 overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-2">
+                  <Link href="/saved" className="section-kicker hover:text-gold transition-colors">
+                    ← Saved Library
+                  </Link>
+                  <FreshnessBadge freshness={freshness} />
+                </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="relative overflow-hidden rounded-2xl glass-card stat-card-decor kpi-glow-gold p-4">
-                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,204,0,0.09),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(0,114,206,0.07),transparent_50%)] pointer-events-none" />
-                      <p className="relative z-[1] text-[11px] uppercase tracking-[0.25em] text-ink-faint">Snapshot</p>
-                      <p className="relative z-[1] mt-2 text-xl font-semibold text-ink-primary">{freshnessCopy.label}</p>
-                      <p className="relative z-[1] mt-2 text-sm text-ink-secondary">{freshnessCopy.reason}</p>
-                    </div>
-                    <div className="relative overflow-hidden rounded-2xl glass-card stat-card-decor kpi-glow-gold p-4">
-                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(0,114,206,0.08),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(255,204,0,0.07),transparent_50%)] pointer-events-none" />
-                      <p className="relative z-[1] text-[11px] uppercase tracking-[0.25em] text-ink-faint">Updated</p>
-                      <p className="relative z-[1] mt-2 text-xl font-semibold text-ink-primary">{formatSavedPlanDate(plan.updatedAt)}</p>
-                      <p className="relative z-[1] mt-2 text-sm text-ink-secondary">
-                        Created {formatSavedPlanDate(plan.createdAt, { month: "short", day: "numeric" })}
+                {!isEditingMeta ? (
+                  /* ── Read mode ── */
+                  <div className="mt-2 space-y-2.5">
+                    {/* Plan name + dates */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-ink-primary leading-snug">{plan.name}</h3>
+                      <p className="mt-0.5 text-[11px] text-ink-faint">
+                        Updated {formatSavedPlanDate(plan.updatedAt, { month: "short", day: "numeric" })} · Created {formatSavedPlanDate(plan.createdAt, { month: "short", day: "numeric" })}
                       </p>
                     </div>
-                  </div>
 
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="relative overflow-hidden rounded-2xl glass-card p-4">
-                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,114,206,0.07),transparent_60%),linear-gradient(160deg,rgba(255,255,255,0.03),transparent_40%)] pointer-events-none" />
-                      <p className="relative z-[1] text-[11px] uppercase tracking-[0.25em] text-ink-faint">Program</p>
-                      <div className="relative z-[1] mt-3 space-y-2 text-sm text-ink-secondary">
-                        <p>{majorLabels.length > 0 ? majorLabels.join(", ") : "No major saved"}</p>
-                        <p>{trackLabels.length > 0 ? trackLabels.join(", ") : "No track saved"}</p>
-                        <p>{minorLabels.length > 0 ? minorLabels.join(", ") : "No minors saved"}</p>
-                      </div>
-                    </div>
-                    <div className="relative overflow-hidden rounded-2xl glass-card p-4">
-                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(255,204,0,0.06),transparent_55%),linear-gradient(160deg,rgba(255,255,255,0.03),transparent_40%)] pointer-events-none" />
-                      <p className="relative z-[1] text-[11px] uppercase tracking-[0.25em] text-ink-faint">Planner Settings</p>
-                      <div className="relative z-[1] mt-3 grid grid-cols-2 gap-3 text-sm text-ink-secondary">
-                        <div>
-                          <p className="text-ink-faint">Target</p>
-                          <p>{plan.inputs.targetSemester}</p>
-                        </div>
-                        <div>
-                          <p className="text-ink-faint">Semesters</p>
-                          <p>{plan.inputs.semesterCount}</p>
-                        </div>
-                        <div>
-                          <p className="text-ink-faint">Max per term</p>
-                          <p>{plan.inputs.maxRecs}</p>
-                        </div>
-                        <div>
-                          <p className="text-ink-faint">Summer</p>
-                          <p>{plan.inputs.includeSummer ? "Included" : "Skipped"}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    <div className="border-t border-border-subtle/40" />
 
-                  <div className="flex flex-wrap gap-3 pt-1">
-                    <Button variant="gold" onClick={handleResume} className="shadow-[0_0_24px_rgba(255,204,0,0.22)] pulse-gold-soft">Resume in Planner</Button>
-                    <Link href="/saved" className="inline-flex">
-                      <Button variant="secondary">Back to Library</Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative rounded-[28px] glass-card p-6 shadow-[0_24px_80px_rgba(0,0,0,0.2)] overflow-hidden">
-                <div className="absolute inset-0 rounded-[28px] bg-[radial-gradient(ellipse_60%_40%_at_80%_10%,rgba(255,204,0,0.05),transparent),radial-gradient(ellipse_50%_50%_at_10%_90%,rgba(0,114,206,0.06),transparent),linear-gradient(175deg,rgba(255,255,255,0.02),transparent_30%)] pointer-events-none" />
-                <div className="relative z-[1] flex items-start justify-between gap-3">
-                  <div className="space-y-2">
-                    <p className="section-kicker">Plan Details</p>
-                    <h3 className="max-w-[22ch] text-[10px] font-semibold leading-[1.2] text-ink-primary">Plan name and notes</h3>
-                    <p className="text-sm text-ink-faint">
-                      Update the title and notes without changing the saved planner snapshot.
-                    </p>
-                  </div>
-                  {!isEditingMeta ? (
-                    <Button variant="secondary" size="sm" onClick={() => setIsEditingMeta(true)}>
-                      Edit
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setName(plan.name);
-                        setNotes(plan.notes);
-                        setFormError(null);
-                        setIsEditingMeta(false);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  )}
-                </div>
-
-                <div className="relative z-[1] mt-5 space-y-4">
-                  <label className="block space-y-2">
-                    <span className="text-sm font-medium text-ink-primary">Plan name</span>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      disabled={!isEditingMeta}
-                      className="w-full rounded-2xl border border-border-medium bg-surface-input px-4 py-3 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors disabled:opacity-70"
-                    />
-                  </label>
-                  <label className="block space-y-2">
-                    <span className="text-sm font-medium text-ink-primary">Notes</span>
-                    <textarea
-                      rows={4}
-                      value={notes}
-                      onChange={(event) => setNotes(event.target.value)}
-                      disabled={!isEditingMeta}
-                      className="w-full rounded-2xl border border-border-medium bg-surface-input px-4 py-3 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors disabled:opacity-70"
-                      placeholder="Context like recruiter-heavy semester, transfer-credit version, or summer-heavy draft."
-                    />
-                  </label>
-                  {confirmDeleteOpen ? (
-                    <div className="space-y-4 rounded-[24px] border border-bad/30 bg-[linear-gradient(165deg,rgba(72,11,15,0.56),rgba(16,19,35,0.94))] px-5 py-5 shadow-[0_24px_60px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.05)]">
-                      <div className="space-y-2">
-                        <p className="section-kicker !text-bad">Delete Saved Plan</p>
-                        <h4 className="text-xl font-semibold text-ink-primary">Are you sure?</h4>
-                        <p className="text-sm leading-relaxed text-ink-secondary">
-                          This will permanently remove <span className="font-semibold text-ink-primary">{plan.name}</span> from this browser, including the saved notes and recommendation snapshot.
-                        </p>
+                    {/* Compact key-value rows */}
+                    <dl className="grid gap-y-1.5">
+                      {(majorLabels.length > 0 || trackLabels.length > 0) && (
+                        <div className="grid grid-cols-[5rem_1fr] gap-x-2 text-xs">
+                          <dt className="text-ink-faint">Program</dt>
+                          <dd className="text-ink-secondary truncate">{[...majorLabels, ...trackLabels].join(", ")}</dd>
+                        </div>
+                      )}
+                      {minorLabels.length > 0 && (
+                        <div className="grid grid-cols-[5rem_1fr] gap-x-2 text-xs">
+                          <dt className="text-ink-faint">Minors</dt>
+                          <dd className="text-ink-secondary truncate">{minorLabels.join(", ")}</dd>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-[5rem_1fr] gap-x-2 text-xs">
+                        <dt className="text-ink-faint">Target</dt>
+                        <dd className="text-ink-secondary">{plan.inputs.targetSemester} · {plan.inputs.semesterCount} terms</dd>
                       </div>
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <Button
-                          variant="secondary"
-                          onClick={() => setConfirmDeleteOpen(false)}
-                        >
-                          Keep Plan
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={handleDelete}
-                          className="border-bad/40 text-bad hover:border-bad/60 hover:bg-bad-light/25"
-                        >
-                          Yes, Delete Plan
-                        </Button>
+                      <div className="grid grid-cols-[5rem_1fr] gap-x-2 text-xs">
+                        <dt className="text-ink-faint">Max/term</dt>
+                        <dd className="text-ink-secondary">{plan.inputs.maxRecs} · Summer {plan.inputs.includeSummer ? "included" : "skipped"}</dd>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
+                    </dl>
+
+                    {plan.notes && (
+                      <>
+                        <div className="border-t border-border-subtle/40" />
+                        <p className="text-[11px] text-ink-faint line-clamp-2">{plan.notes}</p>
+                      </>
+                    )}
+
+                    <div className="border-t border-border-subtle/40" />
+
+                    {formError && (
+                      <p className="text-xs text-bad">{formError}</p>
+                    )}
+
+                    {confirmDeleteOpen && (
+                      <div className="space-y-2.5 rounded-xl border border-bad/30 bg-[linear-gradient(165deg,rgba(72,11,15,0.56),rgba(16,19,35,0.94))] px-3 py-3">
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-semibold text-ink-primary">Are you sure?</h4>
+                          <p className="text-xs text-ink-secondary">
+                            Permanently remove <span className="font-semibold text-ink-primary">{plan.name}</span>?
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="secondary" size="sm" onClick={() => setConfirmDeleteOpen(false)}>
+                            Keep Plan
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleDelete}
+                            className="border-bad/40 text-bad hover:border-bad/60 hover:bg-bad-light/25"
+                          >
+                            Yes, Delete Plan
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <Button variant="gold" size="sm" onClick={handleResume} className="pulse-gold-soft">Resume in Planner</Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setConfirmDeleteOpen(false);
+                          setFormError(null);
+                          setIsEditingMeta(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      {!confirmDeleteOpen && (
                         <Button
                           variant="ghost"
+                          size="sm"
                           className="text-bad hover:bg-bad-light/25"
-                          onClick={() => setConfirmDeleteOpen(true)}
+                          onClick={() => {
+                            setFormError(null);
+                            setConfirmDeleteOpen(true);
+                          }}
                         >
                           Delete Plan
                         </Button>
-                        <p className="text-sm text-ink-faint">
-                          Snapshot data stays attached unless you regenerate this plan in Planner.
-                        </p>
-                      </div>
-                      {isEditingMeta && (
-                        <Button variant="gold" onClick={handleSaveMeta} disabled={!name.trim()}>
-                          Save Changes
-                        </Button>
                       )}
+                      <Button asChild variant="ghost" size="sm">
+                        <Link href="/saved">Back</Link>
+                      </Button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  /* ── Edit mode ── */
+                  <div className="mt-2 space-y-2.5">
+                    <label className="block space-y-1">
+                      <span className="text-[11px] font-medium text-ink-primary">Plan name</span>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(event) => setName(event.target.value)}
+                        className="w-full rounded-xl border border-border-medium bg-surface-input px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors"
+                      />
+                    </label>
+                    <label className="block space-y-1">
+                      <span className="text-[11px] font-medium text-ink-primary">Notes</span>
+                      <textarea
+                        rows={2}
+                        value={notes}
+                        onChange={(event) => setNotes(event.target.value)}
+                        className="w-full rounded-xl border border-border-medium bg-surface-input px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/30 transition-colors resize-none"
+                        placeholder="Context like recruiter-heavy semester, transfer-credit version, or summer-heavy draft."
+                      />
+                    </label>
+
+                    {formError && (
+                      <p className="text-xs text-bad">{formError}</p>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setName(plan.name);
+                          setNotes(plan.notes);
+                          setFormError(null);
+                          setIsEditingMeta(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button variant="gold" size="sm" onClick={handleSaveMeta} disabled={!name.trim()}>
+                        Save
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {(storageError || formError) && (
-                <div className="rounded-2xl border border-bad/20 bg-bad-light px-4 py-3 text-sm text-bad">
-                  {formError || storageError}
+              {/* ── Snapshot summary — fills remaining height ── */}
+              <div className="flex-1 min-h-0 rounded-xl glass-card p-3 overflow-y-auto">
+                {recommendationData ? (
+                  <div className="flex flex-col gap-3 h-full">
+                    <p className="section-kicker">Snapshot</p>
+
+                    {/* KPI pair */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-lg glass-card p-2.5 text-center">
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-ink-faint">Semesters</p>
+                        <p className="mt-0.5 text-xl font-semibold text-ink-primary leading-none">{recommendationData.semesters?.length ?? 0}</p>
+                      </div>
+                      <div className="rounded-lg glass-card kpi-glow-gold p-2.5 text-center">
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-ink-faint">Courses</p>
+                        <p className="mt-0.5 text-xl font-semibold text-ink-primary leading-none">{totalCourses}</p>
+                      </div>
+                    </div>
+
+                    {/* Saved context strip */}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg glass-card px-3 py-2">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] text-ink-faint">Completed</span>
+                        <span className="text-[11px] font-medium text-ink-secondary">{plan.inputs.completed.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] text-ink-faint">In progress</span>
+                        <span className="text-[11px] font-medium text-ink-secondary">{plan.inputs.inProgress.length}</span>
+                      </div>
+                      <div className="col-span-2 border-t border-border-subtle/30 pt-1 mt-0.5">
+                        <p className="text-[10px] text-ink-faint leading-snug">{freshnessCopy.reason}</p>
+                      </div>
+                    </div>
+
+                    {/* Notes (if present) */}
+                    {plan.notes && (
+                      <div className="rounded-lg border border-border-subtle/40 px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-ink-faint mb-1">Notes</p>
+                        <p className="text-[11px] text-ink-secondary leading-snug line-clamp-3">{plan.notes}</p>
+                      </div>
+                    )}
+
+                    {/* Per-semester breakdown */}
+                    <div className="space-y-1.5">
+                      {recommendationData.semesters?.map((s, i) => {
+                        const count = s.recommendations?.length ?? 0;
+                        const maxRecs = Number(plan.inputs.maxRecs) || 1;
+                        const pct = Math.min(100, Math.round((count / maxRecs) * 100));
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setSemesterModalIdx(i)}
+                            className="w-full group flex items-start gap-2 text-left rounded-lg px-1.5 py-1 hover:bg-white/5 transition-colors"
+                          >
+                            <div className="shrink-0 w-[5.5rem]">
+                              <p className="text-[11px] text-ink-secondary truncate">{s.target_semester ?? `Term ${i + 1}`}</p>
+                              {s.standing_label && (
+                                <p className="text-[10px] text-ink-faint truncate">{s.standing_label}</p>
+                              )}
+                            </div>
+                            <div className="flex-1 flex items-center gap-2 mt-1.5">
+                              <div className="flex-1 h-1 rounded-full bg-border-subtle/40 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-gold/40 group-hover:bg-gold/60 transition-colors"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <span className="text-[11px] text-ink-faint w-4 text-right shrink-0">{count}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center gap-2">
+                    <p className="section-kicker justify-center">No Snapshot</p>
+                    <p className="text-[11px] text-ink-faint max-w-[20ch]">Save a plan after generating recommendations to see the breakdown here.</p>
+                  </div>
+                )}
+              </div>
+
+              {storageError && (
+                <div className="rounded-xl border border-bad/20 bg-bad-light px-3 py-2 text-xs text-bad">
+                  {storageError}
                 </div>
               )}
             </div>

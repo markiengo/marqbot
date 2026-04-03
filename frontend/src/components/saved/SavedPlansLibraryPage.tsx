@@ -78,9 +78,9 @@ function PlanCard({ plan, freshness, programs, onDelete, index }: PlanCardProps 
             <span className="rounded-full glass-card px-2.5 py-1 text-[11px] font-medium text-ink-secondary">{plan.inputs.inProgress.length} in prog</span>
           </div>
           <div className="flex items-center gap-2">
-            <Link href={`/saved?plan=${encodeURIComponent(plan.id)}`} className="inline-flex">
-              <Button variant="gold" size="sm">Open</Button>
-            </Link>
+            <Button asChild variant="gold" size="sm">
+              <Link href={`/saved?plan=${encodeURIComponent(plan.id)}`}>Open</Link>
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -228,9 +228,9 @@ export function SavedPlansLibraryPage() {
               {storageError}
             </div>
           )}
-          <Link href="/planner" className="inline-flex">
-            <Button variant="gold">Go to Planner</Button>
-          </Link>
+          <Button asChild variant="gold">
+            <Link href="/planner">Go to Planner</Link>
+          </Button>
         </div>
       </div>
     );

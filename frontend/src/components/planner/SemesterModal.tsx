@@ -17,6 +17,7 @@ import { bucketLabel, esc } from "@/lib/utils";
 interface SemesterModalProps {
   open: boolean;
   onClose: () => void;
+  openMode?: "view" | "edit";
   semester: SemesterData | null;
   index: number;
   totalCount: number;
@@ -40,6 +41,7 @@ interface SemesterModalProps {
 export function SemesterModal({
   open,
   onClose,
+  openMode = "view",
   semester,
   index,
   totalCount,
@@ -64,10 +66,12 @@ export function SemesterModal({
   const [bucketDetail, setBucketDetail] = useState<BucketDetailState | null>(null);
   const [editDetailCode, setEditDetailCode] = useState<string | null>(null);
   const bucketTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const autoEnteredEditRef = useRef(false);
 
   // Reset state when modal closes
   useEffect(() => {
     if (!open) {
+      autoEnteredEditRef.current = false;
       setEditMode(false);
       setEditCourses([]);
       setApplyLoading(false);
@@ -77,7 +81,7 @@ export function SemesterModal({
     }
   }, [open]);
 
-  const recs = semester?.recommendations || [];
+  const recs = useMemo(() => semester?.recommendations ?? [], [semester]);
   const semesterProgress = semester?.projected_progress || semester?.progress;
   const canEdit = Boolean(onEditApply) && recs.length > 0;
   const catalogCourseMap = useMemo(() => {
@@ -94,6 +98,15 @@ export function SemesterModal({
   }, [candidatePool, editCourses, recs]);
   const editDetailCourse = editDetailCode ? editRecommendedMap.get(editDetailCode) : undefined;
   const editFallbackCourse = editDetailCode ? catalogCourseMap.get(editDetailCode) : undefined;
+
+  useEffect(() => {
+    if (!open || openMode !== "edit" || autoEnteredEditRef.current || !semester) return;
+    autoEnteredEditRef.current = true;
+    setEditApplied(false);
+    setEditCourses([...(semester.recommendations ?? [])]);
+    setEditMode(true);
+    onRequestCandidates?.();
+  }, [open, openMode, onRequestCandidates, semester]);
 
   if (!semester) return null;
 
@@ -194,9 +207,9 @@ export function SemesterModal({
                     Next
                   </Button>
                 )}
-                {canEdit && !editApplied && (
+                {canEdit && (
                   <Button variant="secondary" size="sm" onClick={handleEnterEdit}>
-                    Swap courses
+                    Edit Semester
                   </Button>
                 )}
               </div>
@@ -395,11 +408,7 @@ function EditModeContent({
     );
   }, [candidatePool, editCodes, trimmedFilter]);
 
-  useEffect(() => {
-    if (editCourses.length === 0) {
-      setMobileTab("swaps");
-    }
-  }, [editCourses.length]);
+  const activeMobileTab = editCourses.length === 0 ? "swaps" : mobileTab;
 
   return (
     <div className="flex flex-col gap-4">
@@ -409,7 +418,7 @@ function EditModeContent({
             type="button"
             onClick={() => setMobileTab("selected")}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
-              mobileTab === "selected" ? "bg-gold/16 text-gold-light" : "text-ink-muted"
+              activeMobileTab === "selected" ? "bg-gold/16 text-gold-light" : "text-ink-muted"
             }`}
           >
             Your Courses ({editCourses.length})
@@ -418,7 +427,7 @@ function EditModeContent({
             type="button"
             onClick={() => setMobileTab("swaps")}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
-              mobileTab === "swaps" ? "bg-mu-blue/18 text-ink-accent-blue" : "text-ink-muted"
+              activeMobileTab === "swaps" ? "bg-mu-blue/18 text-ink-accent-blue" : "text-ink-muted"
             }`}
           >
             Eligible Swaps ({available.length})
@@ -427,7 +436,7 @@ function EditModeContent({
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <section className={`${mobileTab === "selected" ? "flex" : "hidden"} flex-col rounded-[1.2rem] border border-border-subtle bg-[rgba(7,18,39,0.44)] p-3 md:flex`}>
+        <section className={`${activeMobileTab === "selected" ? "flex" : "hidden"} flex-col rounded-[1.2rem] border border-border-subtle bg-[rgba(7,18,39,0.44)] p-3 md:flex`}>
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-light">Selected</p>
@@ -459,7 +468,7 @@ function EditModeContent({
           </div>
         </section>
 
-        <section className={`${mobileTab === "swaps" ? "flex" : "hidden"} flex-col rounded-[1.2rem] border border-border-subtle bg-[rgba(7,18,39,0.44)] p-3 md:flex`}>
+        <section className={`${activeMobileTab === "swaps" ? "flex" : "hidden"} flex-col rounded-[1.2rem] border border-border-subtle bg-[rgba(7,18,39,0.44)] p-3 md:flex`}>
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-accent-blue">Swap Pool</p>

@@ -93,6 +93,7 @@ describe("SemesterModal planner copy", () => {
     expect(screen.getByText("No prereqs")).toBeInTheDocument();
     expect(screen.getByText("+1 more")).toBeInTheDocument();
     expect(screen.getByText("View details")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /view details for fina 4050/i })).toBeInTheDocument();
   });
 });
 
