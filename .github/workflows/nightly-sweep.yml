@@ -5,7 +5,7 @@ on:
   schedule:
     # GitHub Actions cron is UTC. These daily entries cover 4:00 AM
     # America/Chicago across DST shifts; the job itself skips unless the
-    # local time is 04:00 and the three-day cadence matches.
+    # local time is 04:00.
     - cron: "0 9 * * *"
     - cron: "0 10 * * *"
 
@@ -39,13 +39,11 @@ jobs:
         id: meta
         shell: bash
         run: |
-          anchor_date="2026-04-03"
           local_date="$(TZ=America/Chicago date +%F)"
           local_time="$(TZ=America/Chicago date +%H:%M)"
           local_hour="$(TZ=America/Chicago date +%H)"
           nightly_seed="$(TZ=America/Chicago date +%Y%m%d%H%M%S)"
 
-          echo "anchor_date=$anchor_date" >> "$GITHUB_OUTPUT"
           echo "local_date=$local_date" >> "$GITHUB_OUTPUT"
           echo "local_time=$local_time" >> "$GITHUB_OUTPUT"
           echo "seed=$nightly_seed" >> "$GITHUB_OUTPUT"
@@ -62,22 +60,14 @@ jobs:
             exit 0
           fi
 
-          days_since_anchor=$(( ($(date -d "$local_date" +%s) - $(date -d "$anchor_date" +%s)) / 86400 ))
-          if [ $((days_since_anchor % 3)) -eq 0 ]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "skip_reason=matched three-day cadence" >> "$GITHUB_OUTPUT"
-          else
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "skip_reason=off the three-day cadence" >> "$GITHUB_OUTPUT"
-          fi
+          echo "should_run=true" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=daily schedule matched" >> "$GITHUB_OUTPUT"
 
       - name: Show schedule decision
         shell: bash
         run: |
           echo "event=${{ github.event_name }}"
           echo "local_date=${{ steps.meta.outputs.local_date }}"
-          echo "local_time=${{ steps.meta.outputs.local_time }}"
-          echo "seed=${{ steps.meta.outputs.seed }}"
           echo "should_run=${{ steps.meta.outputs.should_run }}"
           echo "reason=${{ steps.meta.outputs.skip_reason }}"
 
@@ -115,8 +105,7 @@ jobs:
           {
             echo "$title"
             echo
-            echo "- Local schedule: ${{ steps.meta.outputs.local_date }} ${{ steps.meta.outputs.local_time }} America/Chicago"
-            echo "- Three-day anchor: ${{ steps.meta.outputs.anchor_date }}"
+            echo "- Local schedule: ${{ steps.meta.outputs.local_date }} America/Chicago"
             echo "- Seed: \`${{ steps.meta.outputs.seed }}\`"
             echo
             if [ "${{ steps.nightly.outputs.exit_code }}" = "0" ]; then
