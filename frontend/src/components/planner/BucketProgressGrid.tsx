@@ -123,7 +123,7 @@ export function BucketProgressGrid({
           </button>
         );
 
-        if (!animate) return <div key={bid}>{card}</div>;
+        if (!animate || idx >= 8) return <div key={bid}>{card}</div>;
 
         return (
           <motion.div

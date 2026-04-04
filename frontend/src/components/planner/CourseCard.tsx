@@ -108,7 +108,7 @@ export function CourseCard({
                 rotateX,
                 rotateY,
                 transformPerspective: 900,
-                willChange: "transform",
+                willChange: "auto",
               }
         }
         className={`group relative h-full${onClick ? " cursor-pointer" : ""}`}

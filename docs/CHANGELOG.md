@@ -10,6 +10,23 @@ Format per release:
 
 ## [Unreleased]
 
+### User
+
+- Planner and landing pages feel snappier — reduced animation overhead without removing any visual effects.
+
+### Technical
+
+- **Goal**: Reduce lag on the planner page and landing page, especially for lower-end hardware.
+- **Problem**: Multiple always-running `requestAnimationFrame` loops, per-card Motion spring physics (60–72 concurrent springs for triple majors), permanent `willChange` compositor layer promotion, infinite looping `motion.div` animations, and per-row Motion stagger on CourseRow.
+- **Decisions**:
+  - ReactivePageShell + LandingHeroSimple: rAF loops now self-pause when pointer is idle (settle detection).
+  - CourseRow: replaced `motion.div` per-row stagger with CSS `stagger-enter` class (already in globals.css).
+  - RecommendationsPanel: replaced infinite `motion.div` floating glow with static `div` — identical visual.
+  - BucketProgressGrid: capped Motion stagger at 8 items; items beyond render instantly.
+  - CourseCard: changed `willChange: "transform"` to `"auto"` — browser manages layer promotion on demand.
+  - Modal: removed permanent `willChange` on wrapper and backdrop; `transform-gpu` class handles it during animation.
+- **Outcome**: Zero visual regressions. Eliminated continuous CPU churn when idle, reduced concurrent Motion springs, and cut compositor layer count.
+
 ---
 
 ## [v2.7.0] - 2026-04-03

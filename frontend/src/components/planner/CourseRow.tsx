@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import type { RecommendedCourse } from "@/lib/types";
 import { formatCourseNameLabel } from "@/lib/rendering";
 import { esc } from "@/lib/utils";
@@ -12,7 +11,7 @@ interface CourseRowProps {
   onClick?: () => void;
 }
 
-export function CourseRow({ course, courseCount, index = 0, onClick }: CourseRowProps) {
+export function CourseRow({ course, courseCount, onClick }: CourseRowProps) {
   const c = course;
   const courseName = formatCourseNameLabel(c.course_name || "");
   const count = Math.max(1, Math.min(6, courseCount));
@@ -54,10 +53,7 @@ export function CourseRow({ course, courseCount, index = 0, onClick }: CourseRow
   })();
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, delay: index * 0.04 }}
+    <div
       onClick={onClick}
       className={`flex-none lg:flex-1 ${density.row} rounded-lg glass-card card-glow-hover overflow-hidden flex items-center border-l-2 border-l-gold/50${onClick ? " cursor-pointer" : ""}`}
     >
@@ -75,6 +71,6 @@ export function CourseRow({ course, courseCount, index = 0, onClick }: CourseRow
       <span className="shrink-0 text-xs font-bold text-gold tabular-nums mr-1" style={{ fontVariantNumeric: "tabular-nums" }}>
         {c.credits || 3}cr
       </span>
-    </motion.div>
+    </div>
   );
 }

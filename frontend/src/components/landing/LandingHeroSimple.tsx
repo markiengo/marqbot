@@ -48,11 +48,22 @@ export function LandingHeroSimple() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const glowRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
+  const activeRef = useRef(false);
   const targetPos = useRef({ x: 0.5, y: 0.4, opacity: 0 });
   const currentPos = useRef({ x: 0.5, y: 0.4, opacity: 0 });
 
   useEffect(() => {
     if (reduceEffects) return;
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+      activeRef.current = false;
+    };
+  }, [reduceEffects]);
+
+  const startLoop = () => {
+    if (activeRef.current || reduceEffects) return;
+    activeRef.current = true;
 
     const tick = () => {
       const target = targetPos.current;
@@ -68,14 +79,21 @@ export function LandingHeroSimple() {
         glow.style.opacity = String(current.opacity);
       }
 
-      frameRef.current = requestAnimationFrame(tick);
+      const settled =
+        Math.abs(target.x - current.x) < 0.002 &&
+        Math.abs(target.y - current.y) < 0.002 &&
+        Math.abs(target.opacity - current.opacity) < 0.01;
+
+      if (settled) {
+        activeRef.current = false;
+        frameRef.current = null;
+      } else {
+        frameRef.current = requestAnimationFrame(tick);
+      }
     };
 
     frameRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-    };
-  }, [reduceEffects]);
+  };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
     if (reduceEffects) return;
@@ -88,10 +106,13 @@ export function LandingHeroSimple() {
       y: (event.clientY - rect.top) / rect.height,
       opacity: 1,
     };
+    startLoop();
   };
 
   const handlePointerLeave = () => {
-    if (!reduceEffects) targetPos.current.opacity = 0;
+    if (reduceEffects) return;
+    targetPos.current.opacity = 0;
+    startLoop();
   };
 
   return (

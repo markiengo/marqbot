@@ -109,18 +109,14 @@ function RecommendationsPanelInner({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg glass-card">
           <div className="relative flex shrink-0 items-center justify-between gap-2 border-b border-gold/15 px-3 py-2">
-            {!reduceEffects && (
-              <motion.div
-                aria-hidden="true"
-                animate={{ x: [0, 4, 0], y: [0, -5, 0] }}
-                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-                className="pointer-events-none absolute inset-x-3 inset-y-1 rounded-md opacity-70"
-                style={{
-                  background:
-                    "radial-gradient(ellipse 40% 80% at 20% 40%, rgba(255,204,0,0.10), transparent), radial-gradient(ellipse 55% 70% at 85% 50%, rgba(0,114,206,0.10), transparent)",
-                }}
-              />
-            )}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-3 inset-y-1 rounded-md opacity-70"
+              style={{
+                background:
+                  "radial-gradient(ellipse 40% 80% at 20% 40%, rgba(255,204,0,0.10), transparent), radial-gradient(ellipse 55% 70% at 85% 50%, rgba(0,114,206,0.10), transparent)",
+              }}
+            />
 
             <h4 className="relative hash-mark font-[family-name:var(--font-sora)] text-[11px] font-bold leading-[1.25] tracking-[0.01em] text-gold md:text-[13px]">
               Semester {selectedIdx + 1}
@@ -153,15 +149,14 @@ function RecommendationsPanelInner({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -8 }}
                 transition={{ duration: 0.14 }}
-                className={`flex h-full min-h-0 flex-col overflow-hidden ${listGapClass}`}
+                className={`flex h-full min-h-0 flex-col overflow-hidden stagger-enter ${listGapClass}`}
               >
                 {activeRecs.length > 0 ? (
-                  activeRecs.map((c, idx) => (
+                  activeRecs.map((c) => (
                     <CourseRow
                       key={c.course_code}
                       course={c}
                       courseCount={courseCount}
-                      index={idx}
                       onClick={onCourseClick ? () => onCourseClick(c.course_code) : undefined}
                     />
                   ))

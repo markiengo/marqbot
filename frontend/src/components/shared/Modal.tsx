@@ -104,7 +104,6 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
           exit={{ opacity: 0 }}
           transition={{ duration: simplifyMotion ? 0.16 : 0.25 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4"
-          style={{ willChange: "opacity" }}
         >
           <motion.div
             initial={{ opacity: 0 }}
@@ -113,7 +112,6 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
             transition={{ duration: simplifyMotion ? 0.16 : 0.25 }}
             className="absolute inset-0 bg-[rgba(4,9,20,0.82)]"
             onClick={onClose}
-            style={{ willChange: "opacity" }}
           />
 
           <motion.div
@@ -126,7 +124,7 @@ export function Modal({ open, onClose, title, titleClassName, titleExtra, size =
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
             className={`relative modal-aurora ${!simplifyMotion ? "transform-gpu" : ""} rounded-2xl border border-border-card shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(141,170,224,0.06)] ${sizeClasses[size]} overflow-y-auto z-10`}
-            style={{ willChange: "transform, opacity", contain: "layout paint style" }}
+            style={{ contain: "layout paint style" }}
           >
             {title && (
               <div className="relative flex items-center justify-between border-b border-border-subtle px-4 pb-3 pt-5 sm:px-8 sm:pb-4 sm:pt-7">
