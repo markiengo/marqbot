@@ -45,6 +45,20 @@ export function ProgressModal({
   rawCompleted,
   rawInProgress,
 }: ProgressModalProps) {
+  const progressRenderKey = useMemo(() => {
+    if (!currentProgress) return "no-progress";
+    return Object.entries(currentProgress)
+      .map(([bucketId, progress]) => {
+        const completed = Number(progress.completed_courses ?? progress.completed_done ?? progress.done_count ?? 0);
+        const inProgress = Number(progress.in_progress_courses ?? progress.in_progress_increment ?? 0);
+        const codes = [
+          ...(progress.completed_applied ?? []),
+          ...(progress.in_progress_applied ?? []),
+        ].join(",");
+        return `${bucketId}:${completed}:${inProgress}:${codes}`;
+      })
+      .join("|");
+  }, [currentProgress]);
   const sections = useMemo(
     () => (
       open
@@ -267,6 +281,7 @@ export function ProgressModal({
                 </button>
               </div>
               <BucketSectionTabs
+                key={progressRenderKey}
                 sections={sections}
                 programLabelMap={programLabelMap}
                 animate={false}

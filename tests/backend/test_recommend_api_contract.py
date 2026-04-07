@@ -189,6 +189,37 @@ def test_valid_response_includes_expected_top_level_contract(client):
     assert data["progress"] == first_semester["progress"]
 
 
+def test_selected_courses_override_first_semester_and_keep_projected_progress(client):
+    baseline = _post(client, target_semester_count=1, max_recommendations=3)
+    baseline_data = baseline.get_json()
+    baseline_semester = baseline_data["semesters"][0]
+    chosen_code = next(
+        (
+            code
+            for bucket in baseline_semester["projected_progress"].values()
+            for code in bucket.get("in_progress_applied", [])
+        ),
+        baseline_semester["recommendations"][0]["course_code"],
+    )
+
+    response = _post(
+        client,
+        target_semester_count=2,
+        max_recommendations=3,
+        selected_courses=[chosen_code],
+    )
+
+    assert response.status_code == 200
+    data = response.get_json()
+    first_semester = data["semesters"][0]
+    assert [rec["course_code"] for rec in first_semester["recommendations"]] == [chosen_code]
+    assert any(
+        chosen_code in bucket.get("in_progress_applied", [])
+        for bucket in first_semester["projected_progress"].values()
+    )
+    assert data["current_progress"] == baseline_data["current_progress"]
+
+
 @pytest.mark.parametrize(
     ("student_stage", "min_level", "max_level"),
     [

@@ -203,6 +203,25 @@ function inferProgressSection(
   bucketId: string,
   prog: BucketProgress | null | undefined,
 ): { key: ProgressSectionKey; label: string; rank: number } {
+  const explicitKey = String(prog?.section_key || "").trim().toLowerCase();
+  const explicitLabel = String(prog?.section_label || "").trim();
+  const explicitRank = Number(prog?.section_rank);
+  if (
+    (explicitKey === "mcc"
+      || explicitKey === "bcc"
+      || explicitKey === "major"
+      || explicitKey === "track"
+      || explicitKey === "minor")
+    && Number.isFinite(explicitRank)
+  ) {
+    const sectionKey = explicitKey as ProgressSectionKey;
+    return {
+      key: sectionKey,
+      label: explicitLabel || PROGRESS_SECTION_META[sectionKey].label,
+      rank: explicitRank,
+    };
+  }
+
   const localId = localBucketId(bucketId);
   const parentId = parentBucketId(bucketId);
   const tier = inferRecommendationTier(bucketId, prog);
@@ -257,11 +276,19 @@ export function sortProgressEntries(
     const aSection = inferProgressSection(a.entry[0], a.entry[1]);
     const bSection = inferProgressSection(b.entry[0], b.entry[1]);
     if (aSection.rank !== bSection.rank) return aSection.rank - bSection.rank;
-    const aLocal = localBucketId(a.entry[0]);
-    const bLocal = localBucketId(b.entry[0]);
-    const aBccRank = aLocal === "BCC_REQUIRED" ? 0 : 1;
-    const bBccRank = bLocal === "BCC_REQUIRED" ? 0 : 1;
-    if (aBccRank !== bBccRank) return aBccRank - bBccRank;
+    const aPlannerRank = Number(a.entry[1]?.planner_bucket_rank);
+    const bPlannerRank = Number(b.entry[1]?.planner_bucket_rank);
+    if (Number.isFinite(aPlannerRank) || Number.isFinite(bPlannerRank)) {
+      const left = Number.isFinite(aPlannerRank) ? aPlannerRank : 99;
+      const right = Number.isFinite(bPlannerRank) ? bPlannerRank : 99;
+      if (left !== right) return left - right;
+    } else {
+      const aLocal = localBucketId(a.entry[0]);
+      const bLocal = localBucketId(b.entry[0]);
+      const aBccRank = aLocal === "BCC_REQUIRED" ? 0 : 1;
+      const bBccRank = bLocal === "BCC_REQUIRED" ? 0 : 1;
+      if (aBccRank !== bBccRank) return aBccRank - bBccRank;
+    }
     return a.idx - b.idx;
   });
   return indexed.map((x) => x.entry);
@@ -306,13 +333,17 @@ export function groupProgressByParent(
   const order: string[] = [];
 
   for (const [bid, prog] of sorted) {
-    const parentId = parentBucketId(bid);
+    const parentId = String(prog?.group_parent_id || prog?.parent_bucket_id || parentBucketId(bid)).trim();
     if (HIDDEN_PARENT_IDS.has(parentId)) continue;
     if (!groups.has(parentId)) {
+      const explicitGroupLabel = String(
+        prog?.group_parent_label || prog?.parent_bucket_label || "",
+      ).trim();
       const label =
-        programLabelMap?.get(parentId) ??
+        explicitGroupLabel ||
+        (programLabelMap?.get(parentId) ??
         PARENT_LABEL_FALLBACKS[parentId] ??
-        parentId.replace(/_/g, " ");
+        parentId.replace(/_/g, " "));
       groups.set(parentId, { parentId, label, entries: [] });
       order.push(parentId);
     }
@@ -384,6 +415,8 @@ function bucketSemanticRank(
   prog: BucketProgress,
   programLabelMap?: Map<string, string>,
 ): number {
+  const explicitRank = Number(prog?.planner_bucket_rank);
+  if (Number.isFinite(explicitRank)) return explicitRank;
   const normalized = bucketOrderingLabel(bucketId, prog, programLabelMap).toLowerCase();
   if (/\bcore\b/.test(normalized)) return 0;
   return 1;
@@ -473,22 +506,19 @@ export function groupProgressByTierWithMajors(
     const seenOrder: string[] = [];
 
     for (const [bid, prog] of section.entries) {
-      let pid = parentBucketId(bid);
-      // Detect Discovery buckets by localId (e.g. MCC::MCC_DISC_CMI_HUM -> localId=MCC_DISC_CMI_HUM)
-      const lid = bid.includes("::") ? bid.split("::", 2)[1] : bid;
-      if (section.sectionKey === "mcc" && lid.startsWith("MCC_DISC")) {
-        // Derive theme parent: MCC_DISC_CMI_HUM -> MCC_DISC_CMI
-        const parts = lid.split("_");
-        pid = parts.length > 3 ? parts.slice(0, -1).join("_") : lid;
-      } else if (section.sectionKey === "mcc") {
-        // Group non-Discovery MCC buckets under "MCC General"
+      let pid = String(prog?.group_parent_id || prog?.parent_bucket_id || parentBucketId(bid)).trim();
+      let derivedLabel = String(prog?.group_parent_label || prog?.parent_bucket_label || "").trim();
+      if (!pid && section.sectionKey === "mcc") {
         pid = "MCC_GENERAL";
       }
+      if (!pid) pid = parentBucketId(bid);
       if (!groupMap.has(pid)) {
-        const label =
+        const fallbackLabel =
           programLabelMap?.get(pid) ??
           PARENT_LABEL_FALLBACKS[pid] ??
           pid.replace(/_/g, " ");
+        const label =
+          derivedLabel || fallbackLabel;
         groupMap.set(pid, { parentId: pid, label, entries: [] });
         seenOrder.push(pid);
       }

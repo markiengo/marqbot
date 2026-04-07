@@ -120,7 +120,7 @@ describe("Progress bucket drill-in", () => {
     fireEvent.click(screen.getByRole("button", { name: /open bucket map help/i }));
 
     expect(await screen.findByRole("heading", { name: /bucket map/i })).toBeInTheDocument();
-    expect(await screen.findByText(/same map as onboarding step 4/i)).toBeInTheDocument();
+    expect(await screen.findByText(/your degree is split into/i)).toBeInTheDocument();
   });
 
   test("escape closes only the topmost bucket modal and returns focus to the bucket card", async () => {
@@ -270,6 +270,6 @@ describe("Projected bucket drill-in", () => {
     fireEvent.click(screen.getByRole("button", { name: /open bucket map help/i }));
 
     expect(await screen.findByRole("heading", { name: /bucket map/i })).toBeInTheDocument();
-    expect(await screen.findByText(/same map as onboarding step 4/i)).toBeInTheDocument();
+    expect(await screen.findByText(/your degree is split into/i)).toBeInTheDocument();
   });
 });

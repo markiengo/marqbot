@@ -43,11 +43,22 @@ export interface RecommendedCourse {
   why?: string;
   prereq_check?: string;
   fills_buckets?: string[];
+  bucket_label_overrides?: Record<string, string>;
+  equivalent_to_courses?: string[];
+  conflicts_with_courses?: string[];
   warning_text?: string;
   soft_tags?: string[];
   notes?: string;
   low_confidence?: boolean;
   min_standing?: number;
+  is_manual_add?: boolean;
+}
+
+export interface PlannerManualAddPin {
+  course_code: string;
+  semester_index: number;
+  course_snapshot: RecommendedCourse;
+  pinned_at: number;
 }
 
 export interface BucketProgress {
@@ -65,6 +76,15 @@ export interface BucketProgress {
   completed_courses?: number;
   in_progress_courses?: number;
   recommendation_tier?: number;
+  section_key?: string;
+  section_label?: string;
+  section_rank?: number;
+  planner_bucket_rank?: number;
+  group_parent_id?: string;
+  group_parent_label?: string;
+  parent_bucket_id?: string;
+  parent_bucket_label?: string;
+  display_parent_alias?: string;
 }
 
 export type StudentStage = "undergrad" | "graduate" | "doctoral";
@@ -96,6 +116,7 @@ export interface SemesterData {
   standing?: number;
   standing_label?: string;
   recommendations?: RecommendedCourse[];
+  eligible_swaps?: RecommendedCourse[];
   eligible_count?: number;
   not_in_catalog_warning?: string[];
   in_progress_note?: string;
@@ -104,11 +125,13 @@ export interface SemesterData {
   projection_note?: string;
   input_completed_count?: number;
   applied_completed_count?: number;
+  semester_warnings?: string[];
 }
 
 export interface RecommendationResponse {
   mode: "recommendations" | "error" | "can_take";
   semesters?: SemesterData[];
+  manual_add_pins?: PlannerManualAddPin[];
   input_completed_courses?: string[];
   input_in_progress_courses?: string[];
   current_completed_courses?: string[];
@@ -257,6 +280,24 @@ export interface SavedPlanRecord {
   inputHash: string;
   resultsInputHash: string | null;
   lastGeneratedAt: string | null;
+}
+
+export type SavePlanMode = "create" | "overwrite";
+
+export interface SavePlanOverwriteOption {
+  id: string;
+  name: string;
+  notes: string;
+  updatedAt: string;
+  programLine: string;
+  targetSemester: string;
+}
+
+export interface SavePlanSubmitParams {
+  mode: SavePlanMode;
+  targetPlanId: string | null;
+  name: string;
+  notes: string;
 }
 
 export interface SavedPlansStore {

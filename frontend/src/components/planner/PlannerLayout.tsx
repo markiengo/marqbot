@@ -23,26 +23,28 @@ import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
 import { postRecommend, loadProgramBuckets } from "@/lib/api";
 import { buildRecommendationWarnings, getProgramLabelMap, sanitizeRecommendationWhy } from "@/lib/rendering";
-import { getCurrentCourseLists } from "@/lib/progressSources";
-import { buildSavedPlanInputsFromAppState } from "@/lib/savedPlans";
+import { getCurrentCourseLists, getPlanLevelProgress } from "@/lib/progressSources";
+import { reconcileManualAddPins, updateManualAddPinsFromEdit } from "@/lib/plannerManualAdds";
+import { buildSavedPlanInputsFromAppState, hashSavedPlanInputs } from "@/lib/savedPlans";
+import { buildSavedPlanProgramLine } from "@/lib/savedPlanPresentation";
 import { getStudentStageHistoryConflict, studentStageLabel, studentStageLevelLabel } from "@/lib/studentStage";
-import type { Course, RecommendedCourse, RecommendationResponse, SemesterData, ProgramBucketTree } from "@/lib/types";
+import type {
+  Course,
+  PlannerManualAddPin,
+  ProgramBucketTree,
+  RecommendationResponse,
+  RecommendedCourse,
+  SavePlanMode,
+  SavePlanOverwriteOption,
+  SavePlanSubmitParams,
+  SemesterData,
+} from "@/lib/types";
 
 function formatPlanDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
-
-function getFollowupSemesterLabel(currentLabel: string | undefined, includeSummer: boolean): string {
-  const match = /^(Spring|Summer|Fall)\s+(\d{4})$/i.exec(String(currentLabel || "").trim());
-  if (!match) return includeSummer ? "Summer 2026" : "Fall 2026";
-  const term = match[1].toLowerCase();
-  const year = Number(match[2]);
-  if (term === "spring") return includeSummer ? `Summer ${year}` : `Fall ${year}`;
-  if (term === "summer") return `Fall ${year}`;
-  return `Spring ${year + 1}`;
 }
 
 /* Universal program IDs that every business student uses */
@@ -56,7 +58,7 @@ export function PlannerLayout() {
   const { state } = useAppContext();
   const { data, requestedCount, loading, error, fetchRecommendations, runRecommendationRequest, applyRecommendationData } =
     useRecommendations();
-  const { hydrated: savedPlansReady, createPlan } = useSavedPlans();
+  const { hydrated: savedPlansReady, plans: savedPlans = [], createPlan, updatePlan } = useSavedPlans();
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [semesterModalIdx, setSemesterModalIdx] = useState<number | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -67,18 +69,18 @@ export function PlannerLayout() {
   const [editPlanModalOpen, setEditPlanModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveSuccessName, setSaveSuccessName] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<{ name: string; mode: SavePlanMode } | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [semEditCandidates, setSemEditCandidates] = useState<RecommendedCourse[] | null>(null);
   const [semEditLoading, setSemEditLoading] = useState(false);
   const [semesterModalMode, setSemesterModalMode] = useState<"view" | "edit">("view");
-  const [lockedSemesterCount, setLockedSemesterCount] = useState(0);
   const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
   const [courseListModal, setCourseListModal] = useState<"completed" | "in-progress" | null>(null);
   const metrics = useProgressMetrics();
   const didAutoFetch = useRef(false);
   const semEditAbortRef = useRef<AbortController | null>(null);
   const semEditRequestIdRef = useRef(0);
+  const manualAddPinsRef = useRef<PlannerManualAddPin[]>([]);
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
 
   // Description lookup map from loaded courses
@@ -180,6 +182,10 @@ export function PlannerLayout() {
     () => getCurrentCourseLists(data, state.completed, state.inProgress),
     [data, state.completed, state.inProgress],
   );
+  const planLevelProgress = useMemo(
+    () => getPlanLevelProgress(data),
+    [data],
+  );
   const completedCourseCodes = useMemo(
     () => new Set(currentCourseLists.completed),
     [currentCourseLists.completed],
@@ -262,28 +268,58 @@ export function PlannerLayout() {
     majorLabels.length > 0 ? majorLabels.join(" & ") : trackLabels.join(" & ");
   const canSavePlan = Boolean(data && data.mode !== "error");
   const defaultSaveName = `${primaryProgramLabel || "Plan"} - ${state.targetSemester} - ${formatPlanDate(new Date())}`;
+  const saveOverwriteOptions = useMemo<SavePlanOverwriteOption[]>(
+    () => savedPlans.map((plan) => ({
+      id: plan.id,
+      name: plan.name,
+      notes: plan.notes,
+      updatedAt: plan.updatedAt,
+      programLine: buildSavedPlanProgramLine(plan, state.programs),
+      targetSemester: plan.inputs.targetSemester,
+    })),
+    [savedPlans, state.programs],
+  );
   const modalSemester =
     semesterModalIdx !== null ? data?.semesters?.[semesterModalIdx] ?? null : null;
   const canOpenEditPlan = Boolean(data?.semesters?.length);
 
-  const handleSavePlan = ({ name, notes }: { name: string; notes: string }) => {
+  const handleSavePlan = ({ mode, targetPlanId, name, notes }: SavePlanSubmitParams) => {
     if (!data || data.mode === "error") {
       setSaveError("Generate recommendations before saving a plan.");
       return;
     }
-    const result = createPlan({
-      name,
-      notes,
-      inputs: buildSavedPlanInputsFromAppState(state),
-      recommendationData: data,
-      lastRequestedCount: requestedCount,
-    });
+    const inputs = buildSavedPlanInputsFromAppState(state);
+    const generatedAt = new Date().toISOString();
+    const resultsInputHash = hashSavedPlanInputs(inputs);
+    const result = mode === "overwrite"
+      ? (
+        targetPlanId
+          ? updatePlan(targetPlanId, {
+            name,
+            notes,
+            inputs,
+            recommendationData: data,
+            lastRequestedCount: requestedCount,
+            resultsInputHash,
+            lastGeneratedAt: generatedAt,
+          })
+          : { ok: false, plans: savedPlans, error: "Choose a saved plan to overwrite." }
+      )
+      : createPlan({
+        name,
+        notes,
+        inputs,
+        recommendationData: data,
+        lastRequestedCount: requestedCount,
+      });
     if (!result.ok) {
-      setSaveError(result.error || "Could not save this plan.");
+      setSaveError(
+        result.error || (mode === "overwrite" ? "Could not update this plan." : "Could not save this plan."),
+      );
       return;
     }
     setSaveError(null);
-    setSaveSuccessName(result.plan?.name || name);
+    setSaveSuccess({ name: result.plan?.name || name, mode });
     setSaveModalOpen(false);
   };
 
@@ -309,103 +345,121 @@ export function PlannerLayout() {
   }, []);
 
   useEffect(() => {
-    setLockedSemesterCount(0);
-  }, [
-    state.completed,
-    state.inProgress,
-    state.selectedMajors,
-    state.selectedTracks,
-    state.selectedMinors,
-    state.discoveryTheme,
-  ]);
-
-  const handleProfileSubmitRecommendations = useCallback(async () => {
-    const maxRecommendations = Number(state.maxRecs) || 3;
-    const desiredSemesterCount = Math.max(1, Number(state.semesterCount) || 3);
-    const lockedSemesters = data?.semesters?.slice(0, Math.min(lockedSemesterCount, desiredSemesterCount)) ?? [];
-
-    if (lockedSemesters.length === 0) {
-      const fresh = await fetchRecommendations();
-      if (fresh) setLockedSemesterCount(0);
-      return fresh;
+    if (data) {
+      manualAddPinsRef.current = data.manual_add_pins ?? [];
     }
+  }, [data]);
 
-    const remainingCount = desiredSemesterCount - lockedSemesters.length;
-    if (remainingCount <= 0) {
-      const nextData: RecommendationResponse = {
-        ...data!,
-        semesters: lockedSemesters,
-      };
-      applyRecommendationData(nextData, maxRecommendations);
-      setLockedSemesterCount(lockedSemesters.length);
-      return nextData;
-    }
-
-    const lockedCourseCodes = lockedSemesters.flatMap(
-      (semester) => (semester.recommendations ?? []).map((course) => course.course_code),
-    );
-    const completedCodes = new Set([
-      ...state.completed,
-      ...state.inProgress,
-      ...lockedCourseCodes,
-    ]);
-    const downstreamStart =
-      data?.semesters?.[lockedSemesters.length]?.target_semester ??
-      getFollowupSemesterLabel(lockedSemesters[lockedSemesters.length - 1]?.target_semester, state.includeSummer);
-
+  const buildRecommendationPayload = useCallback((overrides: Record<string, unknown>) => {
     const majors = [...state.selectedMajors];
-    const payload: Record<string, unknown> = {
-      completed_courses: [...completedCodes].join(", "),
-      in_progress_courses: "",
-      target_semester: downstreamStart,
-      target_semester_primary: downstreamStart,
-      target_semester_count: remainingCount,
-      max_recommendations: maxRecommendations,
-      student_stage: state.studentStage,
-      scheduling_style: state.schedulingStyle,
-    };
-    if (majors.length > 0) payload.declared_majors = majors;
     const trackIds = [...state.selectedTracks];
     if (state.discoveryTheme && !trackIds.includes(state.discoveryTheme)) {
       trackIds.push(state.discoveryTheme);
     }
+
+    const payload: Record<string, unknown> = {
+      student_stage: state.studentStage,
+      scheduling_style: state.schedulingStyle,
+      ...overrides,
+    };
+    if (majors.length > 0) payload.declared_majors = majors;
     if (trackIds.length > 0) payload.track_ids = trackIds;
     if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
     if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
     if (state.includeSummer) payload.include_summer = true;
     if (state.isHonorsStudent) payload.is_honors_student = true;
-
-    const downstream = await runRecommendationRequest(payload);
-    if (!downstream) return null;
-
-    const nextData: RecommendationResponse = {
-      ...downstream,
-      semesters: [
-        ...lockedSemesters,
-        ...(downstream.semesters ?? []),
-      ],
-    };
-    applyRecommendationData(nextData, maxRecommendations);
-    setLockedSemesterCount(lockedSemesters.length);
-    return nextData;
+    return payload;
   }, [
-    applyRecommendationData,
-    data,
-    fetchRecommendations,
-    lockedSemesterCount,
-    runRecommendationRequest,
-    state.completed,
     state.discoveryTheme,
-    state.inProgress,
     state.includeSummer,
     state.isHonorsStudent,
-    state.maxRecs,
     state.schedulingStyle,
     state.selectedMajors,
     state.selectedMinors,
     state.selectedTracks,
-    state.semesterCount,
     state.studentStage,
+  ]);
+
+  const composeRecommendationData = useCallback((params: {
+    baseData?: RecommendationResponse | null;
+    rerunData: RecommendationResponse;
+    semesters: SemesterData[];
+    manualAddPins: PlannerManualAddPin[];
+  }): RecommendationResponse => {
+    const { baseData, rerunData, semesters, manualAddPins } = params;
+    return {
+      ...(baseData ?? {}),
+      ...rerunData,
+      semesters,
+      manual_add_pins: manualAddPins,
+      input_completed_courses: rerunData.input_completed_courses ?? baseData?.input_completed_courses,
+      input_in_progress_courses: rerunData.input_in_progress_courses ?? baseData?.input_in_progress_courses,
+      current_completed_courses: rerunData.current_completed_courses ?? baseData?.current_completed_courses,
+      current_in_progress_courses: rerunData.current_in_progress_courses ?? baseData?.current_in_progress_courses,
+      current_progress: rerunData.current_progress ?? baseData?.current_progress,
+      current_assumption_notes: rerunData.current_assumption_notes ?? baseData?.current_assumption_notes,
+      selection_context: rerunData.selection_context ?? baseData?.selection_context,
+    };
+  }, []);
+
+  const applyPinnedRecommendationResult = useCallback((params: {
+    baseData?: RecommendationResponse | null;
+    rerunData: RecommendationResponse;
+    semesters: SemesterData[];
+    pins: PlannerManualAddPin[];
+    rerunStartIndex: number;
+    count?: number;
+  }) => {
+    const { baseData, rerunData, semesters, pins, rerunStartIndex, count = Number(state.maxRecs) || 3 } = params;
+    const reconciled = reconcileManualAddPins({
+      semesters,
+      pins,
+      rerunStartIndex,
+    });
+    const nextData = composeRecommendationData({
+      baseData,
+      rerunData,
+      semesters: reconciled.semesters,
+      manualAddPins: reconciled.pins,
+    });
+    manualAddPinsRef.current = reconciled.pins;
+    applyRecommendationData(nextData, count);
+    return nextData;
+  }, [applyRecommendationData, composeRecommendationData, state.maxRecs]);
+
+  const handleProfileSubmitRecommendations = useCallback(async () => {
+    const maxRecommendations = Number(state.maxRecs) || 3;
+    const desiredSemesterCount = Math.max(1, Number(state.semesterCount) || 3);
+    const payload = buildRecommendationPayload({
+      completed_courses: [...state.completed].join(", "),
+      in_progress_courses: [...state.inProgress].join(", "),
+      target_semester: state.targetSemester,
+      target_semester_primary: state.targetSemester,
+      target_semester_count: desiredSemesterCount,
+      max_recommendations: maxRecommendations,
+    });
+
+    const fresh = await runRecommendationRequest(payload);
+    if (!fresh) return null;
+
+    return applyPinnedRecommendationResult({
+      baseData: data,
+      rerunData: fresh,
+      semesters: fresh.semesters ?? [],
+      pins: data?.manual_add_pins ?? manualAddPinsRef.current,
+      rerunStartIndex: 0,
+      count: maxRecommendations,
+    });
+  }, [
+    applyPinnedRecommendationResult,
+    buildRecommendationPayload,
+    data,
+    runRecommendationRequest,
+    state.completed,
+    state.inProgress,
+    state.maxRecs,
+    state.semesterCount,
+    state.targetSemester,
   ]);
 
   const fetchCandidatesForSemester = useCallback(async (semIdx: number) => {
@@ -448,7 +502,11 @@ export function PlannerLayout() {
       if (state.isHonorsStudent) payload.is_honors_student = true;
       const result = await postRecommend(payload, { signal: controller.signal });
       if (controller.signal.aborted || requestId !== semEditRequestIdRef.current) return;
-      setSemEditCandidates(result.semesters?.[0]?.recommendations ?? []);
+      setSemEditCandidates(
+        result.semesters?.[0]?.eligible_swaps
+        ?? result.semesters?.[0]?.recommendations
+        ?? [],
+      );
     } catch (error) {
       if (
         controller.signal.aborted ||
@@ -484,93 +542,54 @@ export function PlannerLayout() {
   const handleSemesterEditApply = useCallback(async (semIdx: number, chosenCourses: RecommendedCourse[]) => {
     if (!data?.semesters) return;
     const totalSems = data.semesters.length;
-    const remainingCount = totalSems - semIdx - 1;
-
-    const originalSem = data.semesters[semIdx];
-    const editedSem: SemesterData = {
-      ...originalSem,
-      recommendations: chosenCourses,
-      projected_progress: undefined,
-    };
-
-    // Last semester: no downstream re-run needed, just splice the edit in
-    if (remainingCount <= 0) {
-      const newSemesters = [
-        ...data.semesters.slice(0, semIdx),
-        editedSem,
-      ];
-      const newData: RecommendationResponse = {
-        ...data,
-        semesters: newSemesters,
-      };
-      applyRecommendationData(newData, Number(state.maxRecs) || 3);
-      setLockedSemesterCount(semIdx + 1);
-      resetSemesterEditFetch();
-      return;
-    }
-
-    const priorCourses = data.semesters
-      .slice(0, semIdx)
-      .flatMap((s) => (s.recommendations ?? []).map((r) => r.course_code));
+    const rerunCount = totalSems - semIdx;
+    const lockedPrefix = data.semesters.slice(0, semIdx);
+    const priorCourses = lockedPrefix.flatMap((s) => (s.recommendations ?? []).map((r) => r.course_code));
+    const originalCourses = data.semesters[semIdx]?.recommendations ?? [];
     const editedCodes = chosenCourses.map((c) => c.course_code);
-    // Merge original completed + in-progress + prior semester recs + edited courses
-    // into a single completed set. In-progress courses are treated as done for
-    // downstream projection, avoiding the "prereq still in-progress" validation error.
-    const allCompleted = new Set([...state.completed, ...state.inProgress, ...priorCourses, ...editedCodes]);
+    const allCompleted = new Set([...state.completed, ...state.inProgress, ...priorCourses]);
     const extCompleted = [...allCompleted].join(", ");
-    const majors = [...state.selectedMajors];
-    const nextSemTarget = data.semesters[semIdx + 1]?.target_semester ?? state.targetSemester;
-    const payload: Record<string, unknown> = {
+    const rerunStart = data.semesters[semIdx]?.target_semester ?? state.targetSemester;
+    const payload = buildRecommendationPayload({
       completed_courses: extCompleted,
       in_progress_courses: "",
-      target_semester: nextSemTarget,
-      target_semester_primary: nextSemTarget,
-      target_semester_count: remainingCount,
+      selected_courses: editedCodes,
+      target_semester: rerunStart,
+      target_semester_primary: rerunStart,
+      target_semester_count: rerunCount,
       max_recommendations: Number(state.maxRecs) || 3,
-      student_stage: state.studentStage,
-      scheduling_style: state.schedulingStyle,
-    };
-    if (majors.length > 0) payload.declared_majors = majors;
-    const rerunTrackIds = [...state.selectedTracks];
-    if (state.discoveryTheme && !rerunTrackIds.includes(state.discoveryTheme)) {
-      rerunTrackIds.push(state.discoveryTheme);
-    }
-    if (rerunTrackIds.length > 0) payload.track_ids = rerunTrackIds;
-    if (state.selectedMinors.size > 0) payload.declared_minors = [...state.selectedMinors];
-    if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
-    if (state.includeSummer) payload.include_summer = true;
-    if (state.isHonorsStudent) payload.is_honors_student = true;
+    });
+
+    const nextPins = updateManualAddPinsFromEdit({
+      existingPins: data.manual_add_pins ?? manualAddPinsRef.current,
+      semesterIndex: semIdx,
+      originalCourses,
+      chosenCourses,
+    });
 
     const downstream: RecommendationResponse = await postRecommend(payload);
-
-    const newSemesters = [
-      ...data.semesters.slice(0, semIdx),
-      editedSem,
-      ...(downstream.semesters ?? []),
-    ];
-    const newData: RecommendationResponse = {
-      ...downstream,
-      semesters: newSemesters,
-    };
-    applyRecommendationData(newData, Number(state.maxRecs) || 3);
-    setLockedSemesterCount(semIdx + 1);
+    applyPinnedRecommendationResult({
+      baseData: data,
+      rerunData: downstream,
+      semesters: [
+        ...lockedPrefix,
+        ...(downstream.semesters ?? []),
+      ],
+      pins: nextPins,
+      rerunStartIndex: semIdx,
+      count: Number(state.maxRecs) || 3,
+    });
     resetSemesterEditFetch();
   }, [
-    applyRecommendationData,
+    applyPinnedRecommendationResult,
+    buildRecommendationPayload,
     data,
     resetSemesterEditFetch,
     state.completed,
-    state.discoveryTheme,
     state.inProgress,
-    state.includeSummer,
-    state.isHonorsStudent,
     state.maxRecs,
-    state.schedulingStyle,
-    state.selectedMajors,
-    state.selectedMinors,
-    state.selectedTracks,
-    state.studentStage,
     state.targetSemester,
+    updateManualAddPinsFromEdit,
   ]);
 
   const handleSemesterEditClose = useCallback(() => {
@@ -637,6 +656,7 @@ export function PlannerLayout() {
               size="xs"
               onClick={() => {
                 setSaveError(null);
+                setSaveSuccess(null);
                 setSaveModalOpen(true);
               }}
               disabled={!savedPlansReady || !canSavePlan}
@@ -665,9 +685,11 @@ export function PlannerLayout() {
         </div>
       )}
 
-      {saveSuccessName && (
+      {saveSuccess && (
         <div className="mb-3 rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok flex flex-wrap items-center justify-between gap-3">
-          <span>Saved &ldquo;{saveSuccessName}&rdquo; in this browser.</span>
+          <span>
+            {saveSuccess.mode === "overwrite" ? "Updated" : "Saved"} &ldquo;{saveSuccess.name}&rdquo; in this browser.
+          </span>
           <Link href="/saved" className="font-semibold underline underline-offset-2">
             View saved plans
           </Link>
@@ -832,7 +854,7 @@ export function PlannerLayout() {
         open={progressModalOpen}
         onClose={() => setProgressModalOpen(false)}
         metrics={metrics}
-        currentProgress={data?.current_progress}
+        currentProgress={planLevelProgress}
         assumptionNotes={data?.current_assumption_notes}
         courses={state.courses}
         programLabelMap={programLabelMap}
@@ -998,6 +1020,8 @@ export function PlannerLayout() {
         open={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}
         defaultName={defaultSaveName}
+        existingPlans={saveOverwriteOptions}
+        defaultOverwriteTargetId={saveOverwriteOptions[0]?.id ?? null}
         onSave={handleSavePlan}
         error={saveError}
         disabled={!savedPlansReady || !canSavePlan}

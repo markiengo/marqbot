@@ -2,6 +2,7 @@ import json
 
 import pandas as pd
 
+from allocator import ensure_runtime_indexes
 from prereq_parser import parse_prereqs
 import semester_recommender
 from semester_recommender import run_recommendation_semester
@@ -200,6 +201,574 @@ def test_equivalent_courses_do_not_both_get_selected_in_same_semester():
 
     codes = [rec["course_code"] for rec in out["recommendations"]]
     assert len({"MATH 1400", "MATH 1450"} & set(codes)) == 1
+
+
+def test_edit_swap_pool_includes_eligible_equivalent_aliases():
+    courses = [
+        {
+            "course_code": "MATH 1200",
+            "course_name": "Precalculus",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "MATH 1400",
+            "course_name": "Elements of Calculus",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "MATH 1200",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "MATH 1450",
+            "course_name": "Calculus 1",
+            "credits": 4,
+            "level": 1000,
+            "prereq_hard": "MATH 1200",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "CORE",
+            "bucket_label": "Core",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+            "parent_bucket_priority": 1,
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "CORE", "course_code": "MATH 1400"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["equivalencies_df"] = pd.DataFrame([
+        {
+            "equiv_group_id": "MATH_EQ",
+            "course_code": "MATH 1400",
+            "relation_type": "equivalent",
+            "scope_program_id": "",
+            "label": "",
+        },
+        {
+            "equiv_group_id": "MATH_EQ",
+            "course_code": "MATH 1450",
+            "relation_type": "equivalent",
+            "scope_program_id": "",
+            "label": "",
+        },
+    ])
+    data["equiv_prereq_map"] = {
+        "MATH 1400": {"MATH 1450"},
+        "MATH 1450": {"MATH 1400"},
+    }
+    data["cross_listed_map"] = {}
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+    ])
+    data = ensure_runtime_indexes(data, force=True)
+
+    out = run_recommendation_semester(
+        completed=["MATH 1200"],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=1,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        current_standing=1,
+        completed_only_standing=1,
+    )
+
+    swap_codes = [rec["course_code"] for rec in out["eligible_swaps"]]
+    assert "MATH 1400" in swap_codes
+    assert "MATH 1450" in swap_codes
+
+
+def test_manual_selected_courses_drop_same_semester_conflicts():
+    courses = [
+        {
+            "course_code": "MATH 3570",
+            "course_name": "Introduction to Data Science",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "COSC 3570",
+            "course_name": "Introduction to Data Science",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "DS_MAJOR",
+            "bucket_id": "DS_MAJOR::DS_REQ_MATH",
+            "bucket_label": "Data Science Math Core",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "DS_MAJOR",
+            "parent_bucket_priority": 1,
+        },
+    ]
+    course_map = [
+        {"track_id": "DS_MAJOR", "bucket_id": "DS_MAJOR::DS_REQ_MATH", "course_code": "MATH 3570"},
+        {"track_id": "DS_MAJOR", "bucket_id": "DS_MAJOR::DS_REQ_MATH", "course_code": "COSC 3570"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["equivalencies_df"] = pd.DataFrame([
+        {
+            "equiv_group_id": "DS_EQ",
+            "course_code": "MATH 3570",
+            "relation_type": "equivalent",
+            "scope_program_id": "DS_MAJOR",
+            "label": "",
+        },
+        {
+            "equiv_group_id": "DS_EQ",
+            "course_code": "COSC 3570",
+            "relation_type": "equivalent",
+            "scope_program_id": "DS_MAJOR",
+            "label": "",
+        },
+        {
+            "equiv_group_id": "DS_NDC",
+            "course_code": "MATH 3570",
+            "relation_type": "no_double_count",
+            "scope_program_id": "",
+            "label": "",
+        },
+        {
+            "equiv_group_id": "DS_NDC",
+            "course_code": "COSC 3570",
+            "relation_type": "no_double_count",
+            "scope_program_id": "",
+            "label": "",
+        },
+    ])
+    data["equiv_prereq_map"] = {
+        "MATH 3570": {"COSC 3570"},
+        "COSC 3570": {"MATH 3570"},
+    }
+    data["cross_listed_map"] = {}
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "DS_MAJOR", "type": "major"},
+    ])
+    data = ensure_runtime_indexes(data, force=True)
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="DS_MAJOR",
+        manual_selected_codes=["COSC 3570", "MATH 3570"],
+    )
+
+    codes = [rec["course_code"] for rec in out["recommendations"]]
+    assert codes == ["COSC 3570"]
+    assert any(
+        "MATH 3570 was removed from this semester because it conflicts with COSC 3570."
+        in warning
+        for warning in out["semester_warnings"]
+    )
+
+
+def test_edit_swap_pool_keeps_non_equivalent_eligible_courses():
+    courses = [
+        {
+            "course_code": "MATH 1200",
+            "course_name": "Precalculus",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "MATH 1400",
+            "course_name": "Elements of Calculus",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "MATH 1200",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "COSC 1010",
+            "course_name": "Introduction to Software Development",
+            "credits": 4,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "CORE",
+            "bucket_label": "Core",
+            "priority": 1,
+            "needed_count": 2,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+            "parent_bucket_priority": 1,
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "CORE", "course_code": "MATH 1400"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "CORE", "course_code": "COSC 1010"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+    ])
+    data = ensure_runtime_indexes(data, force=True)
+
+    out = run_recommendation_semester(
+        completed=["MATH 1200"],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=1,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        current_standing=1,
+        completed_only_standing=1,
+    )
+
+    swap_codes = [rec["course_code"] for rec in out["eligible_swaps"]]
+    assert out["recommendations"][0]["course_code"] in swap_codes
+    assert "COSC 1010" in swap_codes
+
+
+def test_grinder_keeps_open_bcc_work_ahead_of_multi_bucket_mcc_cleanup():
+    courses = [
+        {
+            "course_code": "BULA 3001",
+            "course_name": "Business Law",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "PHIL 1001",
+            "course_name": "Foundations in Philosophy",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "MANA 3002",
+            "course_name": "Business and Its Environment",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "ENGL 3250",
+            "course_name": "Life-Writing, Creativity and Community",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_CORE",
+            "bucket_label": "MCC Core",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_CORE",
+            "parent_bucket_priority": 1,
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "BCC::BCC_ETHICS",
+            "bucket_label": "BCC Ethics",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "BCC_CORE",
+            "parent_bucket_priority": 1,
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_WRIT",
+            "bucket_label": "MCC Writing Intensive",
+            "priority": 5,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_WRIT",
+            "parent_bucket_priority": 1,
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "MCC::MCC_ESSV2",
+            "bucket_label": "ESSV2",
+            "priority": 5,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "MCC_ESSV2",
+            "parent_bucket_priority": 1,
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_ETHICS", "course_code": "BULA 3001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_CORE", "course_code": "PHIL 1001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "BCC::BCC_ETHICS", "course_code": "MANA 3002"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_WRIT", "course_code": "MANA 3002"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_WRIT", "course_code": "ENGL 3250"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "MCC::MCC_ESSV2", "course_code": "ENGL 3250"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "MCC_CORE", "type": "universal"},
+        {"parent_bucket_id": "BCC_CORE", "type": "universal"},
+        {"parent_bucket_id": "MCC_WRIT", "type": "universal"},
+        {"parent_bucket_id": "MCC_ESSV2", "type": "universal"},
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+    ])
+    data = ensure_runtime_indexes(data, force=True)
+
+    out = run_recommendation_semester(
+        completed=["BULA 3001"],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=3,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        current_standing=1,
+        completed_only_standing=1,
+        debug=True,
+        debug_limit=10,
+    )
+
+    debug_codes = [entry["course_code"] for entry in out["debug"][:3]]
+    assert debug_codes[0] == "MANA 3002"
+    assert set(debug_codes[1:3]) == {"PHIL 1001", "ENGL 3250"}
+
+
+def test_edit_swap_pool_includes_courses_that_only_fill_satisfied_buckets():
+    courses = [
+        {
+            "course_code": "DONE 1000",
+            "course_name": "Already Used",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "ALT 1000",
+            "course_name": "Alternative for Satisfied Bucket",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "NEED 1000",
+            "course_name": "Still Needed",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "SAT",
+            "bucket_label": "Satisfied Bucket",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+            "parent_bucket_priority": 1,
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "OPEN",
+            "bucket_label": "Open Bucket",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+            "parent_bucket_priority": 1,
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "SAT", "course_code": "DONE 1000"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "SAT", "course_code": "ALT 1000"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "OPEN", "course_code": "NEED 1000"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+    ])
+    data = ensure_runtime_indexes(data, force=True)
+
+    out = run_recommendation_semester(
+        completed=["DONE 1000"],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=1,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+        current_standing=1,
+        completed_only_standing=1,
+    )
+
+    assert [rec["course_code"] for rec in out["recommendations"]] == ["NEED 1000"]
+    swap_codes = [rec["course_code"] for rec in out["eligible_swaps"]]
+    assert "NEED 1000" in swap_codes
+    assert "ALT 1000" in swap_codes
+    alt = next(rec for rec in out["eligible_swaps"] if rec["course_code"] == "ALT 1000")
+    assert alt["fills_buckets"] == ["SAT"]
 
 
 def test_same_semester_may_be_concurrent_course_can_be_recommended_after_its_prereq():

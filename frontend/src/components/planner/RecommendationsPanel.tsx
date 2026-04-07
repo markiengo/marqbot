@@ -64,10 +64,10 @@ function RecommendationsPanelInner({
       <div className="flex h-full flex-col items-center justify-center gap-4 rounded-xl border border-gold/30 p-8 text-center surface-depth-2">
         <div className="text-5xl" aria-hidden="true">🎓</div>
         <h2 className="font-[family-name:var(--font-sora)] text-2xl font-bold text-gold">
-          Requirements cleared.
+          You have graduated.
         </h2>
         <p className="max-w-xs text-sm text-ink-secondary">
-          All tracked degree requirements are satisfied. Confirm it with your advisor, then enjoy the rare peace.
+          All tracked degree requirements are satisfied in this plan. Confirm it with your advisor and CheckMarq.
         </p>
       </div>
     );
@@ -185,16 +185,21 @@ function RecommendationsPanelInner({
                     <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
                       <div className="text-5xl" aria-hidden="true">🎓</div>
                       <p className="text-xl font-semibold text-gold">
-                        Clean path. Nothing left to add.
+                        You have graduated.
                       </p>
                       <p className="max-w-xs text-sm leading-relaxed text-ink-faint">
-                        All tracked requirements will be satisfied by this point. Keep the ending boring.
+                        All tracked requirements are satisfied by this point in the plan.
                       </p>
                     </div>
                   ) : (
-                    <p className="py-4 text-center text-[14px] italic leading-[1.3] text-ink-faint">
-                      No eligible courses this term. Either you are done or the next move lives elsewhere.
-                    </p>
+                    <div className="flex flex-col items-center justify-center gap-2 py-5 text-center">
+                      <p className="text-[15px] font-medium text-ink-secondary">
+                        No eligible courses fit this term yet.
+                      </p>
+                      <p className="max-w-xs text-sm leading-relaxed text-ink-faint">
+                        The next valid move is in a later term or behind another prerequisite or restriction.
+                      </p>
+                    </div>
                   );
                 })()}
               </motion.div>
