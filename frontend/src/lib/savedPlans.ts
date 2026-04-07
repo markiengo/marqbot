@@ -283,8 +283,8 @@ export function updateSavedPlan(
     recommendationData: params.recommendationData,
     lastRequestedCount: Math.max(1, Number(params.lastRequestedCount) || Number(inputs.maxRecs) || 1),
     inputHash,
-    resultsInputHash: params.recommendationData ? params.resultsInputHash ?? target.resultsInputHash ?? null : null,
-    lastGeneratedAt: params.recommendationData ? params.lastGeneratedAt ?? target.lastGeneratedAt ?? updatedAt : null,
+    resultsInputHash: params.recommendationData ? params.resultsInputHash ?? inputHash : null,
+    lastGeneratedAt: params.recommendationData ? params.lastGeneratedAt ?? updatedAt : null,
   };
   const nextPlans = existing.map((entry) => (entry.id === planId ? plan : entry));
   const result = writeSavedPlansStore({ version: STORE_VERSION, plans: nextPlans }, storage);
