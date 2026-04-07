@@ -67,6 +67,11 @@ export function CourseRow({ course, courseCount, onClick }: CourseRowProps) {
           </span>
         )}
         {!courseName && <span className="text-ink-faint text-[13px]">-</span>}
+        {c.is_manual_add && (
+          <span className="shrink-0 rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold">
+            Manual add
+          </span>
+        )}
       </div>
       <span className="shrink-0 text-xs font-bold text-gold tabular-nums mr-1" style={{ fontVariantNumeric: "tabular-nums" }}>
         {c.credits || 3}cr

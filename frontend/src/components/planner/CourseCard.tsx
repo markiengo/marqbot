@@ -7,7 +7,7 @@ import type {
 import { motion, useMotionValue, useSpring } from "motion/react";
 import type { RecommendedCourse } from "@/lib/types";
 import { Tag } from "@/components/shared/Tag";
-import { bucketLabel, colorizePrereq, esc } from "@/lib/utils";
+import { colorizePrereq, esc, recommendationBucketLabel } from "@/lib/utils";
 import {
   buildRecommendationWarnings,
   formatCourseNameLabel,
@@ -150,6 +150,9 @@ export function CourseCard({
 
           {compactBucketIds.length > 0 && (
             <div className="relative flex flex-wrap gap-1.5">
+              {c.is_manual_add && (
+                <Tag variant="gold">Manual add</Tag>
+              )}
               {compactBucketIds.map((bid, idx) => {
                 const isBcc = bid.includes("BCC_REQUIRED");
                 const variantKey = isBcc
@@ -159,7 +162,7 @@ export function CourseCard({
                     : "secondary";
                 return (
                   <Tag key={bid} variant={variantKey}>
-                    {bucketLabel(bid, programLabelMap, bucketLabelMap, true)}
+                    {recommendationBucketLabel(c, bid, programLabelMap, bucketLabelMap, true)}
                   </Tag>
                 );
               })}
@@ -253,6 +256,9 @@ export function CourseCard({
 
         {bucketIds.length > 0 && (
           <div className="flex flex-wrap gap-2.5 mb-5">
+            {c.is_manual_add && (
+              <Tag variant="gold">Manual add</Tag>
+            )}
             {sortedBucketIds.map((bid, idx) => {
               const isBcc = bid.includes("BCC_REQUIRED");
               const tagVariant = isBcc
@@ -264,7 +270,7 @@ export function CourseCard({
                     : "gold";
               return (
                 <Tag key={bid} variant={tagVariant}>
-                  {bucketLabel(bid, programLabelMap, bucketLabelMap, true)}
+                  {recommendationBucketLabel(c, bid, programLabelMap, bucketLabelMap, true)}
                 </Tag>
               );
             })}
