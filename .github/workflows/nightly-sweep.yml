@@ -23,7 +23,7 @@ jobs:
   nightly-sweep:
     name: Nightly Focused Sweep
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 240
 
     steps:
       - name: Check out repository
@@ -81,6 +81,7 @@ jobs:
         shell: bash
         env:
           NIGHTLY_SEED: ${{ steps.meta.outputs.seed }}
+          NIGHTLY_REPORT_DATE: ${{ steps.meta.outputs.local_date }}
         run: |
           set +e
           python -m pytest -m nightly -q 2>&1 | tee nightly_output.txt
@@ -94,6 +95,8 @@ jobs:
         run: |
           mkdir -p nightly-artifacts
           report_path="nightly-artifacts/${{ steps.meta.outputs.local_date }}.md"
+          detailed_report="tests/nightly_reports/${{ steps.meta.outputs.local_date }}.md"
+          detailed_json="tests/nightly_reports/${{ steps.meta.outputs.local_date }}.json"
           title="# Nightly Planner Report"
 
           if grep -q "ERROR collecting" nightly_output.txt; then
@@ -119,16 +122,42 @@ jobs:
             echo '```'
           } > "$report_path"
 
+          if [ -f "$detailed_report" ]; then
+            cp "$detailed_report" "nightly-artifacts/graduation-audit-${{ steps.meta.outputs.local_date }}.md"
+          fi
+
+          if [ -f "$detailed_json" ]; then
+            cp "$detailed_json" "nightly-artifacts/graduation-audit-${{ steps.meta.outputs.local_date }}.json"
+          fi
+
+      - name: Publish nightly summary
+        if: steps.meta.outputs.should_run == 'true'
+        shell: bash
+        run: |
+          detailed_report="tests/nightly_reports/${{ steps.meta.outputs.local_date }}.md"
+          echo "# Nightly Graduation Audit" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo "- Local date: ${{ steps.meta.outputs.local_date }} America/Chicago" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Seed: \`${{ steps.meta.outputs.seed }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Pytest exit code: ${{ steps.nightly.outputs.exit_code }}" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -f "$detailed_report" ]; then
+            cat "$detailed_report" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Detailed graduation report was not generated. Check \`nightly_output.txt\` in the artifact." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Upload nightly artifacts
         if: steps.meta.outputs.should_run == 'true'
         uses: actions/upload-artifact@v6
         with:
           name: nightly-sweep-report
           path: |
-            nightly-artifacts/*.md
+            nightly-artifacts/**
             nightly_output.txt
-            tests/nightly_reports/*.md
-            tests/nightly_reports/*.json
+            tests/nightly_reports/**/*.md
+            tests/nightly_reports/**/*.json
           if-no-files-found: warn
           retention-days: 14
 
