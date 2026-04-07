@@ -1,4 +1,4 @@
-import type { BucketProgress, RecommendationResponse } from "@/lib/types";
+import type { BucketProgress, RecommendationResponse, RecommendedCourse, SemesterData } from "@/lib/types";
 
 function toCodeSet(codes: Iterable<string> | null | undefined): Set<string> {
   const out = new Set<string>();
@@ -56,6 +56,36 @@ function cloneBucketProgress(progress: BucketProgress): BucketProgress {
   };
 }
 
+function cloneCourse(course: RecommendedCourse): RecommendedCourse {
+  return {
+    ...course,
+    fills_buckets: [...(course.fills_buckets ?? [])],
+    equivalent_to_courses: [...(course.equivalent_to_courses ?? [])],
+    conflicts_with_courses: [...(course.conflicts_with_courses ?? [])],
+    bucket_label_overrides: course.bucket_label_overrides
+      ? { ...course.bucket_label_overrides }
+      : undefined,
+  };
+}
+
+function cloneSemester(semester: SemesterData): SemesterData {
+  return {
+    ...semester,
+    recommendations: (semester.recommendations ?? []).map(cloneCourse),
+    eligible_swaps: semester.eligible_swaps?.map(cloneCourse),
+    semester_warnings: [...(semester.semester_warnings ?? [])],
+  };
+}
+
+function resetProjectedBucketProgress(progress: BucketProgress): BucketProgress {
+  const next = cloneBucketProgress(progress);
+  next.in_progress_applied = [];
+  next.in_progress_increment = 0;
+  next.in_progress_courses = 0;
+  markProgressSatisfied(next);
+  return next;
+}
+
 function markProgressSatisfied(progress: BucketProgress) {
   const neededCount = Number(progress.needed_count ?? 0);
   const completedCourses = Number(progress.completed_courses ?? 0);
@@ -73,58 +103,169 @@ function markProgressSatisfied(progress: BucketProgress) {
   }
 }
 
-function buildProjectedProgressFromPlan(
+function bucketHasRemainingCapacity(progress: BucketProgress): boolean {
+  if (progress.requirement_mode === "credits_pool") {
+    const neededUnits = Math.max(0, Number(progress.needed ?? 0));
+    if (neededUnits <= 0) return true;
+    const completedUnits = Math.max(0, Number(progress.completed_done ?? progress.done_count ?? 0));
+    const inProgressUnits = Math.max(0, Number(progress.in_progress_increment ?? 0));
+    return completedUnits + inProgressUnits < neededUnits;
+  }
+
+  const neededCount = Math.max(0, Number(progress.needed_count ?? progress.needed ?? 0));
+  if (neededCount <= 0) return true;
+  const completedCourses = Math.max(0, Number(progress.completed_courses ?? 0));
+  const inProgressCourses = Math.max(0, Number(progress.in_progress_courses ?? 0));
+  return completedCourses + inProgressCourses < neededCount;
+}
+
+function cloneProgressMap(
+  progressMap: Record<string, BucketProgress>,
+): Record<string, BucketProgress> {
+  return Object.fromEntries(
+    Object.entries(progressMap).map(([bucketId, progress]) => [bucketId, cloneBucketProgress(progress)]),
+  ) as Record<string, BucketProgress>;
+}
+
+function localBucketId(bucketId: string): string {
+  const raw = String(bucketId || "").trim();
+  if (!raw) return "";
+  return raw.includes("::") ? raw.split("::", 2)[1] : raw;
+}
+
+function discoveryFamilyKey(bucketId: string): string {
+  const localId = localBucketId(bucketId).toUpperCase();
+  if (/_ELEC$/.test(localId)) return localId.slice(0, -5);
+  if (/(?:_HUM|_NSM|_SSC)$/.test(localId)) return localId.slice(0, -4);
+  return "";
+}
+
+function isDiscoveryElectiveBucket(bucketId: string): boolean {
+  return /_ELEC$/i.test(localBucketId(bucketId));
+}
+
+function isDiscoveryRequiredBucket(bucketId: string): boolean {
+  return /(?:_HUM|_NSM|_SSC)$/i.test(localBucketId(bucketId));
+}
+
+function dedupeBucketIds(bucketIds: string[]): string[] {
+  return Array.from(new Set(bucketIds.map((bucketId) => String(bucketId || "").trim()).filter(Boolean)));
+}
+
+function countedBucketsForCourse(
+  course: RecommendedCourse,
+  progressMap: Record<string, BucketProgress>,
+): string[] {
+  const rawBuckets = dedupeBucketIds(course.fills_buckets ?? []);
+  if (rawBuckets.length === 0) return [];
+
+  const requiredDiscoveryFamilies = new Set(
+    rawBuckets
+      .filter((bucketId) => isDiscoveryRequiredBucket(bucketId) && bucketHasRemainingCapacity(progressMap[bucketId]))
+      .map(discoveryFamilyKey)
+      .filter(Boolean),
+  );
+
+  return rawBuckets.filter((bucketId) => {
+    const progress = progressMap[bucketId];
+    if (!progress || !bucketHasRemainingCapacity(progress)) return false;
+    if (isDiscoveryElectiveBucket(bucketId)) {
+      const family = discoveryFamilyKey(bucketId);
+      if (family && requiredDiscoveryFamilies.has(family)) return false;
+    }
+    return true;
+  });
+}
+
+function applyCourseToBucketProgress(
+  course: RecommendedCourse,
+  countedBuckets: string[],
+  progressMap: Record<string, BucketProgress>,
+) {
+  const courseCode = String(course.course_code || "").trim();
+  if (!courseCode) return;
+
+  for (const bucketId of countedBuckets) {
+    const progress = progressMap[bucketId];
+    if (!progress) continue;
+    const existing = new Set(
+      [
+        ...(progress.completed_applied ?? []),
+        ...(progress.in_progress_applied ?? []),
+      ].map((code) => String(code || "").trim()).filter(Boolean),
+    );
+    if (existing.has(courseCode)) continue;
+
+    progress.in_progress_applied = [...(progress.in_progress_applied ?? []), courseCode];
+    if (progress.requirement_mode === "credits_pool") {
+      const credits = Math.max(0, Number(course.credits) || 0);
+      progress.in_progress_increment = Number(progress.in_progress_increment ?? 0) + credits;
+    } else {
+      progress.in_progress_increment = Number(progress.in_progress_increment ?? 0) + 1;
+      progress.in_progress_courses = Number(progress.in_progress_courses ?? 0) + 1;
+    }
+    markProgressSatisfied(progress);
+  }
+}
+
+function buildVisiblePlanProjection(
   response: RecommendationResponse,
-): Record<string, BucketProgress> | null {
+): {
+  semesters: SemesterData[];
+  finalProgress: Record<string, BucketProgress> | null;
+} | null {
   if (!response.current_progress) return null;
 
   const projected = Object.fromEntries(
-    Object.entries(response.current_progress).map(([bucketId, progress]) => [bucketId, cloneBucketProgress(progress)]),
+    Object.entries(response.current_progress).map(([bucketId, progress]) => [bucketId, resetProjectedBucketProgress(progress)]),
   ) as Record<string, BucketProgress>;
-
-  const seenByBucket = new Map<string, Set<string>>();
-  for (const [bucketId, progress] of Object.entries(projected)) {
-    seenByBucket.set(
-      bucketId,
-      new Set([
-        ...(progress.completed_applied ?? []).map((code) => String(code || "").trim()).filter(Boolean),
-        ...(progress.in_progress_applied ?? []).map((code) => String(code || "").trim()).filter(Boolean),
-      ]),
-    );
-  }
+  const normalizedSemesters: SemesterData[] = [];
 
   for (const semester of response.semesters ?? []) {
-    for (const course of semester.recommendations ?? []) {
-      const courseCode = String(course.course_code || "").trim();
-      if (!courseCode) continue;
-      const fillsBuckets = Array.from(
-        new Set((course.fills_buckets ?? []).map((bucketId) => String(bucketId || "").trim()).filter(Boolean)),
-      );
-      for (const bucketId of fillsBuckets) {
-        const progress = projected[bucketId];
-        if (!progress) continue;
-        const seen = seenByBucket.get(bucketId) ?? new Set<string>();
-        if (seen.has(courseCode)) {
-          seenByBucket.set(bucketId, seen);
-          continue;
-        }
-        seen.add(courseCode);
-        seenByBucket.set(bucketId, seen);
+    const nextSemester = cloneSemester(semester);
+    const recommendations = [...(nextSemester.recommendations ?? [])];
+    const processingOrder = [...recommendations].sort((left, right) => {
+      const leftManual = left.is_manual_add ? 0 : 1;
+      const rightManual = right.is_manual_add ? 0 : 1;
+      if (leftManual !== rightManual) return leftManual - rightManual;
+      return recommendations.indexOf(left) - recommendations.indexOf(right);
+    });
 
-        progress.in_progress_applied = [...(progress.in_progress_applied ?? []), courseCode];
-        if (progress.requirement_mode === "credits_pool") {
-          const credits = Math.max(0, Number(course.credits) || 0);
-          progress.in_progress_increment = Number(progress.in_progress_increment ?? 0) + credits;
-        } else {
-          progress.in_progress_increment = Number(progress.in_progress_increment ?? 0) + 1;
-          progress.in_progress_courses = Number(progress.in_progress_courses ?? 0) + 1;
-        }
-        markProgressSatisfied(progress);
-      }
+    const countedByCode = new Map<string, string[]>();
+    for (const course of processingOrder) {
+      const countedBuckets = countedBucketsForCourse(course, projected);
+      countedByCode.set(String(course.course_code || "").trim(), countedBuckets);
+      applyCourseToBucketProgress(course, countedBuckets, projected);
     }
+
+    nextSemester.recommendations = recommendations.map((course) => {
+      const code = String(course.course_code || "").trim();
+      const countedBuckets = countedByCode.get(code) ?? [];
+      return {
+        ...cloneCourse(course),
+        fills_buckets: countedBuckets,
+      };
+    });
+    nextSemester.projected_progress = cloneProgressMap(projected);
+    normalizedSemesters.push(nextSemester);
   }
 
-  return projected;
+  return {
+    semesters: normalizedSemesters,
+    finalProgress: projected,
+  };
+}
+
+export function normalizeVisibleRecommendationData(
+  response: RecommendationResponse | null | undefined,
+): RecommendationResponse | null | undefined {
+  if (!response?.current_progress) return response;
+  const projection = buildVisiblePlanProjection(response);
+  if (!projection) return response;
+  return {
+    ...response,
+    semesters: projection.semesters,
+  };
 }
 
 export function getPlanLevelProgress(
@@ -132,5 +273,5 @@ export function getPlanLevelProgress(
 ): Record<string, BucketProgress> | null | undefined {
   if (!response?.current_progress) return response?.current_progress;
 
-  return buildProjectedProgressFromPlan(response) ?? response.current_progress;
+  return buildVisiblePlanProjection(response)?.finalProgress ?? response.current_progress;
 }

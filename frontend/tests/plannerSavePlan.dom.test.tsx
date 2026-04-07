@@ -16,7 +16,7 @@ const {
   updatePlanSpy,
   fetchRecommendationsSpy,
   savedPlansState,
-  recommendationData,
+  recommendationDataState,
 } = vi.hoisted(() => ({
   createPlanSpy: vi.fn(),
   updatePlanSpy: vi.fn(),
@@ -52,17 +52,19 @@ const {
       },
     ],
   },
-  recommendationData: {
-    mode: "recommendations" as const,
-    current_progress: {},
-    semesters: [
-      {
-        target_semester: "Fall 2026",
-        recommendations: [
-          { course_code: "COSC 1010", course_name: "Intro to Software Development", credits: 3 },
-        ],
-      },
-    ],
+  recommendationDataState: {
+    current: {
+      mode: "recommendations" as const,
+      current_progress: {},
+      semesters: [
+        {
+          target_semester: "Fall 2026",
+          recommendations: [
+            { course_code: "COSC 1010", course_name: "Intro to Software Development", credits: 3 },
+          ],
+        },
+      ],
+    },
   },
 }));
 
@@ -74,7 +76,7 @@ vi.mock("motion/react", () => ({
 
 vi.mock("@/hooks/useRecommendations", () => ({
   useRecommendations: () => ({
-    data: recommendationData,
+    data: recommendationDataState.current,
     requestedCount: 6,
     loading: false,
     error: null,
@@ -210,6 +212,18 @@ describe("PlannerLayout save-plan routing", () => {
     createPlanSpy.mockReset();
     updatePlanSpy.mockReset();
     fetchRecommendationsSpy.mockReset();
+    recommendationDataState.current = {
+      mode: "recommendations",
+      current_progress: {},
+      semesters: [
+        {
+          target_semester: "Fall 2026",
+          recommendations: [
+            { course_code: "COSC 1010", course_name: "Intro to Software Development", credits: 3 },
+          ],
+        },
+      ],
+    };
     savedPlansState.current = [
       {
         id: "plan-1",
@@ -258,12 +272,14 @@ describe("PlannerLayout save-plan routing", () => {
 
     await waitFor(() => expect(createPlanSpy).toHaveBeenCalledTimes(1));
     expect(updatePlanSpy).not.toHaveBeenCalled();
-    expect(createPlanSpy.mock.calls[0][0]).toEqual(expect.objectContaining({
+    expect(createPlanSpy.mock.calls[0][0]).toMatchObject({
       name: "New Browser Save",
       notes: "Create notes",
-      recommendationData,
       lastRequestedCount: 6,
-    }));
+    });
+    const createdSnapshot = createPlanSpy.mock.calls[0][0]?.recommendationData;
+    expect(createdSnapshot?.mode).toBe("recommendations");
+    expect(createdSnapshot?.semesters?.[0]?.recommendations?.[0]?.course_code).toBe("COSC 1010");
     expect(screen.getByText(/saved .+new browser save.+ in this browser/i)).toBeInTheDocument();
   });
 
@@ -299,19 +315,80 @@ describe("PlannerLayout save-plan routing", () => {
 
     await waitFor(() => expect(updatePlanSpy).toHaveBeenCalledTimes(1));
     expect(createPlanSpy).not.toHaveBeenCalled();
-    expect(updatePlanSpy).toHaveBeenCalledWith(
-      "plan-1",
-      expect.objectContaining({
-        name: "Overwritten Browser Save",
-        notes: "Overwrite notes",
-        inputs: expectedInputs,
-        recommendationData,
-        lastRequestedCount: 6,
-        resultsInputHash: hashSavedPlanInputs(expectedInputs),
-        lastGeneratedAt: expect.any(String),
-      }),
-    );
+    expect(updatePlanSpy.mock.calls[0]?.[0]).toBe("plan-1");
+    expect(updatePlanSpy.mock.calls[0]?.[1]).toMatchObject({
+      name: "Overwritten Browser Save",
+      notes: "Overwrite notes",
+      inputs: expectedInputs,
+      lastRequestedCount: 6,
+      resultsInputHash: hashSavedPlanInputs(expectedInputs),
+    });
+    expect(updatePlanSpy.mock.calls[0]?.[1]?.lastGeneratedAt).toEqual(expect.any(String));
+    expect(updatePlanSpy.mock.calls[0]?.[1]?.recommendationData?.mode).toBe("recommendations");
+    expect(updatePlanSpy.mock.calls[0]?.[1]?.recommendationData?.semesters?.[0]?.recommendations?.[0]?.course_code).toBe("COSC 1010");
     expect(screen.getByText(/updated .+overwritten browser save.+ in this browser/i)).toBeInTheDocument();
+  });
+
+  test("overwrite saves the normalized visible plan instead of stale raw bucket fills", async () => {
+    const user = userEvent.setup();
+    recommendationDataState.current = {
+      mode: "recommendations",
+      current_progress: {
+        MCC_WRIT: {
+          needed: 1,
+          needed_count: 1,
+          completed_applied: [],
+          in_progress_applied: [],
+          completed_done: 0,
+          in_progress_increment: 0,
+          completed_courses: 0,
+          in_progress_courses: 0,
+          requirement_mode: "required",
+          satisfied: false,
+        },
+      },
+      semesters: [
+        {
+          target_semester: "Fall 2026",
+          recommendations: [
+            {
+              course_code: "ENGL 3250",
+              course_name: "Professional Writing",
+              credits: 3,
+              is_manual_add: true,
+              fills_buckets: ["MCC_WRIT"],
+            },
+          ],
+        },
+        {
+          target_semester: "Spring 2027",
+          recommendations: [
+            {
+              course_code: "MANA 3002",
+              course_name: "Business and Its Environment",
+              credits: 3,
+              fills_buckets: ["MCC_WRIT"],
+            },
+          ],
+        },
+      ],
+    };
+    updatePlanSpy.mockReturnValue({
+      ok: true,
+      plans: savedPlansState.current,
+      plan: { name: "Overwritten Browser Save" },
+    });
+
+    renderWithApp(createElement(PlannerLayout), makePlannerState());
+
+    await user.click(screen.getByRole("button", { name: /save plan/i }));
+    await user.click(screen.getByRole("button", { name: /submit overwrite/i }));
+
+    await waitFor(() => expect(updatePlanSpy).toHaveBeenCalledTimes(1));
+    const savedSnapshot = updatePlanSpy.mock.calls[0][1]?.recommendationData;
+    expect(savedSnapshot?.semesters?.[0]?.recommendations?.[0]?.fills_buckets).toEqual(["MCC_WRIT"]);
+    expect(savedSnapshot?.semesters?.[1]?.recommendations?.[0]?.fills_buckets).toEqual([]);
+    expect(savedSnapshot?.semesters?.[1]?.projected_progress?.MCC_WRIT?.in_progress_applied).toEqual(["ENGL 3250"]);
   });
 
   test("full saved-plan library still allows overwrite", async () => {

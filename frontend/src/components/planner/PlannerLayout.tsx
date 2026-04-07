@@ -23,7 +23,7 @@ import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
 import { postRecommend, loadProgramBuckets } from "@/lib/api";
 import { buildRecommendationWarnings, getProgramLabelMap, sanitizeRecommendationWhy } from "@/lib/rendering";
-import { getCurrentCourseLists, getPlanLevelProgress } from "@/lib/progressSources";
+import { getCurrentCourseLists, getPlanLevelProgress, normalizeVisibleRecommendationData } from "@/lib/progressSources";
 import { reconcileManualAddPins, updateManualAddPinsFromEdit } from "@/lib/plannerManualAdds";
 import { buildSavedPlanInputsFromAppState, hashSavedPlanInputs } from "@/lib/savedPlans";
 import { buildSavedPlanProgramLine } from "@/lib/savedPlanPresentation";
@@ -182,9 +182,13 @@ export function PlannerLayout() {
     () => getCurrentCourseLists(data, state.completed, state.inProgress),
     [data, state.completed, state.inProgress],
   );
-  const planLevelProgress = useMemo(
-    () => getPlanLevelProgress(data),
+  const visibleData = useMemo(
+    () => normalizeVisibleRecommendationData(data) ?? null,
     [data],
+  );
+  const planLevelProgress = useMemo(
+    () => getPlanLevelProgress(visibleData),
+    [visibleData],
   );
   const completedCourseCodes = useMemo(
     () => new Set(currentCourseLists.completed),
@@ -225,13 +229,13 @@ export function PlannerLayout() {
   }, [data?.current_progress]);
   const recommendedCourseMap = useMemo(() => {
     const map = new Map<string, RecommendedCourse>();
-    for (const semester of data?.semesters ?? []) {
+    for (const semester of visibleData?.semesters ?? []) {
       for (const course of semester.recommendations ?? []) {
         map.set(course.course_code, course);
       }
     }
     return map;
-  }, [data?.semesters]);
+  }, [visibleData?.semesters]);
   const detailCourse = courseDetailCode ? recommendedCourseMap.get(courseDetailCode) : undefined;
   const fallbackCourse = courseDetailCode ? catalogCourseMap.get(courseDetailCode) : undefined;
   const detailBuckets = useMemo(
@@ -280,14 +284,15 @@ export function PlannerLayout() {
     [savedPlans, state.programs],
   );
   const modalSemester =
-    semesterModalIdx !== null ? data?.semesters?.[semesterModalIdx] ?? null : null;
-  const canOpenEditPlan = Boolean(data?.semesters?.length);
+    semesterModalIdx !== null ? visibleData?.semesters?.[semesterModalIdx] ?? null : null;
+  const canOpenEditPlan = Boolean(visibleData?.semesters?.length);
 
   const handleSavePlan = ({ mode, targetPlanId, name, notes }: SavePlanSubmitParams) => {
     if (!data || data.mode === "error") {
       setSaveError("Generate recommendations before saving a plan.");
       return;
     }
+    const snapshotData = visibleData ?? data;
     const inputs = buildSavedPlanInputsFromAppState(state);
     const generatedAt = new Date().toISOString();
     const resultsInputHash = hashSavedPlanInputs(inputs);
@@ -298,7 +303,7 @@ export function PlannerLayout() {
             name,
             notes,
             inputs,
-            recommendationData: data,
+            recommendationData: snapshotData,
             lastRequestedCount: requestedCount,
             resultsInputHash,
             lastGeneratedAt: generatedAt,
@@ -309,7 +314,7 @@ export function PlannerLayout() {
         name,
         notes,
         inputs,
-        recommendationData: data,
+        recommendationData: snapshotData,
         lastRequestedCount: requestedCount,
       });
     if (!result.ok) {
@@ -830,7 +835,7 @@ export function PlannerLayout() {
             {hasProgram && data && (
               <div className="flex-1 min-h-0">
                 <RecommendationsPanel
-                  data={data}
+                  data={visibleData}
                   onExpandSemester={(index) => {
                     setSemesterModalMode("view");
                     setSemesterModalIdx(index);
@@ -847,7 +852,7 @@ export function PlannerLayout() {
       <EditPlanModal
         open={editPlanModalOpen}
         onClose={() => setEditPlanModalOpen(false)}
-        semesters={data?.semesters ?? []}
+        semesters={visibleData?.semesters ?? []}
         onEditSemester={handleEditSemesterSelect}
       />
       <ProgressModal
@@ -872,11 +877,11 @@ export function PlannerLayout() {
         openMode={semesterModalMode}
         semester={modalSemester}
         index={semesterModalIdx ?? 0}
-        totalCount={data?.semesters?.length ?? 0}
+        totalCount={visibleData?.semesters?.length ?? 0}
         requestedCount={requestedCount}
         courses={state.courses}
         declaredMajors={[...state.selectedMajors]}
-        onNext={() => setSemesterModalIdx(i => i !== null && i < (data?.semesters?.length ?? 0) - 1 ? i + 1 : i)}
+        onNext={() => setSemesterModalIdx(i => i !== null && i < (visibleData?.semesters?.length ?? 0) - 1 ? i + 1 : i)}
         onBack={() => setSemesterModalIdx(i => i !== null && i > 0 ? i - 1 : i)}
         programLabelMap={programLabelMap}
         bucketLabelMap={bucketLabelMap}

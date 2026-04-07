@@ -1567,6 +1567,26 @@ def _derive_runtime_from_v2(
         merged_sub.get("courses_required"),
         errors="coerce",
     )
+    planner_bucket_rank = (
+        merged_sub["planner_bucket_rank"]
+        if "planner_bucket_rank" in merged_sub.columns
+        else pd.Series(99, index=merged_sub.index)
+    )
+    bucket_flags = (
+        merged_sub["bucket_flags"]
+        if "bucket_flags" in merged_sub.columns
+        else pd.Series("", index=merged_sub.index)
+    )
+    dynamic_pool_tag = (
+        merged_sub["dynamic_pool_tag"]
+        if "dynamic_pool_tag" in merged_sub.columns
+        else pd.Series("", index=merged_sub.index)
+    )
+    dynamic_pool_exclusive = (
+        merged_sub["dynamic_pool_exclusive"]
+        if "dynamic_pool_exclusive" in merged_sub.columns
+        else pd.Series(False, index=merged_sub.index)
+    )
 
     runtime_buckets = pd.DataFrame(
         {
@@ -1595,12 +1615,12 @@ def _derive_runtime_from_v2(
             "display_parent_alias": merged_sub.get("display_parent_alias", "").fillna("").astype(str).str.strip().str.upper(),
             "planner_tier": pd.to_numeric(merged_sub.get("planner_tier"), errors="coerce"),
             "planner_bucket_rank": pd.to_numeric(
-                merged_sub.get("planner_bucket_rank"),
+                planner_bucket_rank,
                 errors="coerce",
             ).fillna(99).astype(int),
-            "bucket_flags": merged_sub.get("bucket_flags", "").fillna("").astype(str).str.strip().str.lower(),
-            "dynamic_pool_tag": merged_sub.get("dynamic_pool_tag", "").fillna("").astype(str).str.strip().str.lower(),
-            "dynamic_pool_exclusive": merged_sub.get("dynamic_pool_exclusive", False),
+            "bucket_flags": bucket_flags.fillna("").astype(str).str.strip().str.lower(),
+            "dynamic_pool_tag": dynamic_pool_tag.fillna("").astype(str).str.strip().str.lower(),
+            "dynamic_pool_exclusive": dynamic_pool_exclusive,
         }
     )
     runtime_buckets = _safe_bool_col(runtime_buckets, "dynamic_pool_exclusive")
