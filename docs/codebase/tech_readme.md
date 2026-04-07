@@ -145,7 +145,7 @@ Current checked-in CSV counts:
 | `master_bucket_courses.csv` | 1623 | Explicit course-to-child-bucket membership |
 | `course_hard_prereqs.csv` | 5309 | One row per course with hard prerequisites, concurrent companions, and standing gates |
 | `course_soft_prereqs.csv` | 5309 | One row per course with warning tags, raw catalog prereq text, restriction text, and notes |
-| `course_equivalencies.csv` | 282 | Honors, grad, cross-listed, equivalent, and no-double-count relationships |
+| `course_equivalencies.csv` | 283 | Honors, grad, cross-listed, equivalent, and no-double-count relationships |
 | `course_offerings.csv` | 547 | Term availability history retained for future offering-aware planning; runtime currently treats all courses as offered |
 | `policies.csv` | 76 | Normalized policy registry |
 | `policies_buckets.csv` | 177 | Policy-to-bucket joins |
@@ -179,7 +179,7 @@ Important data behavior:
 | Directory | Framework | Count | Coverage |
 |-----------|-----------|-------|----------|
 | `tests/backend/` | Pytest | 26 files | Engine behavior, API contract, policy enforcement, regression profiles, dead-end detection, schema migration, and policy scraping |
-| `frontend/tests/` + `tests/frontend/` | Vitest | 47 files | Landing/About shells, onboarding, planner modals, recommendations, saved plans, print/export views, import parsing, hooks, and utilities |
+| `frontend/tests/` + `tests/frontend/` | Vitest | 42 files | Landing/About shells, onboarding, planner modals, recommendations, saved plans, print/export views, import parsing, hooks, and utilities |
 
 The default frontend run uses `frontend/vitest.config.ts`, which includes the active `frontend/tests/` suite and the included legacy suites from `tests/frontend/`.
 

@@ -12,6 +12,18 @@ Format per release:
 
 ### User
 
+- Nothing queued yet.
+
+### Technical
+
+- No unreleased notes yet.
+
+---
+
+## [v2.8.0] - 2026-04-07
+
+### User
+
 - Planner and landing pages feel snappier — reduced animation overhead without removing any visual effects.
 - Data Science is now a selectable non-business major, and business-only rules no longer spill onto that path.
 - Edited semester reruns now recompute downstream terms, keep the yellow projected-progress bars honest, and preserve manual adds when they still fit.

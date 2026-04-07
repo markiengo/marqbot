@@ -223,7 +223,7 @@ Seasonal offering history (547 rows). **Currently disabled** — all courses are
 
 ### `course_equivalencies.csv`
 
-Equivalency groups (282 rows) stored in wide format with one row per group.
+Equivalency groups (283 rows) stored in wide format with one row per group.
 
 | Column | Meaning |
 |--------|---------|

@@ -108,9 +108,9 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 | `frontend/tests/plannerLayout.dom.test.ts` | 1 | Yes | Semester-edit stale-response protection when candidate requests resolve out of order |
 | `frontend/tests/plannerManualAdds.test.ts` | 4 | Yes | Manual-add pin reconciliation and conflict cleanup after reruns |
 | `frontend/tests/plannerPreferencesEdit.dom.test.tsx` | 4 | Yes | Edited-semester reruns, swap candidate reuse, and reconciled downstream behavior |
-| `frontend/tests/plannerSavePlan.dom.test.tsx` | 3 | Yes | Planner save flow for create vs overwrite |
+| `frontend/tests/plannerSavePlan.dom.test.tsx` | 4 | Yes | Planner save flow for create vs overwrite, including normalized saved snapshots |
 | `frontend/tests/progressBucketDrillIn.test.ts` | 6 | Yes | Bucket drill-in detail rendering |
-| `frontend/tests/progressSources.test.ts` | 2 | Yes | Projected progress derivation from visible semester plans |
+| `frontend/tests/progressSources.test.ts` | 4 | Yes | Projected progress derivation from visible semester plans and bucket-ownership cleanup after swaps |
 | `frontend/tests/recommendationsPanel.dom.test.tsx` | 2 | Yes | Recommendations term switching and reduced-effects rendering path |
 | `frontend/tests/savedPlanExport.test.ts` | 1 | Yes | Saved-plan export payload fields, including credits, prerequisite text, and satisfy labels |
 | `frontend/tests/savedPlanDetailPage.dom.test.ts` | 2 | Yes | Saved-plan detail delete and export-link behavior |
@@ -122,7 +122,7 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 
 `tests/frontend/*.dom.test.ts` is excluded from the default Vitest run.
 `frontend/tests/*.dom.test.ts` is included in the default Vitest run.
-The frontend test footprint currently spans 47 test files across both roots. Use the live Vitest summary for exact case counts instead of treating this document as the source of truth for totals.
+The frontend test footprint currently spans 42 test files across both roots. Use the live Vitest summary for exact case counts instead of treating this document as the source of truth for totals.
 
 ## Repo Helper Tests
 
