@@ -150,6 +150,7 @@ def _build_child_buckets(sub_buckets_df: pd.DataFrame) -> pd.DataFrame:
         "sub_bucket_label": "",
         "courses_required": None,
         "credits_required": None,
+        "count_strategy": "manual",
         "min_level": None,
         "notes": "",
     }.items():
@@ -165,6 +166,10 @@ def _build_child_buckets(sub_buckets_df: pd.DataFrame) -> pd.DataFrame:
     df["credits_required"] = pd.to_numeric(df["credits_required"], errors="coerce")
     df["min_level"] = pd.to_numeric(df["min_level"], errors="coerce")
     df["requirement_mode"] = df.apply(_infer_requirement_mode, axis=1)
+    df["count_strategy"] = _norm_str(df["count_strategy"]).str.lower().where(
+        _norm_str(df["count_strategy"]).str.lower().isin({"manual", "canonical_mapped"}),
+        "manual",
+    )
 
     out = pd.DataFrame(
         {
@@ -175,6 +180,7 @@ def _build_child_buckets(sub_buckets_df: pd.DataFrame) -> pd.DataFrame:
             "requirement_mode": df["requirement_mode"],
             "courses_required": df["courses_required"],
             "credits_required": df["credits_required"],
+            "count_strategy": df["count_strategy"],
             "min_level": df["min_level"],
             "notes": df["notes"],
         }
@@ -191,6 +197,7 @@ def _build_child_buckets(sub_buckets_df: pd.DataFrame) -> pd.DataFrame:
                     "requirement_mode": _first_non_empty,
                     "courses_required": _first_numeric,
                     "credits_required": _first_numeric,
+                    "count_strategy": _first_non_empty,
                     "min_level": _first_numeric,
                     "notes": _first_non_empty,
                 }

@@ -146,6 +146,66 @@ def _build_course_runtime_indexes(courses_df: pd.DataFrame) -> dict:
     }
 
 
+def _build_track_equivalent_course_map(
+    equivalencies_df: pd.DataFrame | None,
+    track_id: str,
+    track_map: pd.DataFrame | None = None,
+) -> dict[str, set[str]]:
+    """Build a scope-aware course -> equivalent aliases map for one runtime track.
+
+    Only `equivalent` relation types participate here. The result is used to
+    suppress redundant recommendations and to collapse canonical remaining-course
+    lists when an alternate equivalent course was already taken.
+    """
+    result: dict[str, set[str]] = {}
+    if equivalencies_df is None or len(equivalencies_df) == 0:
+        return result
+    if "equiv_group_id" not in equivalencies_df.columns or "course_code" not in equivalencies_df.columns:
+        return result
+
+    eq = equivalencies_df.copy()
+    eq["equiv_group_id"] = eq["equiv_group_id"].fillna("").astype(str).str.strip()
+    eq["course_code"] = eq["course_code"].fillna("").astype(str).str.strip()
+    if "relation_type" in eq.columns:
+        eq["relation_type"] = eq["relation_type"].fillna("").astype(str).str.strip().str.lower()
+        eq = eq[eq["relation_type"].isin(["equivalent", ""])]
+    if "scope_program_id" in eq.columns:
+        eq["scope_program_id"] = eq["scope_program_id"].fillna("").astype(str).str.strip().str.upper()
+    elif "program_scope" in eq.columns:
+        eq["scope_program_id"] = eq["program_scope"].fillna("").astype(str).str.strip().str.upper()
+    else:
+        eq["scope_program_id"] = ""
+
+    eq = eq[(eq["equiv_group_id"] != "") & (eq["course_code"] != "")]
+    if len(eq) == 0:
+        return result
+
+    track_scope_keys = {_normalize_track_key(track_id)}
+    if track_map is not None and len(track_map) > 0 and "source_program_id" in track_map.columns:
+        track_scope_keys.update(
+            str(program_id or "").strip().upper()
+            for program_id in track_map["source_program_id"].tolist()
+            if str(program_id or "").strip()
+        )
+
+    for _, grp in eq.groupby("equiv_group_id"):
+        members = sorted({str(code).strip() for code in grp["course_code"].tolist() if str(code).strip()})
+        if len(members) < 2:
+            continue
+        scopes = {
+            str(scope or "").strip().upper()
+            for scope in grp["scope_program_id"].tolist()
+            if str(scope or "").strip()
+        }
+        if scopes and scopes.isdisjoint(track_scope_keys):
+            continue
+        member_set = set(members)
+        for member in members:
+            result.setdefault(member, set()).update(member_set - {member})
+
+    return result
+
+
 def _build_track_runtime_index(
     buckets_df: pd.DataFrame,
     course_bucket_map_df: pd.DataFrame,
@@ -168,10 +228,17 @@ def _build_track_runtime_index(
     base_track_map = course_bucket_map_df[
         course_bucket_map_df["track_id"].astype(str).str.strip().str.upper() == track_key
     ].copy()
-    # Bucket mappings come solely from master_bucket_courses.csv (no equivalency expansion).
-    track_map = base_track_map
+    equivalent_course_map = _build_track_equivalent_course_map(
+        equivalencies_df,
+        track_key,
+        base_track_map,
+    )
+    # Expand bucket mappings with scoped/global equivalencies so alternate
+    # courses count toward the same requirement buckets at runtime.
+    track_map = _expand_map_with_equivalencies(base_track_map, equivalencies_df, track_key)
 
     course_bucket_index: dict[str, list[str]] = {}
+    course_bucket_detail_index: dict[str, list[dict]] = {}
     bucket_course_index: dict[str, list[str]] = {}
     base_bucket_course_index: dict[str, list[str]] = {}
 
@@ -184,6 +251,22 @@ def _build_track_runtime_index(
         course_bucket_index.setdefault(course_code, [])
         if bucket_id not in course_bucket_index[course_code]:
             course_bucket_index[course_code].append(bucket_id)
+
+        detail = {
+            "bucket_id": bucket_id,
+            "mapped_via_equivalency": _safe_bool(row.get("mapped_via_equivalency", False)),
+            "mapping_relation_type": str(row.get("mapping_relation_type", "") or "").strip().lower(),
+            "equivalent_to_course_code": str(row.get("equivalent_to_course_code", "") or "").strip(),
+        }
+        detail_rows = course_bucket_detail_index.setdefault(course_code, [])
+        if not any(
+            existing.get("bucket_id") == detail["bucket_id"]
+            and bool(existing.get("mapped_via_equivalency")) == bool(detail["mapped_via_equivalency"])
+            and str(existing.get("mapping_relation_type", "") or "").strip().lower() == detail["mapping_relation_type"]
+            and str(existing.get("equivalent_to_course_code", "") or "").strip() == detail["equivalent_to_course_code"]
+            for existing in detail_rows
+        ):
+            detail_rows.append(detail)
 
         bucket_course_index.setdefault(bucket_id, [])
         if course_code not in bucket_course_index[bucket_id]:
@@ -223,6 +306,7 @@ def _build_track_runtime_index(
         bid = str(row.get("bucket_id", "") or "").strip()
         if not bid:
             continue
+        bucket_label = str(row.get("bucket_label", bid) or bid)
         needed_count = _safe_int(row.get("needed_count"))
         needed_credits = _safe_int(row.get("needed_credits"))
         min_level = _safe_int(row.get("min_level"))
@@ -230,21 +314,47 @@ def _build_track_runtime_index(
         parent_bucket_priority = _safe_int(row.get("parent_bucket_priority"), 99) or 99
         requirement_mode = _infer_requirement_mode(row)
         parent_bucket_id = str(row.get("parent_bucket_id", "") or "").strip()
+        parent_bucket_label = str(row.get("parent_bucket_label", parent_bucket_id) or parent_bucket_id)
+        display_parent_alias = str(row.get("display_parent_alias", "") or "").strip().upper()
+        planner_tier = _safe_int(row.get("planner_tier"))
+        planner_bucket_rank = _safe_int(row.get("planner_bucket_rank"), 99)
+        bucket_flags = str(row.get("bucket_flags", "") or "").strip().lower()
+        dynamic_pool_tag = str(row.get("dynamic_pool_tag", "") or "").strip().lower()
+        dynamic_pool_exclusive = _safe_bool(row.get("dynamic_pool_exclusive", False))
         bucket_meta_template[bid] = {
-            "label": str(row.get("bucket_label", bid)),
+            "label": bucket_label,
+            "bucket_label": bucket_label,
             "priority": priority,
             "parent_bucket_priority": parent_bucket_priority,
             "needed_count": needed_count,
+            "configured_needed_count": _safe_int(row.get("configured_needed_count")),
             "needed_credits": needed_credits,
             "min_level": min_level,
             "requirement_mode": requirement_mode,
+            "count_strategy": str(row.get("count_strategy", "") or "").strip().lower(),
             "parent_bucket_id": parent_bucket_id,
+            "parent_bucket_label": parent_bucket_label,
+            "display_parent_alias": display_parent_alias,
+            "planner_tier": planner_tier,
+            "planner_bucket_rank": planner_bucket_rank if planner_bucket_rank is not None else 99,
+            "bucket_flags": bucket_flags,
+            "dynamic_pool_tag": dynamic_pool_tag,
+            "dynamic_pool_exclusive": dynamic_pool_exclusive,
             "double_count_family_id": str(row.get("double_count_family_id", "") or "").strip(),
         }
         selection_bucket_meta[bid] = {
+            "label": bucket_label,
+            "bucket_label": bucket_label,
             "priority": priority,
             "parent_bucket_id": parent_bucket_id,
+            "parent_bucket_label": parent_bucket_label,
             "requirement_mode": requirement_mode,
+            "display_parent_alias": display_parent_alias,
+            "planner_tier": planner_tier,
+            "planner_bucket_rank": planner_bucket_rank if planner_bucket_rank is not None else 99,
+            "bucket_flags": bucket_flags,
+            "dynamic_pool_tag": dynamic_pool_tag,
+            "dynamic_pool_exclusive": dynamic_pool_exclusive,
         }
         bucket_parent_map[bid.upper()] = parent_bucket_id.strip().upper()
         bucket_track_required_map[bid] = str(row.get("track_required", "") or "").strip().upper()
@@ -257,8 +367,10 @@ def _build_track_runtime_index(
         "bucket_meta_template": bucket_meta_template,
         "selection_bucket_meta": selection_bucket_meta,
         "course_bucket_index": course_bucket_index,
+        "course_bucket_detail_index": course_bucket_detail_index,
         "bucket_course_index": bucket_course_index,
         "base_bucket_course_index": base_bucket_course_index,
+        "equivalent_course_map": equivalent_course_map,
         "allowed_pairs": allowed_pairs,
         "course_credits_index": course_indexes["credits"],
         "course_level_index": course_indexes["levels"],
@@ -372,6 +484,13 @@ def _expand_map_with_equivalencies(
         return track_map
 
     eq = equivalencies_df.copy()
+    track_map = track_map.copy()
+    if "mapped_via_equivalency" not in track_map.columns:
+        track_map["mapped_via_equivalency"] = False
+    if "mapping_relation_type" not in track_map.columns:
+        track_map["mapping_relation_type"] = ""
+    if "equivalent_to_course_code" not in track_map.columns:
+        track_map["equivalent_to_course_code"] = ""
     eq["equiv_group_id"] = eq["equiv_group_id"].fillna("").astype(str).str.strip()
     eq["course_code"] = eq["course_code"].fillna("").astype(str).str.strip()
     if "scope_program_id" in eq.columns:
@@ -390,6 +509,7 @@ def _expand_map_with_equivalencies(
     track_key = str(track_id or "").strip().upper()
     group_members: dict[str, list[str]] = {}
     group_scopes: dict[str, set[str]] = {}
+    group_relation_types: dict[str, str] = {}
     course_to_groups: dict[str, set[str]] = {}
     for gid, grp in eq.groupby("equiv_group_id"):
         members = sorted({str(c).strip() for c in grp["course_code"].tolist() if str(c).strip()})
@@ -398,10 +518,16 @@ def _expand_map_with_equivalencies(
             for s in grp["scope_program_id"].tolist()
             if str(s).strip()
         }
+        relation_types = [
+            str(r or "").strip().lower()
+            for r in grp.get("relation_type", pd.Series(dtype=str)).tolist()
+            if str(r or "").strip()
+        ]
         if not members:
             continue
         group_members[gid] = members
         group_scopes[gid] = scopes
+        group_relation_types[gid] = relation_types[0] if relation_types else "equivalent"
         for member in members:
             course_to_groups.setdefault(member, set()).add(gid)
 
@@ -418,9 +544,10 @@ def _expand_map_with_equivalencies(
         base_code = str(row.get("course_code", "") or "").strip()
         if not base_code:
             continue
+        row_scope_program_id = str(row.get("source_program_id", "") or "").strip().upper()
         for gid in course_to_groups.get(base_code, set()):
             scopes = group_scopes.get(gid, set())
-            if scopes and track_key not in scopes:
+            if scopes and track_key not in scopes and row_scope_program_id not in scopes:
                 continue
             for member in group_members.get(gid, []):
                 if member == base_code:
@@ -434,6 +561,9 @@ def _expand_map_with_equivalencies(
                     continue
                 new_row = row.copy()
                 new_row["course_code"] = member
+                new_row["mapped_via_equivalency"] = True
+                new_row["mapping_relation_type"] = group_relation_types.get(gid, "equivalent")
+                new_row["equivalent_to_course_code"] = base_code
                 extra_rows.append(new_row)
                 existing_keys.add(key)
 
@@ -497,6 +627,7 @@ def allocate_courses(
     course_bucket_index = track_runtime["course_bucket_index"]
     bucket_course_index = track_runtime["bucket_course_index"]
     base_bucket_course_index = track_runtime["base_bucket_course_index"]
+    equivalent_course_map = track_runtime.get("equivalent_course_map", {})
     allowed_pairs = track_runtime["allowed_pairs"]
     course_credits_index = dict(track_runtime["course_credits_index"])
     course_level_index = dict(track_runtime["course_level_index"])
@@ -790,6 +921,9 @@ def allocate_courses(
     # Step 5: remaining view.
     completed_set = set(completed)
     in_progress_set = set(in_progress)
+    taken_with_equivalents = set(completed_set | in_progress_set)
+    for taken_code in list(taken_with_equivalents):
+        taken_with_equivalents.update(equivalent_course_map.get(taken_code, set()))
     remaining: dict[str, dict] = {}
     for bid in bucket_order:
         if bid not in bucket_meta:
@@ -799,8 +933,17 @@ def allocate_courses(
         needed_val = (
             meta["needed_count"] if meta["needed_count"] is not None else meta["needed_credits"]
         )
-        bucket_courses = bucket_course_index.get(bid, [])
-        remaining_courses = [c for c in bucket_courses if c not in completed_set and c not in in_progress_set]
+        requirement_mode = str(meta.get("requirement_mode", "") or "").strip().lower()
+        if requirement_mode == "required":
+            canonical_bucket_courses = base_bucket_course_index.get(bid, [])
+            remaining_courses = [
+                code
+                for code in canonical_bucket_courses
+                if not ({code} | set(equivalent_course_map.get(code, set()))) & (completed_set | in_progress_set)
+            ]
+        else:
+            bucket_courses = bucket_course_index.get(bid, [])
+            remaining_courses = [c for c in bucket_courses if c not in taken_with_equivalents]
         remaining[bid] = {
             "needed": needed_val,
             "slots_remaining": slots,
@@ -824,7 +967,9 @@ def allocate_courses(
             "needed": progress_needed_credits(bid),
             "is_credit_based": meta["needed_count"] is None,
             "needed_count": meta["needed_count"],
+            "configured_needed_count": meta.get("configured_needed_count"),
             "requirement_mode": meta["requirement_mode"],
+            "count_strategy": meta.get("count_strategy", ""),
         }
 
     return {

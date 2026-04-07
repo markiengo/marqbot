@@ -1,41 +1,42 @@
-parent_bucket_id,parent_bucket_label,type,parent_major,active,requires_primary_major,double_count_family_id,required_major,is_default
-ACCO_MAJOR,Accounting,major,,True,False,ACCO_MAJOR,,False
-AIM_CFA_TRACK,AIM CFA - Investments Concentration,track,AIM_MAJOR,True,False,AIM_CFA_TRACK,FIN_MAJOR,False
-AIM_FINTECH_TRACK,AIM Applied FinTech - AI and Business Intelligence,track,AIM_MAJOR,True,False,AIM_FINTECH_TRACK,,False
-AIM_IB_TRACK,AIM Private Capital & Investment Banking,track,AIM_MAJOR,True,False,AIM_IB_TRACK,,False
-AIM_MAJOR,AIM - Accelerating Ingenuity in Markets,major,,True,True,AIM_MAJOR,,False
-BADM_MAJOR,Business Administration,major,,True,False,BADM_MAJOR,,False
-BADM_MINOR,Business Administration,minor,,True,False,BADM_MINOR,,False
-BCC_CORE,Business Core Courses,universal,,True,False,BCC_CORE,,False
-BECO_MAJOR,Business Economics,major,,True,False,BECO_MAJOR,,False
-BUAN_MAJOR,Business Analytics,major,,True,True,BUAN_MAJOR,,False
-CB_TRACK,Commercial Banking Track,track,FIN_MAJOR,True,False,CB_TRACK,,False
-ENTP_MINOR,Entrepreneurship,minor,,True,False,ENTP_MINOR,,False
-FIN_MAJOR,Finance,major,,True,False,FIN_MAJOR,,True
-FP_TRACK,Financial Planning Track,track,FIN_MAJOR,True,False,FP_TRACK,,False
-HR_MINOR,Human Resources,minor,,True,False,HR_MINOR,,False
-HURE_LEAD_TRACK,Business Leadership Concentration,track,HURE_MAJOR,True,False,HURE_LEAD_TRACK,,False
-HURE_MAJOR,Human Resource Management,major,,True,False,HURE_MAJOR,,False
-INBU_MAJOR,International Business,major,,True,True,INBU_MAJOR,,False
-INSY_MAJOR,Information Systems,major,,True,False,INSY_MAJOR,,False
-INSY_MINOR,Information Systems,minor,,True,False,INSY_MINOR,,False
-MARK_MAJOR,Marketing,major,,True,False,MARK_MAJOR,,False
-MARK_MINOR,Marketing,minor,,True,False,MARK_MINOR,,False
-MARK_PRSL_TRACK,Professional Selling Concentration,track,MARK_MAJOR,True,False,MARK_PRSL_TRACK,,False
-MCC_CULM,MCC: Culminating Course,universal,,True,False,MCC_CULM,,False
-MCC_DISC,MCC: Discovery Tiers,universal,,False,False,MCC_DISC,,False
-MCC_DISC_BNJ,MCC Discovery: Basic Needs and Justice,track,MCC_DISC,True,False,MCC_DISC,,False
-MCC_DISC_CB,MCC Discovery: Crossing Boundaries,track,MCC_DISC,True,False,MCC_DISC,,False
-MCC_DISC_CMI,MCC Discovery: Cognition Memory & Intelligence,track,MCC_DISC,True,False,MCC_DISC,,False
-MCC_DISC_EOH,MCC Discovery: Expanding Our Horizons,track,MCC_DISC,True,False,MCC_DISC,,False
-MCC_DISC_IC,MCC Discovery: Individuals and Communities,track,MCC_DISC,True,False,MCC_DISC,,False
-MCC_ESSV2,MCC: Engaging Social Systems & Values 2,universal,,True,False,MCC_ESSV2,,False
-MCC_FOUNDATION,MCC Foundation,universal,,True,False,MCC_FOUNDATION,,False
-MCC_WRIT,MCC: Writing Intensive,universal,,True,False,MCC_WRIT,,False
-OSCM_MAJOR,Operations & Supply Chain Management,major,,True,False,OSCM_MAJOR,,False
-OSCM_MINOR,Supply Chain Management,minor,,True,False,OSCM_MINOR,,False
-PRSL_MINOR,Professional Selling,minor,,True,False,PRSL_MINOR,,False
-REAL_MAJOR,Real Estate,major,,True,False,REAL_MAJOR,,False
-REAL_REAP_TRACK,Real Estate Asset Program Concentration,track,REAL_MAJOR,True,False,REAL_REAP_TRACK,,False
-INS_TRACK,Insurance Concentration,track,FIN_MAJOR,True,False,INS_TRACK,,False
-AIBM_MAJOR,Applied AI in Business,major,,True,True,AIBM_MAJOR,,False
+parent_bucket_id,parent_bucket_label,type,parent_major,active,requires_primary_major,double_count_family_id,required_major,is_default,college_alias,display_parent_alias,planner_parent_priority
+ACCO_MAJOR,Accounting,major,,True,False,ACCO_MAJOR,,False,business
+AIM_CFA_TRACK,AIM CFA - Investments Concentration,track,AIM_MAJOR,True,False,AIM_CFA_TRACK,FIN_MAJOR,False,business
+AIM_FINTECH_TRACK,AIM Applied FinTech - AI and Business Intelligence,track,AIM_MAJOR,True,False,AIM_FINTECH_TRACK,,False,business
+AIM_IB_TRACK,AIM Private Capital & Investment Banking,track,AIM_MAJOR,True,False,AIM_IB_TRACK,,False,business
+AIM_MAJOR,AIM - Accelerating Ingenuity in Markets,major,,True,True,AIM_MAJOR,,False,business
+BADM_MAJOR,Business Administration,major,,True,False,BADM_MAJOR,,False,business
+BADM_MINOR,Business Administration,minor,,True,False,BADM_MINOR,,False,business
+BCC_CORE,Business Core Courses,universal,,True,False,BCC_CORE,,False,business,BCC,1
+BECO_MAJOR,Business Economics,major,,True,False,BECO_MAJOR,,False,business
+BUAN_MAJOR,Business Analytics,major,,True,True,BUAN_MAJOR,,False,business
+CB_TRACK,Commercial Banking Track,track,FIN_MAJOR,True,False,CB_TRACK,,False,business
+ENTP_MINOR,Entrepreneurship,minor,,True,False,ENTP_MINOR,,False,business
+FIN_MAJOR,Finance,major,,True,False,FIN_MAJOR,,True,business
+FP_TRACK,Financial Planning Track,track,FIN_MAJOR,True,False,FP_TRACK,,False,business
+HR_MINOR,Human Resources,minor,,True,False,HR_MINOR,,False,business
+HURE_LEAD_TRACK,Business Leadership Concentration,track,HURE_MAJOR,True,False,HURE_LEAD_TRACK,,False,business
+HURE_MAJOR,Human Resource Management,major,,True,False,HURE_MAJOR,,False,business
+INBU_MAJOR,International Business,major,,True,True,INBU_MAJOR,,False,business
+INSY_MAJOR,Information Systems,major,,True,False,INSY_MAJOR,,False,business
+INSY_MINOR,Information Systems,minor,,True,False,INSY_MINOR,,False,business
+MARK_MAJOR,Marketing,major,,True,False,MARK_MAJOR,,False,business
+MARK_MINOR,Marketing,minor,,True,False,MARK_MINOR,,False,business
+MARK_PRSL_TRACK,Professional Selling Concentration,track,MARK_MAJOR,True,False,MARK_PRSL_TRACK,,False,business
+MCC_CULM,MCC: Culminating Course,universal,,True,False,MCC_CULM,,False,,MCC,2
+MCC_DISC,MCC: Discovery Tiers,universal,,False,False,MCC_DISC,,False,,MCC,2
+MCC_DISC_BNJ,MCC Discovery: Basic Needs and Justice,track,MCC_DISC,True,False,MCC_DISC,,False,,MCC,2
+MCC_DISC_CB,MCC Discovery: Crossing Boundaries,track,MCC_DISC,True,False,MCC_DISC,,False,,MCC,2
+MCC_DISC_CMI,MCC Discovery: Cognition Memory & Intelligence,track,MCC_DISC,True,False,MCC_DISC,,False,,MCC,2
+MCC_DISC_EOH,MCC Discovery: Expanding Our Horizons,track,MCC_DISC,True,False,MCC_DISC,,False,,MCC,2
+MCC_DISC_IC,MCC Discovery: Individuals and Communities,track,MCC_DISC,True,False,MCC_DISC,,False,,MCC,2
+MCC_ESSV2,MCC: Engaging Social Systems & Values 2,universal,,True,False,MCC_ESSV2,,False,,MCC,2
+MCC_FOUNDATION,MCC Foundation,universal,,True,False,MCC_FOUNDATION,,False,,MCC,1
+MCC_WRIT,MCC: Writing Intensive,universal,,True,False,MCC_WRIT,,False,,MCC,2
+OSCM_MAJOR,Operations & Supply Chain Management,major,,True,False,OSCM_MAJOR,,False,business
+OSCM_MINOR,Supply Chain Management,minor,,True,False,OSCM_MINOR,,False,business
+PRSL_MINOR,Professional Selling,minor,,True,False,PRSL_MINOR,,False,business
+REAL_MAJOR,Real Estate,major,,True,False,REAL_MAJOR,,False,business
+REAL_REAP_TRACK,Real Estate Asset Program Concentration,track,REAL_MAJOR,True,False,REAL_REAP_TRACK,,False,business
+INS_TRACK,Insurance Concentration,track,FIN_MAJOR,True,False,INS_TRACK,,False,business
+AIBM_MAJOR,Applied AI in Business,major,,True,True,AIBM_MAJOR,,False,business
+DS_MAJOR,Data Science,major,,True,False,DS_MAJOR,,False,arts_sciences

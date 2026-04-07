@@ -21,7 +21,19 @@ SEMESTER_COLUMN_RE = re.compile(r"^(Spring|Summer|Fall)\s+\d{4}$")
 COURSE_CODE_RE = re.compile(r"\b[A-Z]{2,7}I?\s+\d{4}H?\b")
 ALLOWED_PREREQ_TYPES = {"single", "and", "or", "choose_n", "none", "unsupported"}
 ALLOWED_REQUIREMENT_MODES = {"required", "choose_n", "credits_pool"}
+ALLOWED_COUNT_STRATEGIES = {"manual", "canonical_mapped"}
 ALLOWED_BOOLEAN_LITERALS = {"true", "false", "1", "0", "yes", "no", "y", "n"}
+ALLOWED_COLLEGE_ALIASES = {
+    "",
+    "arts_sciences",
+    "business",
+    "communication",
+    "education",
+    "engineering",
+    "health_sciences",
+    "nursing",
+}
+ALLOWED_DISPLAY_PARENT_ALIASES = {"", "BCC", "MCC"}
 PREREQ_ORPHAN_THRESHOLD = 50
 NON_HARD_NOTE_SEGMENT_PATTERNS = [
     re.compile(r"\bcross-listed with\b.*?(?:\.|$)", re.IGNORECASE),
@@ -63,6 +75,9 @@ SCHEMA_SPECS = (
             "double_count_family_id",
             "required_major",
             "is_default",
+            "college_alias",
+            "display_parent_alias",
+            "planner_parent_priority",
         ],
         "pk_cols": ["parent_bucket_id"],
         "exact_columns": True,
@@ -76,8 +91,14 @@ SCHEMA_SPECS = (
             "requirement_mode",
             "courses_required",
             "credits_required",
+            "count_strategy",
             "min_level",
             "notes",
+            "planner_tier",
+            "planner_bucket_rank",
+            "bucket_flags",
+            "dynamic_pool_tag",
+            "dynamic_pool_exclusive",
         ],
         "pk_cols": ["parent_bucket_id", "child_bucket_id"],
         "exact_columns": True,
@@ -530,6 +551,26 @@ def test_requirement_mode_values_are_valid():
     assert modes <= ALLOWED_REQUIREMENT_MODES, f"Unexpected requirement_mode values: {sorted(modes - ALLOWED_REQUIREMENT_MODES)}"
 
 
+def test_college_alias_values_are_valid():
+    parent_buckets = _loaded_data()["parent_buckets_df"]
+    aliases = set(
+        parent_buckets["college_alias"].fillna("").astype(str).str.strip().str.lower().tolist()
+    )
+    assert aliases <= ALLOWED_COLLEGE_ALIASES, (
+        f"Unexpected college_alias values: {sorted(aliases - ALLOWED_COLLEGE_ALIASES)}"
+    )
+
+
+def test_display_parent_alias_values_are_valid():
+    parent_buckets = _loaded_data()["parent_buckets_df"]
+    aliases = set(
+        parent_buckets["display_parent_alias"].fillna("").astype(str).str.strip().str.upper().tolist()
+    )
+    assert aliases <= ALLOWED_DISPLAY_PARENT_ALIASES, (
+        f"Unexpected display_parent_alias values: {sorted(aliases - ALLOWED_DISPLAY_PARENT_ALIASES)}"
+    )
+
+
 def test_courses_required_is_set_for_count_based_buckets():
     child_buckets = _loaded_data()["child_buckets_df"]
     count_based = child_buckets[
@@ -539,6 +580,33 @@ def test_courses_required_is_set_for_count_based_buckets():
     assert missing.empty, (
         "required/choose_n buckets must set courses_required: "
         f"{missing.to_dict(orient='records')}"
+    )
+
+
+def test_count_strategy_values_are_valid():
+    child_buckets = _loaded_data()["child_buckets_df"]
+    strategies = set(
+        child_buckets["count_strategy"].fillna("manual").astype(str).str.strip().str.lower().tolist()
+    )
+    assert strategies <= ALLOWED_COUNT_STRATEGIES, (
+        f"Unexpected count_strategy values: {sorted(strategies - ALLOWED_COUNT_STRATEGIES)}"
+    )
+
+
+def test_dynamic_pool_metadata_is_consistent():
+    child_buckets = _loaded_data()["child_buckets_df"]
+    pool_tags = child_buckets["dynamic_pool_tag"].fillna("").astype(str).str.strip().str.lower()
+    requirement_modes = child_buckets["requirement_mode"].fillna("").astype(str).str.strip().str.lower()
+    is_exclusive = child_buckets["dynamic_pool_exclusive"].fillna(False).astype(bool)
+
+    tagged_non_pools = child_buckets[(pool_tags != "") & (requirement_modes != "credits_pool")]
+    assert len(tagged_non_pools) == 0, (
+        "dynamic_pool_tag may only be used on credits_pool child buckets"
+    )
+
+    exclusive_without_tag = child_buckets[is_exclusive & (pool_tags == "")]
+    assert len(exclusive_without_tag) == 0, (
+        "dynamic_pool_exclusive buckets must define dynamic_pool_tag"
     )
 
 

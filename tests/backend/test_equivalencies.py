@@ -1,17 +1,28 @@
 """Tests for course equivalency system (5 relation types)."""
 
+from pathlib import Path
+
 import pytest
 import pandas as pd
 from data_loader import (
     _build_equiv_prereq_map,
     _build_cross_listed_map,
     _build_no_double_count_groups,
+    _derive_runtime_from_v2,
     _load_v2_equivalencies,
     _VALID_RELATION_TYPES,
     load_data,
 )
 from prereq_parser import prereqs_satisfied, parse_prereqs
-from allocator import allocate_courses, ensure_runtime_indexes, _expand_map_with_equivalencies
+from allocator import (
+    allocate_courses,
+    ensure_runtime_indexes,
+    _expand_map_with_equivalencies,
+)
+from eligibility import get_eligible_courses, parse_term
+
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -246,6 +257,172 @@ class TestAllocatorNDCBlocking:
         assert any("no double credit" in n for n in result["notes"])
 
 
+def test_required_bucket_remaining_omits_base_course_when_equivalent_is_completed():
+    courses_df = pd.DataFrame([
+        {"course_code": "BASE 1000", "course_name": "Base Course", "credits": 3, "level": 1000},
+        {"course_code": "ALT 1000", "course_name": "Equivalent Alternate", "credits": 3, "level": 1000},
+    ])
+    buckets_df = pd.DataFrame([
+        {
+            "track_id": "TEST_MAJOR",
+            "bucket_id": "CORE",
+            "bucket_label": "Core",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "TEST_MAJOR",
+            "parent_bucket_priority": 1,
+        },
+    ])
+    course_map_df = pd.DataFrame([
+        {"track_id": "TEST_MAJOR", "bucket_id": "CORE", "course_code": "BASE 1000"},
+    ])
+    equivalencies_df = pd.DataFrame([
+        {
+            "equiv_group_id": "EQ_1",
+            "course_code": "BASE 1000",
+            "relation_type": "equivalent",
+            "scope_program_id": "TEST_MAJOR",
+            "label": "",
+        },
+        {
+            "equiv_group_id": "EQ_1",
+            "course_code": "ALT 1000",
+            "relation_type": "equivalent",
+            "scope_program_id": "TEST_MAJOR",
+            "label": "",
+        },
+    ])
+    data = {
+        "courses_df": courses_df,
+        "equivalencies_df": equivalencies_df,
+        "buckets_df": buckets_df,
+        "course_bucket_map_df": course_map_df,
+        "v2_double_count_policy_df": pd.DataFrame(),
+    }
+    data = ensure_runtime_indexes(data, force=True)
+
+    result = allocate_courses(
+        completed=["ALT 1000"],
+        in_progress=[],
+        buckets_df=buckets_df,
+        course_bucket_map_df=course_map_df,
+        courses_df=courses_df,
+        equivalencies_df=equivalencies_df,
+        track_id="TEST_MAJOR",
+        runtime_indexes=data.get("runtime_indexes"),
+    )
+
+    assert result["applied_by_bucket"]["CORE"]["completed_applied"] == ["ALT 1000"]
+    assert result["remaining"]["CORE"]["remaining_courses"] == []
+
+
+def test_eligibility_skips_scoped_equivalent_base_course_when_alias_is_completed():
+    courses_df = pd.DataFrame([
+        {
+            "course_code": "BASE 1000",
+            "course_name": "Base Course",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "ALT 1000",
+            "course_name": "Equivalent Alternate",
+            "credits": 3,
+            "level": 1000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": True,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ])
+    buckets_df = pd.DataFrame([
+        {
+            "track_id": "TEST_MAJOR",
+            "bucket_id": "CORE",
+            "bucket_label": "Core",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "TEST_MAJOR",
+            "parent_bucket_priority": 1,
+        },
+    ])
+    course_map_df = pd.DataFrame([
+        {"track_id": "TEST_MAJOR", "bucket_id": "CORE", "course_code": "BASE 1000"},
+    ])
+    equivalencies_df = pd.DataFrame([
+        {
+            "equiv_group_id": "EQ_1",
+            "course_code": "BASE 1000",
+            "relation_type": "equivalent",
+            "scope_program_id": "TEST_MAJOR",
+            "label": "",
+        },
+        {
+            "equiv_group_id": "EQ_1",
+            "course_code": "ALT 1000",
+            "relation_type": "equivalent",
+            "scope_program_id": "TEST_MAJOR",
+            "label": "",
+        },
+    ])
+    data = {
+        "courses_df": courses_df,
+        "equivalencies_df": equivalencies_df,
+        "buckets_df": buckets_df,
+        "course_bucket_map_df": course_map_df,
+        "v2_double_count_policy_df": pd.DataFrame(),
+    }
+    data = ensure_runtime_indexes(data, force=True)
+    runtime_track = data["runtime_indexes"]["tracks"]["TEST_MAJOR"]
+
+    eligible = get_eligible_courses(
+        courses_df,
+        completed=["ALT 1000"],
+        in_progress=[],
+        target_term=parse_term("Fall 2026"),
+        prereq_map={},
+        allocator_remaining={
+            "CORE": {
+                "slots_remaining": 1,
+                "remaining_courses": ["BASE 1000"],
+            },
+        },
+        course_bucket_map_df=course_map_df,
+        buckets_df=buckets_df,
+        equivalencies_df=equivalencies_df,
+        track_id="TEST_MAJOR",
+        runtime_indexes=data.get("runtime_indexes"),
+        selected_program_ids=["TEST_MAJOR"],
+        equiv_map={},
+        cross_listed_map={},
+    )
+
+    assert runtime_track["equivalent_course_map"]["BASE 1000"] == {"ALT 1000"}
+    assert all(course["course_code"] != "BASE 1000" for course in eligible)
+
+
 # ── Schema Tests (against real data) ─────────────────────────────────────────
 
 
@@ -291,8 +468,168 @@ class TestEquivalencyDataIntegrity:
             import warnings
             warnings.warn(f"{len(orphaned)} equivalency course(s) not in catalog: {sorted(orphaned)}")
 
+    def test_scoped_equivalency_program_ids_reference_valid_programs(self):
+        eq = self.data["equivalencies_df"]
+        if len(eq) == 0 or "scope_program_id" not in eq.columns:
+            pytest.skip("No scoped equivalency data yet")
+        scoped = eq["scope_program_id"].fillna("").astype(str).str.strip().str.upper()
+        scoped = {program_id for program_id in scoped.tolist() if program_id}
+        if not scoped:
+            pytest.skip("No scoped equivalencies configured")
+
+        valid_program_ids = {
+            str(program_id).strip().upper()
+            for program_id in self.data["v2_programs_df"]["program_id"].tolist()
+            if str(program_id).strip()
+        }
+        assert scoped <= valid_program_ids, (
+            f"Scoped equivalencies reference unknown programs: {sorted(scoped - valid_program_ids)}"
+        )
+
+    def test_ds_scoped_equivalencies_expand_ds_runtime_buckets_only(self):
+        eq = self.data["equivalencies_df"]
+        runtime_map = self.data["course_bucket_map_df"]
+        ds_map = runtime_map[runtime_map["track_id"] == "DS_MAJOR"].copy()
+        expanded_ds = _expand_map_with_equivalencies(ds_map, eq, "DS_MAJOR")
+        ds_math_codes = set(
+            expanded_ds[expanded_ds["bucket_id"] == "DS-REQ-MATH"]["course_code"].tolist()
+        )
+
+        assert {"MATH 1451", "MATH 2100", "COSC 3570", "MATH 4740"} <= ds_math_codes
+
+    def test_ds_scoped_equivalencies_expand_when_merged_track_uses_source_program_id(self):
+        eq = self.data["equivalencies_df"]
+        runtime_map = self.data["course_bucket_map_df"]
+        ds_map = runtime_map[runtime_map["track_id"] == "DS_MAJOR"].copy()
+        merged_like_map = ds_map.copy()
+        merged_like_map["source_program_id"] = "DS_MAJOR"
+        merged_like_map["track_id"] = "PHASE5_PLAN_V2"
+
+        expanded_ds = _expand_map_with_equivalencies(merged_like_map, eq, "PHASE5_PLAN_V2")
+        ds_math_codes = set(
+            expanded_ds[expanded_ds["bucket_id"] == "DS-REQ-MATH"]["course_code"].tolist()
+        )
+
+        assert {"MATH 1451", "MATH 2100", "COSC 3570", "MATH 4740"} <= ds_math_codes
+
+    def test_ds_scoped_equivalencies_do_not_enter_global_prereq_equiv_map(self):
+        equiv_prereq_map = self.data["equiv_prereq_map"]
+        assert "MATH 1451" not in equiv_prereq_map
+        assert "MATH 2100" not in equiv_prereq_map
+        assert "COSC 3570" not in equiv_prereq_map
+        assert "MATH 4740" not in equiv_prereq_map
+
+    def test_ds_no_double_count_groups_are_present(self):
+        ndc_groups = self.data["no_double_count_groups"]
+        assert {"COSC 3570", "MATH 3570"} in ndc_groups
+        assert {"MATH 4720", "MATH 4740"} in ndc_groups
+
+    def test_ds_equivalent_completion_hides_math_2350_from_remaining_and_eligibility(self):
+        data = ensure_runtime_indexes(self.data, force=True)
+        completed = ["MATH 1450", "MATH 2100"]
+
+        alloc = allocate_courses(
+            completed=completed,
+            in_progress=[],
+            buckets_df=data["buckets_df"],
+            course_bucket_map_df=data["course_bucket_map_df"],
+            courses_df=data["courses_df"],
+            equivalencies_df=data["equivalencies_df"],
+            track_id="DS_MAJOR",
+            double_count_policy_df=data.get("v2_double_count_policy_df"),
+            runtime_indexes=data.get("runtime_indexes"),
+        )
+
+        ds_remaining = alloc["remaining"]["DS-REQ-MATH"]["remaining_courses"]
+        assert "MATH 2350" not in ds_remaining
+
+        eligible = get_eligible_courses(
+            data["courses_df"],
+            completed,
+            [],
+            parse_term("Fall 2026"),
+            data["prereq_map"],
+            alloc["remaining"],
+            data["course_bucket_map_df"],
+            data["buckets_df"],
+            data["equivalencies_df"],
+            track_id="DS_MAJOR",
+            runtime_indexes=data.get("runtime_indexes"),
+            reverse_map={},
+            selected_program_ids=["DS_MAJOR"],
+            equiv_map=data.get("equiv_prereq_map"),
+            cross_listed_map=data.get("cross_listed_map"),
+        )
+
+        assert all(course["course_code"] != "MATH 2350" for course in eligible)
+
 
 # ── Backward Compatibility Tests ──────────────────────────────────────────────
+
+
+class TestCanonicalMappedCountStrategy:
+    def test_runtime_needed_count_collapses_equivalency_aliases(self):
+        v2_buckets_df = pd.DataFrame([
+            {
+                "program_id": "BCC_CORE",
+                "bucket_id": "BCC_CORE",
+                "bucket_label": "Business Core",
+                "priority": 1,
+                "track_required": "",
+                "double_count_family_id": "BCC_CORE",
+            }
+        ])
+        v2_sub_buckets_df = pd.DataFrame([
+            {
+                "program_id": "BCC_CORE",
+                "bucket_id": "BCC_CORE",
+                "sub_bucket_id": "BCC_REQUIRED",
+                "sub_bucket_label": "Business Core Required",
+                "courses_required": 99,
+                "credits_required": None,
+                "min_level": None,
+                "role": "core",
+                "priority": 1,
+                "requirement_mode": "required",
+                "count_strategy": "canonical_mapped",
+            }
+        ])
+        v2_courses_all_buckets_df = pd.DataFrame([
+            {"program_id": "BCC_CORE", "sub_bucket_id": "BCC_REQUIRED", "course_code": "LEAD 3000", "notes": ""},
+            {"program_id": "BCC_CORE", "sub_bucket_id": "BCC_REQUIRED", "course_code": "ECON 1103", "notes": ""},
+            {"program_id": "BCC_CORE", "sub_bucket_id": "BCC_REQUIRED", "course_code": "ECON 1103H", "notes": ""},
+            {"program_id": "BCC_CORE", "sub_bucket_id": "BCC_REQUIRED", "course_code": "MATH 1400", "notes": ""},
+            {"program_id": "BCC_CORE", "sub_bucket_id": "BCC_REQUIRED", "course_code": "MATH 1450", "notes": ""},
+        ])
+        equivalencies_df = pd.DataFrame([
+            {"equiv_group_id": "HON_1", "course_code": "ECON 1103", "relation_type": "honors", "scope_program_id": "", "label": ""},
+            {"equiv_group_id": "HON_1", "course_code": "ECON 1103H", "relation_type": "honors", "scope_program_id": "", "label": ""},
+            {"equiv_group_id": "EQ_1", "course_code": "MATH 1400", "relation_type": "equivalent", "scope_program_id": "", "label": ""},
+            {"equiv_group_id": "EQ_1", "course_code": "MATH 1450", "relation_type": "equivalent", "scope_program_id": "", "label": ""},
+        ])
+
+        runtime_buckets, _ = _derive_runtime_from_v2(
+            v2_buckets_df,
+            v2_sub_buckets_df,
+            v2_courses_all_buckets_df,
+            equivalencies_df=equivalencies_df,
+        )
+
+        row = runtime_buckets.iloc[0]
+        assert int(row["configured_needed_count"]) == 99
+        assert str(row["count_strategy"]).strip().lower() == "canonical_mapped"
+        assert int(row["needed_count"]) == 3
+
+    def test_live_bcc_required_uses_canonical_mapped_strategy(self):
+        data = load_data(str(DATA_DIR))
+        buckets = data["buckets_df"]
+        row = buckets[
+            (buckets["track_id"].astype(str).str.strip().str.upper() == "BCC_CORE")
+            & (buckets["bucket_id"].astype(str).str.strip().str.upper() == "BCC_REQUIRED")
+        ].iloc[0]
+
+        assert str(row["count_strategy"]).strip().lower() == "canonical_mapped"
+        assert int(row["needed_count"]) == 18
 
 
 class TestBackwardCompatibility:

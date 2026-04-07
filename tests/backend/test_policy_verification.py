@@ -6,6 +6,7 @@ import pytest
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+from backend import server
 from backend.server import app
 
 
@@ -58,6 +59,15 @@ class TestCOBA06MaxThreeBusinessMajors:
         assert code == 200
         assert data.get("mode") != "error"
 
+    def test_03b_three_business_majors_plus_ds_allowed(self, client):
+        """A non-business DS major should not count toward the 3-business-major cap."""
+        code, data = _recommend(
+            client,
+            ["DS_MAJOR", "FIN_MAJOR", "MARK_MAJOR", "ACCO_MAJOR"],
+        )
+        assert code == 200, f"3 business majors plus DS should be allowed, got {code}: {data}"
+        assert data.get("mode") != "error"
+
 
 # ─── COBA_05: CoBA students cannot declare a business minor ───────
 
@@ -91,6 +101,72 @@ class TestCOBA05BusinessMinorWarning:
         warnings = data.get("program_warnings", [])
         biz_minor_warn = [w for w in warnings if "business minor" in w.lower()]
         assert not biz_minor_warn, f"Unexpected business-minor warning: {biz_minor_warn}"
+
+    def test_06b_ds_major_with_business_minor_does_not_warn(self, client):
+        """DS is non-business, so a business minor warning should not appear."""
+        code, data = _recommend(client, ["DS_MAJOR"], minors=["MARK_MINOR"])
+        assert code == 200
+        warnings = data.get("program_warnings", [])
+        biz_minor_warn = [w for w in warnings if "business minor" in w.lower()]
+        assert not biz_minor_warn, f"Unexpected business-minor warning for DS major: {biz_minor_warn}"
+
+
+class TestDataScienceMajorSupport:
+    def test_programs_endpoint_lists_ds_major(self, client):
+        response = client.get("/programs")
+        assert response.status_code == 200
+        majors = response.get_json().get("majors", [])
+        ds = next((major for major in majors if major.get("major_id") == "DS_MAJOR"), None)
+        assert ds is not None, f"DS_MAJOR missing from /programs majors payload: {majors}"
+        assert ds.get("active") is True
+
+    def test_ds_major_recommendation_smoke(self, client):
+        code, data = _recommend(client, ["DS_MAJOR"], num_courses=4)
+        assert code == 200, f"Expected DS major recommendation request to succeed, got {code}: {data}"
+        assert data.get("mode") != "error"
+        assert data.get("selection_context", {}).get("selected_program_ids") == ["DS_MAJOR"]
+
+    def test_ds_major_runtime_excludes_business_core(self, client):
+        ds_data = server._build_single_major_data_v2(server._data, "DS_MAJOR", None)
+        parent_bucket_ids = set(
+            ds_data["buckets_df"]["parent_bucket_id"].fillna("").astype(str).str.strip().str.upper().tolist()
+        )
+        assert "BCC_CORE" not in parent_bucket_ids
+
+    def test_insy_4052_does_not_satisfy_bcc_analytics(self, client):
+        code, data = _recommend(
+            client,
+            ["DS_MAJOR", "INSY_MAJOR"],
+            completed="BUAD 1001, BUAD 1560, INSY 3001, INSY 4052",
+            semester="Fall 2027",
+            num_courses=12,
+        )
+        assert code == 200, f"Expected DS+INSY recommendation request to succeed, got {code}: {data}"
+
+        analytics = data["current_progress"]["BCC::BCC_ANALYTICS"]
+        assert analytics["satisfied"] is False
+        assert analytics["completed_applied"] == []
+
+        swaps = data["semesters"][0].get("eligible_swaps", [])
+        swap_codes = [row["course_code"] for row in swaps]
+        assert "BUAN 3065" in swap_codes, f"Expected BUAN 3065 in eligible swaps, got: {swap_codes}"
+
+    def test_business_elective_pool_excludes_courses_with_other_degree_buckets(self, client):
+        code, data = _recommend(
+            client,
+            ["DS_MAJOR", "INSY_MAJOR"],
+            completed="BUAD 1001, BUAD 1560, INSY 3001, MARK 3001, OSCM 3001, FINA 3001",
+            semester="Fall 2027",
+            num_courses=12,
+        )
+        assert code == 200, f"Expected DS+INSY recommendation request to succeed, got {code}: {data}"
+
+        business_electives = data["current_progress"]["INSY_MAJOR::INSY-ELEC-4"]
+        counted = set(business_electives["completed_applied"])
+        assert counted == set(), f"Business elective pool should exclude degree-context courses, got: {counted}"
+
+        bcc_required = set(data["current_progress"]["BCC::BCC_REQUIRED"]["completed_applied"])
+        assert {"MARK 3001", "OSCM 3001", "FINA 3001"}.issubset(bcc_required)
 
 
 # ─── CRED: Credit-load warnings ──────────────────────────────────

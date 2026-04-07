@@ -760,6 +760,7 @@ def _normalize_program_catalog(tracks_df):
                 "applies_to_all",
                 "required_major_id",
                 "is_default",
+                "college_alias",
             ]
         )
 
@@ -789,11 +790,14 @@ def _normalize_program_catalog(tracks_df):
         df["required_major_id"] = ""
     if "is_default" not in df.columns:
         df["is_default"] = False
+    if "college_alias" not in df.columns:
+        df["college_alias"] = ""
 
     df["track_id"] = df["track_id"].astype(str).str.strip().str.upper()
     df["track_label"] = df["track_label"].fillna("").astype(str).str.strip()
     df["parent_major_id"] = df["parent_major_id"].fillna("").astype(str).str.strip().str.upper()
     df["required_major_id"] = df["required_major_id"].fillna("").astype(str).str.strip().str.upper()
+    df["college_alias"] = df["college_alias"].fillna("").astype(str).str.strip().str.lower()
     df["active"] = df["active"].apply(lambda v: bool(v) if pd.notna(v) else False)
     df["requires_primary_major"] = df["requires_primary_major"].apply(lambda v: bool(v) if pd.notna(v) else False)
     df["applies_to_all"] = df["applies_to_all"].apply(lambda v: bool(v) if pd.notna(v) else False)
@@ -839,6 +843,7 @@ def _normalize_program_catalog(tracks_df):
             "applies_to_all",
             "required_major_id",
             "is_default",
+            "college_alias",
         ]
     ]
 
@@ -881,6 +886,7 @@ def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
                     "is_default": bool(row.get("is_default", False))
                     if pd.notna(row.get("is_default", False))
                     else False,
+                    "college_alias": str(row.get("college_alias", "") or "").strip().lower(),
                 }
             )
 
@@ -896,6 +902,7 @@ def _normalize_program_catalog_v2(data: dict) -> pd.DataFrame:
                 "applies_to_all",
                 "required_major_id",
                 "is_default",
+                "college_alias",
             ]
         )
     return pd.DataFrame(rows)
@@ -957,20 +964,67 @@ def _track_alias_map(catalog_df: pd.DataFrame) -> dict[str, str]:
     return alias_map
 
 
-def _universal_program_ids(data: dict) -> set[str]:
+def _selected_program_college_aliases(
+    data: dict,
+    selected_program_ids: list[str] | None = None,
+) -> set[str]:
     programs = data.get("v2_programs_df")
     if programs is None or len(programs) == 0:
         return set()
     p = programs.copy()
     p["program_id"] = p["program_id"].astype(str).str.strip().str.upper()
+    p["college_alias"] = (
+        p.get("college_alias", pd.Series(index=p.index, dtype=str))
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    if not selected_program_ids:
+        return {
+            alias
+            for alias in p["college_alias"].tolist()
+            if alias
+        }
+
+    selected_set = {
+        str(program_id or "").strip().upper()
+        for program_id in selected_program_ids
+        if str(program_id or "").strip()
+    }
+    return {
+        alias
+        for alias in p[p["program_id"].isin(selected_set)]["college_alias"].tolist()
+        if alias
+    }
+
+
+def _universal_program_ids(data: dict, selected_program_ids: list[str] | None = None) -> set[str]:
+    programs = data.get("v2_programs_df")
+    if programs is None or len(programs) == 0:
+        return set()
+    p = programs.copy()
+    p["program_id"] = p["program_id"].astype(str).str.strip().str.upper()
+    p["college_alias"] = (
+        p.get("college_alias", pd.Series(index=p.index, dtype=str))
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
     p["active"] = p.get("active", True).apply(lambda v: bool(v) if pd.notna(v) else False)
     if "applies_to_all" in p.columns:
         p["applies_to_all"] = p["applies_to_all"].apply(lambda v: bool(v) if pd.notna(v) else False)
     else:
         p["applies_to_all"] = False
-    return set(
-        p[(p["applies_to_all"] == True) & (p["active"] == True)]["program_id"].tolist()
-    )
+    universals = p[(p["applies_to_all"] == True) & (p["active"] == True)].copy()
+    selected_college_aliases = _selected_program_college_aliases(data, selected_program_ids)
+    if selected_program_ids is not None:
+        universals = universals[
+            (universals["college_alias"] == "")
+            | (universals["college_alias"].isin(selected_college_aliases))
+        ].copy()
+    return set(universals["program_id"].tolist())
 
 
 def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: str | None) -> dict:
@@ -997,7 +1051,7 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
     v2_buckets = data.get("v2_buckets_df", pd.DataFrame()).copy()
     v2_sub = data.get("v2_sub_buckets_df", pd.DataFrame()).copy()
     v2_map = data.get("v2_courses_all_buckets_df", data.get("v2_course_sub_buckets_df", pd.DataFrame())).copy()
-    universal_program_ids = _universal_program_ids(data)
+    universal_program_ids = _universal_program_ids(data, [major_id])
     program_scope = {major_id} | universal_program_ids
 
     if len(v2_buckets) == 0 or len(v2_sub) == 0:
@@ -1070,6 +1124,8 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
         for _, row in buckets.iterrows()
     }
     bucket_double_count_family = {}
+    bucket_display_parent_alias = {}
+    bucket_parent_priority = {}
     for _, row in buckets.iterrows():
         key = (
             str(row.get("program_id", "")).strip().upper(),
@@ -1080,6 +1136,13 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
         if not family:
             family = str(row.get("bucket_id", "") or "").strip().upper()
         bucket_double_count_family[key] = family
+        bucket_display_parent_alias[key] = str(
+            row.get("display_parent_alias", "") or ""
+        ).strip().upper()
+        bucket_parent_priority[key] = pd.to_numeric(
+            row.get("planner_parent_priority"),
+            errors="coerce",
+        )
 
     runtime_buckets = pd.DataFrame(
         {
@@ -1088,11 +1151,13 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
             "bucket_label": sub.get("sub_bucket_label", sub["sub_bucket_id"]),
             "priority": sub.get("priority", 99),
             "needed_count": sub.get("courses_required"),
+            "configured_needed_count": sub.get("courses_required"),
             "needed_credits": sub.get("credits_required"),
             "min_level": sub.get("min_level"),
             "allow_double_count": False,
             "role": sub.get("role", "").fillna(""),
             "requirement_mode": requirement_mode,
+            "count_strategy": sub.get("count_strategy", "manual").fillna("manual"),
             "parent_bucket_id": sub["bucket_id"],
             "parent_bucket_label": sub.apply(
                 lambda r: bucket_labels.get(
@@ -1124,6 +1189,31 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
                 ),
                 axis=1,
             ),
+            "parent_bucket_priority": sub.apply(
+                lambda r: bucket_parent_priority.get(
+                    (
+                        str(r.get("program_id", "")).strip().upper(),
+                        str(r.get("bucket_id", "")).strip(),
+                    ),
+                    None,
+                ),
+                axis=1,
+            ),
+            "display_parent_alias": sub.apply(
+                lambda r: bucket_display_parent_alias.get(
+                    (
+                        str(r.get("program_id", "")).strip().upper(),
+                        str(r.get("bucket_id", "")).strip(),
+                    ),
+                    "",
+                ),
+                axis=1,
+            ),
+            "planner_tier": sub.get("planner_tier"),
+            "planner_bucket_rank": sub.get("planner_bucket_rank"),
+            "bucket_flags": sub.get("bucket_flags", "").fillna("").astype(str).str.strip().str.lower(),
+            "dynamic_pool_tag": sub.get("dynamic_pool_tag", "").fillna("").astype(str).str.strip().str.lower(),
+            "dynamic_pool_exclusive": sub.get("dynamic_pool_exclusive", False),
             "source_program_id": sub["program_id"],
             "source_parent_bucket_id": sub["bucket_id"],
         }
@@ -1217,31 +1307,18 @@ def _build_single_major_data_v2(data: dict, major_id: str, selected_track_id: st
             }
         )
 
+    runtime_map, _ = _filter_contextual_business_elective_pool_mappings(
+        runtime_buckets,
+        runtime_map,
+        data.get("courses_df", pd.DataFrame()),
+    )
+
     merged = dict(data)
     merged["buckets_df"] = runtime_buckets
     merged["course_bucket_map_df"] = runtime_map
     merged = ensure_runtime_indexes(merged, force=True)
     _program_data_cache.set(cache_key, merged)
     return merged
-
-
-_CORE_PARENT_ALIAS = {
-    "BCC": "BCC",
-    "MCC": "MCC",
-    "BCC_CORE": "BCC",
-    "MCC_CORE": "MCC",
-    "MCC_FOUNDATION": "MCC",
-    "MCC_CULM": "MCC",
-    "MCC_ESSV2": "MCC",
-    "MCC_WRIT": "MCC",
-    "MCC_DISC": "MCC",
-    "MCC_DISC_CMI": "MCC",
-    "MCC_DISC_BNJ": "MCC",
-    "MCC_DISC_CB": "MCC",
-    "MCC_DISC_EOH": "MCC",
-    "MCC_DISC_IC": "MCC",
-}
-
 
 def _apply_discovery_theme_filter(
     buckets: pd.DataFrame,
@@ -1272,6 +1349,88 @@ def _apply_discovery_theme_filter(
     return buckets, course_map
 
 
+def _local_runtime_bucket_id(bucket_id: str) -> str:
+    raw = str(bucket_id or "").strip()
+    if "::" in raw:
+        return raw.split("::", 1)[1]
+    return raw
+
+
+def _filter_contextual_business_elective_pool_mappings(
+    buckets: pd.DataFrame,
+    course_map: pd.DataFrame,
+    courses_df: pd.DataFrame,
+) -> tuple[pd.DataFrame, int]:
+    """
+    Restrict business-elective pools to extra business courses only.
+
+    If a business-tagged course already fills any other bucket in the current
+    effective plan context, it should not also count inside a business
+    elective credits pool.
+    """
+    if len(buckets) == 0 or len(course_map) == 0 or len(courses_df) == 0:
+        return course_map, 0
+    if "bucket_id" not in course_map.columns or "course_code" not in course_map.columns:
+        return course_map, 0
+    if "course_code" not in courses_df.columns or "elective_pool_tag" not in courses_df.columns:
+        return course_map, 0
+
+    bucket_meta = buckets.copy()
+    bucket_meta["bucket_id"] = bucket_meta.get("bucket_id", pd.Series(index=bucket_meta.index, dtype=str)).fillna("").astype(str).str.strip()
+    bucket_meta["requirement_mode"] = (
+        bucket_meta.get("requirement_mode", pd.Series(index=bucket_meta.index, dtype=str))
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    bucket_meta["dynamic_pool_tag"] = (
+        bucket_meta.get("dynamic_pool_tag", pd.Series(index=bucket_meta.index, dtype=str))
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    bucket_meta["dynamic_pool_exclusive"] = (
+        bucket_meta.get("dynamic_pool_exclusive", pd.Series(index=bucket_meta.index, dtype=bool))
+        .fillna(False)
+        .astype(bool)
+    )
+    bucket_meta = bucket_meta[
+        (bucket_meta["bucket_id"] != "")
+        & (bucket_meta["requirement_mode"] == "credits_pool")
+        & (bucket_meta["dynamic_pool_tag"] != "")
+        & (bucket_meta["dynamic_pool_exclusive"] == True)
+    ][["bucket_id", "dynamic_pool_tag"]].drop_duplicates()
+    if len(bucket_meta) == 0:
+        return course_map, 0
+
+    bucket_tag_map = dict(zip(bucket_meta["bucket_id"], bucket_meta["dynamic_pool_tag"]))
+    course_pool_tags = dict(zip(
+        courses_df["course_code"].fillna("").astype(str).str.strip(),
+        courses_df["elective_pool_tag"].fillna("").astype(str).str.strip().str.lower(),
+    ))
+
+    out = course_map.copy()
+    bucket_ids = out["bucket_id"].fillna("").astype(str).str.strip()
+    course_codes = out["course_code"].fillna("").astype(str).str.strip()
+    pool_tags_for_rows = bucket_ids.map(bucket_tag_map).fillna("")
+    course_tags_for_rows = course_codes.map(course_pool_tags).fillna("")
+    is_exclusive_pool_row = (pool_tags_for_rows != "") & (pool_tags_for_rows == course_tags_for_rows)
+    if not is_exclusive_pool_row.any():
+        return out, 0
+
+    blocked_courses = set(course_codes[is_exclusive_pool_row]) & set(course_codes[~is_exclusive_pool_row])
+    if not blocked_courses:
+        return out, 0
+
+    drop_mask = is_exclusive_pool_row & course_codes.isin(blocked_courses)
+    removed = int(drop_mask.sum())
+    if removed == 0:
+        return out, 0
+    return out.loc[~drop_mask].copy(), removed
+
+
 def _build_declared_plan_data_v2(
     data: dict,
     declared_majors: list[str],
@@ -1296,7 +1455,8 @@ def _build_declared_plan_data_v2(
         return cached
 
     label_map = {str(r["track_id"]): str(r["track_label"] or r["track_id"]) for _, r in catalog_df.iterrows()}
-    universal_programs = _universal_program_ids(data)
+    selected_program_scope = list(declared_majors) + list(selected_track_ids) + list(declared_minors)
+    universal_programs = _universal_program_ids(data, selected_program_scope)
 
     all_buckets = []
     all_maps = []
@@ -1317,8 +1477,12 @@ def _build_declared_plan_data_v2(
             "source_parent_bucket_id",
             buckets.get("parent_bucket_id", ""),
         ).fillna("").astype(str).str.strip().str.upper()
-        source_parent_display = buckets["source_parent_bucket_id"].map(_CORE_PARENT_ALIAS).fillna(
-            buckets["source_parent_bucket_id"]
+        source_parent_display = (
+            buckets.get("display_parent_alias", pd.Series(index=buckets.index, dtype=str))
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
         )
         source_owner_id = source_parent_display.where(
             source_parent_display != "",
@@ -1354,7 +1518,7 @@ def _build_declared_plan_data_v2(
         course_map["source_program_id"] = course_map.get("source_program_id", program_id).fillna(program_id).astype(str).str.strip().str.upper()
         course_map["source_bucket_id"] = course_map.get("source_bucket_id", course_map["bucket_id"]).fillna("").astype(str)
         parent_lookup = buckets[
-            ["source_program_id", "source_bucket_id", "source_parent_bucket_id"]
+            ["source_program_id", "source_bucket_id", "source_parent_bucket_id", "display_parent_alias"]
         ].drop_duplicates()
         course_map = course_map.merge(
             parent_lookup,
@@ -1362,8 +1526,12 @@ def _build_declared_plan_data_v2(
             how="left",
         )
         course_map["source_parent_bucket_id"] = course_map["source_parent_bucket_id"].fillna("").astype(str).str.upper()
-        source_parent_map_display = course_map["source_parent_bucket_id"].map(_CORE_PARENT_ALIAS).fillna(
-            course_map["source_parent_bucket_id"]
+        source_parent_map_display = (
+            course_map.get("display_parent_alias", pd.Series(index=course_map.index, dtype=str))
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
         )
         source_owner_map_id = source_parent_map_display.where(
             source_parent_map_display != "",
@@ -1415,6 +1583,11 @@ def _build_declared_plan_data_v2(
         )
     else:
         merged["course_bucket_map_df"] = pd.DataFrame(columns=data["course_bucket_map_df"].columns)
+    merged["course_bucket_map_df"], _ = _filter_contextual_business_elective_pool_mappings(
+        merged["buckets_df"],
+        merged["course_bucket_map_df"],
+        data.get("courses_df", pd.DataFrame()),
+    )
     merged = ensure_runtime_indexes(merged, force=True)
     _program_data_cache.set(cache_key, merged)
     return merged
@@ -1494,6 +1667,7 @@ def _restriction_program_ids(
 ) -> list[str]:
     if not selected_program_ids:
         return []
+    college_alias_marker_prefix = "__COLLEGE__:"
     by_id = {
         str(row["track_id"]).strip().upper(): row
         for _, row in catalog_df.iterrows()
@@ -1509,15 +1683,30 @@ def _restriction_program_ids(
         seen.add(pid)
         ordered.append(pid)
 
+    def _append_college_alias(alias: str) -> None:
+        normalized = str(alias or "").strip().lower()
+        if not normalized:
+            return
+        _append(f"{college_alias_marker_prefix}{normalized}")
+
+    def _append_program_and_metadata(program_id: str) -> None:
+        pid = str(program_id or "").strip().upper()
+        if not pid:
+            return
+        _append(pid)
+        row = by_id.get(pid)
+        if row is not None:
+            _append_college_alias(row.get("college_alias", ""))
+
     for program_id in selected_program_ids:
-        _append(program_id)
+        _append_program_and_metadata(program_id)
         row = by_id.get(str(program_id or "").strip().upper())
         if row is None:
             continue
         parent_major_id = str(row.get("parent_major_id", "") or "").strip().upper()
         required_major_id = _program_required_major_id(row)
-        _append(parent_major_id)
-        _append(required_major_id)
+        _append_program_and_metadata(parent_major_id)
+        _append_program_and_metadata(required_major_id)
 
     return ordered
 
@@ -1699,6 +1888,18 @@ def _resolve_program_selection(body, data: dict):
         return None, (_build_unknown_major_error(declared_majors[0]), 400)
 
     warnings = []
+    business_major_ids = set(
+        selectable_catalog_df[
+            (selectable_catalog_df["kind"] == "major")
+            & (selectable_catalog_df["college_alias"] == "business")
+        ]["track_id"].astype(str).str.strip().str.upper().tolist()
+    )
+    business_minor_ids = set(
+        selectable_catalog_df[
+            (selectable_catalog_df["kind"] == "minor")
+            & (selectable_catalog_df["college_alias"] == "business")
+        ]["track_id"].astype(str).str.strip().str.upper().tolist()
+    )
     major_requires_primary = {}
     for major_id in declared_majors:
         row = selectable_catalog_df[selectable_catalog_df["track_id"] == major_id]
@@ -1755,12 +1956,7 @@ def _resolve_program_selection(body, data: dict):
         }, 400)
 
     # COBA_06: CoBA students can complete a maximum of three business majors.
-    _BUSINESS_MAJOR_IDS = {
-        "ACCO_MAJOR", "AIM_MAJOR", "BADM_MAJOR", "BECO_MAJOR", "BUAN_MAJOR",
-        "FIN_MAJOR", "HURE_MAJOR", "INBU_MAJOR", "INSY_MAJOR", "MARK_MAJOR",
-        "OSCM_MAJOR", "REAL_MAJOR",
-    }
-    biz_majors = [m for m in declared_majors if m in _BUSINESS_MAJOR_IDS]
+    biz_majors = [m for m in declared_majors if m in business_major_ids]
     if len(biz_majors) > 3:
         return None, ({
             "mode": "error",
@@ -1771,12 +1967,8 @@ def _resolve_program_selection(body, data: dict):
         }, 400)
 
     # COBA_05: CoBA students cannot declare a business minor.
-    _BUSINESS_MINOR_IDS = {
-        "BADM_MINOR", "ENTP_MINOR", "HR_MINOR", "INSY_MINOR",
-        "MARK_MINOR", "OSCM_MINOR", "PRSL_MINOR",
-    }
     if biz_majors and declared_minors:
-        biz_minors = [m for m in declared_minors if m in _BUSINESS_MINOR_IDS]
+        biz_minors = [m for m in declared_minors if m in business_minor_ids]
         if biz_minors:
             labels = ", ".join(_program_label(m) for m in biz_minors)
             warnings.append(
@@ -2488,6 +2680,7 @@ def recommend():
 
     completed_raw = _coerce_course_list(body.get("completed_courses"))
     in_progress_raw = _coerce_course_list(body.get("in_progress_courses"))
+    selected_courses_raw = _coerce_course_list(body.get("selected_courses"))
     target_semester_primary = str(
         body.get("target_semester_primary")
         or body.get("target_semester")
@@ -2532,24 +2725,38 @@ def recommend():
 
     comp_result = normalize_input(completed_raw, catalog_codes)
     ip_result = normalize_input(in_progress_raw, catalog_codes)
+    selected_result = normalize_input(selected_courses_raw, catalog_codes)
 
-    if comp_result["invalid"] or ip_result["invalid"]:
+    if comp_result["invalid"] or ip_result["invalid"] or selected_result["invalid"]:
         return jsonify({
             "mode": "error",
             "recommendations": None,
             "error": {
                 "error_code": "INVALID_INPUT",
                 "message": "Some course codes could not be recognized.",
-                "invalid_courses": comp_result["invalid"] + ip_result["invalid"],
-                "not_in_catalog": comp_result["not_in_catalog"] + ip_result["not_in_catalog"],
+                "invalid_courses": (
+                    comp_result["invalid"]
+                    + ip_result["invalid"]
+                    + selected_result["invalid"]
+                ),
+                "not_in_catalog": (
+                    comp_result["not_in_catalog"]
+                    + ip_result["not_in_catalog"]
+                    + selected_result["not_in_catalog"]
+                ),
             },
         }), 400
 
     completed = comp_result["valid"]
     in_progress = ip_result["valid"]
+    selected_courses = selected_result["valid"]
     completed_input = list(completed)
     in_progress_input = list(in_progress)
-    not_in_catalog_warn = comp_result["not_in_catalog"] + ip_result["not_in_catalog"]
+    not_in_catalog_warn = (
+        comp_result["not_in_catalog"]
+        + ip_result["not_in_catalog"]
+        + selected_result["not_in_catalog"]
+    )
     student_stage = normalize_student_stage(body.get("student_stage")) or infer_student_stage_from_courses(
         completed_input + in_progress_input,
         effective_data.get("courses_df"),
@@ -2685,6 +2892,7 @@ def recommend():
                 selected_program_ids=selection.get("restriction_program_ids"),
                 student_stage=student_stage,
                 scheduling_style=scheduling_style,
+                manual_selected_codes=selected_courses if selected_courses else None,
             )
         else:
             completed_only_standing = _credits_to_standing(
