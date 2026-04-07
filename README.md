@@ -22,7 +22,7 @@
 
 Built by a Marquette student who spent an entire Sunday trying to figure out one course. Now nobody else has to.
 
-MarqBot is a planning tool for Marquette Business students. Pick your program, add what you've taken, and get a ranked plan for what to take next. No AI, no randomness — just real degree logic.
+MarqBot is a planning tool for Marquette students. Right now it is strongest on the business catalog and also supports the Data Science major as a non-business path. Pick your program, add what you've taken, and get a ranked plan for what to take next. No AI, no randomness — just real degree logic.
 
 ## What You Get
 
@@ -32,7 +32,7 @@ MarqBot is a planning tool for Marquette Business students. Pick your program, a
 | **Eligibility check** | Instant yes/no on whether you can take a course right now |
 | **Progress tracking** | See where you stand across every requirement bucket |
 | **Multi-semester plans** | Map out more than one term at a time |
-| **Saved plans** | Snapshots stored in your browser. Compare paths, come back later, and export a print-ready PDF. |
+| **Saved plans** | Snapshots stored in your browser. Compare paths, overwrite an existing version when you mean it, come back later, and export a print-ready PDF. |
 | **Scheduling styles** | Grinder, Explorer, or Mixer - pick whether declared program work or discovery shows up first |
 
 Same inputs, same outputs. Every time.
@@ -56,7 +56,7 @@ Under the hood, MarqBot runs a deterministic recommendation engine:
 
 Your scheduling style adjusts the balance between core requirements and discovery electives. For the full breakdown, see [How MarqBot Plans Your Degree](docs/memos/algorithm.md). For engine internals, see the [Technical Reference](docs/codebase/tech_readme.md).
 
-When a required or choose-from bucket collides with a broad elective pool, MarqBot counts the narrower requirement first. If two completed courses overfill the same required slot, the extra course can still spill into an eligible elective pool.
+When a required or choose-from bucket collides with a broad elective pool, MarqBot counts the narrower requirement first. If two completed courses overfill the same required slot, the extra course can still spill into an eligible elective pool. Scoped and global `type=equivalent` groups from `data/course_equivalencies.csv` also suppress duplicate recommendations and treat equivalent aliases as satisfying the same required slot.
 
 ## What It Is Not
 
@@ -131,7 +131,7 @@ data/                     CSV course catalog (manual edits only)
   master_bucket_courses.csv Explicit course-to-bucket membership
   course_hard_prereqs.csv   Hard prerequisite graph edges
   course_soft_prereqs.csv   Warning-only and manual-review prereq metadata
-  course_equivalencies.csv  Honors, cross-list, and no-double-count relationships
+  course_equivalencies.csv  Equivalent, honors, grad, cross-list, and no-double-count relationships
   course_offerings.csv      Term availability history (retained for future offering-aware planning)
   policies.csv              Normalized academic policy registry (76 policies)
   policies_buckets.csv      Policy-to-bucket join table (177 mappings)

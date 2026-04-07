@@ -3,7 +3,7 @@
 MarqBot's checked-in catalog inputs live in `data/` as UTF-8-BOM CSVs. The planner also reads checked-in operational config from `config/`. Together, the loader and recommender build these runtime layers:
 - a course catalog overlay (`courses.csv` + split prereqs + offerings metadata)
 - a parent/child requirement graph (`parent_buckets.csv` + `child_buckets.csv` + `master_bucket_courses.csv`)
-- an equivalency overlay (`course_equivalencies.csv`) used for prereq satisfaction, dedup filtering, and no-double-credit blocking
+- an equivalency overlay (`course_equivalencies.csv`) used for prereq satisfaction, recommendation dedup filtering, required-bucket remaining collapse, and no-double-credit blocking
 - a ranking override layer (`config/ranking_overrides.json`) used for deterministic bucket-priority boosts
 
 ## Runtime Assembly
@@ -145,7 +145,7 @@ Base course catalog (5309 rows).
 
 ### `parent_buckets.csv`
 
-Top-level program envelopes (40 rows): majors, tracks, minors, and universal requirement groups.
+Top-level program envelopes (41 rows): majors, tracks, minors, and universal requirement groups.
 
 | Column | Meaning |
 |--------|---------|
@@ -158,10 +158,11 @@ Top-level program envelopes (40 rows): majors, tracks, minors, and universal req
 | `double_count_family_id` | Family grouping for double-count policy. Buckets in the same family don't double-count by default. |
 | `required_major` | Optional major that must be declared to use this program. |
 | `is_default` | If true, this is the default major selection when none is chosen. |
+| `college_alias` | Optional college classification used for program-context rules such as business-only BCC loading and non-business program support. |
 
 ### `child_buckets.csv`
 
-Individual requirement slots inside each parent (96 rows).
+Individual requirement slots inside each parent (100 rows).
 
 | Column | Meaning |
 |--------|---------|
@@ -176,7 +177,7 @@ Individual requirement slots inside each parent (96 rows).
 
 ### `master_bucket_courses.csv`
 
-Explicit course-to-child-bucket membership (1600 rows). This is the checked-in mapping that says "this course can count toward this requirement."
+Explicit course-to-child-bucket membership (1623 rows). This is the checked-in mapping that says "this course can count toward this requirement."
 
 | Column | Meaning |
 |--------|---------|
@@ -222,14 +223,14 @@ Seasonal offering history (547 rows). **Currently disabled** — all courses are
 
 ### `course_equivalencies.csv`
 
-Equivalency groups (276 rows) stored in wide format with one row per group.
+Equivalency groups (282 rows) stored in wide format with one row per group.
 
 | Column | Meaning |
 |--------|---------|
 | `id` | Group identifier. |
 | `course_1`, `course_2`, `course_3` | Member course codes for the group. |
 | `type` | Equivalency relationship: `equivalent`, `honors`, `grad`, `cross_listed`, or `no_double_count`. |
-| `parent_bucket` | Optional parent-bucket scope for bucket expansion rules. |
+| `parent_bucket` | Optional parent-bucket scope. Scoped `equivalent` rows apply only to matching program selections when deduplicating recommendations and collapsing remaining required courses. |
 | `child_bucket` | Optional child-bucket scope for bucket expansion rules. |
 
 ### `policies.csv`
@@ -347,6 +348,8 @@ Those clauses remain in `catalog_prereq_raw`, `notes`, or soft detail columns.
 
 At load time, courses tagged with `courses.elective_pool_tag = biz_elective` are added dynamically to qualifying elective-like `credits_pool` buckets. This is runtime-only supplementation; `master_bucket_courses.csv` remains the checked-in source of explicit mappings.
 
+Current runtime rule: a business-elective pool only keeps courses that do not already map to some other active bucket in the student's current plan context. If a course already fills a specific BCC, major, track, or minor bucket for that student, MarqBot does not also reuse it as a generic business elective.
+
 ## Runtime Bucket Counting
 
 - Non-elective buckets (`required`, `choose_n`) beat `credits_pool` elective pools in recommendation and eligibility views. If a course can fill both, MarqBot shows the non-elective side only.
@@ -358,6 +361,8 @@ At load time, courses tagged with `courses.elective_pool_tag = biz_elective` are
 
 Runtime behavior:
 - `equivalent`, `honors`, and `grad` groups expand prereq satisfaction and bucket mappings.
+- `equivalent` groups also suppress recommending one alias when another alias is already completed or in progress, and remove the canonical base course from required-bucket `remaining_courses` when an equivalent already satisfies that slot.
+- `equivalent` and `no_double_count` groups also prevent conflicting aliases from being recommended together in the same semester.
 - `cross_listed` expands bucket mappings without implying no-double-credit blocking.
 - `no_double_count` blocks multiple members of the same group from filling credit twice.
 

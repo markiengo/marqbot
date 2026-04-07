@@ -9,7 +9,11 @@ It loads the catalog and degree data, decides what counts toward progress, check
 ## What it does
 
 - loads CSV-backed runtime data
+- carries college-aware program metadata so business-only rules do not spill onto non-business majors
 - expands equivalencies and bucket mappings
+- suppresses scoped or global equivalent-course duplicates once one alias is already satisfied
+- prevents same-semester picks that conflict through equivalency or no-double-count groups
+- filters contextual business-elective pools so BCC- or major-bucketed courses do not get reused as generic electives
 - checks hard prereqs, standing, and machine-enforceable restrictions
 - computes current and projected bucket progress
 - ranks multi-semester recommendations
@@ -59,10 +63,10 @@ It loads the catalog and degree data, decides what counts toward progress, check
   Readiness endpoints. Return `200` only when the static frontend export is present, otherwise `503` with readiness details.
 
 - `/api/programs`
-  Program metadata and bucket labels.
+  Program metadata and bucket labels, including college-aware selection context.
 
 - `/recommend`
-  Semester recommendations.
+  Semester recommendations. Also accepts optional `selected_courses` for edited-semester reruns so the first returned term can be user-locked while projected progress is recalculated from that edited semester forward.
 
 - `/can-take`
   Checks one course.

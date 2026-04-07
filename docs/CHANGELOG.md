@@ -13,6 +13,12 @@ Format per release:
 ### User
 
 - Planner and landing pages feel snappier — reduced animation overhead without removing any visual effects.
+- Data Science is now a selectable non-business major, and business-only rules no longer spill onto that path.
+- Edited semester reruns now recompute downstream terms, keep the yellow projected-progress bars honest, and preserve manual adds when they still fit.
+- Equivalent or no-double-count aliases no longer show up together in the same semester just because they have different course codes.
+- Business electives stop claiming courses that already have a more specific BCC or degree bucket in the active plan.
+- Save Plan can now overwrite an existing saved snapshot instead of forcing endless duplicate versions.
+- Saved-plan PDF exports now print as compact per-semester tables with course, title, credits, prerequisite text, and satisfy columns.
 
 ### Technical
 
@@ -26,6 +32,31 @@ Format per release:
   - CourseCard: changed `willChange: "transform"` to `"auto"` — browser manages layer promotion on demand.
   - Modal: removed permanent `willChange` on wrapper and backdrop; `transform-gpu` class handles it during animation.
 - **Outcome**: Zero visual regressions. Eliminated continuous CPU churn when idle, reduced concurrent Motion springs, and cut compositor layer count.
+
+- **Goal**: Add the first supported non-business major without hardcoding more one-off college logic.
+- **Problem**: The selectable-program path still assumed every real major was business-scoped, which broke catalog restrictions and universal-bucket loading for a new Data Science major.
+- **Decisions**: Add `DS_MAJOR` bucket data, carry `college_alias` through program loading/runtime selection, and scope business-only rules off that metadata instead of assuming all majors are CoBA.
+- **Outcome**: Data Science now behaves like a real selectable major while business-core and business-policy logic stay attached only to business programs.
+- **Goal**: Keep edited-semester reruns truthful after swap application.
+- **Problem**: Re-running from an edited semester could rebuild the term without preserving its projected in-progress allocation, so semester bucket views lost the yellow progress segment after "Apply swaps."
+- **Decisions**: Add a `selected_courses` request path to `/recommend`, rerun from the edited semester instead of locally splicing in a stripped term, rebuild projected bucket progress from the visible plan, and preserve manual-add pins after downstream reruns.
+- **Outcome**: Edited semesters now keep the same in-progress semantics as a normal recommendation pass, including the yellow bucket-bar rendering and consistent downstream replanning.
+- **Goal**: Make equivalent-course suppression generic and data-driven.
+- **Problem**: Scoped `type=equivalent` aliases in `data/course_equivalencies.csv` could still leave the canonical course listed as remaining or recommend it again, because recommendation filtering and required-bucket remaining views were not reading the scoped equivalency layer.
+- **Decisions**: Build a per-track runtime equivalent-course map from `course_equivalencies.csv`, use it to collapse required-bucket `remaining_courses`, suppress recommending a course when any equivalent alias is already completed or in progress, and treat equivalent / no-double-count pairs as same-semester conflicts in both backend selection and the edit modal.
+- **Outcome**: Any future `type=equivalent` rows now automatically drive scalable, scope-aware deduplication without hardcoding major-specific exceptions.
+- **Goal**: Stop business-elective pools from reusing courses that already have a more specific home in the active degree plan.
+- **Problem**: Contextual business-elective pools could still count BCC-tagged or major-tagged courses as generic electives, which made progress and graduation status look too optimistic.
+- **Decisions**: Filter the synthesized `biz_elective` pool by current plan context so any course with another active bucket in that student's degree path is excluded from business-elective counting.
+- **Outcome**: Business electives now mean "other eligible business courses," not "anything tagged biz_elective even if it already fills Analytics, Ethics, Enhance, or another named bucket."
+- **Goal**: Make grinder scheduling behave like a true major-first profile instead of an efficiency-first profile.
+- **Problem**: Multi-bucket MCC/discovery courses could still rise ahead of declared-program work because grinder previously changed slot reservations more than ranking-band progression.
+- **Decisions**: Add strict ranking-band progression for grinder in `backend/scheduling_styles.py`, remap grinder tiers to keep declared-program work above late cleanup, and run style-aware ranking keys before semester selection.
+- **Outcome**: Grinder semesters now keep major and track sequences moving while flexible MCC/core cleanup gets pushed toward the end of the plan.
+- **Goal**: Make saved-plan management less annoying and saved-plan exports easier to share.
+- **Problem**: The save flow forced duplicate plans when users just wanted to replace an existing snapshot, and the print export lacked enough course context to work as a real handout.
+- **Decisions**: Add explicit overwrite-existing mode in the save modal, keep create mode separate, and render print exports as compact semester tables with `Course | Title | Credits | Prereq | Satisfy` columns sourced from the saved snapshot.
+- **Outcome**: Students can replace an old local plan on purpose and export a snapshot that is actually readable off-screen.
 
 ---
 

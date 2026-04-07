@@ -31,7 +31,7 @@ For deeper references, use the rest of `docs/codebase/`:
 
 ## System Shape
 
-MarqBot is a CSV-backed degree planner for Marquette business students.
+MarqBot is a CSV-backed degree planner for Marquette students. The current checked-in planner is still business-first, but it also supports selected non-business paths such as the Data Science major.
 
 - Frontend: Next.js app with client-heavy planner flows and static-export-friendly public pages.
 - Backend: Flask JSON API plus deterministic recommendation engine.
@@ -61,10 +61,10 @@ There is no user auth system and no database for planner state.
 |-------|--------------|
 | `/` | Marketing landing page with Marquette-branded hero, interactive product story, proof, FAQ, and final CTA |
 | `/onboarding` | Intake flow before planner launch |
-| `/planner` | Main semester planning workspace |
+| `/planner` | Main semester planning workspace, including edited-semester reruns and manual-add preservation across downstream reruns |
 | `/saved` | Saved plans library |
 | `/saved?plan=...` | Saved plan detail and comparison view |
-| `/saved?plan=...&export=pdf` | Portrait print/PDF export for a saved plan |
+| `/saved?plan=...&export=pdf` | Snapshot-based print/PDF export for a saved plan, rendered as compact per-semester tables |
 | `/courses` | Placeholder product page |
 | `/ai-advisor` | Placeholder product page |
 | `/about` | Founder story, product rationale, roadmap, and CTA surfaces |
@@ -77,8 +77,8 @@ There is no user auth system and no database for planner state.
 | About | `AboutHero.tsx`, `NowNextSection.tsx`, `AboutCTA.tsx`, `aboutContent.ts` |
 | Layout | `Navbar.tsx`, `Footer.tsx`, `PlaceholderPage.tsx` |
 | Shared UI | `Button.tsx`, `Chip.tsx`, `ContactIcon.tsx`, `Modal.tsx`, `MultiSelect.tsx`, `SingleSelect.tsx`, `AnimatedNumber.tsx` |
-| Planner | `PlannerLayout.tsx`, `RecommendationsPanel.tsx`, `SemesterModal.tsx`, `EditPlanModal.tsx`, `MajorGuideModal.tsx`, `ProfileModal.tsx`, `CourseCard.tsx` |
-| Saved | `SavedPlansLibraryPage.tsx`, `SavedPlanDetailPage.tsx`, `SavedPlanPrintView.tsx`, `SavedPlanViewModal.tsx` |
+| Planner | `PlannerLayout.tsx`, `RecommendationsPanel.tsx`, `SemesterModal.tsx`, `EditPlanModal.tsx`, `MajorGuideModal.tsx`, `ProfileModal.tsx`, `CourseCard.tsx`, `plannerManualAdds.ts`, `progressSources.ts` |
+| Saved | `SavedPlansLibraryPage.tsx`, `SavedPlanDetailPage.tsx`, `SavedPlanPrintView.tsx`, `SavedPlanViewModal.tsx`, `SavePlanModal.tsx` |
 
 ### Effects and motion runtime
 
@@ -116,10 +116,10 @@ These pieces are new enough that they matter for orientation:
 | Route | Purpose |
 |-------|---------|
 | `/api/health` and `/health` | Readiness and health checks |
-| `/api/programs` | Program inventory |
+| `/api/programs` | Program inventory plus college-aware program metadata |
 | `/api/courses` | Course catalog data |
 | `/api/program-buckets` | Requirement map for a selected program |
-| `/api/recommend` | Main ranked semester recommendation response |
+| `/api/recommend` | Main ranked semester recommendation response, plus edited-semester reruns via optional `selected_courses` |
 | `/api/can-take` | Eligibility explanation for specific courses |
 | `/api/validate-prereqs` | Prerequisite validation |
 | `/api/feedback` | Planner feedback submission |
@@ -140,12 +140,12 @@ Current checked-in CSV counts:
 | File | Rows | Notes |
 |------|------|-------|
 | `courses.csv` | 5309 | Base course catalog |
-| `parent_buckets.csv` | 40 | Program-level requirement envelopes |
-| `child_buckets.csv` | 96 | Requirement buckets inside each parent |
-| `master_bucket_courses.csv` | 1600 | Explicit course-to-child-bucket membership |
+| `parent_buckets.csv` | 41 | Program-level requirement envelopes, including college-aware program metadata |
+| `child_buckets.csv` | 100 | Requirement buckets inside each parent |
+| `master_bucket_courses.csv` | 1623 | Explicit course-to-child-bucket membership |
 | `course_hard_prereqs.csv` | 5309 | One row per course with hard prerequisites, concurrent companions, and standing gates |
 | `course_soft_prereqs.csv` | 5309 | One row per course with warning tags, raw catalog prereq text, restriction text, and notes |
-| `course_equivalencies.csv` | 276 | Honors, grad, cross-listed, equivalent, and no-double-count relationships |
+| `course_equivalencies.csv` | 282 | Honors, grad, cross-listed, equivalent, and no-double-count relationships |
 | `course_offerings.csv` | 547 | Term availability history retained for future offering-aware planning; runtime currently treats all courses as offered |
 | `policies.csv` | 76 | Normalized policy registry |
 | `policies_buckets.csv` | 177 | Policy-to-bucket joins |
@@ -179,7 +179,7 @@ Important data behavior:
 | Directory | Framework | Count | Coverage |
 |-----------|-----------|-------|----------|
 | `tests/backend/` | Pytest | 26 files | Engine behavior, API contract, policy enforcement, regression profiles, dead-end detection, schema migration, and policy scraping |
-| `frontend/tests/` + `tests/frontend/` | Vitest | 38 files | Landing/About shells, onboarding, planner modals, recommendations, saved plans, print/export views, import parsing, hooks, and utilities |
+| `frontend/tests/` + `tests/frontend/` | Vitest | 47 files | Landing/About shells, onboarding, planner modals, recommendations, saved plans, print/export views, import parsing, hooks, and utilities |
 
 The default frontend run uses `frontend/vitest.config.ts`, which includes the active `frontend/tests/` suite and the included legacy suites from `tests/frontend/`.
 
@@ -196,9 +196,12 @@ High-signal test files:
 - `frontend/tests/landingPage.dom.test.tsx` - landing structure and CTA coverage
 - `frontend/tests/aboutPage.dom.test.tsx` - About page shell and CTA coverage
 - `frontend/tests/recommendationsPanel.dom.test.tsx` - recommendation rendering and term switching
-- `frontend/tests/plannerPreferencesEdit.dom.test.tsx` - edited-semester preservation across preference reruns
+- `frontend/tests/plannerPreferencesEdit.dom.test.tsx` - edited-semester reruns, candidate-pool reuse, and downstream preservation behavior
+- `frontend/tests/plannerManualAdds.test.ts` - manual-add pin reconciliation after reruns
+- `frontend/tests/progressSources.test.ts` - projected bucket-progress rebuilding from the visible plan
+- `frontend/tests/savePlanModal.dom.test.tsx` and `frontend/tests/plannerSavePlan.dom.test.tsx` - explicit overwrite-existing save flow
 - `frontend/tests/savedPlanExport.test.ts` - saved-plan export payload fields, including prerequisite text
-- `frontend/tests/savedPlanPrintView.dom.test.ts` - portrait print-view rendering and snapshot-required fallback
+- `frontend/tests/savedPlanPrintView.dom.test.ts` - print-view rendering and snapshot-required fallback
 
 Checked-in automation:
 
