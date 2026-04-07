@@ -382,9 +382,9 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
               </div>
 
               {/* ── Snapshot summary — fills remaining height ── */}
-              <div className="flex-1 min-h-0 rounded-xl glass-card p-3 overflow-y-auto">
+              <div className="flex-1 min-h-0 rounded-xl glass-card p-3 overflow-hidden">
                 {recommendationData ? (
-                  <div className="flex flex-col gap-3 h-full">
+                  <div className="flex h-full flex-col gap-2.5">
                     <p className="section-kicker">Snapshot</p>
 
                     {/* KPI pair */}
@@ -414,16 +414,8 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
                       </div>
                     </div>
 
-                    {/* Notes (if present) */}
-                    {plan.notes && (
-                      <div className="rounded-lg border border-border-subtle/40 px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-ink-faint mb-1">Notes</p>
-                        <p className="text-[11px] text-ink-secondary leading-snug line-clamp-3">{plan.notes}</p>
-                      </div>
-                    )}
-
                     {/* Per-semester breakdown */}
-                    <div className="space-y-1.5">
+                    <div className="grid flex-1 min-h-0 auto-rows-fr grid-cols-2 gap-2">
                       {recommendationData.semesters?.map((s, i) => {
                         const count = s.recommendations?.length ?? 0;
                         const maxRecs = Number(plan.inputs.maxRecs) || 1;
@@ -433,22 +425,30 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
                             key={i}
                             type="button"
                             onClick={() => setSemesterModalIdx(i)}
-                            className="w-full group flex items-start gap-2 text-left rounded-lg px-1.5 py-1 hover:bg-white/5 transition-colors"
+                            aria-label={`Open ${s.target_semester ?? `Term ${i + 1}`} snapshot`}
+                            className="group flex min-h-0 flex-col justify-between rounded-xl border border-border-subtle/35 bg-white/[0.03] px-2.5 py-2 text-left transition-colors hover:bg-white/[0.06] hover:border-gold/25"
                           >
-                            <div className="shrink-0 w-[5.5rem]">
-                              <p className="text-[11px] text-ink-secondary truncate">{s.target_semester ?? `Term ${i + 1}`}</p>
-                              {s.standing_label && (
-                                <p className="text-[10px] text-ink-faint truncate">{s.standing_label}</p>
-                              )}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-medium text-ink-secondary truncate">
+                                  {s.target_semester ?? `Term ${i + 1}`}
+                                </p>
+                                {s.standing_label && (
+                                  <p className="mt-0.5 text-[10px] text-ink-faint truncate">{s.standing_label}</p>
+                                )}
+                              </div>
+                              <span className="shrink-0 rounded-full border border-gold/25 bg-gold/10 px-1.5 py-0.5 text-[10px] font-medium text-gold">
+                                {count}
+                              </span>
                             </div>
-                            <div className="flex-1 flex items-center gap-2 mt-1.5">
-                              <div className="flex-1 h-1 rounded-full bg-border-subtle/40 overflow-hidden">
+                            <div className="mt-2 flex items-center gap-2">
+                              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border-subtle/40">
                                 <div
-                                  className="h-full rounded-full bg-gold/40 group-hover:bg-gold/60 transition-colors"
+                                  className="h-full rounded-full bg-gold/45 group-hover:bg-gold/65 transition-colors"
                                   style={{ width: `${pct}%` }}
                                 />
                               </div>
-                              <span className="text-[11px] text-ink-faint w-4 text-right shrink-0">{count}</span>
+                              <span className="text-[10px] text-ink-faint">{pct}%</span>
                             </div>
                           </button>
                         );
