@@ -10,6 +10,56 @@ import type {
 
 const API_BASE = typeof window !== "undefined" ? "" : "http://localhost:5000";
 
+function extractMessageString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) return null;
+  return trimmed;
+}
+
+function extractErrorMessage(body: unknown): string | null {
+  const direct = extractMessageString(body);
+  if (direct) return direct;
+  if (!body || typeof body !== "object") return null;
+
+  const record = body as Record<string, unknown>;
+  const nestedError = record.error;
+
+  if (nestedError && typeof nestedError === "object") {
+    const nestedRecord = nestedError as Record<string, unknown>;
+    const nestedMessage =
+      extractMessageString(nestedRecord.message) ||
+      extractMessageString(nestedRecord.detail) ||
+      extractMessageString(nestedRecord.error);
+    if (nestedMessage) return nestedMessage;
+  }
+
+  return (
+    extractMessageString(nestedError) ||
+    extractMessageString(record.message) ||
+    extractMessageString(record.detail) ||
+    extractMessageString(record.title)
+  );
+}
+
+async function readErrorBody(res: Response): Promise<unknown> {
+  const raw = await res.text().catch(() => "");
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return trimmed;
+  }
+}
+
+async function throwHttpError(res: Response, fallback: string): Promise<never> {
+  const body = await readErrorBody(res);
+  const message = extractErrorMessage(body) || `${fallback}: ${res.status}`;
+  throw new Error(message);
+}
+
 
 export async function loadCourses(): Promise<Course[]> {
   const res = await fetch(`${API_BASE}/api/courses`, { cache: "no-store" });
@@ -72,10 +122,7 @@ export async function postRecommend(
     body: JSON.stringify(payload),
     signal: options?.signal,
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.error?.message || `Recommendation request failed: ${res.status}`);
-  }
+  if (!res.ok) await throwHttpError(res, "Recommendation request failed");
   return res.json();
 }
 
@@ -99,10 +146,7 @@ export async function postCanTake(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.error?.message || body?.error || `Can-take request failed: ${res.status}`);
-  }
+  if (!res.ok) await throwHttpError(res, "Can-take request failed");
   return res.json();
 }
 
@@ -112,9 +156,6 @@ export async function postFeedback(payload: FeedbackPayload): Promise<FeedbackRe
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.error?.message || `Feedback request failed: ${res.status}`);
-  }
+  if (!res.ok) await throwHttpError(res, "Feedback request failed");
   return res.json();
 }
