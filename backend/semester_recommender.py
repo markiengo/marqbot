@@ -806,6 +806,90 @@ def _ranking_band(
     return 8
 
 
+def _protected_ranking_band_group(
+    candidate: dict,
+    bucket_parent_map: dict[str, str],
+    *,
+    style: StyleConfig | None = None,
+    semesters_remaining: int = 8,
+) -> int:
+    """Keep critical chain work ahead of efficiency tie-breaks.
+
+    Bands 0-2 cover priority bridges, BCC-required sequencing, and MCC foundation.
+    Those stay protected. Outside that protected set, unmet multi-bucket coverage
+    becomes the dominant ranking lever.
+    """
+    band = _ranking_band(
+        candidate,
+        bucket_parent_map,
+        style=style,
+        semesters_remaining=semesters_remaining,
+    )
+    return 0 if band <= 2 else 1
+
+
+def _ranking_sort_key(
+    candidate: dict,
+    bucket_parent_map: dict[str, str],
+    *,
+    style: StyleConfig,
+    semesters_remaining: int,
+    chain_scores: dict[str, int],
+    is_honors_student: bool,
+) -> tuple:
+    ranking_band = _ranking_band(
+        candidate,
+        bucket_parent_map,
+        style=style,
+        semesters_remaining=semesters_remaining,
+    )
+    honors_rank = (
+        0
+        if is_honors_student and re.search(r"\d+H$", candidate["course_code"])
+        else 1
+        if is_honors_student
+        else 0
+    )
+    if style.strict_band_progression:
+        return (
+            ranking_band,
+            candidate.get("effective_ranking_tier", candidate.get("ranking_tier", 99)),
+            -candidate.get("multi_bucket_score", 0),
+            _bcc_priority_rank(candidate, bucket_parent_map),
+            0 if candidate.get("is_core_prereq_blocker") else 1,
+            _bridge_sort_penalty(candidate, bucket_parent_map),
+            candidate.get("soft_prereq_penalty", 0),
+            candidate.get("discovery_foundation_penalty", 0),
+            candidate.get("discovery_affinity_penalty", 0),
+            -chain_scores.get(candidate["course_code"], 0),
+            honors_rank,
+            _course_level(candidate) if _course_level(candidate) is not None else 9999,
+            candidate["course_code"],
+        )
+
+    return (
+        _protected_ranking_band_group(
+            candidate,
+            bucket_parent_map,
+            style=style,
+            semesters_remaining=semesters_remaining,
+        ),
+        -candidate.get("multi_bucket_score", 0),
+        ranking_band,
+        candidate.get("effective_ranking_tier", candidate.get("ranking_tier", 99)),
+        _bcc_priority_rank(candidate, bucket_parent_map),
+        0 if candidate.get("is_core_prereq_blocker") else 1,
+        _bridge_sort_penalty(candidate, bucket_parent_map),
+        candidate.get("soft_prereq_penalty", 0),
+        candidate.get("discovery_foundation_penalty", 0),
+        candidate.get("discovery_affinity_penalty", 0),
+        -chain_scores.get(candidate["course_code"], 0),
+        honors_rank,
+        _course_level(candidate) if _course_level(candidate) is not None else 9999,
+        candidate["course_code"],
+    )
+
+
 def _is_critical_bridge_candidate(candidate: dict, bucket_parent_map: dict[str, str]) -> bool:
     if not candidate.get("is_bridge_course"):
         return False
@@ -1531,26 +1615,18 @@ def run_recommendation_semester(
         scored_non_manual_sem.append(tagged)
 
     # ── Phase 6: Multi-key sort ────────────────────────────────────────
-    # Produce the ranked candidate list.  The sort key has 13 positions;
-    # lower values = higher priority.  _ranking_band is the dominant key,
-    # with style-aware BCC deferral (explorer only).
+    # Grinder keeps ranking bands strict so declared-program work stays ahead
+    # of late MCC/discovery cleanup. Explorer and mixer still let multi-bucket
+    # efficiency dominate once the protected bands are out of the way.
     ranked_sem = sorted(
         scored_non_manual_sem,
-        key=lambda c: (
-            _ranking_band(c, bucket_parent_map, style=style, semesters_remaining=semesters_remaining),
-            c.get("effective_ranking_tier", c.get("ranking_tier", 99)),
-            _bcc_priority_rank(c, bucket_parent_map),
-            0 if c.get("is_core_prereq_blocker") else 1,
-            _bridge_sort_penalty(c, bucket_parent_map),
-            c.get("soft_prereq_penalty", 0),
-            c.get("discovery_foundation_penalty", 0),
-            c.get("discovery_affinity_penalty", 0),
-            -_chain.get(c["course_code"], 0),
-            -c.get("multi_bucket_score", 0),
-            # Honors students: prefer H variants (sort before base course).
-            0 if is_honors_student and re.search(r"\d+H$", c["course_code"]) else 1 if is_honors_student else 0,
-            _course_level(c) if _course_level(c) is not None else 9999,
-            c["course_code"],
+        key=lambda c: _ranking_sort_key(
+            c,
+            bucket_parent_map,
+            style=style,
+            semesters_remaining=semesters_remaining,
+            chain_scores=_chain,
+            is_honors_student=is_honors_student,
         ),
     )
     eligible_count_sem = len(ranked_sem)

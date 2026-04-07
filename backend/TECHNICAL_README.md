@@ -39,7 +39,7 @@ It loads the catalog and degree data, decides what counts toward progress, check
   Parses supported hard-prereq expressions.
 
 - `scheduling_styles.py`
-  Three-pass selection loop with style-specific slot reservations (grinder/explorer/mixer).
+  Style configs plus style-aware ranking and selection behavior. Grinder keeps declared-program work ahead of MCC/discovery cleanup, explorer reserves discovery space, and mixer interleaves the two.
 
 - `student_stage.py`
   Filters course levels by student stage (undergrad/graduate/doctoral).

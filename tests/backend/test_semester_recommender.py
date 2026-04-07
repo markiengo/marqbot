@@ -538,8 +538,8 @@ def test_standing_only_soft_prereq_is_not_double_demoted():
     assert standing_plus["soft_prereq_penalty"] == 1
 
 
-def test_bcc_required_then_mcc_core_then_major_order():
-    """BCC required work now ranks ahead of MCC core, then major work follows."""
+def test_bcc_required_then_major_then_mcc_core_order():
+    """Grinder keeps BCC-required gateways first, then major work, then MCC core."""
     courses = [
         {
             "course_code": "PHIL 1001",
@@ -644,7 +644,7 @@ def test_bcc_required_then_mcc_core_then_major_order():
     )
 
     codes = [r["course_code"] for r in out["recommendations"]]
-    assert codes == ["ZZZZ 1000", "PHIL 1001", "ACCO 2000"]
+    assert codes == ["ZZZZ 1000", "ACCO 2000", "PHIL 1001"]
 
 
 def test_mcc_foundation_ranks_above_major():
@@ -911,8 +911,8 @@ def test_single_bucket_work_can_fill_multiple_slots_without_diversity_cap():
     assert "balance_policy" not in out
 
 
-def test_tier_order_bcc_required_then_foundation_then_other_bcc_then_major():
-    """Direct BCC-required work leads, but foundation still beats major and late MCC."""
+def test_tier_order_bcc_required_then_declared_work_then_cleanup():
+    """Direct BCC-required work leads, then declared work, then BCC/MCC cleanup."""
     courses = [
         {
             "course_code": "ACCO 1030",
@@ -1140,8 +1140,12 @@ def test_tier_order_bcc_required_then_foundation_then_other_bcc_then_major():
     )
 
     codes = [r["course_code"] for r in out["debug"][:6]]
-    assert codes == ["ACCO 1030", "ENGL 1001", "SOCI 1001", "BULA 2050", "FINA 3001", "TRACK 3001"]
-    assert "HIST 1301" not in codes
+    assert codes[0] == "ACCO 1030"
+    assert codes.index("FINA 3001") < codes.index("BULA 2050")
+    assert codes.index("TRACK 3001") < codes.index("BULA 2050")
+    assert codes.index("BULA 2050") < codes.index("ENGL 1001")
+    assert "SOCI 1001" not in codes or codes.index("BULA 2050") < codes.index("SOCI 1001")
+    assert "HIST 1301" not in codes or codes.index("BULA 2050") < codes.index("HIST 1301")
     assert "balance_policy" not in out
 
 
@@ -2016,8 +2020,8 @@ def test_standing_recovery_recommends_declared_path_filler_when_only_required_co
     assert "standing needed" in out["recommendations"][0]["why"].lower()
 
 
-def test_fixed_hierarchy_prefers_major_courses_before_extra_discovery_fillers():
-    """Discovery filler stays behind MCC foundation and major work in the fixed hierarchy."""
+def test_fixed_hierarchy_prefers_major_courses_before_foundation_and_discovery_fillers():
+    """Grinder should keep declared-program work ahead of foundation/discovery cleanup."""
     # 3 Discovery courses + 2 major courses + 1 MCC Foundation = 6 eligible
     courses = [
         {
@@ -2195,8 +2199,9 @@ def test_fixed_hierarchy_prefers_major_courses_before_extra_discovery_fillers():
     )
 
     codes = [r["course_code"] for r in out["recommendations"]]
-    assert codes[0] == "ENGL 1001"
-    assert {"FINA 3001", "BUAN 3001"} <= set(codes[:3])
+    assert set(codes[:2]) == {"FINA 3001", "BUAN 3001"}
+    assert codes.index("ENGL 1001") > codes.index("FINA 3001")
+    assert codes.index("ENGL 1001") > codes.index("BUAN 3001")
     disc_codes = [c for c in codes if c.startswith("DISC")]
     assert len(disc_codes) == 2
     assert len(codes) == 5
@@ -3332,11 +3337,27 @@ def _get_codes(out):
 
 
 def test_grinder_matches_default_behavior():
-    """Grinder archetype (identity tier map) produces identical output to no style."""
+    """Grinder remains the default behavior when no explicit style is passed."""
     data = _archetype_fixture()
     default_codes = _get_codes(_recommend_with_style(data, None))
     grinder_codes = _get_codes(_recommend_with_style(data, "grinder"))
     assert default_codes == grinder_codes
+
+
+def test_grinder_pushes_mcc_cleanup_behind_declared_program_work():
+    """Grinder should keep MCC/discovery cleanup after major-track progress."""
+    data = _archetype_fixture()
+    grinder_codes = _get_codes(_recommend_with_style(data, "grinder", max_recs=8))
+
+    major_positions = [grinder_codes.index(code) for code in ("FINA 3001", "FINA 3002")]
+    cleanup_positions = [
+        grinder_codes.index(code)
+        for code in ("PHIL 1001", "ENGL 2001", "HIST 1001", "SOCI 1001")
+    ]
+
+    assert max(major_positions) < min(cleanup_positions), (
+        f"Grinder should defer MCC/discovery cleanup until after declared-program work: {grinder_codes}"
+    )
 
 
 def test_explorer_reserves_discovery_slots():

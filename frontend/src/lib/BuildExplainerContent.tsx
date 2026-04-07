@@ -31,7 +31,7 @@ export function BuildExplainerContent({ currentStyle, onSelect }: BuildExplainer
       <div className="rounded-2xl border border-gold/20 bg-[linear-gradient(135deg,rgba(255,204,0,0.10),rgba(255,204,0,0.02))] px-5 py-4">
         <p className="text-[0.97rem] leading-relaxed text-ink-primary">
           Your build controls how MarqBot balances core requirements and discovery courses each semester. Prerequisites still run the show &mdash; no build can skip them.
-          Grinder fills with core first. Explorer <strong className="text-gold">reserves two discovery slots</strong>. Mixer alternates.
+          Grinder front-loads declared program work and punts CORE / gen-ed cleanup to the tail. Explorer <strong className="text-gold">reserves two discovery slots</strong>. Mixer alternates.
         </p>
       </div>
 

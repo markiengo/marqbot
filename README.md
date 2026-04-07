@@ -32,8 +32,8 @@ MarqBot is a planning tool for Marquette Business students. Pick your program, a
 | **Eligibility check** | Instant yes/no on whether you can take a course right now |
 | **Progress tracking** | See where you stand across every requirement bucket |
 | **Multi-semester plans** | Map out more than one term at a time |
-| **Saved plans** | Snapshots stored in your browser. Compare paths and come back anytime. |
-| **Scheduling styles** | Grinder, Explorer, or Mixer — pick how you balance core vs. discovery |
+| **Saved plans** | Snapshots stored in your browser. Compare paths, come back later, and export a print-ready PDF. |
+| **Scheduling styles** | Grinder, Explorer, or Mixer - pick whether declared program work or discovery shows up first |
 
 Same inputs, same outputs. Every time.
 
@@ -50,8 +50,8 @@ Under the hood, MarqBot runs a deterministic recommendation engine:
 
 ```
 1. Filter     — removes courses you can't take yet (prereqs, standing, already done)
-2. Rank       — prioritizes by tier: MCC Foundation > Business Core > Major > Track > MCC Late > Discovery
-3. Pick       — fills your semester in ranked order, with caps to keep things balanced
+2. Rank       — protects prerequisite and BCC gateways first, then uses your chosen style to decide whether declared program work or MCC/discovery cleanup rises next
+3. Pick       — fills your semester in ranked order, with style-specific reservations where applicable
 ```
 
 Your scheduling style adjusts the balance between core requirements and discovery electives. For the full breakdown, see [How MarqBot Plans Your Degree](docs/memos/algorithm.md). For engine internals, see the [Technical Reference](docs/codebase/tech_readme.md).
@@ -99,7 +99,7 @@ backend/                  Flask API and recommendation engine
   allocator.py              Course-to-bucket allocation with overflow spill
   eligibility.py            Prereq, standing, stage, and restriction filtering
   semester_recommender.py   Ranking, selection, credit-load warnings
-  scheduling_styles.py      Three-pass selection loop (grinder/explorer/mixer)
+  scheduling_styles.py      Style configs plus style-aware ranking/selection (grinder/explorer/mixer)
   requirements.py           Domain constants, double-count families, bucket helpers
   prereq_parser.py          Hard-prereq expression parser
   student_stage.py          Undergrad/grad stage filter

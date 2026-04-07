@@ -7,7 +7,7 @@ MarqBot is a degree-planning tool for Marquette University business students. It
 ## What it does
 
 ### Course Recommendations
-You tell MarqBot your major, track, and what you've already taken. It recommends the best courses for your next 1-8 semesters based on your remaining requirements, what you're eligible for, and your chosen scheduling style (Grinder, Explorer, or Mixer). For now, course offerings are treated as always available while the offering data is being cleaned up.
+You tell MarqBot your major, track, and what you've already taken. It recommends the best courses for your next 1-8 semesters based on your remaining requirements, what you're eligible for, and your chosen scheduling style (Grinder, Explorer, or Mixer). Grinder keeps declared program work concentrated first, Explorer deliberately mixes in discovery, and Mixer balances the two. For now, course offerings are treated as always available while the offering data is being cleaned up.
 
 ### Progress Tracking
 A visual dashboard shows how far along you are in each requirement area: your major, your track (if any), the Business Core (BCC), and the Marquette Core (MCC).
@@ -16,7 +16,7 @@ A visual dashboard shows how far along you are in each requirement area: your ma
 Pick any course and MarqBot tells you if you can take it. If not, it says why (missing prereqs, standing, program restriction, etc.).
 
 ### Saved Plans
-Students can save recommendation runs in the browser, reopen them later, and compare alternatives without re-entering all of their course history.
+Students can save recommendation runs in the browser, reopen them later, compare alternatives without re-entering all of their course history, and export a print-friendly portrait PDF with course, title, credits, prerequisite, and satisfy columns.
 
 ### Feedback
 Students can send a rating plus open-text feedback from inside the planner. The same form handles bug reports, confusing copy, and feature ideas.
@@ -31,11 +31,12 @@ College of Business students at Marquette. It supports 11 majors (Finance, Accou
 
 ## How recommendations work
 
-1. Filter out courses you can't take yet (prereqs, standing, not offered).
-2. Prioritize what matters most: Marquette Core and Business Core first, then your major, then your track.
-3. Prefer courses that unlock the most future options.
-4. Pick a balanced set (not all from one requirement area).
-5. For multi-semester plans, each semester builds on the one before it.
+1. Filter out courses you can't take yet (prereqs, standing, restrictions, not offered).
+2. Protect gateway work that blocks future progress.
+3. Let the chosen scheduling style decide how aggressively declared program work stays ahead of discovery and MCC cleanup.
+4. Prefer courses that unlock the most future options.
+5. Pick a balanced set (not all from one requirement area).
+6. For multi-semester plans, each semester builds on the one before it.
 
 ---
 

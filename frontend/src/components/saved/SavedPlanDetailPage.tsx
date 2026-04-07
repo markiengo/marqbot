@@ -115,6 +115,7 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
     semesterModalIdx !== null
       ? recommendationData?.semesters?.[semesterModalIdx] ?? null
       : null;
+  const exportHref = plan ? `/saved?plan=${encodeURIComponent(plan.id)}&export=pdf` : "/saved";
 
   const handleRetry = () => {
     if (!courses.length) retryCourses();
@@ -294,6 +295,15 @@ export function SavedPlanDetailPage({ planId }: { planId: string }) {
                     {/* Actions */}
                     <div className="flex items-center gap-2">
                       <Button variant="gold" size="sm" onClick={handleResume} className="pulse-gold-soft">Resume in Planner</Button>
+                      {recommendationData ? (
+                        <Button asChild variant="secondary" size="sm">
+                          <Link href={exportHref} target="_blank" rel="noopener noreferrer">
+                            Export PDF
+                          </Link>
+                        </Button>
+                      ) : (
+                        <p className="text-[11px] text-ink-faint">PDF export requires a saved snapshot.</p>
+                      )}
                       <Button
                         variant="secondary"
                         size="sm"

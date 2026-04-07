@@ -7,7 +7,8 @@ courses within a single semester's recommendations.  The mechanism is
 filled by each category, and the selection loop enforces those reservations.
 
 Styles:
-  grinder  - Major-first. No slot reservations. Discovery fills gaps only.
+  grinder  - Major-first. No slot reservations. Declared program work stays
+             ahead of MCC/discovery cleanup.
   explorer - Front-loads discovery. Reserves 2 slots for discovery/gen-ed
              courses. Can defer BCC when the student has enough runway.
   mixer    - Guaranteed mix. Reserves 1 discovery + 2 core slots and
@@ -40,12 +41,15 @@ class StyleConfig:
             semester.
         interleave: When True the selection loop alternates core and discovery
             picks so the final list has variety (used by mixer).
-        tier_map: Secondary lever — remaps base tiers (1-7) before sorting.
+        tier_map: Secondary lever - remaps base tiers (1-7) before sorting.
             The primary differentiation comes from slot reservations, but the
             tier map still influences tie-breaking within the ranked list.
         relax_bcc_band: When True *and* the student has >= 4 semesters of
             runway, band-1 BCC courses are demoted to band 2 so MCC and
             discovery courses can surface earlier (used by explorer).
+        strict_band_progression: When True, ranking bands stay dominant over
+            multi-bucket efficiency so late gen-ed cleanup cannot leapfrog
+            declared-program work (used by grinder).
     """
 
     name: str
@@ -56,6 +60,7 @@ class StyleConfig:
         1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7,
     })
     relax_bcc_band: bool = False
+    strict_band_progression: bool = False
 
 
 # -- Concrete style configs --------------------------------------------------
@@ -65,8 +70,11 @@ STYLE_GRINDER = StyleConfig(
     min_discovery_slots=0,
     min_core_slots=0,
     interleave=False,
-    tier_map={1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7},
+    # Grinder should be truly major-first: declared program work leads, BCC
+    # support work follows, and MCC/discovery cleanup waits until the tail.
+    tier_map={1: 6, 2: 4, 3: 2, 4: 3, 5: 6, 6: 6, 7: 7},
     relax_bcc_band=False,
+    strict_band_progression=True,
 )
 
 STYLE_EXPLORER = StyleConfig(

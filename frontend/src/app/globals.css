@@ -1891,3 +1891,481 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
     inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
+.saved-plan-print-view {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.print-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.print-paper {
+  background: linear-gradient(180deg, rgba(7, 18, 39, 0.98), rgba(12, 29, 56, 0.96));
+  border: 1px solid rgba(141, 170, 224, 0.16);
+  border-radius: 24px;
+  max-width: 8.2in;
+  margin: 0 auto;
+  padding: 28px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.print-header {
+  margin-bottom: 28px;
+}
+
+.print-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.print-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-ink-primary);
+}
+
+.print-subtitle {
+  margin: 10px 0 0;
+  color: var(--color-ink-secondary);
+  font-size: 14px;
+}
+
+.print-notes {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-ink-secondary);
+  font-size: 14px;
+}
+
+.print-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.print-meta-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.print-meta-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.print-section {
+  margin-top: 26px;
+}
+
+.print-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(141, 170, 224, 0.18);
+}
+
+.print-section-header h2,
+.print-group-title,
+.print-bucket-header h4,
+.print-card h3 {
+  margin: 0;
+  color: var(--color-ink-primary);
+}
+
+.print-semester-stack,
+.print-bucket-stack {
+  gap: 12px;
+}
+
+.print-semester-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.print-card {
+  border: 1px solid rgba(141, 170, 224, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 14px 16px;
+}
+
+.print-course-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.print-course-list li {
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--color-ink-secondary);
+}
+
+.print-course-code {
+  min-width: 88px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--color-mu-blue);
+  font-weight: 700;
+}
+
+.print-semester-card {
+  padding: 14px 16px;
+}
+
+.print-semester-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.print-semester-summary {
+  white-space: nowrap;
+  border-radius: 999px;
+  border: 1px solid rgba(141, 170, 224, 0.22);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.print-semester-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.print-semester-table th,
+.print-semester-table td {
+  padding: 9px 10px 9px 0;
+  border-bottom: 1px solid rgba(141, 170, 224, 0.18);
+  vertical-align: top;
+}
+
+.print-semester-table th:last-child,
+.print-semester-table td:last-child {
+  padding-right: 0;
+}
+
+.print-semester-table th {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+  text-align: left;
+}
+
+.print-semester-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.print-semester-table-col-course,
+.print-semester-table-code,
+.print-semester-table-col-credits,
+.print-semester-table-credits {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.print-semester-table-col-credits {
+  text-align: right;
+}
+
+.print-semester-table-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--color-mu-blue);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.print-semester-table-credits {
+  text-align: right;
+  color: var(--color-ink-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.print-semester-table-title {
+  color: var(--color-ink-primary);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.print-semester-table-prereq {
+  color: var(--color-ink-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.print-semester-table-buckets {
+  color: var(--color-ink-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.print-muted {
+  color: var(--color-ink-faint);
+  font-size: 13px;
+}
+
+.print-group {
+  margin-top: 18px;
+}
+
+.print-group-title {
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.print-bucket-card {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-bucket-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.print-status {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border: 1px solid transparent;
+}
+
+.print-status.is-satisfied {
+  color: #11663f;
+  background: rgba(30, 159, 97, 0.18);
+  border-color: rgba(30, 159, 97, 0.35);
+}
+
+.print-status.is-open {
+  color: #8a6200;
+  background: rgba(255, 204, 0, 0.18);
+  border-color: rgba(255, 204, 0, 0.35);
+}
+
+.print-bucket-columns {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.print-column-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+@media (max-width: 768px) {
+  .print-bucket-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  @page {
+    size: portrait;
+    margin: 0.45in;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  nav[aria-label="Primary"],
+  .print-screen-only {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .saved-plan-print-view {
+    max-width: none;
+    padding: 0;
+  }
+
+  .print-paper,
+  .print-card,
+  .print-meta-grid > div {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+    box-shadow: none !important;
+  }
+
+  .print-title,
+  .print-section-header h2,
+  .print-group-title,
+  .print-bucket-header h4,
+  .print-card h3 {
+    color: #111827 !important;
+  }
+
+  .print-subtitle,
+  .print-notes,
+  .print-course-list li,
+  .print-muted,
+  .print-meta-label,
+  .print-semester-table-title,
+  .print-semester-table-buckets,
+  .print-semester-summary {
+    color: #374151 !important;
+  }
+
+  .print-kicker,
+  .print-course-code,
+  .print-semester-table-code {
+    color: #003366 !important;
+  }
+
+  .print-semester-table th,
+  .print-semester-table td {
+    border-color: #d1d5db !important;
+  }
+
+  .bg-orbs::before,
+  .bg-orbs::after {
+    display: none !important;
+  }
+
+  .print-section,
+  .print-card,
+  .print-group {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-paper {
+    max-width: none;
+    padding: 0.26in;
+  }
+
+  .print-header {
+    margin-bottom: 12px;
+  }
+
+  .print-title {
+    font-size: 22px;
+  }
+
+  .print-subtitle,
+  .print-notes,
+  .print-muted {
+    font-size: 11px;
+  }
+
+  .print-notes {
+    margin-top: 8px;
+    padding: 8px 10px;
+  }
+
+  .print-meta-grid {
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .print-meta-grid > div {
+    padding: 8px 10px;
+  }
+
+  .print-section {
+    margin-top: 14px;
+  }
+
+  .print-section-header {
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+  }
+
+  .print-semester-stack {
+    gap: 6px;
+  }
+
+  .print-semester-card {
+    padding: 10px 12px;
+  }
+
+  .print-semester-header {
+    margin-bottom: 6px;
+  }
+
+  .print-semester-card h3 {
+    font-size: 17px;
+  }
+
+  .print-semester-summary {
+    padding: 3px 7px;
+    font-size: 9px;
+  }
+
+  .print-semester-table th,
+  .print-semester-table td {
+    padding: 5px 6px 5px 0;
+  }
+
+  .print-semester-table th {
+    font-size: 9px;
+  }
+
+  .print-semester-table-code {
+    font-size: 10px;
+  }
+
+  .print-semester-table-title,
+  .print-semester-table-prereq,
+  .print-semester-table-credits,
+  .print-semester-table-buckets {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+}
+

@@ -1,6 +1,6 @@
 # Technical Reference
 
-Last updated: April 3, 2026
+Last updated: April 7, 2026
 
 ## Start Here
 
@@ -64,6 +64,7 @@ There is no user auth system and no database for planner state.
 | `/planner` | Main semester planning workspace |
 | `/saved` | Saved plans library |
 | `/saved?plan=...` | Saved plan detail and comparison view |
+| `/saved?plan=...&export=pdf` | Portrait print/PDF export for a saved plan |
 | `/courses` | Placeholder product page |
 | `/ai-advisor` | Placeholder product page |
 | `/about` | Founder story, product rationale, roadmap, and CTA surfaces |
@@ -77,6 +78,7 @@ There is no user auth system and no database for planner state.
 | Layout | `Navbar.tsx`, `Footer.tsx`, `PlaceholderPage.tsx` |
 | Shared UI | `Button.tsx`, `Chip.tsx`, `ContactIcon.tsx`, `Modal.tsx`, `MultiSelect.tsx`, `SingleSelect.tsx`, `AnimatedNumber.tsx` |
 | Planner | `PlannerLayout.tsx`, `RecommendationsPanel.tsx`, `SemesterModal.tsx`, `EditPlanModal.tsx`, `MajorGuideModal.tsx`, `ProfileModal.tsx`, `CourseCard.tsx` |
+| Saved | `SavedPlansLibraryPage.tsx`, `SavedPlanDetailPage.tsx`, `SavedPlanPrintView.tsx`, `SavedPlanViewModal.tsx` |
 
 ### Effects and motion runtime
 
@@ -177,7 +179,7 @@ Important data behavior:
 | Directory | Framework | Count | Coverage |
 |-----------|-----------|-------|----------|
 | `tests/backend/` | Pytest | 26 files | Engine behavior, API contract, policy enforcement, regression profiles, dead-end detection, schema migration, and policy scraping |
-| `frontend/tests/` + `tests/frontend/` | Vitest | 31 files | Landing/About shells, onboarding, planner modals, recommendations, saved plans, import parsing, hooks, and utilities |
+| `frontend/tests/` + `tests/frontend/` | Vitest | 38 files | Landing/About shells, onboarding, planner modals, recommendations, saved plans, print/export views, import parsing, hooks, and utilities |
 
 The default frontend run uses `frontend/vitest.config.ts`, which includes the active `frontend/tests/` suite and the included legacy suites from `tests/frontend/`.
 
@@ -195,6 +197,8 @@ High-signal test files:
 - `frontend/tests/aboutPage.dom.test.tsx` - About page shell and CTA coverage
 - `frontend/tests/recommendationsPanel.dom.test.tsx` - recommendation rendering and term switching
 - `frontend/tests/plannerPreferencesEdit.dom.test.tsx` - edited-semester preservation across preference reruns
+- `frontend/tests/savedPlanExport.test.ts` - saved-plan export payload fields, including prerequisite text
+- `frontend/tests/savedPlanPrintView.dom.test.ts` - portrait print-view rendering and snapshot-required fallback
 
 Checked-in automation:
 

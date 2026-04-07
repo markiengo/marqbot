@@ -10,10 +10,10 @@ import type { ProgramBucketTree, BucketSlot } from "@/lib/types";
 /* ── Ranking rules (shared with PlannerLayout) ────────────────────── */
 export const rankingExplainerItems = [
   { id: "1", title: "Filter first", detail: "If you can\u2019t take it yet, it\u2019s out. Prereqs, standing, and already-finished courses get filtered first." },
-  { id: "2", title: "Rank by requirement tier", detail: "Every eligible course lands in a priority tier. MCC foundation and business core beat electives and discovery." },
+  { id: "2", title: "Rank by requirement tier", detail: "Every eligible course lands in a priority tier. Critical gateways stay protected, and your build can remap whether declared program work or cleanup courses rise first." },
   { id: "3", title: "Respect bucket rules", detail: "Required buckets beat elective pools when the rules collide. If two courses cover the same slot, MarqBot keeps one there and can slide the extra one into electives when allowed." },
   { id: "4", title: "Reward what unlocks more", detail: "After the bucket rules are settled, courses that unlock more later or still help more than one allowed bucket move up." },
-  { id: "5", title: "Adjust for your build", detail: "Your scheduling style shifts the balance. Grinder front-loads core, explorer mixes in discovery earlier, and mixer splits the difference." },
+  { id: "5", title: "Adjust for your build", detail: "Your scheduling style shifts the balance. Grinder front-loads declared program work and delays CORE / gen-ed cleanup, explorer mixes in discovery earlier, and mixer splits the difference." },
 ] as const;
 
 /* ── Types ────────────────────────────────────────────────────────── */

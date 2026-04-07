@@ -12,6 +12,7 @@ It owns the pages, planner shell, onboarding flow, saved-plan UI, about page, an
 - lets students declare majors, tracks, minors, and courses
 - stores session state and saved plans in browser localStorage
 - persists the lightweight planner snapshot separately from the heavier recommendation snapshot so normal planner edits do not keep rewriting full results
+- renders saved-plan detail and print/PDF export views, including credits, prerequisite text, and satisfied-bucket context
 - resolves a shared visual-effects mode so the UI keeps full styling by default and falls back to a lighter rendering path only when reduced motion or a manual reduced-effects preference is active
 - calls backend APIs for recommendations, can-take checks, prereq validation, and feedback
 - shows results with shared planner cards and modal views
@@ -66,6 +67,6 @@ The frontend collects student inputs, keeps the current planner state in the bro
 ## Notes
 
 - Production uses static export compatibility, so do not assume a custom Next server.
-- Saved plans are browser-local only right now.
+- Saved plans are browser-local only right now, but each saved plan can open a print-friendly `/saved?plan=...&export=pdf` view for browser PDF export.
 - Reduced-effects mode is resolved by `EffectsModeManager` in the app shell from OS reduced-motion or a manual reduced-effects preference, and components read it through `useReducedEffects`.
 - The landing and About shells add the heavier cursor-reactive treatment through `ReactivePageShell` only when full effects stay enabled.

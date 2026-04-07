@@ -1,6 +1,6 @@
 # How MarqBot Plans Your Degree
 
-Last updated: March 28, 2026
+Last updated: April 7, 2026
 
 ## The Short Version
 
@@ -55,21 +55,31 @@ If a course's prerequisite language is too complex for MarqBot to parse safely (
 
 ### 4. MarqBot Ranks What's Left
 
-After filtering, MarqBot ranks every eligible course by how important it is to your degree progress. The ranking uses a priority system:
+After filtering, MarqBot ranks every eligible course by how important it is to your degree progress. The ranking has two layers:
 
-**Tier 1 — MCC Foundation** comes first because these are the baseline courses that gate everything else. You need them done early.
+First, it protects gateway work that can stall your degree if you miss it. Priority bridge courses and the most important BCC unlockers stay near the front no matter which style you pick.
 
-**Tier 2 — Business Common Core** comes next because BCC courses are the shared prereqs that unlock your major-specific courses. If you delay these, your major courses get pushed back.
+Then it applies a base priority system:
 
-**Tier 3 — Major requirements** are your actual degree courses. Once foundation and BCC are in progress, these start filling in.
+**Tier 1 — MCC Foundation** is the common baseline.
 
-**Tier 4 — Track and minor** requirements come after your major since they're supplementary to your primary degree.
+**Tier 2 — Business Common Core** is the shared prereq layer for business majors.
+
+**Tier 3 — Major requirements** are your declared program courses.
+
+**Tier 4 — Track and minor** requirements come after the main major path.
 
 **Tier 5 — MCC Late** (writing intensive and culminating experience) are upper-division core requirements that are intentionally deferred until you have enough credits and course maturity.
 
-**Tier 6 — Discovery themes** are the exploratory MCC courses. They have the widest course pools, so there's almost always something available. MarqBot schedules these last because they have the most flexibility.
+**Tier 6 — Discovery themes** are the exploratory MCC courses. They have the widest course pools, so there is usually something available later if MarqBot needs flexible cleanup.
 
-Within each tier, MarqBot further sorts by:
+Your scheduling style decides how aggressively MarqBot remaps those tiers:
+
+- **Grinder** keeps declared major and track work ahead of flexible MCC and discovery cleanup. This is the "push the non-major stuff late" build.
+- **Explorer** still protects critical gateways, but deliberately pulls discovery and gen-ed work forward.
+- **Mixer** stays between the two, keeping a balanced term without going full grinder or full explorer.
+
+Within a band or tier, MarqBot further sorts by:
 - Whether the course unlocks other courses you need (prereq chain depth — deeper chains get priority)
 - Whether the course counts toward more than one bucket (multi-bucket courses are more efficient)
 - Course level (lower-level courses first, since they tend to be earlier in the sequence)
@@ -105,7 +115,7 @@ The plan is deterministic: if you and a friend enter the exact same programs and
 
 Not everyone wants to plan the same way. MarqBot offers three scheduling styles that change how it balances core requirements versus discovery electives:
 
-**Grinder** (the default) — Prioritizes core and major requirements. Discovery courses only fill gaps after everything else is placed. This is the fastest path to internship and graduation readiness.
+**Grinder** (the default) — Front-loads your declared major and track path, keeps only truly important gateway BCC work near the front, and pushes flexible MCC/discovery cleanup to the tail. This is the closest thing to a no-summer grinder plan.
 
 **Explorer** — Reserves 2 discovery slots per semester so you can explore topics outside your major early on. Your core prereqs still happen on time — MarqBot just makes room for breadth.
 
