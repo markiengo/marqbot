@@ -2,6 +2,7 @@ import pytest
 import pandas as pd
 from eligibility import _evaluate_major_restriction, get_eligible_courses, check_can_take, parse_term
 from prereq_parser import parse_prereqs
+from backend import server
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -631,6 +632,56 @@ class TestGetEligibleCourses:
             selected_program_ids=["FIN_MAJOR"],
         )
         assert "ECON 1001" not in [c["course_code"] for c in eligible]
+
+    def test_allows_arts_and_sciences_college_restriction_for_ds_selection(
+        self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df,
+    ):
+        catalog_df, _, _ = server._get_program_catalog(server._data)
+        ds_restriction_ids = server._restriction_program_ids(["DS_MAJOR"], catalog_df)
+
+        augmented_courses = pd.concat([
+            courses_df,
+            pd.DataFrame([{
+                "course_code": "MATH 4998",
+                "course_name": "Arts and Sciences Restricted Course",
+                "credits": 3,
+                "level": 4000,
+                "offered_fall": True,
+                "offered_spring": False,
+                "offered_summer": False,
+                "prereq_hard": "none",
+                "prereq_soft": "college_restriction",
+                "soft_prereq_college_restriction": "Declared major or minor in the College of Arts and Sciences",
+                "offering_confidence": "high",
+                "notes": None,
+            }]),
+        ], ignore_index=True)
+        augmented_prereq_map = dict(prereq_map)
+        augmented_prereq_map["MATH 4998"] = parse_prereqs("none")
+        augmented_map = pd.concat([
+            course_bucket_map,
+            pd.DataFrame([{
+                "track_id": "FIN_MAJOR",
+                "bucket_id": "FIN_CHOOSE_2",
+                "course_code": "MATH 4998",
+                "is_required": False,
+                "can_double_count": True,
+                "constraints": None,
+            }]),
+        ], ignore_index=True)
+
+        eligible = get_eligible_courses(
+            augmented_courses,
+            [],
+            [],
+            "Fall",
+            augmented_prereq_map,
+            allocator_remaining,
+            augmented_map,
+            buckets_df,
+            selected_program_ids=ds_restriction_ids,
+        )
+        assert "MATH 4998" in [c["course_code"] for c in eligible]
 
     def test_soft_requirement_flagged(self, courses_df, prereq_map, allocator_remaining, course_bucket_map, buckets_df):
         eligible = get_eligible_courses(

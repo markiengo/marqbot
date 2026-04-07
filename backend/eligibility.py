@@ -10,7 +10,12 @@ from requirements import (
     order_buckets_same_family,
 )
 from unlocks import build_reverse_prereq_map
-from allocator import get_runtime_course_index, get_runtime_track_index, _safe_bool
+from allocator import (
+    get_runtime_course_index,
+    get_runtime_track_index,
+    _build_track_equivalent_course_map,
+    _safe_bool,
+)
 from student_stage import (
     build_student_stage_block_message,
     coerce_course_level,
@@ -41,6 +46,7 @@ _NON_RECOMMENDABLE_PATTERNS = (
 )
 
 _PHASE5_PLAN_TRACK_ID = "__DECLARED_PLAN__"
+_COLLEGE_ALIAS_MARKER_PREFIX = "__COLLEGE__:"
 _PROGRAM_CONTEXT_RE = re.compile(
     r"\b([A-Z]{2,7}(?:-[A-Z]{2,7})?)\s+(?:majors?|minors?|program)\b",
     re.IGNORECASE,
@@ -180,8 +186,23 @@ def _program_base_ids(program_ids: list[str]) -> set[str]:
 
 
 def _selected_college_aliases(program_ids: list[str]) -> set[str]:
-    # Current selectable academic programs in this app are business programs plus MCC overlays.
     colleges: set[str] = set()
+    saw_explicit_marker = False
+    for program_id in program_ids:
+        raw_program_id = str(program_id or "").strip()
+        upper = raw_program_id.upper()
+        if not upper or upper == _PHASE5_PLAN_TRACK_ID or upper.startswith("MCC_"):
+            continue
+        if upper.startswith(_COLLEGE_ALIAS_MARKER_PREFIX):
+            alias = raw_program_id[len(_COLLEGE_ALIAS_MARKER_PREFIX):].strip().lower()
+            if alias:
+                colleges.add(alias)
+                saw_explicit_marker = True
+            continue
+    if saw_explicit_marker:
+        return colleges
+
+    # Backward-compatible fallback for direct callers that only pass program IDs.
     for program_id in program_ids:
         upper = str(program_id or "").strip().upper()
         if not upper or upper == _PHASE5_PLAN_TRACK_ID or upper.startswith("MCC_"):
@@ -290,10 +311,10 @@ def _evaluate_soft_restrictions(
     soft_tags: list[str],
     selected_program_ids: list[str] | None,
     track_id: str,
-) -> tuple[bool, str | None, set[str]]:
+) -> tuple[bool, str | None, set[str], str | None]:
     normalized_program_ids = _normalize_selected_program_ids(selected_program_ids, track_id)
     if not normalized_program_ids:
-        return False, None, set()
+        return False, None, set(), None
 
     cleared_tags: set[str] = set()
 
@@ -303,7 +324,7 @@ def _evaluate_soft_restrictions(
             normalized_program_ids,
         )
         if blocked:
-            return True, reason, cleared_tags
+            return True, reason, cleared_tags, "major_restriction"
         if satisfied:
             cleared_tags.add("major_restriction")
 
@@ -313,7 +334,7 @@ def _evaluate_soft_restrictions(
             normalized_program_ids,
         )
         if blocked:
-            return True, reason, cleared_tags
+            return True, reason, cleared_tags, "college_restriction"
         if satisfied:
             cleared_tags.add("college_restriction")
 
@@ -325,7 +346,23 @@ def _evaluate_soft_restrictions(
         if satisfied:
             cleared_tags.add("admitted_program")
 
-    return False, None, cleared_tags
+    return False, None, cleared_tags, None
+
+
+def _soft_restriction_field_name(tag: str) -> str:
+    return {
+        "major_restriction": "soft_prereq_major_restriction",
+        "college_restriction": "soft_prereq_college_restriction",
+        "admitted_program": "soft_prereq_admitted_program",
+    }.get(str(tag or "").strip().lower(), "")
+
+
+def _is_alternative_soft_restriction(row, tag: str | None) -> bool:
+    field_name = _soft_restriction_field_name(str(tag or ""))
+    if not field_name:
+        return False
+    raw_text = str(row.get(field_name, "") or "").strip().lower()
+    return raw_text.startswith("or ")
 
 
 def _prereqs_satisfied_for_semester(
@@ -451,13 +488,45 @@ def _prune_discovery_elective_display(
         # Suppress _ELEC when the course also fills a required bucket in the same family.
         if (
             mode == "choose_n"
-            and bid.endswith("_ELEC")
+            and _bucket_has_flag(b, "hide_when_same_family_required")
             and family
             and family in families_with_required_fill
         ):
             continue
         result.append(bid)
     return result
+
+
+def _equivalency_bucket_label_override(bucket: dict) -> str | None:
+    if not bool(bucket.get("mapped_via_equivalency")):
+        return None
+    target = str(bucket.get("equivalent_to_course_code", "") or "").strip()
+    if not target:
+        return None
+
+    relation = str(bucket.get("mapping_relation_type", "") or "").strip().lower()
+    if relation == "cross_listed":
+        return f"Cross-listed as {target}"
+    if relation == "honors":
+        return f"Honors equivalent to {target}"
+    if relation == "grad":
+        return f"Graduate equivalent to {target}"
+    return f"Equivalent to {target}"
+
+
+def _parse_bucket_flags(raw) -> set[str]:
+    return {
+        str(flag or "").strip().lower()
+        for flag in str(raw or "").split(";")
+        if str(flag or "").strip()
+    }
+
+
+def _bucket_has_flag(bucket: dict, flag: str) -> bool:
+    wanted = str(flag or "").strip().lower()
+    if not wanted:
+        return False
+    return wanted in _parse_bucket_flags(bucket.get("bucket_flags", ""))
 
 
 def get_course_eligible_buckets(
@@ -468,6 +537,7 @@ def get_course_eligible_buckets(
     track_id: str = DEFAULT_TRACK_ID,
     *,
     _course_bucket_index: dict[str, list[str]] | None = None,
+    _course_bucket_detail_index: dict[str, list[dict]] | None = None,
     _bucket_meta: dict[str, dict] | None = None,
     _course_level_index: dict[str, int | None] | None = None,
 ) -> list[dict]:
@@ -501,27 +571,58 @@ def get_course_eligible_buckets(
                 "priority": row.get("priority", 99),
                 "parent_bucket_priority": row.get("parent_bucket_priority", 99),
                 "parent_bucket_id": str(row.get("parent_bucket_id", "") or "").strip().upper(),
+                "parent_bucket_label": str(
+                    row.get("parent_bucket_label", row.get("parent_bucket_id", "")) or ""
+                ).strip(),
+                "display_parent_alias": str(row.get("display_parent_alias", "") or "").strip().upper(),
+                "planner_tier": row.get("planner_tier"),
+                "planner_bucket_rank": row.get("planner_bucket_rank"),
+                "bucket_flags": str(row.get("bucket_flags", "") or "").strip().lower(),
                 "double_count_family_id": str(row.get("double_count_family_id", "") or "").strip(),
                 "requirement_mode": str(row.get("requirement_mode", "") or "").strip().lower(),
                 "min_level": row.get("min_level"),
             }
 
-    if _course_bucket_index is not None:
-        bucket_ids = _course_bucket_index.get(course_code, [])
+    if _course_bucket_detail_index is not None:
+        bucket_details = list(_course_bucket_detail_index.get(course_code, []))
+    elif _course_bucket_index is not None:
+        bucket_details = [
+            {
+                "bucket_id": bid,
+                "mapped_via_equivalency": False,
+                "mapping_relation_type": "",
+                "equivalent_to_course_code": "",
+            }
+            for bid in _course_bucket_index.get(course_code, [])
+        ]
     else:
         track_map = course_bucket_map_df[
             (course_bucket_map_df["track_id"] == track_id)
             & (course_bucket_map_df["course_code"] == course_code)
         ]
-        bucket_ids = []
+        bucket_details = []
         for _, row in track_map.iterrows():
             bid = str(row.get("bucket_id", "") or "").strip()
-            if bid and bid not in bucket_ids:
-                bucket_ids.append(bid)
+            if not bid:
+                continue
+            bucket_details.append({
+                "bucket_id": bid,
+                "mapped_via_equivalency": False,
+                "mapping_relation_type": "",
+                "equivalent_to_course_code": "",
+            })
 
     result = []
     seen_bucket_ids: set[str] = set()
-    for bid in bucket_ids:
+    bucket_details.sort(
+        key=lambda detail: (
+            str(detail.get("bucket_id", "") or "").strip(),
+            1 if bool(detail.get("mapped_via_equivalency")) else 0,
+            str(detail.get("equivalent_to_course_code", "") or "").strip(),
+        )
+    )
+    for detail in bucket_details:
+        bid = str(detail.get("bucket_id", "") or "").strip()
         if bid in seen_bucket_ids:
             continue
         meta = bucket_meta.get(bid)
@@ -545,8 +646,18 @@ def get_course_eligible_buckets(
             "priority": int(priority_raw) if pd.notna(priority_raw) else 99,
             "parent_bucket_priority": int(parent_priority_raw) if pd.notna(parent_priority_raw) else 99,
             "parent_bucket_id": str(meta.get("parent_bucket_id", "") or "").strip().upper(),
+            "parent_bucket_label": str(meta.get("parent_bucket_label", "") or "").strip(),
+            "display_parent_alias": str(meta.get("display_parent_alias", "") or "").strip().upper(),
+            "planner_tier": pd.to_numeric(meta.get("planner_tier"), errors="coerce"),
+            "planner_bucket_rank": int(pd.to_numeric(meta.get("planner_bucket_rank", 99), errors="coerce"))
+            if pd.notna(pd.to_numeric(meta.get("planner_bucket_rank", 99), errors="coerce"))
+            else 99,
+            "bucket_flags": str(meta.get("bucket_flags", "") or "").strip().lower(),
             "double_count_family_id": str(meta.get("double_count_family_id", "") or "").strip(),
             "requirement_mode": str(meta.get("requirement_mode", "") or "").strip().lower(),
+            "mapped_via_equivalency": bool(detail.get("mapped_via_equivalency")),
+            "mapping_relation_type": str(detail.get("mapping_relation_type", "") or "").strip().lower(),
+            "equivalent_to_course_code": str(detail.get("equivalent_to_course_code", "") or "").strip(),
         })
         seen_bucket_ids.add(bid)
 
@@ -624,6 +735,8 @@ def get_eligible_courses(
 
     if runtime_track is not None:
         course_bucket_index = runtime_track["course_bucket_index"]
+        course_bucket_detail_index = runtime_track.get("course_bucket_detail_index", {})
+        track_equivalent_course_map = runtime_track.get("equivalent_course_map", {})
         bucket_meta = {
             bid: {
                 "bucket_label": meta.get("label", bid),
@@ -640,6 +753,8 @@ def get_eligible_courses(
     else:
         # Build per-request indexes to avoid repeated dataframe scans in the loop below.
         course_bucket_index: dict[str, list[str]] = {}
+        course_bucket_detail_index: dict[str, list[dict]] = {}
+        track_map = pd.DataFrame()
         if (
             course_bucket_map_df is not None
             and len(course_bucket_map_df) > 0
@@ -656,6 +771,14 @@ def get_eligible_courses(
                 bucket_ids = course_bucket_index.setdefault(code, [])
                 if bid not in bucket_ids:
                     bucket_ids.append(bid)
+                bucket_details = course_bucket_detail_index.setdefault(code, [])
+                if not any(str(detail.get("bucket_id", "") or "").strip() == bid for detail in bucket_details):
+                    bucket_details.append({
+                        "bucket_id": bid,
+                        "mapped_via_equivalency": False,
+                        "mapping_relation_type": "",
+                        "equivalent_to_course_code": "",
+                    })
 
         bucket_meta: dict[str, dict] = {}
         if (
@@ -694,6 +817,11 @@ def get_eligible_courses(
                     course_level_index[code] = int(lvl)
                 else:
                     course_level_index[code] = None
+        track_equivalent_course_map = _build_track_equivalent_course_map(
+            equivalencies_df,
+            track_key,
+            track_map,
+        )
 
     unmet_course_buckets: dict[str, list[str]] = {}
     for bucket_id, remaining in (allocator_remaining or {}).items():
@@ -732,8 +860,10 @@ def get_eligible_courses(
             if aliases & (completed_set | in_progress_set):
                 continue
         # Skip equivalent aliases of already completed/in-progress courses.
+        equiv_aliases = set(track_equivalent_course_map.get(code, set()))
         if equiv_map:
-            equiv_aliases = equiv_map.get(code, set())
+            equiv_aliases.update(equiv_map.get(code, set()))
+        if equiv_aliases:
             if equiv_aliases & (completed_set | in_progress_set):
                 continue
         if _is_non_recommendable_course(
@@ -763,13 +893,32 @@ def get_eligible_courses(
             soft_tags = [tag.strip() for tag in soft_raw.split(";") if tag.strip()] if soft_raw else []
         else:
             soft_tags = list(soft_tags)
+        allow_concurrent = any(tag in CONCURRENT_TAGS for tag in soft_tags)
+        has_explicit_concurrent = not _is_none_prereq(raw_concurrent)
 
-        restriction_blocked, _restriction_reason, cleared_restriction_tags = _evaluate_soft_restrictions(
+        prereq_ok_without_semester = _prereqs_satisfied_for_semester(
+            parsed=parsed,
+            parsed_concurrent=parsed_concurrent,
+            allow_concurrent=allow_concurrent,
+            has_explicit_concurrent=has_explicit_concurrent,
+            completed_set=completed_set,
+            satisfied_codes=satisfied_codes,
+            semester_codes=set(),
+            equiv_map=equiv_map,
+        )
+
+        restriction_blocked, _restriction_reason, cleared_restriction_tags, blocking_restriction_tag = _evaluate_soft_restrictions(
             row,
             soft_tags,
             selected_program_ids,
             track_id,
         )
+        if (
+            restriction_blocked
+            and _is_alternative_soft_restriction(row, blocking_restriction_tag)
+            and prereq_ok_without_semester
+        ):
+            restriction_blocked = False
         if restriction_blocked:
             continue
         if cleared_restriction_tags:
@@ -861,6 +1010,7 @@ def get_eligible_courses(
             buckets_df,
             track_id=track_id,
             _course_bucket_index=course_bucket_index,
+            _course_bucket_detail_index=course_bucket_detail_index,
             _bucket_meta=bucket_meta,
             _course_level_index=course_level_index,
         )
@@ -915,6 +1065,20 @@ def get_eligible_courses(
 
         multi_bucket_score = len(unmet_buckets)
         display_buckets = _prune_discovery_elective_display(eligible_buckets, unmet_buckets)
+        bucket_label_overrides = {
+            bucket["bucket_id"]: override
+            for bucket in eligible_buckets
+            if bucket["bucket_id"] in display_buckets
+            for override in [_equivalency_bucket_label_override(bucket)]
+            if override
+        }
+        equivalent_to_courses = sorted({
+            str(bucket.get("equivalent_to_course_code", "") or "").strip()
+            for bucket in eligible_buckets
+            if bucket["bucket_id"] in display_buckets
+            and bool(bucket.get("mapped_via_equivalency"))
+            and str(bucket.get("equivalent_to_course_code", "") or "").strip()
+        })
         primary = (
             unmet_buckets[0]
             if unmet_buckets
@@ -988,6 +1152,8 @@ def get_eligible_courses(
             "bridge_target_buckets": [bucket["bucket_id"] for bucket in bridge_target_buckets],
             "unlocks_unmet_courses": direct_unmet_unlocks,
             "is_bridge_course": bool(bridge_target_buckets) and not bool(eligible_buckets),
+            "bucket_label_overrides": bucket_label_overrides,
+            "equivalent_to_courses": equivalent_to_courses,
             "same_semester_prereqs": same_semester_prereqs,
             "prereq_check": prereq_check,
             "has_soft_requirement": has_soft_requirement,
@@ -1134,12 +1300,30 @@ def check_can_take(
         soft_tags = [t.strip() for t in soft_raw.split(";") if t.strip()] if soft_raw else []
     else:
         soft_tags = list(soft_tags)
-    restriction_blocked, restriction_reason, cleared_restriction_tags = _evaluate_soft_restrictions(
+    allow_concurrent = any(t in CONCURRENT_TAGS for t in soft_tags)
+    has_explicit_concurrent = not _is_none_prereq(raw_concurrent)
+    prereq_ok_without_program_override = _prereqs_satisfied_for_semester(
+        parsed=parsed,
+        parsed_concurrent=parsed_concurrent,
+        allow_concurrent=allow_concurrent,
+        has_explicit_concurrent=has_explicit_concurrent,
+        completed_set=completed_set,
+        satisfied_codes=satisfied_codes,
+        semester_codes=set(),
+        equiv_map=equiv_map,
+    )
+    restriction_blocked, restriction_reason, cleared_restriction_tags, blocking_restriction_tag = _evaluate_soft_restrictions(
         row,
         soft_tags,
         selected_program_ids,
         "",
     )
+    if (
+        restriction_blocked
+        and _is_alternative_soft_restriction(row, blocking_restriction_tag)
+        and prereq_ok_without_program_override
+    ):
+        restriction_blocked = False
     if restriction_blocked:
         return {
             "can_take": False,

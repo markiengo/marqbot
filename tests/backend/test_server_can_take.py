@@ -204,6 +204,26 @@ class TestCanTakeEligibility:
         assert data["can_take"] is True
         assert data["unsupported_prereq_format"] is False
 
+    def test_insy_4051_does_not_require_acco_4050_for_insy_major(self, client):
+        _, data = post_can_take(client, {
+            "requested_course": "INSY 4051",
+            "completed_courses": "INSY 3001",
+            "target_semester": "Fall 2026",
+            "declared_majors": ["INSY_MAJOR"],
+        })
+        assert data["can_take"] is True
+        assert "ACCO 4050" not in str(data.get("why_not", ""))
+
+    def test_entp_3001_allows_buad_1001_without_program_restriction(self, client):
+        _, data = post_can_take(client, {
+            "requested_course": "ENTP 3001",
+            "completed_courses": "BUAD 1001",
+            "target_semester": "Fall 2026",
+            "declared_majors": ["DS_MAJOR", "INSY_MAJOR"],
+        })
+        assert data["can_take"] is True
+        assert data["why_not"] is None
+
     def test_student_stage_blocks_out_of_band_course(self, client):
         graduate_code = _catalog_course_for_level(5000, 7999)
         status, data = post_can_take(client, {
