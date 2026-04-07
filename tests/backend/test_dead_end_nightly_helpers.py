@@ -105,14 +105,15 @@ def test_nightly_report_uses_plain_english_sections_and_appendix_logs():
     snapshot = collector.to_snapshot(report_date="2026-03-09")
 
     assert "# Nightly Planner Report -" in report
-    assert "## Overall Health" in report
-    assert "- Status: Red" in report
+    assert "## Start Here" in report
+    assert "- Overall result: Red" in report
+    assert "- Students not graduating by semester 8: 1" in report
     assert "This run is incomplete" in report
-    assert "## What Needs Attention" in report
-    assert "## Priority Fix List" in report
-    assert "## Data Investigation Checklist" in report
-    assert "## Failures by Program" in report
-    assert "## Biggest Patterns" in report
+    assert "## Why Students Failed" in report
+    assert "## Fix First" in report
+    assert "## Where To Look In Data" in report
+    assert "## Programs To Review" in report
+    assert "## Most Common Open Buckets" in report
     assert "## Representative Cases" in report
     assert "#### Case 1" in report
     assert "- status: dead end + not graduated by semester 8" in report

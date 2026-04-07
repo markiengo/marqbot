@@ -1141,13 +1141,16 @@ class NightlyFailureCollector:
         lines = [
             f"# Nightly Planner Report - {snapshot['report_date']}",
             "",
-            "Daily decision summary for sampled student plans.",
-            "This version is written for quick review first, with raw case logs saved in the appendix.",
+            "Nightly graduation audit for sampled student plans.",
+            "Start with the summary, then check Fix First and Programs To Review.",
             "",
-            "## Overall Health",
-            f"- Status: {snapshot['status']}",
-            f"- Plain-English Summary: {snapshot['plain_summary']}",
-            f"- Review Date: {snapshot['report_date']}",
+            "## Start Here",
+            f"- Overall result: {snapshot['status']}",
+            f"- Summary: {snapshot['plain_summary']}",
+            f"- Review date: {snapshot['report_date']}",
+            f"- Students graduating by semester 8: {totals['passed_tests']} of {self.total_tests}",
+            f"- Students not graduating by semester 8: {totals['not_finished_count']}",
+            f"- Plans blocked before evaluation: {totals['invalid_count']}",
             f"- Runtime: {snapshot['runtime']['minutes']}m {snapshot['runtime']['seconds']}s",
         ]
         if totals["partial"]:
@@ -1159,7 +1162,7 @@ class NightlyFailureCollector:
 
         lines.extend([
             "",
-            "## What Needs Attention",
+            "## Why Students Failed",
         ])
 
         if totals["partial"]:
@@ -1204,7 +1207,7 @@ class NightlyFailureCollector:
         ]):
             lines.append("- No action items were reported in this run.")
 
-        lines.extend(["", "## Biggest Patterns"])
+        lines.extend(["", "## Most Common Open Buckets"])
         bucket_counts = Counter()
         for record in self.records:
             for bucket in record.get("unsatisfied_buckets") or []:
@@ -1218,7 +1221,7 @@ class NightlyFailureCollector:
         else:
             lines.append("- No requirement pattern summary is available for this run.")
 
-        lines.extend(["", "## Priority Fix List"])
+        lines.extend(["", "## Fix First"])
         if snapshot["priority_fix_list"]:
             for item in snapshot["priority_fix_list"]:
                 lines.append(
@@ -1228,7 +1231,7 @@ class NightlyFailureCollector:
         else:
             lines.append("- No recurring bucket failures were found to prioritize.")
 
-        lines.extend(["", "## Data Investigation Checklist"])
+        lines.extend(["", "## Where To Look In Data"])
         if snapshot["data_investigation_checklist"]:
             for item in snapshot["data_investigation_checklist"]:
                 lines.append(
@@ -1238,7 +1241,7 @@ class NightlyFailureCollector:
         else:
             lines.append("- No data-investigation checklist items were generated for this run.")
 
-        lines.extend(["", "## Catalog Baseline Audits"])
+        lines.extend(["", "## Baseline Audit Failures"])
         if self.supplemental_records:
             grouped: Counter[tuple[str, str]] = Counter(
                 (record["issue_kind"], record["scenario_label"]) for record in self.supplemental_records
@@ -1262,7 +1265,7 @@ class NightlyFailureCollector:
         else:
             lines.append("- No nightly catalog baseline issues were reported.")
 
-        lines.extend(["", "## Failures by Program"])
+        lines.extend(["", "## Programs To Review"])
         if snapshot["failures_by_program"]:
             for item in snapshot["failures_by_program"]:
                 summary_parts = []
@@ -1278,7 +1281,7 @@ class NightlyFailureCollector:
         else:
             lines.append("- No program-specific grouping is available for this run.")
 
-        lines.extend(["", "## Sample Plan Groups To Review"])
+        lines.extend(["", "## Student Groups To Review"])
         scenario_counts: Counter[tuple[str, str]] = Counter()
         for record in self.records:
             scenario_counts[(str(record["status"]), str(record["scenario_label"]))] += 1
@@ -1314,7 +1317,7 @@ class NightlyFailureCollector:
 
         lines.extend([
             "",
-            "## Test Methodology",
+            "## How This Nightly Audit Works",
             "",
             "### How students are picked",
             "",
@@ -1345,7 +1348,7 @@ class NightlyFailureCollector:
             "A case **fails** if any bucket remains open, the planner hits a dead end with no valid courses, "
             "or the seeded history could not be built (invalid combo).",
             "",
-            "## Run Details",
+            "## Run Facts",
             "",
             f"- Seed: `{suite['seed'] or 'unknown'}`",
             f"- Sampled plan groups: {len(self.sampled_scenario_labels)} of {self.total_possible_scenarios}",
