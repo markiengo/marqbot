@@ -2,7 +2,7 @@
 
 import { Modal } from "./Modal";
 import { Tag } from "./Tag";
-import { bucketLabel, esc } from "@/lib/utils";
+import { esc, recommendationBucketLabel } from "@/lib/utils";
 import { sortBucketsByTier } from "@/lib/rendering";
 
 interface CourseDetailModalProps {
@@ -14,6 +14,7 @@ interface CourseDetailModalProps {
   description?: string | null;
   prereqRaw?: string | null;
   buckets?: string[];
+  bucketLabelOverrides?: Record<string, string>;
   plannerReason?: string | null;
   plannerNotes?: string | null;
   plannerWarnings?: string[];
@@ -30,6 +31,7 @@ export function CourseDetailModal({
   description,
   prereqRaw,
   buckets,
+  bucketLabelOverrides,
   plannerReason,
   plannerNotes,
   plannerWarnings,
@@ -74,7 +76,12 @@ export function CourseDetailModal({
                     : "gold";
               return (
                 <Tag key={bid} variant={variant}>
-                  {bucketLabel(bid, programLabelMap, bucketLabelMap)}
+                  {recommendationBucketLabel(
+                    { bucket_label_overrides: bucketLabelOverrides },
+                    bid,
+                    programLabelMap,
+                    bucketLabelMap,
+                  )}
                 </Tag>
               );
             })}

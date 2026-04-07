@@ -3,8 +3,9 @@
 import "./setupTests";
 
 import { createElement } from "react";
-import { screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, test, vi } from "vitest";
 
 import { SemesterModal } from "../src/components/planner/SemesterModal";
 import { CourseDetailModal } from "../src/components/shared/CourseDetailModal";
@@ -95,6 +96,69 @@ describe("SemesterModal planner copy", () => {
     expect(screen.getByText("View details")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /view details for fina 4050/i })).toBeInTheDocument();
   });
+
+  test("replaces conflicting equivalent selections during semester edits", async () => {
+    const user = userEvent.setup();
+    const onEditApply = vi.fn(async () => {});
+
+    renderWithApp(
+      createElement(SemesterModal, {
+        open: true,
+        openMode: "edit",
+        onClose: () => {},
+        onEditApply,
+        onRequestCandidates: () => {},
+        semester: {
+          target_semester: "Fall 2026",
+          recommendations: [
+            {
+              course_code: "MATH 3570",
+              course_name: "Introduction to Data Science",
+              credits: 3,
+              fills_buckets: ["DS_MAJOR::DS_REQ_MATH"],
+              conflicts_with_courses: ["COSC 3570"],
+            },
+          ],
+        },
+        candidatePool: [
+          {
+            course_code: "COSC 3570",
+            course_name: "Introduction to Data Science",
+            credits: 3,
+            fills_buckets: ["DS_MAJOR::DS_REQ_MATH"],
+            equivalent_to_courses: ["MATH 3570"],
+            conflicts_with_courses: ["MATH 3570"],
+          },
+        ],
+        candidatePoolLoading: false,
+        index: 0,
+        totalCount: 1,
+        requestedCount: 4,
+        courses: [
+          {
+            course_code: "MATH 3570",
+            course_name: "Introduction to Data Science",
+            credits: 3,
+            level: 3000,
+          },
+          {
+            course_code: "COSC 3570",
+            course_name: "Introduction to Data Science",
+            credits: 3,
+            level: 3000,
+          },
+        ],
+      }),
+      state,
+    );
+
+    await user.click(screen.getByRole("button", { name: /add cosc 3570/i }));
+    await user.click(screen.getByRole("button", { name: /apply swaps/i }));
+
+    await waitFor(() => expect(onEditApply).toHaveBeenCalledTimes(1));
+    const chosenCourses = onEditApply.mock.calls[0][0];
+    expect(chosenCourses.map((course: { course_code: string }) => course.course_code)).toEqual(["COSC 3570"]);
+  });
 });
 
 describe("CourseDetailModal planner context", () => {
@@ -120,5 +184,26 @@ describe("CourseDetailModal planner context", () => {
     expect(screen.getByText("Take it after ACCO 1030 if you can.")).toBeInTheDocument();
     expect(screen.getByText("Heads up")).toBeInTheDocument();
     expect(screen.getByText("junior standing required")).toBeInTheDocument();
+  });
+
+  test("renders plain text course names without double-escaped ampersands", () => {
+    renderWithApp(
+      createElement(CourseDetailModal, {
+        open: true,
+        onClose: () => {},
+        courseCode: "COSC 3820",
+        courseName: "Professional Ethics in Computer & Data Science",
+        credits: 3,
+        description: "Covers ethics in computer and data science practice.",
+      }),
+      state,
+    );
+
+    expect(
+      screen.getByText("Professional Ethics in Computer & Data Science"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Professional Ethics in Computer &amp; Data Science"),
+    ).not.toBeInTheDocument();
   });
 });

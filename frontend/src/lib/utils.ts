@@ -1,4 +1,4 @@
-import type { Course } from "./types";
+import type { Course, RecommendedCourse } from "./types";
 
 type LabelStore = Map<string, string> | Record<string, string> | null;
 
@@ -32,6 +32,11 @@ export function prettifyIdentifier(value: string | null | undefined): string {
 }
 
 export function esc(str: string | null | undefined): string {
+  if (str === null || str === undefined) return "";
+  return String(str);
+}
+
+export function escapeHtml(str: string | null | undefined): string {
   if (str === null || str === undefined) return "";
   return String(str)
     .replace(/&/g, "&amp;")
@@ -96,6 +101,27 @@ export function bucketLabel(
   return `${programLabel}: ${localLabel}`;
 }
 
+export function recommendationBucketLabel(
+  course:
+    | Pick<RecommendedCourse, "bucket_label_overrides">
+    | null
+    | undefined,
+  bucketId: string,
+  programLabelMap: LabelStore = null,
+  detailedBucketLabelMap: LabelStore = null,
+  short = false,
+): string {
+  const raw = String(bucketId || "").trim();
+  if (!raw) return "";
+
+  const localId = raw.includes("::") ? raw.split("::", 2)[1] : raw;
+  const overrides = course?.bucket_label_overrides ?? {};
+  const override = overrides[raw] || overrides[localId];
+  if (override) return override;
+
+  return bucketLabel(raw, programLabelMap, detailedBucketLabelMap, short);
+}
+
 export function colorizePrereq(
   str: string | null | undefined,
 ): string {
@@ -106,17 +132,17 @@ export function colorizePrereq(
     .replace(
       /([A-Z]{2,6} \d{4}[A-Za-z]?) \(in progress\) \u2713/g,
       (_, code: string) =>
-        `<span class="text-amber-600 font-medium">${esc(code)} (in progress) ${check}</span>`,
+        `<span class="text-amber-600 font-medium">${escapeHtml(code)} (in progress) ${check}</span>`,
     )
     .replace(
       /([A-Z]{2,6} \d{4}[A-Za-z]?) \u2713/g,
       (_, code: string) =>
-        `<span class="text-green-600 font-medium">${esc(code)} ${check}</span>`,
+        `<span class="text-green-600 font-medium">${escapeHtml(code)} ${check}</span>`,
     )
     .replace(
       /([A-Z]{2,6} \d{4}[A-Za-z]?) \u2717/g,
       (_, code: string) =>
-        `<span class="text-red-500 font-medium">${esc(code)} ${cross}</span>`,
+        `<span class="text-red-500 font-medium">${escapeHtml(code)} ${cross}</span>`,
     );
 }
 

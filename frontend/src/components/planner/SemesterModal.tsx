@@ -13,7 +13,7 @@ import { getSemesterQuip } from "@/lib/quips";
 import { BucketSectionTabs } from "./BucketSectionTabs";
 import { BucketCourseModal } from "./BucketCourseModal";
 import { BucketMapModal } from "./BucketMapModal";
-import { bucketLabel, esc } from "@/lib/utils";
+import { esc, recommendationBucketLabel } from "@/lib/utils";
 
 interface SemesterModalProps {
   open: boolean;
@@ -39,6 +39,43 @@ interface SemesterModalProps {
   onRequestCandidates?(): void;
   onEditApply?(chosenCourses: RecommendedCourse[]): Promise<void>;
   onCourseClick?: (courseCode: string) => void;
+}
+
+function normalizeCourseCode(raw: string | null | undefined): string {
+  return String(raw || "").trim().toUpperCase();
+}
+
+function getCourseConflictCodes(course: RecommendedCourse): Set<string> {
+  return new Set(
+    [
+      ...(course.conflicts_with_courses ?? []),
+      ...(course.equivalent_to_courses ?? []),
+    ]
+      .map((code) => normalizeCourseCode(code))
+      .filter(Boolean),
+  );
+}
+
+function coursesConflict(left: RecommendedCourse, right: RecommendedCourse): boolean {
+  const leftCode = normalizeCourseCode(left.course_code);
+  const rightCode = normalizeCourseCode(right.course_code);
+  if (!leftCode || !rightCode) return false;
+  if (leftCode === rightCode) return true;
+  return (
+    getCourseConflictCodes(left).has(rightCode)
+    || getCourseConflictCodes(right).has(leftCode)
+  );
+}
+
+function collapseConflictingEditCourses(courses: RecommendedCourse[]): RecommendedCourse[] {
+  const next: RecommendedCourse[] = [];
+  for (const course of courses) {
+    if (next.some((existing) => coursesConflict(existing, course))) {
+      continue;
+    }
+    next.push(course);
+  }
+  return next;
 }
 
 export function SemesterModal({
@@ -110,7 +147,7 @@ export function SemesterModal({
     if (!open || openMode !== "edit" || autoEnteredEditRef.current || !semester) return;
     autoEnteredEditRef.current = true;
     setEditApplied(false);
-    setEditCourses([...(semester.recommendations ?? [])]);
+    setEditCourses(collapseConflictingEditCourses([...(semester.recommendations ?? [])]));
     setEditMode(true);
     onRequestCandidates?.();
   }, [open, openMode, onRequestCandidates, semester]);
@@ -118,7 +155,7 @@ export function SemesterModal({
   if (!semester) return null;
 
   const handleEnterEdit = () => {
-    setEditCourses([...recs]);
+    setEditCourses(collapseConflictingEditCourses([...recs]));
     setEditMode(true);
     onRequestCandidates?.();
   };
@@ -129,8 +166,9 @@ export function SemesterModal({
 
   const handleAddCourse = (course: RecommendedCourse) => {
     setEditCourses((prev) => {
-      if (prev.some((c) => c.course_code === course.course_code)) return prev;
-      return [...prev, course];
+      const next = prev.filter((existing) => !coursesConflict(existing, course));
+      next.push(course);
+      return next;
     });
   };
 
@@ -232,6 +270,14 @@ export function SemesterModal({
               <div className="bg-bad-light rounded-xl p-4 text-[1.05rem] text-bad">
                 Some courses were not found in the catalog:{" "}
                 {semester.not_in_catalog_warning.map(esc).join(", ")}
+              </div>
+            )}
+
+            {semester.semester_warnings && semester.semester_warnings.length > 0 && (
+              <div className="rounded-xl border border-gold/25 bg-gold/10 px-4 py-3 text-sm text-gold/85 space-y-1.5">
+                {semester.semester_warnings.map((warning) => (
+                  <p key={warning}>{esc(warning)}</p>
+                ))}
               </div>
             )}
 
@@ -340,7 +386,7 @@ export function SemesterModal({
               <div className="divider-fade" />
               <div className="flex items-center justify-between pt-4">
                 <p className="text-sm text-ink-faint">
-                  Downstream semesters have been re-generated.
+                  Downstream semesters were re-run and your manual adds were preserved where possible.
                 </p>
                 <Button variant="gold" size="sm" onClick={onClose}>
                   Done
@@ -373,6 +419,7 @@ export function SemesterModal({
         description={editFallbackCourse?.description}
         prereqRaw={editFallbackCourse?.catalog_prereq_raw}
         buckets={editDetailCourse?.fills_buckets}
+        bucketLabelOverrides={editDetailCourse?.bucket_label_overrides}
         plannerReason={editDetailCourse?.why}
         plannerNotes={editDetailCourse?.notes}
         plannerWarnings={editDetailCourse?.warning_text ? [editDetailCourse.warning_text] : undefined}
@@ -611,7 +658,7 @@ function EditCourseRow({
                     : "gold";
               return (
                 <Tag key={bid} variant={variant}>
-                  {bucketLabel(bid, programLabelMap, bucketLabelMap, true)}
+                  {recommendationBucketLabel(course, bid, programLabelMap, bucketLabelMap, true)}
                 </Tag>
               );
             })}
