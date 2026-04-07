@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { AnchorLine } from "@/components/shared/AnchorLine";
 import { Button } from "@/components/shared/Button";
+import { useReducedEffects } from "@/hooks/useReducedEffects";
 import styles from "./about.module.css";
 import { ABOUT_CONTACT_LINKS } from "./aboutContent";
 import type { AboutContactLink } from "./aboutContent";
@@ -40,7 +41,7 @@ function ContactIcon({ icon }: { icon: AboutContactLink["icon"] }) {
 }
 
 export function AboutCTA() {
-  const reduce = useReducedMotion();
+  const reduce = useReducedEffects();
 
   const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -49,9 +50,8 @@ export function AboutCTA() {
       ? {}
       : {
           initial: { opacity: 0, y },
-          whileInView: { opacity: 1, y: 0 },
-          viewport: { once: true, margin: "-80px" as const },
-          transition: { duration: 0.48, delay, ease },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.28, delay, ease },
         };
 
   return (

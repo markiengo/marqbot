@@ -38,7 +38,7 @@ const faqItems = [
 ] as const;
 
 export function LandingFaqSection() {
-  const [openId, setOpenId] = useState<string>(faqItems[0]?.id ?? "");
+  const [openIds, setOpenIds] = useState<string[]>(faqItems[0] ? [faqItems[0].id] : []);
 
   return (
     <section
@@ -71,7 +71,7 @@ export function LandingFaqSection() {
 
         <div className="mt-12 space-y-4">
           {faqItems.map((item) => {
-            const isOpen = item.id === openId;
+            const isOpen = openIds.includes(item.id);
             const buttonId = `faq-button-${item.id}`;
             const panelId = `faq-panel-${item.id}`;
 
@@ -89,7 +89,13 @@ export function LandingFaqSection() {
                   type="button"
                   aria-expanded={isOpen}
                   aria-controls={panelId}
-                  onClick={() => setOpenId(isOpen ? "" : item.id)}
+                  onClick={() =>
+                    setOpenIds((current) =>
+                      current.includes(item.id)
+                        ? current.filter((id) => id !== item.id)
+                        : [...current, item.id],
+                    )
+                  }
                   className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left sm:px-7 sm:py-6"
                 >
                   <span className="text-[1.2rem] font-bold leading-tight text-[#b6dcff] sm:text-[1.5rem]">

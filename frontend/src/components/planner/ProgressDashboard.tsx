@@ -1,14 +1,14 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
   useCatalogContext,
   useCourseHistoryContext,
   useRecommendationContext,
 } from "@/context/AppContext";
-import { ProgressRing } from "./ProgressRing";
 import { AnimatedNumber } from "@/components/shared/AnimatedNumber";
+import { Modal } from "@/components/shared/Modal";
 import {
   buildCourseCreditMap,
   sumCreditsForCourseCodes,
@@ -42,26 +42,62 @@ export function useProgressMetrics(): CreditKpiMetrics {
   }, [creditMap, completed, inProgress, lastRecommendationData]);
 }
 
+function standingTone(standingLabel: string): {
+  valueClass: string;
+  borderClass: string;
+  glowClass: string;
+} {
+  const normalized = String(standingLabel || "").toLowerCase();
+  if (normalized.includes("senior")) {
+    return {
+      valueClass: "text-[#ff9f7a]",
+      borderClass: "border-l-[#ff9f7a]/55",
+      glowClass: "shadow-[0_0_18px_rgba(255,159,122,0.12)]",
+    };
+  }
+  if (normalized.includes("junior")) {
+    return {
+      valueClass: "text-gold",
+      borderClass: "border-l-gold/50",
+      glowClass: "kpi-glow-gold",
+    };
+  }
+  if (normalized.includes("sophomore")) {
+    return {
+      valueClass: "text-ok",
+      borderClass: "border-l-ok/50",
+      glowClass: "kpi-glow-ok",
+    };
+  }
+  return {
+    valueClass: "text-[#8ec8ff]",
+    borderClass: "border-l-[#8ec8ff]/55",
+    glowClass: "shadow-[0_0_18px_rgba(142,200,255,0.12)]",
+  };
+}
+
 function ProgressDashboardInner({ onViewDetails, onCompletedClick, onInProgressClick }: ProgressDashboardProps) {
   const { completed, inProgress } = useCourseHistoryContext();
   const metrics = useProgressMetrics();
   const hasData = completed.size > 0 || inProgress.size > 0;
+  const standingStyle = standingTone(metrics.standingLabel);
+  const [standingGuideOpen, setStandingGuideOpen] = useState(false);
 
   return (
-    <div className="lg:h-full lg:min-h-0 rounded-2xl glass-card gradient-border p-2.5 flex flex-col gap-1 relative overflow-hidden">
+    <div className="lg:h-full lg:min-h-0 min-h-[17.25rem] rounded-2xl glass-card gradient-border p-2.5 sm:p-3 flex flex-col gap-1.5 relative overflow-hidden">
       {/* Atmospheric glow overlay */}
       <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{
         background: "radial-gradient(ellipse 60% 50% at 80% 15%, rgba(30, 159, 97, 0.06), transparent), radial-gradient(ellipse 50% 40% at 15% 85%, rgba(255, 204, 0, 0.05), transparent)"
       }} />
 
-      <div className="relative z-[1] flex flex-col gap-1.5 flex-1 min-h-0">
+      <div className="relative z-[1] flex flex-1 min-h-0 flex-col gap-2">
         <p className="section-kicker !text-[0.55rem] !tracking-[0.12em] gap-1.5 before:w-3">
           Planning tool. Not official advising. Check with your advisor and CheckMarq.
         </p>
 
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
-            Degree Progress
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="pr-2 text-[0.95rem] md:text-[1.05rem] font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
+            Current Degree Progress
           </h3>
           {hasData && (
             <button
@@ -74,28 +110,7 @@ function ProgressDashboardInner({ onViewDetails, onCompletedClick, onInProgressC
           )}
         </div>
 
-        {/* Bento grid: ring left, KPIs right, standing + remaining bottom */}
         <div className="flex-1 min-h-0 grid grid-cols-2 gap-2.5 auto-rows-fr">
-          {/* Ring - spans left column, 2 rows */}
-          <motion.button
-            type="button"
-            className="row-span-2 flex items-center justify-center cursor-pointer rounded-xl ring-glow focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2"
-            onClick={onViewDetails}
-            aria-label="View full degree progress breakdown"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <ProgressRing
-              pct={metrics.donePercent}
-              inProgressPct={metrics.inProgressPercent}
-              displayPct={metrics.overallPercent}
-              size={100}
-              stroke={9}
-            />
-          </motion.button>
-
-          {/* Right column: Completed + In Progress stacked */}
           <KpiTile
             value={metrics.completedCredits}
             label="Credits Completed"
@@ -115,18 +130,13 @@ function ProgressDashboardInner({ onViewDetails, onCompletedClick, onInProgressC
             onClick={onInProgressClick}
           />
 
-          {/* Bottom row: Standing + Remaining */}
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.15 }}
-            className="rounded-xl glass-card stat-card-decor kpi-glow-gold p-2 flex flex-col items-center justify-center border-l-2 border-l-gold/50"
-          >
-            <div className="text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] text-ink-primary leading-none">
-              {metrics.standingLabel}
-            </div>
-            <p className="text-ink-muted mt-0.5 text-[11px]">Standing</p>
-          </motion.div>
+          <StandingTile
+            label={metrics.standingLabel}
+            valueClass={standingStyle.valueClass}
+            borderClass={standingStyle.borderClass}
+            glowClass={standingStyle.glowClass}
+            onOpenGuide={() => setStandingGuideOpen(true)}
+          />
 
           <KpiTile
             value={metrics.remainingCredits}
@@ -138,6 +148,22 @@ function ProgressDashboardInner({ onViewDetails, onCompletedClick, onInProgressC
           />
         </div>
       </div>
+
+      <Modal
+        open={standingGuideOpen}
+        onClose={() => setStandingGuideOpen(false)}
+        title="Standing by Credits"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-ink-faint">Based on completed credits.</p>
+          <div className="space-y-2">
+            <StandingGuideRow range="0-23" label="Freshman" valueClass="text-[#8ec8ff]" />
+            <StandingGuideRow range="24-59" label="Sophomore" valueClass="text-ok" />
+            <StandingGuideRow range="60-89" label="Junior" valueClass="text-gold" />
+            <StandingGuideRow range="90+" label="Senior" valueClass="text-[#ff9f7a]" />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -172,16 +198,66 @@ function KpiTile({
       whileHover={onClick ? { scale: 1.04 } : undefined}
       whileTap={onClick ? { scale: 0.97 } : undefined}
       transition={{ duration: 0.3, delay }}
-      className={`rounded-xl glass-card stat-card-decor ${glowClass} p-2 sm:p-3 text-center min-h-0 flex flex-col items-center justify-center border-l-2 ${accentColor} ${onClick ? "cursor-pointer" : ""}`}
+      className={`rounded-xl glass-card stat-card-decor ${glowClass} p-2.5 sm:p-3 text-center min-h-0 flex flex-col items-center justify-center border-l-2 ${accentColor} ${onClick ? "cursor-pointer" : ""}`}
       aria-label={onClick ? `View ${label} courses` : undefined}
     >
       <div
-        className={`text-xl sm:text-3xl font-bold font-[family-name:var(--font-sora)] leading-none tabular-nums ${valueClass}`}
+        className={`text-xl sm:text-2xl font-bold font-[family-name:var(--font-sora)] leading-none tabular-nums ${valueClass}`}
         style={{ fontVariantNumeric: "tabular-nums" }}
       >
         <AnimatedNumber value={value} />
       </div>
       <div className="text-[11px] text-ink-secondary mt-1 leading-tight">{label}</div>
     </Tag>
+  );
+}
+
+function StandingTile({
+  label,
+  valueClass,
+  borderClass,
+  glowClass,
+  onOpenGuide,
+}: {
+  label: string;
+  valueClass: string;
+  borderClass: string;
+  glowClass: string;
+  onOpenGuide: () => void;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onOpenGuide}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ duration: 0.3, delay: 0.15 }}
+      className={`rounded-xl glass-card stat-card-decor p-2.5 flex flex-col items-center justify-center border-l-2 ${borderClass} ${glowClass} cursor-pointer`}
+      aria-label="View standing scale"
+    >
+      <div className={`text-base md:text-lg font-bold font-[family-name:var(--font-sora)] leading-none text-center ${valueClass}`}>
+        {label}
+      </div>
+      <p className="text-ink-muted mt-0.5 text-[11px]">Standing</p>
+    </motion.button>
+  );
+}
+
+function StandingGuideRow({
+  range,
+  label,
+  valueClass,
+}: {
+  range: string;
+  label: string;
+  valueClass: string;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.035] px-3 py-2">
+      <span className={`font-semibold ${valueClass}`}>{label}</span>
+      <span className="text-sm text-ink-faint">{range} credits</span>
+    </div>
   );
 }

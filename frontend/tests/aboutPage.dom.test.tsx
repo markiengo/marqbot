@@ -24,6 +24,24 @@ describe("AboutPage", () => {
     expect(container.querySelector("a button")).toBeNull();
   });
 
+  test("shows the updated founder intro and github link", () => {
+    render(createElement(AboutPage));
+
+    expect(
+      screen.getByText(/i'm a freshman studying information systems at marquette\./i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/i built this because i'm bored, and i hate picking courses each semester\./i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^here$/i })).toHaveAttribute(
+      "href",
+      "https://github.com/markiengo/marqbot",
+    );
+    expect(
+      screen.getByText(/if not, enjoy the tool and give me feedback\./i),
+    ).toBeInTheDocument();
+  });
+
   test("lets keyboard users toggle roadmap cards", async () => {
     const user = userEvent.setup();
 

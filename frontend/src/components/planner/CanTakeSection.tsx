@@ -36,7 +36,7 @@ function CanTakeSectionInner() {
   };
 
   return (
-    <div className="lg:h-full rounded-2xl glass-card p-3 sm:p-4 flex flex-col gap-3 relative overflow-hidden">
+    <div className="lg:h-full rounded-2xl glass-card p-3 sm:p-4 flex flex-col gap-2.5 relative overflow-hidden">
       {/* Atmospheric glow */}
       <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{
         background: "radial-gradient(ellipse 60% 50% at 85% 20%, rgba(0, 114, 206, 0.06), transparent)"
@@ -131,8 +131,8 @@ function CanTakeSectionInner() {
         </motion.div>
       )}
 
-      <div className="relative z-[1] mt-auto rounded-[1.05rem] border border-white/8 bg-white/[0.035] px-3 py-2.5 text-[0.74rem] leading-relaxed text-ink-faint">
-        Prereq checks use your saved course history, visible restrictions, and the current planner profile.
+      <div className="relative z-[1] rounded-[1.05rem] border border-white/8 bg-white/[0.035] px-3 py-2 text-[0.72rem] leading-relaxed text-ink-faint">
+        Uses your saved history, planner profile, and visible prereq rules.
       </div>
     </div>
   );

@@ -685,7 +685,7 @@ export function PlannerLayout() {
         {/* LEFT: Progress (60%) + Can I Take (40%) */}
         <div className="planner-panel planner-left">
           <div className="lg:h-full lg:min-h-0 flex flex-col gap-3">
-            <div className="lg:flex-[3] lg:min-h-0">
+            <div className="flex-1 lg:flex-[3] lg:min-h-0">
               <ProgressDashboard
                 onViewDetails={openProgressModal}
                 onCompletedClick={openCompletedCourseList}
@@ -693,7 +693,7 @@ export function PlannerLayout() {
               />
             </div>
 
-            <div className="lg:flex-[2] lg:min-h-0">
+            <div className="flex-1 lg:flex-[2] lg:min-h-0">
               <CanTakeSection />
             </div>
           </div>

@@ -164,28 +164,6 @@ body {
   z-index: 1;
 }
 
-.home-lower-scale {
-  transform-origin: top center;
-}
-
-@media (min-width: 768px) {
-  .home-lower-scale {
-    width: 133.3334%;
-    margin-left: -16.6667%;
-    margin-bottom: -25vh;
-    transform: scale(0.75);
-  }
-}
-
-@media (max-width: 767px) {
-  .home-lower-scale {
-    width: 111.1112%;
-    margin-left: -5.5556%;
-    margin-bottom: -8vh;
-    transform: scale(0.9);
-  }
-}
-
 html[data-effects-mode="reduced"] body {
   background: linear-gradient(140deg, #071227, #0c1d38 50%, #0d203e);
 }

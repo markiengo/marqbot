@@ -1,13 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { AnchorLine } from "@/components/shared/AnchorLine";
+import { useReducedEffects } from "@/hooks/useReducedEffects";
 import styles from "./about.module.css";
 import { ABOUT_HERO_COPY, ABOUT_INTRO_COPY, ABOUT_INTRO_LABELS } from "./aboutContent";
 
 export function AboutHero() {
-  const reduce = useReducedMotion();
+  const reduce = useReducedEffects();
   const [headlineLead, headlineTail = ""] = ABOUT_HERO_COPY.headline.split("MarqBot");
 
   const ease = [0.22, 1, 0.36, 1] as const;
@@ -18,16 +19,6 @@ export function AboutHero() {
       : {
           initial: { opacity: 0, y },
           animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.5, delay, ease },
-        };
-
-  const viewAnim = (y: number, delay = 0) =>
-    reduce
-      ? {}
-      : {
-          initial: { opacity: 0, y },
-          whileInView: { opacity: 1, y: 0 },
-          viewport: { once: true, margin: "-60px" as const },
           transition: { duration: 0.5, delay, ease },
         };
 
@@ -69,8 +60,8 @@ export function AboutHero() {
 
         {/* ── Founder card: photo sidebar + intro ─────────────── */}
         <motion.div
-          {...viewAnim(24)}
-          className="glass-card card-glow-hover rounded-[2rem] p-6 sm:p-8 relative overflow-hidden"
+          {...anim(20, 0.14)}
+          className="glass-card card-glow-hover relative overflow-hidden rounded-[2rem] p-6 sm:p-8"
         >
           {/* Internal atmospheric glow */}
           <div className="absolute inset-0 rounded-[2rem] pointer-events-none" style={{
@@ -133,9 +124,11 @@ export function AboutHero() {
                 </a>.
               </p>
 
-              <div className="mt-6 inline-flex glass-card rounded-2xl px-4 py-3 max-w-fit">
-                <p className="text-sm italic leading-relaxed text-gold/85">{ABOUT_INTRO_COPY.note}</p>
-              </div>
+              {ABOUT_INTRO_COPY.note ? (
+                <div className="mt-6 inline-flex glass-card max-w-fit rounded-2xl px-4 py-3">
+                  <p className="text-sm italic leading-relaxed text-gold/85">{ABOUT_INTRO_COPY.note}</p>
+                </div>
+              ) : null}
             </div>
           </div>
         </motion.div>

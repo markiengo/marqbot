@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import type { MouseEvent, PointerEvent } from "react";
 import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/shared/Button";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
+import { scrollToSection } from "@/lib/scrollToSection";
 
 const topCourse = {
   code: "ACCO 3001",
   title: "Intermediate Accounting I",
-  detail: "Starts a real sequence before the prereq chain gets ideas.",
+  detail: "Starts the real sequence before the prereq chain fights back.",
   tags: ["Counts now", "Unlocks ACCO 4020", "Open this term"],
 };
 
@@ -22,26 +24,24 @@ const nextCourses = [
   {
     code: "FINA 3001",
     title: "Intro to Finance",
-    detail: "Opens a longer chain. Handle it before it handles you.",
+    detail: "Opens a longer chain before it bottlenecks later.",
   },
 ];
 
 const heroProof = [
   {
     label: "5,300+ course records wired in",
-    className:
-      "float-soft border-gold/30 bg-gold/12 text-gold shadow-[0_0_24px_rgba(255,204,0,0.14)]",
+    className: "border-gold/30 bg-gold/12 text-gold shadow-[0_0_24px_rgba(255,204,0,0.14)]",
   },
   {
     label: "Rules-based ranking",
-    className:
-      "float-soft-delay border-[#8ec8ff]/22 bg-[#8ec8ff]/10 text-[#8ec8ff] shadow-[0_0_24px_rgba(0,114,206,0.12)]",
+    className: "border-[#8ec8ff]/22 bg-[#8ec8ff]/10 text-[#8ec8ff] shadow-[0_0_24px_rgba(0,114,206,0.12)]",
   },
   {
     label: "Built for Marquette Business",
     className: "border-white/10 bg-white/[0.04] text-slate-200",
   },
-];
+] as const;
 
 export function LandingHeroSimple() {
   const reduceEffects = useReducedEffects();
@@ -49,70 +49,83 @@ export function LandingHeroSimple() {
   const glowRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const activeRef = useRef(false);
-  const targetPos = useRef({ x: 0.5, y: 0.4, opacity: 0 });
-  const currentPos = useRef({ x: 0.5, y: 0.4, opacity: 0 });
+  const targetPos = useRef({ x: 50, y: 40, opacity: 0 });
+  const currentPos = useRef({ x: 50, y: 40, opacity: 0 });
+
+  const handleStoryLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    scrollToSection("story");
+  };
 
   useEffect(() => {
-    if (reduceEffects) return;
     return () => {
-      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+      }
       frameRef.current = null;
       activeRef.current = false;
     };
-  }, [reduceEffects]);
+  }, []);
 
-  const startLoop = () => {
-    if (activeRef.current || reduceEffects) return;
+  const startGlowLoop = () => {
+    if (reduceEffects || activeRef.current) return;
     activeRef.current = true;
 
     const tick = () => {
-      const target = targetPos.current;
-      const current = currentPos.current;
-      current.x += (target.x - current.x) * 0.12;
-      current.y += (target.y - current.y) * 0.12;
-      current.opacity += (target.opacity - current.opacity) * 0.1;
-
       const glow = glowRef.current;
-      if (glow) {
-        glow.style.setProperty("--gx", `${current.x * 100}%`);
-        glow.style.setProperty("--gy", `${current.y * 100}%`);
-        glow.style.opacity = String(current.opacity);
+      if (!glow) {
+        activeRef.current = false;
+        frameRef.current = null;
+        return;
       }
 
+      const target = targetPos.current;
+      const current = currentPos.current;
+
+      current.x += (target.x - current.x) * 0.1;
+      current.y += (target.y - current.y) * 0.1;
+      current.opacity += (target.opacity - current.opacity) * 0.12;
+
+      glow.style.setProperty("--gx", `${current.x}%`);
+      glow.style.setProperty("--gy", `${current.y}%`);
+      glow.style.opacity = String(current.opacity);
+
       const settled =
-        Math.abs(target.x - current.x) < 0.002 &&
-        Math.abs(target.y - current.y) < 0.002 &&
-        Math.abs(target.opacity - current.opacity) < 0.01;
+        Math.abs(target.x - current.x) < 0.2 &&
+        Math.abs(target.y - current.y) < 0.2 &&
+        Math.abs(target.opacity - current.opacity) < 0.02;
 
       if (settled) {
         activeRef.current = false;
         frameRef.current = null;
-      } else {
-        frameRef.current = requestAnimationFrame(tick);
+        return;
       }
+
+      frameRef.current = requestAnimationFrame(tick);
     };
 
     frameRef.current = requestAnimationFrame(tick);
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+  const handlePointerMove = (event: PointerEvent<HTMLElement>) => {
     if (reduceEffects) return;
     const section = sectionRef.current;
     if (!section) return;
 
     const rect = section.getBoundingClientRect();
     targetPos.current = {
-      x: (event.clientX - rect.left) / rect.width,
-      y: (event.clientY - rect.top) / rect.height,
+      x: ((event.clientX - rect.left) / rect.width) * 100,
+      y: ((event.clientY - rect.top) / rect.height) * 100,
       opacity: 1,
     };
-    startLoop();
+
+    startGlowLoop();
   };
 
   const handlePointerLeave = () => {
     if (reduceEffects) return;
     targetPos.current.opacity = 0;
-    startLoop();
+    startGlowLoop();
   };
 
   return (
@@ -132,8 +145,9 @@ export function LandingHeroSimple() {
           aria-hidden="true"
           className="absolute inset-0"
           style={{
-            background: "radial-gradient(circle 18rem at var(--gx, 50%) var(--gy, 40%), rgba(255,204,0,0.22), transparent 50%), radial-gradient(circle 30rem at calc(var(--gx, 50%) + 5rem) calc(var(--gy, 40%) - 4rem), rgba(0,114,206,0.14), transparent 58%)",
-            filter: "blur(22px)",
+            background:
+              "radial-gradient(circle 21rem at var(--gx, 50%) var(--gy, 40%), rgba(255,204,0,0.16), transparent 48%), radial-gradient(circle 31rem at calc(var(--gx, 50%) + 4rem) calc(var(--gy, 40%) - 3rem), rgba(0,114,206,0.10), transparent 56%)",
+            filter: "blur(16px)",
             opacity: 0,
           }}
         />
@@ -151,7 +165,7 @@ export function LandingHeroSimple() {
         <motion.div
           initial={reduceEffects ? false : { opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduceEffects ? 0.18 : 0.48, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: reduceEffects ? 0.18 : 0.42, ease: [0.22, 1, 0.36, 1] }}
           className="mx-auto max-w-[44rem] text-center"
         >
           <span className="inline-flex items-center justify-center rounded-full border border-gold/25 bg-gold/10 px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-gold">
@@ -175,9 +189,7 @@ export function LandingHeroSimple() {
               size="lg"
               className="w-full justify-center border border-gold/60 pulse-gold-soft shadow-[0_0_30px_rgba(255,204,0,0.22)]"
             >
-              <Link href="/onboarding">
-                Get My Plan
-              </Link>
+              <Link href="/onboarding">Get My Plan</Link>
             </Button>
             <Button
               asChild
@@ -185,7 +197,7 @@ export function LandingHeroSimple() {
               size="lg"
               className="w-full justify-center border-white/14 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(0,114,206,0.10))] text-white shadow-[0_0_26px_rgba(0,114,206,0.14)] hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.10),rgba(0,114,206,0.14))]"
             >
-              <Link href="#story">
+              <Link href="#story" onClick={handleStoryLinkClick}>
                 See How It Works
               </Link>
             </Button>
@@ -197,7 +209,7 @@ export function LandingHeroSimple() {
                 key={item.label}
                 initial={reduceEffects ? false : { opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: reduceEffects ? 0.18 : 0.35, delay: reduceEffects ? 0 : 0.42 + index * 0.08 }}
+                transition={{ duration: reduceEffects ? 0.18 : 0.3, delay: reduceEffects ? 0 : 0.34 + index * 0.06 }}
                 className={`rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.14em] ${item.className}`}
               >
                 {item.label}
@@ -209,11 +221,11 @@ export function LandingHeroSimple() {
         </motion.div>
 
         <motion.div
-          initial={reduceEffects ? false : { opacity: 0, y: 28, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
+          initial={reduceEffects ? false : { opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{
-            duration: reduceEffects ? 0.18 : 0.58,
-            delay: reduceEffects ? 0 : 0.14,
+            duration: reduceEffects ? 0.18 : 0.48,
+            delay: reduceEffects ? 0 : 0.12,
             ease: [0.22, 1, 0.36, 1],
           }}
           className="landing-hero-stage relative mt-10 w-full max-w-[54rem]"
@@ -230,7 +242,7 @@ export function LandingHeroSimple() {
             <motion.div
               initial={{ opacity: 0, scale: 0.96, rotate: 4 }}
               animate={{ opacity: 1, scale: 1, rotate: 4 }}
-              transition={{ duration: 0.5, delay: 0.42 }}
+              transition={{ duration: 0.36, delay: 0.34 }}
               className="absolute -right-2 top-5 hidden rounded-xl border border-gold/20 bg-[linear-gradient(135deg,rgba(20,31,58,0.96),rgba(13,24,46,0.88))] px-3 py-2 shadow-[0_18px_44px_rgba(0,0,0,0.28)] sm:block"
             >
               <p className="text-[10px] font-semibold text-gold">5,300+ courses wired in</p>
@@ -242,31 +254,23 @@ export function LandingHeroSimple() {
               <motion.div
                 initial={{ opacity: 0, x: -18, y: 18, rotate: -7 }}
                 animate={{ opacity: 1, x: 0, y: 0, rotate: -7 }}
-                transition={{ duration: 0.48, delay: 0.5 }}
+                transition={{ duration: 0.38, delay: 0.42 }}
                 className="absolute -left-10 top-28 hidden w-48 rounded-[1.2rem] border border-white/10 bg-[linear-gradient(145deg,rgba(13,27,52,0.96),rgba(10,20,39,0.88))] p-3 shadow-[0_18px_44px_rgba(0,0,0,0.26)] lg:block"
               >
-                <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#8ec8ff]">
-                  Also visible
-                </p>
+                <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#8ec8ff]">Also visible</p>
                 <p className="mt-2 text-sm font-semibold text-white">{nextCourses[0].code}</p>
-                <p className="mt-1 text-[0.72rem] leading-relaxed text-slate-300">
-                  {nextCourses[0].title}
-                </p>
+                <p className="mt-1 text-[0.72rem] leading-relaxed text-slate-300">{nextCourses[0].title}</p>
               </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, x: 18, y: -14, rotate: 6 }}
                 animate={{ opacity: 1, x: 0, y: 0, rotate: 6 }}
-                transition={{ duration: 0.48, delay: 0.58 }}
+                transition={{ duration: 0.38, delay: 0.48 }}
                 className="absolute -right-10 bottom-20 hidden w-52 rounded-[1.2rem] border border-gold/18 bg-[linear-gradient(145deg,rgba(20,30,56,0.96),rgba(13,24,46,0.9))] p-3 shadow-[0_18px_44px_rgba(0,0,0,0.26)] lg:block"
               >
-                <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-gold">
-                  Coming up
-                </p>
+                <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-gold">Coming up</p>
                 <p className="mt-2 text-sm font-semibold text-white">{nextCourses[1].code}</p>
-                <p className="mt-1 text-[0.72rem] leading-relaxed text-slate-300">
-                  {nextCourses[1].title}
-                </p>
+                <p className="mt-1 text-[0.72rem] leading-relaxed text-slate-300">{nextCourses[1].title}</p>
               </motion.div>
             </>
           )}
@@ -276,9 +280,7 @@ export function LandingHeroSimple() {
 
             <div className="relative flex items-center justify-between gap-3 rounded-[1.25rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                  Plan preview
-                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">Plan preview</p>
                 <p className="mt-0.5 text-sm font-semibold text-white">Next term</p>
               </div>
               <span className="rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-300">
@@ -289,7 +291,7 @@ export function LandingHeroSimple() {
             <motion.div
               initial={reduceEffects ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduceEffects ? 0.2 : 0.5, delay: reduceEffects ? 0 : 0.34 }}
+              transition={{ duration: reduceEffects ? 0.18 : 0.42, delay: reduceEffects ? 0 : 0.26 }}
               className="relative mt-4 rounded-[1.6rem] border border-gold/25 bg-[linear-gradient(160deg,rgba(255,204,0,0.10),rgba(17,30,55,0.78))] p-5 lg:p-6"
             >
               <div className="flex items-start justify-between gap-3">
@@ -315,11 +317,9 @@ export function LandingHeroSimple() {
                     key={tag}
                     initial={reduceEffects ? false : { opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: reduceEffects ? 0.18 : 0.35, delay: reduceEffects ? 0 : 0.46 + index * 0.08 }}
+                    transition={{ duration: reduceEffects ? 0.18 : 0.26, delay: reduceEffects ? 0 : 0.34 + index * 0.06 }}
                     className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${
-                      index === 0
-                        ? "border-gold/30 bg-gold/12 text-gold"
-                        : "border-white/10 bg-white/[0.05] text-slate-200"
+                      index === 0 ? "border-gold/30 bg-gold/12 text-gold" : "border-white/10 bg-white/[0.05] text-slate-200"
                     }`}
                   >
                     {tag}
@@ -330,15 +330,15 @@ export function LandingHeroSimple() {
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-[1rem] border border-white/10 bg-white/[0.05] px-3 py-3">
                   <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Why now</p>
-                  <p className="mt-2 text-sm font-medium text-white">Counts this term and keeps the sequence moving.</p>
+                  <p className="mt-2 text-sm font-medium text-white">Counts now and keeps the chain moving.</p>
                 </div>
                 <div className="rounded-[1rem] border border-white/10 bg-white/[0.05] px-3 py-3">
                   <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-slate-400">What it unlocks</p>
-                  <p className="mt-2 text-sm font-medium text-white">Avoids later bottlenecks before registration gets weird.</p>
+                  <p className="mt-2 text-sm font-medium text-white">Avoids later bottlenecks.</p>
                 </div>
                 <div className="rounded-[1rem] border border-white/10 bg-white/[0.05] px-3 py-3">
                   <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-slate-400">What stays visible</p>
-                  <p className="mt-2 text-sm font-medium text-white">Major, track, and requirement buckets stay attached.</p>
+                  <p className="mt-2 text-sm font-medium text-white">Major, track, and bucket context stay attached.</p>
                 </div>
               </div>
             </motion.div>
@@ -347,19 +347,12 @@ export function LandingHeroSimple() {
 
         <Link
           href="#story"
+          onClick={handleStoryLinkClick}
           className="landing-scroll-cue absolute bottom-7 left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full px-4 py-2.5 sm:flex"
           aria-label="Continue to features"
         >
-          <span className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-300">
-            What it does
-          </span>
-          <motion.span
-            animate={reduceEffects ? {} : { y: [0, 3, 0] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            className="leading-none text-slate-400"
-          >
-            ↓
-          </motion.span>
+          <span className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-300">What it does</span>
+          <span className="leading-none text-slate-400">↓</span>
         </Link>
       </div>
     </section>

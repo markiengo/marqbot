@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { Button } from "@/components/shared/Button";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
 
@@ -12,49 +12,49 @@ const storySteps = [
     eyebrow: "Load context",
     title: (
       <>
-        <span className="text-white">Program, </span>
-        <span className="text-[#b6dcff]">history,</span>
-        <span className="text-gold-light"> pace.</span>
+        <span className="text-white">Bring in your </span>
+        <span className="text-[#b6dcff]">record</span>
+        <span className="text-gold-light"> first.</span>
       </>
     ),
-    explainer: "Use your real record before ranking starts.",
+    explainer: "Start with your real history.",
   },
   {
     number: "02",
-    eyebrow: "View progress",
+    eyebrow: "See progress",
     title: (
       <>
-        <span className="text-white">Bucket map and </span>
-        <span className="text-[#b6dcff]">degree</span>
-        <span className="text-gold-light"> progress.</span>
+        <span className="text-white">See what is </span>
+        <span className="text-[#b6dcff]">done</span>
+        <span className="text-gold-light"> and open.</span>
       </>
     ),
-    explainer: "See filled, active, and still-open rules.",
+    explainer: "See done. See open.",
   },
   {
     number: "03",
-    eyebrow: "Edit plans",
+    eyebrow: "Edit draft",
     title: (
       <>
-        <span className="text-white">Switch </span>
-        <span className="text-[#b6dcff]">courses</span>
+        <span className="text-white">Swap the </span>
+        <span className="text-[#b6dcff]">mix</span>
         <span className="text-white"> before you</span>
         <span className="text-gold-light"> save.</span>
       </>
     ),
-    explainer: "Swap courses and watch the draft update.",
+    explainer: "Swap before you save.",
   },
   {
     number: "04",
-    eyebrow: "Save plans",
+    eyebrow: "Save paths",
     title: (
       <>
-        <span className="text-white">Save paths and </span>
-        <span className="text-[#b6dcff]">compare</span>
-        <span className="text-gold-light"> later.</span>
+        <span className="text-white">Keep the </span>
+        <span className="text-[#b6dcff]">best</span>
+        <span className="text-gold-light"> path.</span>
       </>
     ),
-    explainer: "Keep multiple paths and compare them later.",
+    explainer: "Save drafts. Compare later.",
   },
 ] as const;
 
@@ -75,43 +75,29 @@ const progressBuckets = [
 ] as const;
 
 const selectedCourses = [
-  { code: "ACCO 3001", title: "Intermediate Accounting I", bucket: "Accounting track", note: "Locked in for the current draft." },
-  { code: "FINA 3001", title: "Financial Management", bucket: "Finance track", note: "Still fits the same load." },
-  { code: "MKTG 3001", title: "Marketing Management", bucket: "Business core", note: "Keeps the semester balanced." },
+  { code: "ACCO 3001", title: "Intermediate Accounting I", bucket: "Accounting", note: "In the draft." },
+  { code: "FINA 3001", title: "Financial Management", bucket: "Finance", note: "Still fits." },
+  { code: "MARK 3001", title: "Introduction to Marketing", bucket: "Business core", note: "Keeps the term balanced." },
 ] as const;
 
 const swapOptions = [
-  { code: "BULA 3001", title: "Legal and Ethical Environment of Business", tags: ["MCC bucket", "3 credits", "Open now"], note: "Fills a requirement without raising the load." },
-  { code: "SCMM 3010", title: "Supply Chain Foundations", tags: ["Business core", "3 credits", "Good swap"], note: "Cleaner fit if accounting is already doing enough." },
+  { code: "BULA 3001", title: "Legal and Ethical Environment of Business", tags: ["MCC", "3 credits", "Open"], note: "Fills a requirement without raising the load." },
+  { code: "SCMM 3010", title: "Supply Chain Foundations", tags: ["Core", "3 credits", "Good swap"], note: "Cleaner fit if accounting is already doing enough." },
 ] as const;
 
 const savedPaths = [
-  { label: "Path A", note: "Balanced load / Upper-division first", active: true },
-  { label: "Path B", note: "Internship season / Lighter spring", active: false },
-  { label: "Path C", note: "Double-major safe / Longer runway", active: false },
+  { label: "Path A", note: "Balanced load", active: true },
+  { label: "Path B", note: "Lighter spring", active: false },
+  { label: "Path C", note: "Longer runway", active: false },
 ] as const;
 
 const savedSemesterCards = [
-  { term: "Fall 2027", courses: ["FINA 3001", "BULA 3001", "MKTG 3001"] },
+  { term: "Fall 2027", courses: ["FINA 3001", "BULA 3001", "MARK 3001"] },
   { term: "Spring 2028", courses: ["ACCO 3101", "SCMM 3200", "BULA 4050"] },
 ] as const;
 
-const slideVariants = {
-  enter: (direction: number) => ({ opacity: 0, x: direction >= 0 ? 34 : -34 }),
-  center: { opacity: 1, x: 0 },
-  exit: (direction: number) => ({ opacity: 0, x: direction >= 0 ? -34 : 34 }),
-};
-
-const previewEase = [0.22, 1, 0.36, 1] as const;
-
-function previewItemMotion(reduceEffects: boolean, delay = 0) {
-  return reduceEffects
-    ? {}
-    : {
-        initial: { opacity: 0, y: 14, scale: 0.988 },
-        animate: { opacity: 1, y: 0, scale: 1 },
-        transition: { duration: 0.34, delay, ease: previewEase },
-      };
+function previewItemMotion(_reduceEffects: boolean, _delay = 0) {
+  return {};
 }
 
 function StoryBadge({ label, className }: { label: string; className?: string }) {
@@ -134,7 +120,7 @@ function StoryFrameShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-full flex-col rounded-[2rem] border border-white/12 bg-[linear-gradient(180deg,rgba(8,22,42,0.68),rgba(7,18,34,0.58))] p-5 shadow-[0_28px_90px_rgba(0,0,0,0.24)] backdrop-blur-[2px]">
+    <div className="flex h-full flex-col rounded-[2rem] border border-white/12 bg-[linear-gradient(180deg,rgba(8,22,42,0.94),rgba(7,18,34,0.92))] p-5 shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="text-[0.9rem] font-semibold uppercase tracking-[0.22em] text-gold-light">{headline}</p>
         <div className="flex flex-wrap gap-2">
@@ -159,15 +145,15 @@ function StepOnePreview({ reduceEffects }: { reduceEffects: boolean }) {
   return (
     <StoryFrameShell
       headline="Load the real record"
-      chips={["Loaded from record", "53 credits on file"]}
+      chips={["Real record", "53 credits"]}
       explainer={storySteps[0].explainer}
     >
       <div className="grid h-full gap-4 lg:grid-cols-[0.74fr_1.26fr]">
         <div className="grid gap-3">
           {[
-            ["Program", "Accounting major / Finance track"],
-            ["Course history", "Completed and in-progress work stays attached."],
-            ["Current load", "6 credits underway before ranking."],
+            ["Program", "Accounting + Finance"],
+            ["History", "Completed and current classes stay attached."],
+            ["Load", "6 credits in progress."],
           ].map(([label, value], index) => (
             <motion.div
               key={label}
@@ -239,8 +225,8 @@ function StepTwoPreview({ reduceEffects }: { reduceEffects: boolean }) {
 
   return (
     <StoryFrameShell
-      headline="See what is actually open"
-      chips={[`${overall}% complete`, "6 requirement groups"]}
+      headline="See what is still open"
+      chips={[`${overall}% done`, `${openGroups} groups open`]}
       explainer={storySteps[1].explainer}
     >
       <div className="grid h-full gap-4 lg:grid-cols-[18.5rem_minmax(0,1fr)] lg:items-stretch">
@@ -264,9 +250,9 @@ function StepTwoPreview({ reduceEffects }: { reduceEffects: boolean }) {
 
             <div className="grid gap-3">
               {[
-                ["Completed credits", `${completedCredits} finished`, "text-ok"],
-                ["In progress", `${inProgressCredits} credits underway`, "text-gold-light"],
-                ["Still open", `${openGroups} groups still need attention`, "text-bad"],
+                ["Done", `${completedCredits} credits`, "text-ok"],
+                ["Live", `${inProgressCredits} in progress`, "text-gold-light"],
+                ["Open", `${openGroups} groups left`, "text-bad"],
               ].map(([label, value, tone], index) => (
                 <motion.div
                   key={label}
@@ -358,8 +344,8 @@ function StepTwoPreview({ reduceEffects }: { reduceEffects: boolean }) {
 function StepThreePreview({ reduceEffects }: { reduceEffects: boolean }) {
   return (
     <StoryFrameShell
-      headline="Edit the semester before it is final"
-      chips={["3 selected courses", "2 eligible swaps"]}
+      headline="Edit before you lock it"
+      chips={["3 picked", "2 swaps"]}
       explainer={storySteps[2].explainer}
     >
       <div className="grid h-full gap-4 lg:grid-cols-[0.96fr_1.04fr]">
@@ -371,7 +357,7 @@ function StepThreePreview({ reduceEffects }: { reduceEffects: boolean }) {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-light">Selected</p>
               <h3 className="mt-1 text-lg font-bold font-[family-name:var(--font-sora)] leading-tight text-white">
-                Current draft
+                Draft
               </h3>
             </div>
             <span className="text-sm font-semibold text-gold-light">{selectedCourses.length}</span>
@@ -410,7 +396,7 @@ function StepThreePreview({ reduceEffects }: { reduceEffects: boolean }) {
             {...previewItemMotion(reduceEffects, 0.26)}
             className="mt-auto rounded-[1rem] border border-ok/18 bg-ok/8 px-4 py-3"
           >
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-ok">Load stays steady — 9 credits</p>
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-ok">Same load - 9 credits</p>
           </motion.div>
         </motion.section>
 
@@ -420,9 +406,9 @@ function StepThreePreview({ reduceEffects }: { reduceEffects: boolean }) {
         >
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-accent-blue">Swap pool</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-accent-blue">Swaps</p>
               <h3 className="mt-1 text-lg font-bold font-[family-name:var(--font-sora)] leading-tight text-white">
-                Eligible swaps
+                Options
               </h3>
             </div>
             <span className="text-sm font-semibold text-ink-accent-blue">{swapOptions.length}</span>
@@ -475,7 +461,7 @@ function StepThreePreview({ reduceEffects }: { reduceEffects: boolean }) {
               </p>
             </div>
             <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-slate-200">
-              Apply changes
+              Update draft
             </span>
           </motion.div>
         </motion.section>
@@ -537,9 +523,9 @@ function StepFourPreview({ reduceEffects }: { reduceEffects: boolean }) {
 
           <div className="mt-auto grid gap-3 sm:grid-cols-3">
             {[
-              ["Ready to compare", "A second draft is one tap away."],
-              ["Snapshot saved", "Inputs and ranked outputs stay attached."],
-              ["Back later", "Pick up the cleaner path when you need it."],
+              ["Compare", "Keep another draft ready."],
+              ["Saved", "Inputs stay attached."],
+              ["Later", "Come back when you need it."],
             ].map(([label, value], index) => (
               <motion.div
                 key={label}
@@ -583,15 +569,12 @@ function StoryFrame({ activeIndex, reduceEffects }: { activeIndex: number; reduc
 
 export function HowItWorksClear() {
   const reduceEffects = useReducedEffects();
-  const sectionRef = useRef<HTMLElement | null>(null);
   const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
 
   const setPreviewIndex = (nextIndex: number) => {
     const clamped = Math.max(0, Math.min(storySteps.length - 1, nextIndex));
     if (clamped === activeIndexRef.current) return;
-    setDirection(clamped > activeIndexRef.current ? 1 : -1);
     activeIndexRef.current = clamped;
     setActiveIndex(clamped);
   };
@@ -599,10 +582,7 @@ export function HowItWorksClear() {
   useEffect(() => {
     if (reduceEffects) {
       activeIndexRef.current = 0;
-      const resetHandle = window.requestAnimationFrame(() => {
-        setActiveIndex(0);
-      });
-      return () => window.cancelAnimationFrame(resetHandle);
+      setActiveIndex(0);
     }
   }, [reduceEffects]);
 
@@ -618,26 +598,25 @@ export function HowItWorksClear() {
   return (
     <section
       id="story"
-      ref={sectionRef}
       data-testid="landing-story"
       data-tour-mode={reduceEffects ? "poster" : "auto"}
       data-active-step={String(activeIndex + 1)}
-      className="relative overflow-hidden bg-[linear-gradient(180deg,#071221_0%,#08192f_100%)] py-16 sm:py-20"
+      className="relative overflow-hidden bg-[linear-gradient(180deg,#071221_0%,#08192f_100%)] py-14 sm:py-18 scroll-mt-28"
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(255,204,0,0.12),transparent_28%),radial-gradient(circle_at_84%_16%,rgba(0,114,206,0.10),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_22%)]" />
 
       <div className="relative mx-auto max-w-[96rem] px-5 sm:px-7 lg:px-10">
         <div className="mx-auto max-w-[46rem] text-center">
-          <p className="text-[0.96rem] font-semibold uppercase tracking-[0.24em] text-gold-light">Product story</p>
+          <p className="text-[0.96rem] font-semibold uppercase tracking-[0.24em] text-gold-light">How it works</p>
           <h2 className="mt-4 text-[clamp(2.5rem,6vw,4.8rem)] font-bold leading-[0.94] tracking-[-0.05em] text-white">
-            From <span className="text-[#b6dcff]">context</span> to <span className="text-gold-light">plan.</span>
+            Four <span className="text-[#b6dcff]">fast</span> <span className="text-gold-light">moves.</span>
           </h2>
           <p className="mx-auto mt-4 max-w-[34rem] text-[1.08rem] leading-relaxed text-slate-300">
-            Four quick passes. Real planner views.
+            Real planner views. No filler.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-6 lg:min-h-[50rem] lg:grid-cols-[28rem_minmax(0,1fr)] lg:items-stretch lg:gap-6 xl:grid-cols-[30rem_minmax(0,1fr)] xl:gap-8">
+        <div className="mt-10 grid gap-6 lg:min-h-[44rem] lg:grid-cols-[26rem_minmax(0,1fr)] lg:items-stretch lg:gap-6 xl:grid-cols-[28rem_minmax(0,1fr)] xl:gap-8">
           <div className="relative z-10 grid gap-4 lg:h-full lg:grid-rows-4 lg:pr-1">
             {storySteps.map((step, index) => {
               const active = index === activeIndex;
@@ -669,22 +648,17 @@ export function HowItWorksClear() {
             })}
           </div>
 
-          <div className="relative min-w-0 overflow-hidden rounded-[2rem] lg:ml-4 lg:min-h-[50rem] xl:ml-6">
-            <div className="relative min-h-[38rem] overflow-hidden lg:h-full lg:min-h-[50rem]">
-              <AnimatePresence custom={direction} initial={false} mode="wait">
-                <motion.div
-                  key={activeIndex}
-                  custom={direction}
-                  initial={reduceEffects ? false : "enter"}
-                  animate="center"
-                  exit={reduceEffects ? undefined : "exit"}
-                  variants={reduceEffects ? undefined : slideVariants}
-                  transition={{ duration: reduceEffects ? 0.16 : 0.34, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute inset-0 min-w-0"
-                >
-                  <StoryFrame activeIndex={activeIndex} reduceEffects={reduceEffects} />
-                </motion.div>
-              </AnimatePresence>
+          <div className="relative min-w-0 overflow-hidden rounded-[2rem] lg:ml-4 lg:min-h-[44rem] xl:ml-6">
+            <div className="relative min-h-[34rem] overflow-hidden lg:h-full lg:min-h-[44rem]">
+              <motion.div
+                key={activeIndex}
+                initial={reduceEffects ? false : { opacity: 0.9, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: reduceEffects ? 0.12 : 0.18, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0 min-w-0"
+              >
+                <StoryFrame activeIndex={activeIndex} reduceEffects={reduceEffects} />
+              </motion.div>
             </div>
           </div>
         </div>

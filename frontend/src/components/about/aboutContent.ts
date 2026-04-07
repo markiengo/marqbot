@@ -25,20 +25,20 @@ export const ABOUT_HERO_COPY = {
 
 export const ABOUT_INTRO_LABELS = [
   "freshman",
-  "insy major",
+  "information systems",
   "builder",
   "lowkey lives in raynor",
 ] as const;
 
 export const ABOUT_INTRO_COPY = {
-  title: "Hey there, I\u2019m Markie.",
+  title: "I'm Markie.",
   paragraphOne:
-    "I built this because no one should need six tabs, two emails, and a small existential crisis to figure out what to take next semester. I\u2019m a freshman studying Information Systems at Marquette. I started MarqBot after losing an entire Sunday to the bulletin, CheckMarq, and a chain of advisor emails \u2014 all to answer one question about one class. The system won that round.",
+    "I'm a freshman studying Information Systems at Marquette. I built this because I'm bored, and I hate picking courses each semester.",
   paragraphTwo:
-    "So I built MarqBot \u2014 the tool I wish existed. If you\u2019re interested in how it works, read ",
+    "If you're interested in the technical aspects, read ",
   paragraphTwoLinkText: "here",
   paragraphTwoLinkHref: "https://github.com/markiengo/marqbot",
-  note: "This started as a \u201cquick side project.\u201d That was a lie and I fell for it.",
+  note: "If not, enjoy the tool and give me feedback. There's more to come, and even more with your thoughts.",
 } as const;
 
 export const ABOUT_TIMELINE: TimelineEntry[] = [

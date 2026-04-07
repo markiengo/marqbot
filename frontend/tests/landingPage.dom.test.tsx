@@ -55,7 +55,7 @@ describe("LandingPage", () => {
     expect(screen.getAllByRole("link", { name: /get my plan/i }).length).toBeGreaterThanOrEqual(3);
     expect(screen.getByRole("link", { name: /see how it works/i })).toBeInTheDocument();
     expect(within(faq).getByRole("link", { name: /about marqbot/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /from context to plan\./i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /four fast moves\./i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /built on the actual rules\./i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /plan your semesters\.\s*close the tabs\./i })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /see planner proof/i })).not.toBeInTheDocument();
@@ -69,7 +69,7 @@ describe("LandingPage", () => {
     expectBefore(faq, finalCta);
   });
 
-  test("uses a single-open accordion pattern for the faq", () => {
+  test("keeps earlier faq answers open when another question is expanded", () => {
     renderLanding();
 
     const official = screen.getByRole("button", { name: /is marqbot official\?/i });
@@ -84,9 +84,9 @@ describe("LandingPage", () => {
 
     fireEvent.click(accuracy);
 
-    expect(official).toHaveAttribute("aria-expanded", "false");
+    expect(official).toHaveAttribute("aria-expanded", "true");
     expect(accuracy).toHaveAttribute("aria-expanded", "true");
-    expect(officialPanel).toHaveAttribute("hidden");
+    expect(officialPanel).not.toHaveAttribute("hidden");
     expect(accuracyPanel).not.toHaveAttribute("hidden");
   });
 
@@ -96,22 +96,65 @@ describe("LandingPage", () => {
     const story = screen.getByTestId("landing-story");
 
     expect(story).toHaveAttribute("data-active-step", "1");
-    expect(screen.getByText(/loaded from record/i)).toBeInTheDocument();
+    expect(within(story).getByText(/53 credits/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /view progress/i }));
+    fireEvent.click(screen.getByRole("button", { name: /see progress/i }));
 
     expect(story).toHaveAttribute("data-active-step", "2");
-    expect(await screen.findByText(/6 requirement groups/i)).toBeInTheDocument();
+    expect(await screen.findByText(/6 groups open/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /edit plans/i }));
+    fireEvent.click(screen.getByRole("button", { name: /edit draft/i }));
 
     expect(story).toHaveAttribute("data-active-step", "3");
-    expect(await screen.findByRole("heading", { name: /eligible swaps/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /options/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /save plans/i }));
+    fireEvent.click(screen.getByRole("button", { name: /save paths/i }));
 
     expect(story).toHaveAttribute("data-active-step", "4");
     expect(await screen.findByText(/finance path a/i)).toBeInTheDocument();
+    expect(screen.getByText(/mark 3001/i)).toBeInTheDocument();
+  });
+
+  test("scrolls the story section into view with nav offset when the hero link is pressed", () => {
+    const scrollTo = vi.fn();
+    Object.defineProperty(window, "scrollTo", { value: scrollTo, writable: true });
+    Object.defineProperty(window, "scrollY", { value: 180, writable: true });
+
+    renderLanding();
+
+    const nav = screen.getByRole("navigation", { name: /primary/i });
+    const story = screen.getByTestId("landing-story");
+
+    nav.getBoundingClientRect = vi.fn(() => ({
+      x: 0,
+      y: 0,
+      width: 1200,
+      height: 88,
+      top: 0,
+      right: 1200,
+      bottom: 88,
+      left: 0,
+      toJSON: () => ({}),
+    }));
+
+    story.getBoundingClientRect = vi.fn(() => ({
+      x: 0,
+      y: 700,
+      width: 1200,
+      height: 900,
+      top: 700,
+      right: 1200,
+      bottom: 1600,
+      left: 0,
+      toJSON: () => ({}),
+    }));
+
+    fireEvent.click(screen.getByRole("link", { name: /see how it works/i }));
+
+    expect(scrollTo).toHaveBeenCalledWith({
+      top: 776,
+      behavior: "smooth",
+    });
   });
 
   test("falls back to the reduced-effects story mode when effects are reduced", () => {

@@ -2,9 +2,10 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { AnchorLine } from "@/components/shared/AnchorLine";
 import { Button } from "@/components/shared/Button";
+import { useReducedEffects } from "@/hooks/useReducedEffects";
 import styles from "./about.module.css";
 import { ABOUT_TIMELINE } from "./aboutContent";
 import type { TimelineEntry } from "./aboutContent";
@@ -25,7 +26,7 @@ function FlipCard({
   index: number;
   isFlipped: boolean;
   onFlip: () => void;
-  reduce: boolean | null;
+  reduce: boolean;
 }) {
   const status = entry.status as "building" | "planned";
   const cfg = STATUS_CONFIG[status];
@@ -34,10 +35,8 @@ function FlipCard({
     <motion.button
       type="button"
       initial={reduce ? undefined : { opacity: 0, y: 20 }}
-      whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.45, delay: 0.08 * index }}
-      whileHover={isFlipped || reduce ? undefined : { y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduce ? 0.16 : 0.28, delay: reduce ? 0 : 0.05 * index }}
       aria-pressed={isFlipped}
       className="h-full min-w-0 cursor-pointer text-left"
       onClick={onFlip}
@@ -51,16 +50,9 @@ function FlipCard({
       >
         <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.03),transparent_60%)]" />
 
-        <AnimatePresence mode="wait" initial={false}>
+        <div className="relative z-10">
           {!isFlipped ? (
-            <motion.div
-              key="front"
-              initial={{ opacity: 0, rotateY: -90 }}
-              animate={{ opacity: 1, rotateY: 0 }}
-              exit={{ opacity: 0, rotateY: 90 }}
-              transition={{ duration: 0.3 }}
-              className="relative z-10"
-            >
+            <>
               <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${cfg.pill}`}>
                 {cfg.label}
               </span>
@@ -73,16 +65,9 @@ function FlipCard({
               <p className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">
                 Open details
               </p>
-            </motion.div>
+            </>
           ) : (
-            <motion.div
-              key="back"
-              initial={{ opacity: 0, rotateY: 90 }}
-              animate={{ opacity: 1, rotateY: 0 }}
-              exit={{ opacity: 0, rotateY: -90 }}
-              transition={{ duration: 0.3 }}
-              className="relative z-10"
-            >
+            <>
               <h3 className="font-[family-name:var(--font-sora)] text-lg font-semibold text-white">
                 {entry.title}
               </h3>
@@ -92,16 +77,16 @@ function FlipCard({
               <p className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">
                 Hide details
               </p>
-            </motion.div>
+            </>
           )}
-        </AnimatePresence>
+        </div>
       </div>
     </motion.button>
   );
 }
 
 export function NowNextSection() {
-  const reduce = useReducedMotion();
+  const reduce = useReducedEffects();
   const [flippedSet, setFlippedSet] = useState<Set<number>>(new Set());
 
   const ease = [0.22, 1, 0.36, 1] as const;
@@ -111,9 +96,8 @@ export function NowNextSection() {
       ? {}
       : {
           initial: { opacity: 0, y },
-          whileInView: { opacity: 1, y: 0 },
-          viewport: { once: true, margin: "-80px" as const },
-          transition: { duration: 0.48, delay, ease },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.28, delay, ease },
         };
 
   const buildingEntries = ABOUT_TIMELINE.filter((e) => e.status === "building");
