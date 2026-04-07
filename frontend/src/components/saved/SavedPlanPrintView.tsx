@@ -8,6 +8,40 @@ import { usePrograms } from "@/hooks/usePrograms";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { formatSavedPlanDate, resolveProgramLabels } from "@/lib/savedPlanPresentation";
 import { buildSavedPlanExportData } from "@/lib/savedPlanExport";
+import type { Course } from "@/lib/types";
+
+function chunkSemesters<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function makeCourseCatalogMap(catalog: Course[]): Map<string, Course> {
+  const map = new Map<string, Course>();
+  for (const course of catalog) {
+    map.set(course.course_code, course);
+  }
+  return map;
+}
+
+function buildHistoryPreview(
+  courseCodes: string[],
+  catalogMap: Map<string, Course>,
+) {
+  const normalized = courseCodes
+    .map((courseCode) => String(courseCode || "").trim())
+    .filter(Boolean);
+  const visible = normalized.map((courseCode) => ({
+    courseCode,
+    courseName: String(catalogMap.get(courseCode)?.course_name || courseCode).trim() || courseCode,
+  }));
+  return {
+    visible,
+    totalCount: normalized.length,
+  };
+}
 
 export function SavedPlanPrintView({ planId }: { planId: string }) {
   const { courses, loading: coursesLoading, error: coursesError, retry: retryCourses } = useCourses();
@@ -47,6 +81,19 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
   const minorLabels = useMemo(
     () => (plan ? resolveProgramLabels(plan.inputs.declaredMinors, programs.minors) : []),
     [plan, programs.minors],
+  );
+  const catalogMap = useMemo(() => makeCourseCatalogMap(courses), [courses]);
+  const semesterPages = useMemo(
+    () => chunkSemesters(exportData?.semesters ?? [], 2),
+    [exportData],
+  );
+  const completedPreview = useMemo(
+    () => buildHistoryPreview(plan?.inputs.completed ?? [], catalogMap),
+    [catalogMap, plan?.inputs.completed],
+  );
+  const inProgressPreview = useMemo(
+    () => buildHistoryPreview(plan?.inputs.inProgress ?? [], catalogMap),
+    [catalogMap, plan?.inputs.inProgress],
   );
 
   useEffect(() => {
@@ -125,94 +172,144 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
         <Button variant="gold" size="sm" onClick={() => window.print()}>Print / Save as PDF</Button>
       </div>
 
-      <article className="print-paper">
-        <header className="print-header">
-          <p className="print-kicker">Saved Plan Export</p>
-          <h1 className="print-title">{exportData.planName}</h1>
-          <p className="print-subtitle">
-            {exportData.programLine || "Program summary unavailable"} | Target {exportData.targetSemester} | Updated {formatSavedPlanDate(exportData.updatedAt)}
-          </p>
-          {exportData.planNotes ? (
-            <p className="print-notes">{exportData.planNotes}</p>
-          ) : null}
-          <div className="print-meta-grid">
-            <div>
-              <span className="print-meta-label">Majors</span>
-              <span>{majorLabels.length > 0 ? majorLabels.join(", ") : "None"}</span>
+      <div className="print-paper-stack">
+        <article className="print-paper">
+          <header className="print-header">
+            <p className="print-kicker">Saved Plan Export</p>
+            <h1 className="print-title">{exportData.planName}</h1>
+            <p className="print-subtitle">
+              {exportData.programLine || "Program summary unavailable"} | Target {exportData.targetSemester} | Updated {formatSavedPlanDate(exportData.updatedAt)}
+            </p>
+            {exportData.planNotes ? (
+              <p className="print-notes">{exportData.planNotes}</p>
+            ) : null}
+            <div className="print-meta-grid">
+              <div>
+                <span className="print-meta-label">Majors</span>
+                <span>{majorLabels.length > 0 ? majorLabels.join(", ") : "None"}</span>
+              </div>
+              <div>
+                <span className="print-meta-label">Tracks</span>
+                <span>{trackLabels.length > 0 ? trackLabels.join(", ") : "None"}</span>
+              </div>
+              <div>
+                <span className="print-meta-label">Minors</span>
+                <span>{minorLabels.length > 0 ? minorLabels.join(", ") : "None"}</span>
+              </div>
             </div>
-            <div>
-              <span className="print-meta-label">Tracks</span>
-              <span>{trackLabels.length > 0 ? trackLabels.join(", ") : "None"}</span>
-            </div>
-            <div>
-              <span className="print-meta-label">Minors</span>
-              <span>{minorLabels.length > 0 ? minorLabels.join(", ") : "None"}</span>
-            </div>
-            <div>
-              <span className="print-meta-label">Summer</span>
-              <span>{plan.inputs.includeSummer ? "Included" : "Skipped"}</span>
-            </div>
-          </div>
-        </header>
+          </header>
 
-        <section className="print-section">
-          <div className="print-section-header">
-            <h2>Semester Plan</h2>
-          </div>
-          <div className="print-semester-stack">
-            {exportData.semesters.map((semester) => (
-              <section
-                key={`${semester.targetSemester}-${semester.standingLabel || ""}`}
-                className="print-card print-semester-card"
-              >
-                <div className="print-semester-header">
-                  <div>
-                    <h3>{semester.targetSemester}</h3>
-                    {semester.standingLabel ? (
-                      <p className="print-muted">{semester.standingLabel}</p>
-                    ) : null}
-                  </div>
-                  <span className="print-semester-summary">
-                    {semester.courses.length} {semester.courses.length === 1 ? "course" : "courses"}
-                  </span>
+          <section className="print-section print-history-section">
+            <div className="print-section-header">
+              <h2>Completed & In Progress</h2>
+            </div>
+            <div className="print-history-grid">
+              <section className="print-card print-history-card">
+                <div className="print-history-header">
+                  <h3>Completed</h3>
+                  <span className="print-history-summary">{completedPreview.totalCount} courses</span>
                 </div>
-                {semester.courses.length > 0 ? (
-                  <table className="print-semester-table">
-                    <thead>
-                      <tr>
-                        <th className="print-semester-table-col-course">Course</th>
-                        <th className="print-semester-table-col-title">Title</th>
-                        <th className="print-semester-table-col-credits">Credits</th>
-                        <th className="print-semester-table-col-prereq">Prereq</th>
-                        <th className="print-semester-table-col-satisfy">Satisfy</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {semester.courses.map((course) => (
-                        <tr key={`${semester.targetSemester}-${course.courseCode}`}>
-                          <td className="print-semester-table-code">{course.courseCode}</td>
-                          <td className="print-semester-table-title">{course.courseName}</td>
-                          <td className="print-semester-table-credits">{course.credits ?? "-"}</td>
-                          <td className="print-semester-table-prereq">{course.prereqText}</td>
-                          <td className="print-semester-table-buckets">
-                            {course.bucketLabels.length > 0 ? course.bucketLabels.join(", ") : "None"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {completedPreview.visible.length > 0 ? (
+                  <ul className="print-course-list print-history-list">
+                    {completedPreview.visible.map((course) => (
+                      <li key={`completed-${course.courseCode}`}>
+                        <span className="print-course-code">{course.courseCode}</span>
+                        <span className="print-history-course-title">{course.courseName}</span>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <p className="print-muted">No recommended courses.</p>
+                  <p className="print-muted">None</p>
                 )}
               </section>
-            ))}
-          </div>
-        </section>
 
-        {storageError ? (
-          <p className="print-muted">{storageError}</p>
-        ) : null}
-      </article>
+              <section className="print-card print-history-card">
+                <div className="print-history-header">
+                  <h3>In Progress</h3>
+                  <span className="print-history-summary">{inProgressPreview.totalCount} courses</span>
+                </div>
+                {inProgressPreview.visible.length > 0 ? (
+                  <ul className="print-course-list print-history-list">
+                    {inProgressPreview.visible.map((course) => (
+                      <li key={`in-progress-${course.courseCode}`}>
+                        <span className="print-course-code">{course.courseCode}</span>
+                        <span className="print-history-course-title">{course.courseName}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="print-muted">None</p>
+                )}
+              </section>
+            </div>
+          </section>
+
+          {storageError ? (
+            <p className="print-muted">{storageError}</p>
+          ) : null}
+        </article>
+
+        {semesterPages.map((semesterGroup, pageIndex) => (
+          <article key={`semester-page-${pageIndex}`} className="print-paper print-paper-semesters">
+            <section className="print-section">
+              <div className="print-section-header">
+                <h2>Semester Plan</h2>
+                <span className="print-semester-page-caption">
+                  Page {pageIndex + 2}
+                </span>
+              </div>
+              <div className="print-semester-stack">
+                {semesterGroup.map((semester) => (
+                  <section
+                    key={`${semester.targetSemester}-${semester.standingLabel || ""}`}
+                    className="print-card print-semester-card"
+                  >
+                    <div className="print-semester-header">
+                      <div>
+                        <h3>{semester.targetSemester}</h3>
+                        {semester.standingLabel ? (
+                          <p className="print-muted">{semester.standingLabel}</p>
+                        ) : null}
+                      </div>
+                      <span className="print-semester-summary">
+                        {semester.courses.length} {semester.courses.length === 1 ? "course" : "courses"}
+                      </span>
+                    </div>
+                    {semester.courses.length > 0 ? (
+                      <table className="print-semester-table">
+                        <thead>
+                          <tr>
+                            <th className="print-semester-table-col-course">Course</th>
+                            <th className="print-semester-table-col-title">Title</th>
+                            <th className="print-semester-table-col-credits">Credits</th>
+                            <th className="print-semester-table-col-prereq">Prereq</th>
+                            <th className="print-semester-table-col-satisfy">Satisfy</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {semester.courses.map((course) => (
+                            <tr key={`${semester.targetSemester}-${course.courseCode}`}>
+                              <td className="print-semester-table-code">{course.courseCode}</td>
+                              <td className="print-semester-table-title">{course.courseName}</td>
+                              <td className="print-semester-table-credits">{course.credits ?? "-"}</td>
+                              <td className="print-semester-table-prereq">{course.prereqText}</td>
+                              <td className="print-semester-table-buckets">
+                                {course.bucketLabels.length > 0 ? course.bucketLabels.join(", ") : "None"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="print-muted">No recommended courses.</p>
+                    )}
+                  </section>
+                ))}
+              </div>
+            </section>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
