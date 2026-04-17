@@ -45,7 +45,6 @@ tests/nightly-reports/
 
 # Keep markdown local by default, but allow the full docs/ tree
 *.md
-!AGENTS.md
 !docs/
 !docs/**
 docs/feedbacks/
