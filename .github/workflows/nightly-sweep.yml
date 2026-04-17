@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
   schedule:
     # GitHub Actions cron is UTC. These daily entries cover 4:00 AM
-    # America/Chicago across DST shifts; the job itself skips unless the
-    # local time is 04:00.
+    # America/Chicago across DST shifts. No hour guard — GH Actions
+    # delays scheduled jobs by 30-120 min, making exact-hour checks unreliable.
     - cron: "0 9 * * *"
     - cron: "0 10 * * *"
 
@@ -51,12 +51,6 @@ jobs:
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
             echo "skip_reason=manual dispatch" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if [ "$local_hour" != "04" ]; then
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "skip_reason=not 4 AM America/Chicago" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
