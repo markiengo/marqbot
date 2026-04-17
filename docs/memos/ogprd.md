@@ -7,10 +7,10 @@ MarqBot is a degree-planning tool for Marquette University students. Today it is
 ## What it does
 
 ### Course Recommendations
-You tell MarqBot your major, track, and what you've already taken. It recommends the best courses for your next 1-8 semesters based on your remaining requirements, what you're eligible for, and your chosen scheduling style (Grinder, Explorer, or Mixer). Grinder keeps declared program work concentrated first, Explorer deliberately mixes in discovery, and Mixer balances the two. For now, course offerings are treated as always available while the offering data is being cleaned up.
+You tell MarqBot your major, track, and what you've already taken. It recommends the best courses for your next 1-8 semesters based on your remaining requirements, what you're eligible for, and your chosen scheduling style (Grinder, Explorer, or Mixer). Grinder keeps declared program work concentrated first, Explorer deliberately mixes in discovery, and Mixer balances the two. Inside declared major work, required buckets still stay ahead of choose-from buckets and elective pools. For now, course offerings are treated as always available while the offering data is being cleaned up.
 
 ### Progress Tracking
-A visual dashboard shows how far along you are in each requirement area: your major, your track (if any), any college-wide core that applies (such as BCC for business students), and the Marquette Core (MCC).
+A visual dashboard shows how far along you are in each requirement area: your major, your track (if any), any college-wide core that applies (such as BCC for business students), and the Marquette Core (MCC). The current-progress view stays tied to what counts now, while future semesters show their impact in projected progress.
 
 ### Eligibility Check
 Pick any course and MarqBot tells you if you can take it. If not, it says why (missing prereqs, standing, program restriction, etc.).

@@ -231,7 +231,7 @@ describe("PlannerLayout manual adds survive reruns", () => {
 
     expect(screen.getByTestId("recommendations-panel")).toHaveTextContent("Fall 2026: ACCO 1030");
 
-    await user.click(screen.getByRole("button", { name: /edit plan/i }));
+    await user.click(screen.getByRole("button", { name: /edit the plan/i }));
     await user.click(screen.getByRole("button", { name: /pick fall 2026/i }));
     await user.click(screen.getByRole("button", { name: /apply edited semester/i }));
 
@@ -243,7 +243,7 @@ describe("PlannerLayout manual adds survive reruns", () => {
     await waitFor(() => expect(screen.getByTestId("recommendations-panel")).toHaveTextContent("Fall 2026: MATH 2100"));
     expect(screen.getByTestId("recommendations-panel")).toHaveTextContent("Spring 2027: ECON 2000");
 
-    await user.click(screen.getByRole("button", { name: /edit profile/i }));
+    await user.click(screen.getByRole("button", { name: /change your preferences/i }));
     await user.click(screen.getByRole("button", { name: /set mixer/i }));
 
     expect(screen.queryByTestId("recommendations-panel")).not.toBeInTheDocument();
@@ -308,7 +308,7 @@ describe("PlannerLayout manual adds survive reruns", () => {
       }),
     );
 
-    await user.click(screen.getByRole("button", { name: /edit plan/i }));
+    await user.click(screen.getByRole("button", { name: /edit the plan/i }));
     await user.click(screen.getByRole("button", { name: /pick fall 2026/i }));
     await user.click(screen.getByRole("button", { name: /load candidate pool/i }));
 
@@ -382,7 +382,7 @@ describe("PlannerLayout manual adds survive reruns", () => {
       }),
     );
 
-    await user.click(screen.getByRole("button", { name: /edit plan/i }));
+    await user.click(screen.getByRole("button", { name: /edit the plan/i }));
     await user.click(screen.getByRole("button", { name: /pick fall 2026/i }));
     await user.click(screen.getByRole("button", { name: /apply edited semester/i }));
 
@@ -394,7 +394,7 @@ describe("PlannerLayout manual adds survive reruns", () => {
     await waitFor(() => expect(screen.getByTestId("recommendations-panel")).toHaveTextContent("Fall 2026: MATH 2100"));
     expect(screen.getByTestId("recommendations-panel")).toHaveTextContent("Spring 2027: FINA 3001");
 
-    await user.click(screen.getByRole("button", { name: /edit plan/i }));
+    await user.click(screen.getByRole("button", { name: /edit the plan/i }));
     await user.click(screen.getByRole("button", { name: /pick spring 2027/i }));
     await user.click(screen.getByRole("button", { name: /load candidate pool/i }));
 
@@ -507,7 +507,7 @@ describe("PlannerLayout manual adds survive reruns", () => {
       }),
     );
 
-    await user.click(screen.getByRole("button", { name: /edit plan/i }));
+    await user.click(screen.getByRole("button", { name: /edit the plan/i }));
     await user.click(screen.getByRole("button", { name: /pick spring 2028/i }));
     await user.click(screen.getByRole("button", { name: /load candidate pool/i }));
     await waitFor(() => expect(postReplanSpy).toHaveBeenCalledTimes(1));
@@ -521,7 +521,7 @@ describe("PlannerLayout manual adds survive reruns", () => {
     expect(futureEditPayload.target_semester).toBe("Spring 2028");
     expect(futureEditPayload.target_semester_count).toBe(1);
 
-    await user.click(screen.getByRole("button", { name: /edit plan/i }));
+    await user.click(screen.getByRole("button", { name: /edit the plan/i }));
     await user.click(screen.getByRole("button", { name: /pick fall 2027/i }));
     await user.click(screen.getByRole("button", { name: /load candidate pool/i }));
     await waitFor(() => expect(postReplanSpy).toHaveBeenCalledTimes(3));

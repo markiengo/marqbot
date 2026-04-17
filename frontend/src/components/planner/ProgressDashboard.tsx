@@ -94,7 +94,7 @@ function ProgressDashboardInner({
   if (compact) {
     return (
       <>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-3">
           <KpiTile
             value={metrics.completedCredits}
             label="Credits Completed"
@@ -103,6 +103,7 @@ function ProgressDashboardInner({
             glowClass="kpi-glow-ok"
             delay={0.05}
             onClick={onCompletedClick}
+            tileClassName="min-h-[110px]"
           />
           <KpiTile
             value={metrics.inProgressCredits}
@@ -112,6 +113,7 @@ function ProgressDashboardInner({
             glowClass="kpi-glow-gold"
             delay={0.1}
             onClick={onInProgressClick}
+            tileClassName="min-h-[110px]"
           />
           <StandingTile
             label={metrics.standingLabel}
@@ -119,6 +121,7 @@ function ProgressDashboardInner({
             borderClass={standingStyle.borderClass}
             glowClass={standingStyle.glowClass}
             onOpenGuide={() => setStandingGuideOpen(true)}
+            tileClassName="min-h-[110px]"
           />
           <KpiTile
             value={metrics.remainingCredits}
@@ -127,6 +130,7 @@ function ProgressDashboardInner({
             valueClass="text-bad"
             glowClass="kpi-glow-bad"
             delay={0.2}
+            tileClassName="min-h-[110px]"
           />
         </div>
         <Modal
@@ -244,6 +248,7 @@ function KpiTile({
   glowClass = "",
   delay = 0,
   onClick,
+  tileClassName = "",
 }: {
   value: number;
   label: string;
@@ -252,6 +257,7 @@ function KpiTile({
   glowClass?: string;
   delay?: number;
   onClick?: () => void;
+  tileClassName?: string;
 }) {
   const Tag = onClick ? motion.button : motion.div;
   return (
@@ -260,19 +266,19 @@ function KpiTile({
       onClick={onClick}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={onClick ? { scale: 1.04 } : undefined}
+      whileHover={onClick ? { scale: 1.03 } : undefined}
       whileTap={onClick ? { scale: 0.97 } : undefined}
       transition={{ duration: 0.3, delay }}
-      className={`rounded-xl glass-card stat-card-decor ${glowClass} p-2.5 sm:p-3 text-center min-h-0 flex flex-col items-center justify-center border-l-2 ${accentColor} ${onClick ? "cursor-pointer" : ""}`}
+      className={`rounded-xl glass-card stat-card-decor ${glowClass} p-3 sm:p-4 text-center min-h-0 flex flex-col items-center justify-center border-l-2 ${accentColor} ${onClick ? "cursor-pointer" : ""} ${tileClassName}`}
       aria-label={onClick ? `View ${label} courses` : undefined}
     >
       <div
-        className={`text-xl sm:text-2xl font-bold font-[family-name:var(--font-sora)] leading-none tabular-nums ${valueClass}`}
+        className={`text-2xl sm:text-3xl font-bold font-[family-name:var(--font-sora)] leading-none tabular-nums ${valueClass}`}
         style={{ fontVariantNumeric: "tabular-nums" }}
       >
         <AnimatedNumber value={value} />
       </div>
-      <div className="text-[11px] text-ink-secondary mt-1 leading-tight">{label}</div>
+      <div className="text-[11px] text-ink-secondary mt-1.5 leading-tight">{label}</div>
     </Tag>
   );
 }
@@ -283,12 +289,14 @@ function StandingTile({
   borderClass,
   glowClass,
   onOpenGuide,
+  tileClassName = "",
 }: {
   label: string;
   valueClass: string;
   borderClass: string;
   glowClass: string;
   onOpenGuide: () => void;
+  tileClassName?: string;
 }) {
   return (
     <motion.button
@@ -296,16 +304,16 @@ function StandingTile({
       onClick={onOpenGuide}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.04 }}
+      whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.3, delay: 0.15 }}
-      className={`rounded-xl glass-card stat-card-decor p-2.5 flex flex-col items-center justify-center border-l-2 ${borderClass} ${glowClass} cursor-pointer`}
+      className={`rounded-xl glass-card stat-card-decor p-3 sm:p-4 flex flex-col items-center justify-center border-l-2 ${borderClass} ${glowClass} cursor-pointer ${tileClassName}`}
       aria-label="View standing scale"
     >
-      <div className={`text-base md:text-lg font-bold font-[family-name:var(--font-sora)] leading-none text-center ${valueClass}`}>
+      <div className={`text-lg md:text-xl font-bold font-[family-name:var(--font-sora)] leading-none text-center ${valueClass}`}>
         {label}
       </div>
-      <p className="text-ink-muted mt-0.5 text-[11px]">Standing</p>
+      <p className="text-ink-muted mt-1 text-[11px]">Standing</p>
     </motion.button>
   );
 }

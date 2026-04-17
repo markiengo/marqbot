@@ -300,13 +300,13 @@ describe("PlannerLayout semester edit requests", () => {
       }),
     );
 
-    await user.click(screen.getByRole("button", { name: /edit plan/i }));
+    await user.click(screen.getByRole("button", { name: /edit the plan/i }));
     await user.click(screen.getByRole("button", { name: /pick fall 2026/i }));
     await waitFor(() => expect(screen.getByTestId("candidate-loading")).toHaveTextContent("loading"));
 
     await user.click(screen.getByRole("button", { name: /close semester modal/i }));
 
-    await user.click(screen.getByRole("button", { name: /edit plan/i }));
+    await user.click(screen.getByRole("button", { name: /edit the plan/i }));
     await user.click(screen.getByRole("button", { name: /pick spring 2027/i }));
 
     secondRequest.resolve({

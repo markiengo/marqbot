@@ -293,9 +293,9 @@ html[data-effects-mode="reduced"] .bg-orbs::after {
 /* Desktop >=1024px: fixed viewport, 45/55 side-by-side */
 @media (min-width: 1024px) {
   .planner-shell {
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
+    height: auto;
+    min-height: calc(100dvh - 4rem);
+    overflow: visible;
     padding: 10px;
   }
   .planner-panel {

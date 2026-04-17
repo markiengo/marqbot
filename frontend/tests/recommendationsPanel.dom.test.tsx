@@ -75,4 +75,19 @@ describe("RecommendationsPanel", () => {
     expect(screen.getByText(/semester 1 - fall 2026/i)).toBeInTheDocument();
     expect(screen.getByText("ACCO 1030")).toBeInTheDocument();
   });
+
+  test("uses much taller row heights for low-course semesters", () => {
+    render(
+      createElement(RecommendationsPanel, {
+        data: makeRecommendationData(),
+        onExpandSemester: () => {},
+      }),
+    );
+
+    const codeCell = screen.getByText("ACCO 1030");
+    const row = codeCell.parentElement?.parentElement;
+
+    expect(row?.className).toContain("min-h-[141px]");
+    expect(row?.className).not.toContain("min-h-[368px]");
+  });
 });

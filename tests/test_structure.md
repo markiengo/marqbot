@@ -1,6 +1,6 @@
 # Test Structure
 
-Last updated: 2026-04-07
+Last updated: 2026-04-17
 
 Commands below assume a VS Code PowerShell terminal opened at the repo root.
 
@@ -46,7 +46,7 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 | `test_regression_profiles.py` | 39 | Realistic student-profile regressions |
 | `test_schema_migration.py` | 38 | Schema migration, loader compatibility, clean-mode |
 | `test_scrape_undergrad_policies.py` | 4 | Bulletin policy scrape parsing and markdown rendering |
-| `test_semester_recommender.py` | 45 | Ranking heuristics, concurrent picks, caps, standing recovery, edit-pool behavior, and scheduling-style ranking/selection archetypes |
+| `test_semester_recommender.py` | 49 | Ranking heuristics, major-family ordering, concurrent picks, caps, standing recovery, edit-pool behavior, and scheduling-style ranking/selection archetypes |
 | `test_server_can_take.py` | 20 | `/can-take` endpoint contract |
 | `test_server_data_reload.py` | 3 | Hot-reload safety |
 | `test_server_security.py` | 6 | Health, security headers, rate limiting |
@@ -67,14 +67,14 @@ Support files (not test files): `conftest.py`, `helpers.py`, `dead_end_utils.py`
 
 `PlanCase` accepts an optional `scheduling_style` parameter (`"grinder"`, `"explorer"`, `"mixer"`, or `None`). Styles use a two-layer mechanism: tier remapping (sort-key influence) plus slot reservations (enforced during selection). Configuration lives in `backend/scheduling_styles.py` as `StyleConfig` dataclasses with `min_discovery_slots`, `min_core_slots`, `interleave`, `tier_map`, `relax_bcc_band`, and `strict_band_progression` fields.
 
-- `"grinder"` (default): No reservations. Gateway BCC work stays protected, declared-program work stays ahead of flexible MCC/discovery cleanup, and discovery fills gaps late.
+- `"grinder"` (default): No reservations. Gateway BCC work stays protected, declared-program work stays ahead of flexible MCC/discovery cleanup, and within declared major work `required` buckets stay ahead of `choose_n` and `credits_pool` buckets.
 - `"explorer"`: Reserves 2 discovery slots per semester. Demotes BCC from band 1 to 2 when the student has ≥ 4 semesters of runway.
 - `"mixer"`: Reserves 1 discovery + 2 core slots and interleaves picks.
 
 **How archetypes integrate into the test suite:**
 
 - `test_dead_end_fast.py`: Every baseline case (single-major, single-track, curated combos, graduation-by-8) is expanded 3x via `_expand_with_scheduling_styles()`. Each `PlanCase` variant gets a `scheduling_style` field and a label suffix `::style=grinder|explorer|mixer`. This triples the cases (~67 base x 3 = ~201 total).
-- `test_semester_recommender.py`: 9 dedicated unit tests verify grinder=default, grinder pushes MCC cleanup behind declared-program work, explorer reserves discovery slots, explorer can promote discovery over major work, explorer differs from grinder, mixer guarantees core+discovery mix, mixer differs from grinder, invalid styles fall back to grinder, and all styles respect max_recs.
+- `test_semester_recommender.py`: dedicated unit tests verify grinder=default, grinder pushes MCC cleanup behind declared-program work, major-family ordering (`required -> choose_n -> credits_pool`) across styles, non-major guard behavior, explorer reserves discovery slots, explorer can promote discovery over major work, mixer guarantees core+discovery mix, invalid styles fall back to grinder, and all styles respect max_recs.
 - `simulate_terms()` in `dead_end_utils.py` passes `scheduling_style` to `run_recommendation_semester()`, so every simulation runs with the correct archetype.
 
 The key safety property: all 3 scheduling styles must still graduate a fresh student within 8 semesters.
@@ -105,7 +105,7 @@ The key safety property: all 3 scheduling styles must still graduate a fresh stu
 | `frontend/tests/profileModal.dom.test.ts` | 4 | Yes | Profile modal submit/error flow, student-stage selector, alias search |
 | `frontend/tests/plannerCourseList.dom.test.ts` | 4 | Yes | Course list assumptions, stage-conflict warning, ranking explainer copy |
 | `frontend/tests/plannerFeedbackNudge.dom.test.ts` | 3 | Yes | Feedback lane, nudge timing, dismissal |
-| `frontend/tests/plannerLayout.dom.test.ts` | 1 | Yes | Semester-edit stale-response protection when candidate requests resolve out of order |
+| `frontend/tests/plannerLayout.dom.test.ts` | 2 | Yes | Semester-edit stale-response protection and current-progress modal data source wiring |
 | `frontend/tests/plannerManualAdds.test.ts` | 4 | Yes | Manual-add pin reconciliation and conflict cleanup after reruns |
 | `frontend/tests/plannerPreferencesEdit.dom.test.tsx` | 4 | Yes | Edited-semester reruns, swap candidate reuse, and reconciled downstream behavior |
 | `frontend/tests/plannerSavePlan.dom.test.tsx` | 4 | Yes | Planner save flow for create vs overwrite, including normalized saved snapshots |

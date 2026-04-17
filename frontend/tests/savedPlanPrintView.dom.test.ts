@@ -52,10 +52,10 @@ function makePlan(withSnapshot = true) {
           standing_label: "Sophomore",
           recommendations: [
             {
-              course_code: "FINA 3001",
-              course_name: "Financial Management",
+              course_code: "BUAN 3065",
+              course_name: "Unlocking Business Insights through Predictive Analytics",
               credits: 3,
-              fills_buckets: ["FIN_MAJOR::CORE"],
+              fills_buckets: ["BCC::BCC_ANALYTICS", "MCC::MCC_WRIT"],
             },
           ],
         },
@@ -77,7 +77,7 @@ vi.mock("@/hooks/useCourses", () => ({
   useCourses: () => ({
     courses: [
       { course_code: "ACCO 1030", course_name: "Financial Accounting", credits: 3, level: 1000, catalog_prereq_raw: "none" },
-      { course_code: "FINA 3001", course_name: "Financial Management", credits: 3, level: 3000, catalog_prereq_raw: "ACCO 1031" },
+      { course_code: "BUAN 3065", course_name: "Unlocking Business Insights through Predictive Analytics", credits: 3, level: 3000, catalog_prereq_raw: "none" },
     ],
     loading: false,
     error: null,
@@ -93,7 +93,8 @@ vi.mock("@/hooks/usePrograms", () => ({
       minors: [],
       default_track_id: "FIN_MAJOR",
       bucket_labels: {
-        "FIN_MAJOR::CORE": "Finance: Finance Core",
+        BCC_ANALYTICS: "Business Core Courses: BCC Analytics",
+        MCC_WRIT: "MCC: Writing Intensive: MCC Writing Intensive",
       },
     },
     loading: false,
@@ -130,10 +131,10 @@ describe("SavedPlanPrintView", () => {
     expect(screen.getByText(/credits/i)).toBeInTheDocument();
     expect(screen.getByText(/prereq/i)).toBeInTheDocument();
     expect(screen.getByText(/satisfy/i)).toBeInTheDocument();
-    expect(screen.getByText(/financial management/i)).toBeInTheDocument();
-    expect(screen.getByText(/finance core/i)).toBeInTheDocument();
+    expect(screen.getByText(/unlocking business insights through predictive analytics/i)).toBeInTheDocument();
+    expect(screen.getByText(/business core - analytics,\s*marquette core - writ/i)).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
-    expect(screen.getByText(/acco 1031/i)).toBeInTheDocument();
+    expect(screen.getByText(/^none$/i, { selector: "td" })).toBeInTheDocument();
     expect(screen.queryByText(/spring 2027/i)).not.toBeInTheDocument();
 
     await waitFor(() => expect(printSpy).toHaveBeenCalledTimes(1));

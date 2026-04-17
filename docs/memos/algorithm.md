@@ -1,6 +1,6 @@
 # How MarqBot Plans Your Degree
 
-Last updated: April 7, 2026
+Last updated: April 17, 2026
 
 ## The Short Version
 
@@ -79,6 +79,8 @@ Your scheduling style decides how aggressively MarqBot remaps those tiers:
 - **Explorer** still protects critical gateways, but deliberately pulls discovery and gen-ed work forward.
 - **Mixer** stays between the two, keeping a balanced term without going full grinder or full explorer.
 
+Inside the **major tier**, MarqBot also follows a hard child-bucket order: **Required** buckets come before **Choose N**, which come before **Credits pool** buckets. So if Finance Core Requirements and Finance electives are both open, the core bucket wins even if an elective course would help more than one open bucket.
+
 Within a band or tier, MarqBot further sorts by:
 - Whether the course unlocks other courses you need (prereq chain depth — deeper chains get priority)
 - Whether the course counts toward more than one bucket (multi-bucket courses are more efficient)
@@ -103,7 +105,8 @@ Now MarqBot picks courses from the ranked list to fill your semester. It doesn't
 
 MarqBot returns your semester plan with:
 - A ranked list of recommended courses for each term
-- Your progress across every requirement bucket (what's done, what's left)
+- Your current progress across every requirement bucket (what's done and what still counts as open right now)
+- Projected bucket changes in future semesters if you complete the recommendations
 - A projection of your remaining semesters
 - Any warnings (credit load, standing, restriction flags, manual review items)
 
@@ -121,7 +124,7 @@ Not everyone wants to plan the same way. MarqBot offers three scheduling styles 
 
 **Mixer** — Alternates between core and discovery picks to create balanced semesters. Each term gets at least 1 discovery course and 2 core courses.
 
-You can switch styles anytime. It only changes the recommendation order — your transcript and progress stay the same.
+You can switch styles anytime. It only changes the recommendation order — your transcript and current progress stay the same, while projected semester views are recalculated separately.
 
 ---
 

@@ -11,6 +11,8 @@ function PlannerSessionPersistence() {
   return null;
 }
 
+const plannerViewportShellClassName = "min-h-[calc(100dvh-4rem)]";
+
 export default function PlannerPage() {
   const { courses, loading: coursesLoading, error: coursesError, retry: retryCourses } = useCourses();
   const {
@@ -36,7 +38,7 @@ export default function PlannerPage() {
 
   if (isLoading) {
     return (
-      <div className="h-[calc(100dvh-4rem)] overflow-hidden flex items-center justify-center">
+      <div className={`${plannerViewportShellClassName} flex items-center justify-center px-4`}>
         <div className="text-center space-y-3">
           <div className="w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-ink-muted">Loading planner data...</p>
@@ -47,7 +49,7 @@ export default function PlannerPage() {
 
   if (bootstrapError) {
     return (
-      <div className="h-[calc(100dvh-4rem)] overflow-hidden flex items-center justify-center px-4">
+      <div className={`${plannerViewportShellClassName} flex items-center justify-center px-4`}>
         <div className="max-w-md text-center space-y-4 rounded-2xl border border-border-subtle bg-surface-card/70 p-6">
           <div className="space-y-2">
             <h1 className="text-xl font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
@@ -69,7 +71,7 @@ export default function PlannerPage() {
   return (
     <>
       <PlannerSessionPersistence />
-      <div className="h-[calc(100dvh-4rem)] overflow-hidden">
+      <div className={plannerViewportShellClassName}>
         <PlannerLayout />
       </div>
     </>

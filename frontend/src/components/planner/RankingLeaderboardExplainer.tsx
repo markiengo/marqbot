@@ -84,15 +84,23 @@ function getStyleLabel(currentStyle: SchedulingStyle): string {
 
 interface RankingLeaderboardExplainerProps {
   currentStyle: SchedulingStyle;
+  appliedStyle?: SchedulingStyle;
   onStyleChange?: (style: SchedulingStyle) => void;
+  onApply?: (style: SchedulingStyle) => void;
+  isApplying?: boolean;
 }
 
 export function RankingLeaderboardExplainer({
   currentStyle,
+  appliedStyle,
   onStyleChange,
+  onApply,
+  isApplying = false,
 }: RankingLeaderboardExplainerProps) {
   const accent = styleAccent[currentStyle];
   const content = rankingContent[currentStyle];
+  const canApply = Boolean(onApply);
+  const isApplied = appliedStyle === currentStyle;
 
   return (
     <div className="space-y-2.5 text-sm text-ink-secondary">
@@ -103,7 +111,9 @@ export function RankingLeaderboardExplainer({
               Compare builds
             </p>
             <p className="mt-0.5 text-[0.76rem] leading-relaxed text-slate-300">
-              View another build without changing your plan settings.
+              {canApply
+                ? "Preview another build, then apply it to rerun this plan."
+                : "View another build without changing your plan settings."}
             </p>
           </div>
 
@@ -233,6 +243,24 @@ export function RankingLeaderboardExplainer({
           .
         </p>
       </div>
+
+      {onApply && (
+        <div className="flex justify-end pt-1">
+          <button
+            type="button"
+            onClick={() => onApply(currentStyle)}
+            disabled={isApplying || isApplied}
+            className={[
+              "inline-flex min-w-[7.5rem] items-center justify-center rounded-xl border px-4 py-2 text-[0.78rem] font-semibold transition-all",
+              isApplied
+                ? "cursor-not-allowed border-white/12 bg-white/[0.05] text-slate-400"
+                : `cursor-pointer ${accent.badge} shadow-[0_0_20px_rgba(255,204,0,0.10)] hover:brightness-110`,
+            ].join(" ")}
+          >
+            {isApplying ? "Applying..." : isApplied ? "Applied" : "Apply"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

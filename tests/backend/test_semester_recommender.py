@@ -2089,6 +2089,303 @@ def test_selection_uses_required_before_choose_n_within_same_family():
     assert codes == ["X300", "Y300"]
 
 
+def test_major_required_outranks_choose_n_even_when_choose_fills_more_buckets():
+    courses = [
+        {
+            "course_code": "FINA 3999",
+            "course_name": "Major Required Course",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "FINA 3001",
+            "course_name": "Major Choose Course",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::REQ_A",
+            "bucket_label": "Required A",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::CHOOSE_A",
+            "bucket_label": "Choose A",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "choose_n",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::CHOOSE_B",
+            "bucket_label": "Choose B",
+            "priority": 3,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "choose_n",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::REQ_A", "course_code": "FINA 3999"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::CHOOSE_A", "course_code": "FINA 3001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::CHOOSE_B", "course_code": "FINA 3001"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+    ])
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    assert codes == ["FINA 3999", "FINA 3001"]
+
+
+def test_major_choose_n_outranks_credits_pool_even_when_pool_fills_more_buckets():
+    courses = [
+        {
+            "course_code": "FINA 3001",
+            "course_name": "Major Choose Course",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "FINA 3002",
+            "course_name": "Major Pool Course",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::CHOOSE_A",
+            "bucket_label": "Choose A",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "choose_n",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::POOL_A",
+            "bucket_label": "Pool A",
+            "priority": 2,
+            "needed_count": None,
+            "needed_credits": 3,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "credits_pool",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::POOL_B",
+            "bucket_label": "Pool B",
+            "priority": 3,
+            "needed_count": None,
+            "needed_credits": 3,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "credits_pool",
+            "parent_bucket_id": "FIN_MAJOR",
+            "double_count_family_id": "FIN_MAJOR",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::CHOOSE_A", "course_code": "FINA 3001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::POOL_A", "course_code": "FINA 3002"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::POOL_B", "course_code": "FINA 3002"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+    ])
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    assert codes == ["FINA 3001", "FINA 3002"]
+
+
+def test_track_family_still_prefers_multi_bucket_efficiency_over_required_ordering():
+    courses = [
+        {
+            "course_code": "TRCK 3999",
+            "course_name": "Track Required Course",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+        {
+            "course_code": "TRCK 3001",
+            "course_name": "Track Choose Course",
+            "credits": 3,
+            "level": 3000,
+            "prereq_hard": "none",
+            "prereq_soft": "",
+            "prereq_level": 0,
+            "offered_fall": True,
+            "offered_spring": False,
+            "offered_summer": False,
+            "offering_confidence": "high",
+            "notes": None,
+        },
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "CB_TRACK::REQ_A",
+            "bucket_label": "Track Required A",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+            "parent_bucket_id": "CB_TRACK",
+            "double_count_family_id": "CB_TRACK",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "CB_TRACK::CHOOSE_A",
+            "bucket_label": "Track Choose A",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "choose_n",
+            "parent_bucket_id": "CB_TRACK",
+            "double_count_family_id": "CB_TRACK",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "CB_TRACK::CHOOSE_B",
+            "bucket_label": "Track Choose B",
+            "priority": 3,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "choose_n",
+            "parent_bucket_id": "CB_TRACK",
+            "double_count_family_id": "CB_TRACK",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "CB_TRACK::REQ_A", "course_code": "TRCK 3999"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "CB_TRACK::CHOOSE_A", "course_code": "TRCK 3001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "CB_TRACK::CHOOSE_B", "course_code": "TRCK 3001"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "CB_TRACK", "type": "track"},
+    ])
+
+    out = run_recommendation_semester(
+        completed=[],
+        in_progress=[],
+        target_semester_label="Fall 2026",
+        data=data,
+        max_recs=2,
+        reverse_map={},
+        track_id="FIN_MAJOR",
+    )
+
+    codes = [r["course_code"] for r in out["recommendations"]]
+    assert codes == ["TRCK 3001", "TRCK 3999"]
+
+
 def test_only_one_bridge_course_per_target_bucket():
     """When two bridge courses target the same single-slot bucket,
     only the first (higher-ranked) should be recommended."""
@@ -3927,6 +4224,94 @@ def test_grinder_pushes_mcc_cleanup_behind_declared_program_work():
     assert max(major_positions) < min(cleanup_positions), (
         f"Grinder should defer MCC/discovery cleanup until after declared-program work: {grinder_codes}"
     )
+
+
+def test_major_family_order_is_preserved_across_all_scheduling_styles():
+    courses = [
+        _course_row("FINA 3999", "Major Required", level=3000),
+        _course_row("FINA 3001", "Major Choose", level=3000),
+        _course_row("FINA 3002", "Major Pool", level=3000),
+    ]
+    buckets = [
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::REQ_A",
+            "parent_bucket_id": "FIN_MAJOR",
+            "bucket_label": "Required A",
+            "priority": 1,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "core",
+            "requirement_mode": "required",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::CHOOSE_A",
+            "parent_bucket_id": "FIN_MAJOR",
+            "bucket_label": "Choose A",
+            "priority": 2,
+            "needed_count": 1,
+            "needed_credits": None,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "choose_n",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::POOL_A",
+            "parent_bucket_id": "FIN_MAJOR",
+            "bucket_label": "Pool A",
+            "priority": 3,
+            "needed_count": None,
+            "needed_credits": 3,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "credits_pool",
+        },
+        {
+            "track_id": "FIN_MAJOR",
+            "bucket_id": "FIN_MAJOR::POOL_B",
+            "parent_bucket_id": "FIN_MAJOR",
+            "bucket_label": "Pool B",
+            "priority": 4,
+            "needed_count": None,
+            "needed_credits": 3,
+            "min_level": None,
+            "allow_double_count": False,
+            "role": "elective",
+            "requirement_mode": "credits_pool",
+        },
+    ]
+    course_map = [
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::REQ_A", "course_code": "FINA 3999"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::CHOOSE_A", "course_code": "FINA 3001"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::POOL_A", "course_code": "FINA 3002"},
+        {"track_id": "FIN_MAJOR", "bucket_id": "FIN_MAJOR::POOL_B", "course_code": "FINA 3002"},
+    ]
+    data = _mk_data(courses, course_map, buckets)
+    data["parent_buckets_df"] = pd.DataFrame([
+        {"parent_bucket_id": "FIN_MAJOR", "type": "major"},
+    ])
+
+    for style in ("grinder", "explorer", "mixer"):
+        out = run_recommendation_semester(
+            completed=[],
+            in_progress=[],
+            target_semester_label="Fall 2026",
+            data=data,
+            max_recs=3,
+            reverse_map={},
+            track_id="FIN_MAJOR",
+            scheduling_style=style,
+        )
+        codes = [r["course_code"] for r in out["recommendations"]]
+        assert codes == ["FINA 3999", "FINA 3001", "FINA 3002"], (
+            f"{style} should preserve required -> choose_n -> credits_pool ordering: {codes}"
+        )
 
 
 def test_explorer_reserves_discovery_slots():

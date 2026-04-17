@@ -10,16 +10,23 @@ import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 interface RecommendationsPanelProps {
   data: RecommendationResponse | null;
+  selectedSemesterIdx?: number;
+  onSemesterChange?: (idx: number) => void;
   onExpandSemester: (index: number) => void;
   onCourseClick?: (courseCode: string) => void;
 }
 
 function RecommendationsPanelInner({
   data,
+  selectedSemesterIdx,
+  onSemesterChange,
   onExpandSemester,
   onCourseClick,
 }: RecommendationsPanelProps) {
-  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [localSelectedIdx, setLocalSelectedIdx] = useState(0);
+  const isControlled = selectedSemesterIdx !== undefined;
+  const selectedIdx = isControlled ? selectedSemesterIdx : localSelectedIdx;
+  const setSelectedIdx = isControlled ? (onSemesterChange ?? (() => {})) : setLocalSelectedIdx;
   const reduceEffects = useReducedEffects();
   const semesters = data?.semesters || [];
 
@@ -77,15 +84,15 @@ function RecommendationsPanelInner({
   const activeRecs = activeSemester?.recommendations || [];
   const courseCount = Math.max(1, Math.min(6, activeRecs.length || 1));
   const listGapClass =
-    courseCount >= 6 ? "gap-0.5" : courseCount >= 5 ? "gap-1" : courseCount >= 4 ? "gap-1.5" : "gap-2";
+    courseCount >= 6 ? "gap-1.5" : courseCount >= 5 ? "gap-2" : courseCount >= 4 ? "gap-2.5" : "gap-3";
   const listPadClass =
-    courseCount >= 6 ? "px-1.5 py-1.5" : courseCount >= 5 ? "px-2 py-1.5" : "px-2 py-2";
+    courseCount >= 6 ? "px-2 py-2" : courseCount >= 5 ? "px-2.5 py-2" : "px-2.5 py-2.5";
 
   return (
     <div
       data-testid="recommendations-panel"
       data-reduced-motion={reduceEffects ? "true" : "false"}
-      className="relative h-full min-h-0 overflow-hidden rounded-xl glass-card p-2"
+      className="relative min-h-0 overflow-hidden rounded-xl glass-card p-2 lg:h-full"
     >
       <div
         className="absolute inset-0 rounded-xl pointer-events-none"
@@ -95,20 +102,20 @@ function RecommendationsPanelInner({
         }}
       />
 
-      <div className="relative z-[1] flex h-full min-h-0 flex-col gap-3 lg:flex-row lg:gap-4">
-        {semesters.length > 1 && (
-          <div className="shrink-0 lg:h-full lg:min-h-0 lg:w-[210px]">
+      <div className="relative z-[1] flex min-h-0 flex-col gap-3 lg:h-full">
+        {!isControlled && semesters.length > 1 && (
+          <div className="shrink-0 w-full">
             <SemesterSelector
               semesters={semesters}
-              selectedIndex={selectedIdx}
+              selectedIdx={selectedIdx}
               onSelect={setSelectedIdx}
               onExpand={onExpandSemester}
             />
           </div>
         )}
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg glass-card">
-          <div className="relative flex shrink-0 items-center justify-between gap-2 border-b border-gold/15 px-3 py-2">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg glass-card lg:flex-1">
+          <div className="relative flex shrink-0 items-center justify-between gap-3 border-b border-gold/15 px-3 py-2.5">
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-3 inset-y-1 rounded-md opacity-70"
@@ -118,7 +125,7 @@ function RecommendationsPanelInner({
               }}
             />
 
-            <h4 className="relative hash-mark font-[family-name:var(--font-sora)] text-[11px] font-bold leading-[1.25] tracking-[0.01em] text-gold md:text-[13px]">
+            <h4 className="relative hash-mark font-[family-name:var(--font-sora)] text-[14px] font-bold leading-[1.25] tracking-[0.01em] text-gold md:text-[17px]">
               Semester {selectedIdx + 1}
               {activeSemester.target_semester && ` - ${activeSemester.target_semester}`}
             </h4>
@@ -126,10 +133,10 @@ function RecommendationsPanelInner({
               <button
                 type="button"
                 onClick={() => onExpandSemester(selectedIdx)}
-                className="relative inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-gold/25 text-gold/70 transition-all hover:border-gold/50 hover:bg-gold/8 hover:text-gold"
+                className="relative inline-flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-lg border border-gold/30 bg-gold/[0.03] text-gold/75 shadow-[0_0_14px_rgba(255,204,0,0.08)] transition-all hover:border-gold/55 hover:bg-gold/10 hover:text-gold hover:shadow-[0_0_18px_rgba(255,204,0,0.18)]"
                 aria-label={`Expand semester ${selectedIdx + 1} details`}
               >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-[19px] w-[19px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -141,7 +148,7 @@ function RecommendationsPanelInner({
             )}
           </div>
 
-          <div className={`flex-1 min-h-0 overflow-hidden ${listPadClass}`}>
+          <div className={`min-h-0 overflow-visible ${listPadClass} lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto`}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={selectedIdx}
@@ -149,7 +156,7 @@ function RecommendationsPanelInner({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -8 }}
                 transition={{ duration: 0.14 }}
-                className={`flex h-full min-h-0 flex-col overflow-hidden stagger-enter ${listGapClass}`}
+                className={`flex flex-col stagger-enter ${listGapClass}`}
               >
                 {activeRecs.length > 0 ? (
                   activeRecs.map((c) => (

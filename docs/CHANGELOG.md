@@ -12,11 +12,17 @@ Format per release:
 
 ### User
 
-- Nothing queued yet.
+- Repo navigation for coding agents is clearer: there is now one shared `AGENTS.md` entrypoint plus a `docs/README.md` map instead of relying on scattered `README` and hidden tool files.
+- Current Degree Progress stops crediting future planned courses as if they were already taken; projected semester views still show future bucket fill separately.
+- Declared major ranking now keeps required child buckets ahead of `choose_n` buckets and elective pools in every scheduling style.
+- Saved-plan PDF exports use cleaner `Satisfy` labels for BCC, MCC, and major elective buckets.
 
 ### Technical
 
-- No unreleased notes yet.
+- Goal: make repo orientation cheaper for coding agents. Problem: repo guidance was spread across `README.md`, `docs/codebase/tech_readme.md`, hidden tool-specific files, and long memos with no neutral entrypoint. Decisions: add a root `AGENTS.md`, add `docs/README.md` as the documentation index, and repoint `.claude/CLAUDE.md` back to the shared guide. Outcome: agents have one obvious place to start and fewer chances to load irrelevant markdown.
+- Goal: stop the current degree-progress pane from overstating completion. Problem: the planner modal was reading plan-level projected progress, so future recommended courses could appear as already counted. Decisions: wire the modal back to raw `current_progress` and add a planner-layout regression test. Outcome: current progress reflects only transcript-backed state while projected semester views keep the future overlay.
+- Goal: make declared-major ranking deterministic inside a major family. Problem: once candidates were inside major-ranked work, multi-bucket efficiency could still let `choose_n` or `credits_pool` buckets rise ahead of required major buckets. Decisions: add a major-only `primary_bucket_priority` sub-rank ahead of `multi_bucket_score`, keep scope to major parents, and add regressions for `required -> choose_n -> credits_pool` plus a non-major guard. Outcome: major core requirements stay ahead of major electives without changing track, MCC, or BCC ordering.
+- Goal: make saved-plan PDF exports read like human-facing audits instead of raw bucket IDs. Problem: exported `Satisfy` values still exposed inconsistent technical labels across BCC, MCC, and major elective buckets. Decisions: normalize export labels by bucket family and add broader export/print assertions. Outcome: saved-plan exports present cleaner, more consistent satisfy labels.
 
 ---
 

@@ -940,10 +940,29 @@ def _protected_ranking_band_group(
     return 0 if band <= 2 else 1
 
 
+def _major_family_priority_rank(
+    candidate: dict,
+    parent_type_map: dict[str, str],
+) -> int:
+    """Return primary bucket priority for declared-major candidates only.
+
+    Lower values mean "earlier within the major family" and already encode the
+    runtime ordering of required -> choose_n -> credits_pool. Non-major
+    candidates return a neutral rank so their ordering is unchanged.
+    """
+    parent_id = str(candidate.get("primary_parent_bucket_id", "") or "").strip().upper()
+    parent_type = str(parent_type_map.get(parent_id, "") or "").strip().lower()
+    if parent_type != "major":
+        return 9999
+    priority = _safe_int(candidate.get("primary_bucket_priority"), 9999)
+    return priority if priority is not None else 9999
+
+
 def _ranking_sort_key(
     candidate: dict,
     bucket_parent_map: dict[str, str],
     *,
+    parent_type_map: dict[str, str],
     style: StyleConfig,
     semesters_remaining: int,
     chain_scores: dict[str, int],
@@ -966,6 +985,7 @@ def _ranking_sort_key(
         return (
             ranking_band,
             candidate.get("effective_ranking_tier", candidate.get("ranking_tier", 99)),
+            _major_family_priority_rank(candidate, parent_type_map),
             -candidate.get("multi_bucket_score", 0),
             _bcc_priority_rank(candidate, bucket_parent_map),
             0 if candidate.get("is_core_prereq_blocker") else 1,
@@ -986,6 +1006,7 @@ def _ranking_sort_key(
             style=style,
             semesters_remaining=semesters_remaining,
         ),
+        _major_family_priority_rank(candidate, parent_type_map),
         -candidate.get("multi_bucket_score", 0),
         ranking_band,
         candidate.get("effective_ranking_tier", candidate.get("ranking_tier", 99)),
@@ -2333,6 +2354,7 @@ def run_recommendation_semester(
         key=lambda c: _ranking_sort_key(
             c,
             bucket_parent_map,
+            parent_type_map=parent_type_map,
             style=style,
             semesters_remaining=semesters_remaining,
             chain_scores=_chain,

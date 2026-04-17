@@ -1,15 +1,17 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-03-28
+**Analysis Date:** 2026-04-17
 
 ## Directory Layout
 
 ```text
 [project-root]/
+├── AGENTS.md             # Shared repo-wide agent entrypoint
 ├── backend/              # Flask app and deterministic engine modules
 ├── config/               # Runtime ranking overrides and investigation ledgers
 ├── data/                 # CSV source-of-truth degree and catalog data
 ├── docs/                 # Product and technical documentation
+│   ├── README.md         # Docs index and markdown naming rules
 ├── frontend/             # Next.js app, public assets, and frontend-side tests
 │   ├── public/assets/    # Static images and branding
 │   ├── src/app/          # App Router routes and layout
@@ -30,6 +32,11 @@
 ```
 
 ## Directory Purposes
+
+**`AGENTS.md`:**
+- Purpose: Give coding agents one short repo-wide entrypoint before they fan out into deeper docs.
+- Contains: orientation order, repo map, markdown taxonomy, high-signal rules, and common commands
+- Key files: `AGENTS.md`, `docs/README.md`, `docs/codebase/tech_readme.md`
 
 **`backend/`:**
 - Purpose: Hold the Flask entrypoint and the backend rule-engine modules.
@@ -98,8 +105,8 @@
 
 **`docs/`:**
 - Purpose: Hold product and technical documentation that explains behavior outside the code.
-- Contains: generated codebase maps and the technical reference in `docs/codebase/`; collected feedback under `docs/feedbacks/`; memos and the algorithm explainer under `docs/memos/`
-- Key files: `docs/codebase/tech_readme.md`, `docs/memos/algorithm.md`, `docs/CHANGELOG.md`
+- Contains: docs index and naming guidance in `docs/README.md`; generated codebase maps and the technical reference in `docs/codebase/`; collected feedback under `docs/feedbacks/`; memos and the algorithm explainer under `docs/memos/`
+- Key files: `docs/README.md`, `docs/codebase/tech_readme.md`, `docs/memos/algorithm.md`, `docs/CHANGELOG.md`
 
 **`infra/docker/`:**
 - Purpose: Hold container-build assets used by deployment.
@@ -204,4 +211,4 @@
 
 ---
 
-*Structure analysis: 2026-03-28*
+*Structure analysis: 2026-04-17*

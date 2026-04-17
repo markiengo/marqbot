@@ -30,7 +30,7 @@ MarqBot is a planning tool for Marquette students. Right now it is strongest on 
 |---|---|
 | **Ranked recommendations** | A priority-ordered list of what to take next semester |
 | **Eligibility check** | Instant yes/no on whether you can take a course right now |
-| **Progress tracking** | See where you stand across every requirement bucket |
+| **Progress tracking** | See what counts right now across every requirement bucket, with future bucket fill kept in projected semester views |
 | **Multi-semester plans** | Map out more than one term at a time |
 | **Saved plans** | Snapshots stored in your browser. Compare paths, overwrite an existing version when you mean it, come back later, and export a print-ready PDF. |
 | **Scheduling styles** | Grinder, Explorer, or Mixer - pick whether declared program work or discovery shows up first |
@@ -50,13 +50,15 @@ Under the hood, MarqBot runs a deterministic recommendation engine:
 
 ```
 1. Filter     — removes courses you can't take yet (prereqs, standing, already done)
-2. Rank       — protects prerequisite and BCC gateways first, then uses your chosen style to decide whether declared program work or MCC/discovery cleanup rises next
+2. Rank       — protects prerequisite and BCC gateways first, then uses your chosen style to decide whether declared program work or MCC/discovery cleanup rises next; inside a declared major, required child buckets stay ahead of choose-from and credit-pool electives
 3. Pick       — fills your semester in ranked order, with style-specific reservations where applicable
 ```
 
 Your scheduling style adjusts the balance between core requirements and discovery electives. For the full breakdown, see [How MarqBot Plans Your Degree](docs/memos/algorithm.md). For engine internals, see the [Technical Reference](docs/codebase/tech_readme.md).
 
 When a required or choose-from bucket collides with a broad elective pool, MarqBot counts the narrower requirement first. If two completed courses overfill the same required slot, the extra course can still spill into an eligible elective pool. Scoped and global `type=equivalent` groups from `data/course_equivalencies.csv` also suppress duplicate recommendations and treat equivalent aliases as satisfying the same required slot.
+
+The Current Degree Progress pane stays tied to what is actually completed or in progress now. Future recommended courses only show up in projected semester views and projected bucket bars.
 
 ## What It Is Not
 
@@ -76,12 +78,16 @@ Use it to plan faster. Then confirm with your advisor before you register.
 
 | Doc | What it covers |
 |---|---|
+| [Agent Guide](AGENTS.md) | Lean repo-wide entrypoint for coding agents, with the doc taxonomy and the fastest orientation path |
+| [Docs Index](docs/README.md) | Map of which markdown files matter for which kind of task |
 | [How MarqBot Plans Your Degree](docs/memos/algorithm.md) | Non-technical walkthrough of the recommendation engine, requirements, and policies |
 | [Policy Guide](docs/memos/policies.md) | Navigation-first guide to scraped Marquette undergraduate policies, grouped by lifecycle with university and college-specific sections kept separate |
 | [Product Overview](docs/memos/ogprd.md) | Fast product-context memo for what MarqBot is, who it serves, and what it is not |
 | [Branding Notes](docs/memos/branding.md) | Brand direction, messaging, and presentation notes |
 | [Technical Reference](docs/codebase/tech_readme.md) | Data inputs, pipeline internals, ranking tuples, API endpoints, module map |
 | [Changelog](docs/CHANGELOG.md) | Version history and release notes |
+
+Coding agents should start with [AGENTS.md](AGENTS.md), then use [docs/README.md](docs/README.md) instead of scanning every markdown file blindly.
 
 The [`docs/memos/`](docs/memos/) folder is useful if you want fast project context without reading the whole codebase. Start with:
 
@@ -93,6 +99,7 @@ The [`docs/memos/`](docs/memos/) folder is useful if you want fast project conte
 ## Project Directory
 
 ```
+AGENTS.md                 Shared repo-wide agent entrypoint for coding tools
 backend/                  Flask API and recommendation engine
   server.py                 API routes, request validation, policy enforcement
   data_loader.py            CSV loading, prereq overlay, equivalency maps
@@ -155,6 +162,7 @@ tests/                    Test suites
   nightly_reports/          Archived nightly analysis reports
 
 docs/                     Documentation
+  README.md                Docs index and markdown naming rules
   CHANGELOG.md              Version history
   codebase/                 Technical reference and generated codebase maps
   memos/                    Useful product, policy, algorithm, and branding memos for fast project context

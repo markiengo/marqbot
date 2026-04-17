@@ -233,11 +233,12 @@ describe("Planner completed course modal", () => {
   test("shows the grinder leaderboard explainer copy", () => {
     renderPlanner();
 
-    fireEvent.click(screen.getByRole("button", { name: /how ranking works/i }));
+    fireEvent.click(screen.getByRole("button", { name: /change your priorities/i }));
 
-    expect(screen.getByRole("heading", { name: /how marqbot ranks courses/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /change your priorities/i })).toBeInTheDocument();
     expect(screen.getByText("Current build")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /grinder/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /applied/i })).toBeInTheDocument();
     expect(screen.getByText("Major path first. Cleanup later.")).toBeInTheDocument();
     expect(screen.getByText("Urgent BCC gateways")).toBeInTheDocument();
     expect(screen.getByText("MCC and discovery cleanup")).toBeInTheDocument();
@@ -247,12 +248,13 @@ describe("Planner completed course modal", () => {
   test("switches the leaderboard view between builds inside the ranking modal", () => {
     renderPlanner();
 
-    fireEvent.click(screen.getByRole("button", { name: /how ranking works/i }));
+    fireEvent.click(screen.getByRole("button", { name: /change your priorities/i }));
     fireEvent.click(screen.getByRole("button", { name: /explorer/i }));
 
     expect(screen.getByRole("button", { name: /explorer/i })).toBeInTheDocument();
     expect(screen.getByText("Discovery and gen-eds move up.")).toBeInTheDocument();
     expect(screen.getByText("Discovery and late MCC")).toBeInTheDocument();
     expect(screen.getByText("Major classes stay important, but not always first.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^apply$/i })).toBeInTheDocument();
   });
 });

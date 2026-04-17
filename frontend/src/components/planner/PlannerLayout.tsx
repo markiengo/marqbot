@@ -10,7 +10,6 @@ import { EditPlanModal } from "./EditPlanModal";
 import { ProfileModal } from "./ProfileModal";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { SemesterSelector } from "./SemesterSelector";
-import { Button } from "@/components/shared/Button";
 import { Modal } from "@/components/shared/Modal";
 import { Skeleton } from "@/components/shared/Skeleton";
 import { SavePlanModal } from "@/components/saved/SavePlanModal";
@@ -61,7 +60,7 @@ const UNIVERSAL_PROGRAM_IDS = [
 const MAJOR_GUIDE_SEEN_KEY = "marqbot_major_guide_seen";
 
 export function PlannerLayout() {
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const { data, requestedCount, loading, error, fetchRecommendations, runRecommendationRequest, applyRecommendationData } =
     useRecommendations();
   const { hydrated: savedPlansReady, plans: savedPlans = [], createPlan, updatePlan } = useSavedPlans();
@@ -501,6 +500,61 @@ export function PlannerLayout() {
     state.targetSemester,
   ]);
 
+  const handleExplainerApply = useCallback(async () => {
+    if (explainerStyle === state.schedulingStyle) {
+      setExplainerOpen(false);
+      return;
+    }
+
+    if (!hasProgram || state.courses.length === 0) {
+      dispatch({ type: "SET_SCHEDULING_STYLE", payload: explainerStyle });
+      setExplainerOpen(false);
+      return;
+    }
+
+    const maxRecommendations = Number(state.maxRecs) || 3;
+    const desiredSemesterCount = Math.max(1, Number(state.semesterCount) || 3);
+    const payload = buildRecommendationPayload({
+      completed_courses: [...state.completed].join(", "),
+      in_progress_courses: [...state.inProgress].join(", "),
+      target_semester: state.targetSemester,
+      target_semester_primary: state.targetSemester,
+      target_semester_count: desiredSemesterCount,
+      max_recommendations: maxRecommendations,
+      scheduling_style: explainerStyle,
+    });
+
+    const fresh = await runRecommendationRequest(payload);
+    if (!fresh) return;
+
+    dispatch({ type: "SET_SCHEDULING_STYLE", payload: explainerStyle });
+    applyPinnedRecommendationResult({
+      baseData: data,
+      rerunData: fresh,
+      semesters: fresh.semesters ?? [],
+      pins: state.manualAddPins.length > 0 ? state.manualAddPins : manualAddPinsRef.current,
+      rerunStartIndex: 0,
+      count: maxRecommendations,
+    });
+    setExplainerOpen(false);
+  }, [
+    applyPinnedRecommendationResult,
+    buildRecommendationPayload,
+    data,
+    dispatch,
+    explainerStyle,
+    hasProgram,
+    runRecommendationRequest,
+    state.completed,
+    state.courses.length,
+    state.inProgress,
+    state.manualAddPins,
+    state.maxRecs,
+    state.schedulingStyle,
+    state.semesterCount,
+    state.targetSemester,
+  ]);
+
   useEffect(() => {
     if (
       didAutoFetch.current ||
@@ -674,27 +728,29 @@ export function PlannerLayout() {
       <div className="flex flex-col gap-4">
 
         {/* ── Progress Strip ── */}
-        <div className="glass-card gradient-border rounded-2xl p-3 flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-medium uppercase tracking-wide text-ink-faint">
+        <div className="glass-card gradient-border rounded-2xl p-5 sm:p-7 flex flex-col gap-5">
+          <div className="flex items-start justify-between gap-4">
+            <h2 className="text-[1rem] font-bold font-[family-name:var(--font-sora)] text-ink">
               Degree Progress
-            </span>
-            <div className="flex-1 h-1.5 rounded-full bg-ink-faint/15 overflow-hidden max-w-[200px]">
-              <div
-                className="h-full rounded-full bg-gold transition-all duration-500"
-                style={{ width: `${overallPct}%` }}
-              />
+            </h2>
+            <div className="flex items-center gap-3 pt-1">
+              <div className="relative h-2 w-36 rounded-full bg-ink-faint/12 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-gold/80 to-gold transition-all duration-700"
+                  style={{ width: `${overallPct}%` }}
+                />
+              </div>
+              <span className="text-sm font-bold tabular-nums text-gold">{overallPct}%</span>
+              {hasData && (
+                <button
+                  type="button"
+                  onClick={openProgressModal}
+                  className="text-xs font-semibold text-gold bg-gold/8 border border-gold/20 rounded-lg px-3 py-1.5 hover:bg-gold/15 hover:border-gold/35 transition-all cursor-pointer whitespace-nowrap"
+                >
+                  View details →
+                </button>
+              )}
             </div>
-            <span className="text-xs tabular-nums text-ink-faint">{overallPct}%</span>
-            {hasData && (
-              <button
-                type="button"
-                onClick={openProgressModal}
-                className="text-xs text-gold hover:underline whitespace-nowrap cursor-pointer"
-              >
-                View details →
-              </button>
-            )}
           </div>
           <ProgressDashboard
             compact
@@ -706,56 +762,71 @@ export function PlannerLayout() {
         </div>
 
         {/* ── Plan Card ── */}
-        <div className="glass-card gradient-border rounded-2xl p-4 flex flex-col gap-3">
-          {/* Card header row */}
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="flex flex-col gap-0.5">
-              <h2 className="text-base font-semibold text-ink">Your Plan</h2>
-              {primaryProgramLabel && (
-                <p className="text-xs text-ink-faint">{primaryProgramLabel}</p>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <Button
-                variant="ink"
-                size="xs"
-                onClick={() => setEditPlanModalOpen(true)}
-                disabled={!canOpenEditPlan}
-                className="border-white/10"
-              >
-                Edit Plan
-              </Button>
-              <Button
-                variant="gold"
-                size="xs"
-                onClick={() => {
-                  setSaveError(null);
-                  setSaveSuccess(null);
-                  setSaveModalOpen(true);
-                }}
-                disabled={!savedPlansReady || !canSavePlan}
-                className="bg-gold text-navy hover:bg-gold-light shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
-              >
-                Save Plan
-              </Button>
-              <button
-                type="button"
-                onClick={() => {
-                  setExplainerStyle(state.schedulingStyle);
-                  setExplainerOpen(true);
-                }}
-                className="rounded-full border border-gold/20 bg-gold/10 px-2.5 py-0.5 text-[10px] text-gold transition-all hover:bg-gold/15 hover:border-gold/35"
-              >
-                How ranking works
-              </button>
-              <button
-                type="button"
-                onClick={openFeedbackModal}
-                className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[10px] text-ink-secondary transition-all hover:border-gold/25 hover:text-gold"
-              >
-                Feedback
-              </button>
-            </div>
+        <div className="glass-card gradient-border rounded-2xl p-5 sm:p-7 flex flex-col gap-5">
+          {/* Card title */}
+          <div className="flex flex-col gap-1">
+            <h2 className="text-[1rem] font-bold font-[family-name:var(--font-sora)] text-ink">Your Plan</h2>
+            {primaryProgramLabel && (
+              <p className="text-[0.95rem] font-extrabold tracking-[0.01em] text-gold drop-shadow-[0_0_8px_rgba(255,204,0,0.22)]">
+                {primaryProgramLabel}
+              </p>
+            )}
+          </div>
+
+          {/* Action buttons — responsive 5-button row with width weighted to label length */}
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-[1.65fr_1.2fr_1.15fr_0.9fr_1.15fr]">
+            <button
+              type="button"
+              onClick={() => setEditPlanModalOpen(true)}
+              disabled={!canOpenEditPlan}
+              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#0072CE]/30 bg-[#0072CE]/10 px-3 py-4 text-[#8ec8ff] transition-all duration-200 shadow-[0_0_18px_rgba(0,114,206,0.18),0_0_36px_rgba(0,114,206,0.07)] hover:shadow-[0_0_28px_rgba(0,114,206,0.35),0_0_56px_rgba(0,114,206,0.14)] hover:bg-[#0072CE]/16 hover:border-[#0072CE]/48 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span className="text-xs font-semibold text-center leading-tight">Some courses not available? Edit the plan!</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSaveError(null); setSaveSuccess(null); setSaveModalOpen(true); }}
+              disabled={!savedPlansReady || !canSavePlan}
+              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-gold/35 bg-gold/10 px-3 py-4 text-gold transition-all duration-200 shadow-[0_0_22px_rgba(255,204,0,0.26),0_0_44px_rgba(255,204,0,0.10)] hover:shadow-[0_0_32px_rgba(255,204,0,0.44),0_0_64px_rgba(255,204,0,0.18)] hover:bg-gold/16 hover:border-gold/52 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+              <span className="text-xs font-semibold text-center leading-tight">Satisfied? Save plan!</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setExplainerStyle(state.schedulingStyle); setExplainerOpen(true); }}
+              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#1e9f61]/30 bg-[#1e9f61]/10 px-3 py-4 text-ok transition-all duration-200 shadow-[0_0_18px_rgba(30,159,97,0.18),0_0_36px_rgba(30,159,97,0.07)] hover:shadow-[0_0_28px_rgba(30,159,97,0.35),0_0_56px_rgba(30,159,97,0.14)] hover:bg-[#1e9f61]/16 hover:border-[#1e9f61]/48 cursor-pointer"
+            >
+              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span className="text-xs font-semibold text-center leading-tight">Change your priorities</span>
+            </button>
+            <button
+              type="button"
+              onClick={openFeedbackModal}
+              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#ff6b8a]/30 bg-[#ff6b8a]/10 px-3 py-4 text-[#ff9fb3] transition-all duration-200 shadow-[0_0_18px_rgba(255,107,138,0.18),0_0_36px_rgba(255,107,138,0.07)] hover:shadow-[0_0_28px_rgba(255,107,138,0.35),0_0_56px_rgba(255,107,138,0.14)] hover:bg-[#ff6b8a]/16 hover:border-[#ff6b8a]/48 cursor-pointer"
+            >
+              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span className="text-xs font-semibold text-center leading-tight">Feedback</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setProfileModalOpen(true)}
+              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#9a63ff]/30 bg-[#9a63ff]/10 px-3 py-4 text-[#d3bcff] transition-all duration-200 shadow-[0_0_18px_rgba(154,99,255,0.18),0_0_36px_rgba(154,99,255,0.07)] hover:shadow-[0_0_28px_rgba(154,99,255,0.35),0_0_56px_rgba(154,99,255,0.14)] hover:bg-[#9a63ff]/16 hover:border-[#9a63ff]/48 cursor-pointer"
+            >
+              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              <span className="text-xs font-semibold text-center leading-tight">Change your preferences</span>
+            </button>
           </div>
 
           {/* Alert messages */}
@@ -789,8 +860,8 @@ export function PlannerLayout() {
           {hasProgram && data && (
             <>
               {hasRecommendations && (
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-ink-faint mb-2">
+                <div className="flex flex-col gap-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1 px-1">
                     Recommended Semesters
                   </p>
                   <SemesterSelector
@@ -951,13 +1022,16 @@ export function PlannerLayout() {
       <Modal
         open={explainerOpen}
         onClose={() => setExplainerOpen(false)}
-        title="How MarqBot Ranks Courses"
+        title="Change Your Priorities"
         titleClassName="!text-[clamp(1.1rem,2.2vw,1.5rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
         size="default"
       >
         <RankingLeaderboardExplainer
           currentStyle={explainerStyle}
           onStyleChange={setExplainerStyle}
+          appliedStyle={state.schedulingStyle}
+          onApply={() => { void handleExplainerApply(); }}
+          isApplying={loading}
         />
       </Modal>
       <CourseDetailModal
