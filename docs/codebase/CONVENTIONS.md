@@ -59,7 +59,7 @@
 ## Error Handling
 
 **Patterns:**
-- Backend endpoints validate early and return structured JSON errors instead of propagating Flask exceptions. `/recommend`, `/can-take`, `/feedback`, and `/validate-prereqs` in `backend/server.py` return payloads with `"mode": "error"` or nested `error_code`/`message` fields.
+- Backend endpoints validate early and return structured JSON errors instead of propagating Flask exceptions. `/recommend`, `/replan`, `/can-take`, `/feedback`, and `/validate-prereqs` in `backend/server.py` return payloads with `"mode": "error"` or nested `error_code`/`message` fields.
 - Frontend API wrappers convert non-OK `fetch` responses into thrown `Error` objects with backend-provided messages when available; see `frontend/src/lib/api.ts`.
 - Frontend hooks catch those errors and translate them into UI state instead of letting them surface uncaught. See `useRecommendations` in `frontend/src/hooks/useRecommendations.ts`, `useCourses` in `frontend/src/hooks/useCourses.ts`, and `usePrograms` in `frontend/src/hooks/usePrograms.ts`.
 - Soft validation failures in the UI clear state rather than blocking the screen. `frontend/src/components/onboarding/CoursesStep.tsx` resets inconsistency warnings if prereq validation fails.

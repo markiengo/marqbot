@@ -1,4 +1,13 @@
-import type { AppState, Course, ProgramsData, RecommendationResponse, SchedulingStyle, SessionSnapshot, StudentStage } from "@/lib/types";
+import type {
+  AppState,
+  Course,
+  PlannerManualAddPin,
+  ProgramsData,
+  RecommendationResponse,
+  SchedulingStyle,
+  SessionSnapshot,
+  StudentStage,
+} from "@/lib/types";
 import { resolveStudentStageSelection, syncStudentStageWithHistory } from "@/lib/studentStage";
 
 import {
@@ -65,9 +74,31 @@ export const initialState: AppState = {
   canTakeQuery: "",
   activeNavTab: "plan",
   onboardingComplete: false,
+  manualAddPins: [],
   lastRecommendationData: null,
   lastRequestedCount: 3,
 };
+
+function normalizeManualAddPins(value: unknown): PlannerManualAddPin[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((pin): pin is PlannerManualAddPin => {
+      if (!pin || typeof pin !== "object") return false;
+      const record = pin as Partial<PlannerManualAddPin>;
+      return (
+        typeof record.course_code === "string" &&
+        Number.isInteger(record.semester_index) &&
+        record.course_snapshot !== undefined &&
+        Number.isFinite(Number(record.pinned_at))
+      );
+    })
+    .map((pin) => ({
+      course_code: pin.course_code.trim().toUpperCase(),
+      semester_index: pin.semester_index,
+      course_snapshot: { ...pin.course_snapshot, course_code: pin.course_code.trim().toUpperCase() },
+      pinned_at: Number(pin.pinned_at),
+    }));
+}
 
 function getTrackById(programs: ProgramsData, trackId: string) {
   return programs.tracks.find((track) => track.id === trackId) || null;
@@ -108,6 +139,7 @@ interface NormalizedSessionPayload {
   canTakeQuery: string;
   activeNavTab: string;
   onboardingComplete: boolean;
+  manualAddPins: PlannerManualAddPin[];
   lastRecommendationData: RecommendationResponse | null;
   lastRequestedCount: number;
 }
@@ -180,7 +212,12 @@ function normalizeSessionSnapshot(
     canTakeQuery: snap.canTake || "",
     activeNavTab: options?.activeNavTab || snap.activeNavTab || "plan",
     onboardingComplete: options?.forceOnboardingComplete ?? (snap.onboardingComplete || false),
-    lastRecommendationData: selectionWasSanitized ? null : (snap.lastRecommendationData || null),
+    manualAddPins: normalizeManualAddPins(
+      snap.manualAddPins
+      ?? snap.lastRecommendationData?.manual_add_pins
+      ?? [],
+    ),
+    lastRecommendationData: null,
     lastRequestedCount: Number(snap.lastRequestedCount) || state.lastRequestedCount,
   };
 }
@@ -403,28 +440,29 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     }
 
     case "SET_TARGET_SEMESTER":
-      return { ...state, targetSemester: action.payload };
+      return { ...state, targetSemester: action.payload, lastRecommendationData: null };
 
     case "SET_SEMESTER_COUNT":
-      return { ...state, semesterCount: action.payload };
+      return { ...state, semesterCount: action.payload, lastRecommendationData: null };
 
     case "SET_MAX_RECS":
-      return { ...state, maxRecs: action.payload };
+      return { ...state, maxRecs: action.payload, lastRecommendationData: null };
 
     case "SET_INCLUDE_SUMMER":
-      return { ...state, includeSummer: action.payload };
+      return { ...state, includeSummer: action.payload, lastRecommendationData: null };
 
     case "SET_HONORS_STUDENT":
-      return { ...state, isHonorsStudent: action.payload };
+      return { ...state, isHonorsStudent: action.payload, lastRecommendationData: null };
 
     case "SET_SCHEDULING_STYLE":
-      return { ...state, schedulingStyle: action.payload };
+      return { ...state, schedulingStyle: action.payload, lastRecommendationData: null };
 
     case "SET_STUDENT_STAGE":
       return {
         ...state,
         studentStage: action.payload,
         studentStageIsExplicit: true,
+        lastRecommendationData: null,
       };
 
     case "SET_CAN_TAKE_QUERY":
@@ -436,6 +474,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_RECOMMENDATIONS":
       return {
         ...state,
+        manualAddPins: action.payload.data.manual_add_pins ?? state.manualAddPins,
         lastRecommendationData: action.payload.data,
         lastRequestedCount: action.payload.count,
       };

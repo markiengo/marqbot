@@ -9,7 +9,7 @@ import {
   listSavedPlans,
   updateSavedPlan,
 } from "../../frontend/src/lib/savedPlans";
-import type { RecommendationResponse, SavedPlanRecord } from "../../frontend/src/lib/types";
+import type { PlannerManualAddPin, RecommendationResponse, SavedPlanRecord } from "../../frontend/src/lib/types";
 
 function makeStorage(initial?: Record<string, string>) {
   const store = new Map(Object.entries(initial || {}));
@@ -36,6 +36,7 @@ function makeRecommendation(): RecommendationResponse {
 }
 
 function makeSavedPlan(overrides: Partial<SavedPlanRecord> = {}): SavedPlanRecord {
+  const manualAddPins: PlannerManualAddPin[] = overrides.manualAddPins ?? [];
   return {
     id: overrides.id || "plan-1",
     name: overrides.name || "Finance Draft",
@@ -56,6 +57,7 @@ function makeSavedPlan(overrides: Partial<SavedPlanRecord> = {}): SavedPlanRecor
       studentStage: "undergrad",
       studentStageIsExplicit: false,
     },
+    manualAddPins,
     recommendationData: overrides.recommendationData === undefined ? makeRecommendation() : overrides.recommendationData,
     lastRequestedCount: overrides.lastRequestedCount || 4,
     inputHash: overrides.inputHash || "hash-a",
@@ -207,7 +209,8 @@ describe("savedPlans transforms", () => {
     expect(snapshot.declaredMajors).toEqual(["FIN_MAJOR"]);
     expect(snapshot.studentStage).toBe("undergrad");
     expect(snapshot.studentStageIsExplicit).toBe(false);
-    expect(snapshot.lastRecommendationData?.mode).toBe("recommendations");
+    expect(snapshot.manualAddPins).toEqual([]);
+    expect(snapshot.lastRecommendationData).toBeUndefined();
     expect(snapshot.onboardingComplete).toBe(true);
   });
 });

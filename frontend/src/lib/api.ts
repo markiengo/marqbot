@@ -1,6 +1,7 @@
 import type {
   Course,
   ProgramsData,
+  ReplanResponse,
   ProgramBucketTree,
   RecommendationResponse,
   CanTakeResponse,
@@ -58,6 +59,28 @@ async function throwHttpError(res: Response, fallback: string): Promise<never> {
   const body = await readErrorBody(res);
   const message = extractErrorMessage(body) || `${fallback}: ${res.status}`;
   throw new Error(message);
+}
+
+function sanitizeReplanResponse(body: unknown): ReplanResponse {
+  if (!body || typeof body !== "object") {
+    return { mode: "error" };
+  }
+
+  const record = body as Record<string, unknown>;
+  const {
+    current_completed_courses: _currentCompleted,
+    current_in_progress_courses: _currentInProgress,
+    current_progress: _currentProgress,
+    current_assumption_notes: _currentAssumptionNotes,
+    input_completed_courses: _inputCompleted,
+    input_in_progress_courses: _inputInProgress,
+    ...rest
+  } = record;
+
+  return {
+    mode: record.mode === "error" ? "error" : "recommendations",
+    ...(rest as Omit<ReplanResponse, "mode">),
+  };
 }
 
 
@@ -124,6 +147,20 @@ export async function postRecommend(
   });
   if (!res.ok) await throwHttpError(res, "Recommendation request failed");
   return res.json();
+}
+
+export async function postReplan(
+  payload: Record<string, unknown>,
+  options?: { signal?: AbortSignal },
+): Promise<ReplanResponse> {
+  const res = await fetch(`${API_BASE}/api/replan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    signal: options?.signal,
+  });
+  if (!res.ok) await throwHttpError(res, "Replan request failed");
+  return sanitizeReplanResponse(await res.json());
 }
 
 export async function postValidatePrereqs(

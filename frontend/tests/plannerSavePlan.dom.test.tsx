@@ -97,6 +97,7 @@ vi.mock("@/hooks/useSavedPlans", () => ({
 
 vi.mock("@/lib/api", () => ({
   postRecommend: vi.fn(),
+  postReplan: vi.fn(),
   loadProgramBuckets: vi.fn(async () => []),
 }));
 

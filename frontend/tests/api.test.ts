@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { postCanTake, postFeedback, postRecommend } from "@/lib/api";
+import { postCanTake, postFeedback, postRecommend, postReplan } from "@/lib/api";
 
 describe("API error handling", () => {
   afterEach(() => {
@@ -33,6 +33,29 @@ describe("API error handling", () => {
     );
 
     await expect(postRecommend({})).rejects.toThrow("Gateway timeout from upstream planner");
+  });
+
+  it("strips canonical current-state fields from replan responses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({
+          mode: "recommendations",
+          semesters: [],
+          current_progress: { polluted: true },
+          current_completed_courses: ["ACCO 1030"],
+          input_completed_courses: ["ACCO 1030"],
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(postReplan({})).resolves.toEqual({
+      mode: "recommendations",
+      semesters: [],
+    });
   });
 
   it("keeps generic fallback messaging for HTML error pages", async () => {

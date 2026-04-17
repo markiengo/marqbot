@@ -16,6 +16,7 @@ export function makeAppState(overrides: Partial<AppState> = {}): AppState {
     selectedMajors: overrides.selectedMajors ?? new Set<string>(),
     selectedTracks: overrides.selectedTracks ?? [],
     selectedMinors: overrides.selectedMinors ?? new Set<string>(),
+    manualAddPins: overrides.manualAddPins ?? [],
     lastRecommendationData: overrides.lastRecommendationData ?? null,
   };
 }

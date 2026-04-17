@@ -8,8 +8,8 @@ import { ProgressModal } from "./ProgressModal";
 import { SemesterModal } from "./SemesterModal";
 import { EditPlanModal } from "./EditPlanModal";
 import { ProfileModal } from "./ProfileModal";
-import { CanTakeSection } from "./CanTakeSection";
 import { RecommendationsPanel } from "./RecommendationsPanel";
+import { SemesterSelector } from "./SemesterSelector";
 import { Button } from "@/components/shared/Button";
 import { Modal } from "@/components/shared/Modal";
 import { Skeleton } from "@/components/shared/Skeleton";
@@ -17,13 +17,18 @@ import { SavePlanModal } from "@/components/saved/SavePlanModal";
 import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
 import { CourseListModal } from "./CourseListModal";
 import { FeedbackModal } from "./FeedbackModal";
-import { MajorGuideModal, rankingExplainerItems, tierLadder } from "./MajorGuideModal";
+import { MajorGuideModal } from "./MajorGuideModal";
+import { RankingLeaderboardExplainer } from "./RankingLeaderboardExplainer";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
-import { postRecommend, loadProgramBuckets } from "@/lib/api";
+import { loadProgramBuckets, postReplan } from "@/lib/api";
 import { buildRecommendationWarnings, getProgramLabelMap, sanitizeRecommendationWhy } from "@/lib/rendering";
-import { getCurrentCourseLists, getPlanLevelProgress, normalizeVisibleRecommendationData } from "@/lib/progressSources";
+import {
+  getCurrentCourseLists,
+  normalizeVisibleRecommendationData,
+  stripAssumptionsFromCurrentProgress,
+} from "@/lib/progressSources";
 import { reconcileManualAddPins, updateManualAddPinsFromEdit } from "@/lib/plannerManualAdds";
 import { buildSavedPlanInputsFromAppState, hashSavedPlanInputs } from "@/lib/savedPlans";
 import { buildSavedPlanProgramLine } from "@/lib/savedPlanPresentation";
@@ -31,6 +36,7 @@ import { getStudentStageHistoryConflict, studentStageLabel, studentStageLevelLab
 import type {
   Course,
   PlannerManualAddPin,
+  ReplanResponse,
   ProgramBucketTree,
   RecommendationResponse,
   RecommendedCourse,
@@ -65,6 +71,7 @@ export function PlannerLayout() {
   const [majorGuideOpen, setMajorGuideOpen] = useState(false);
   const [majorGuideData, setMajorGuideData] = useState<ProgramBucketTree[]>([]);
   const [explainerOpen, setExplainerOpen] = useState(false);
+  const [explainerStyle, setExplainerStyle] = useState(state.schedulingStyle);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [editPlanModalOpen, setEditPlanModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
@@ -76,7 +83,9 @@ export function PlannerLayout() {
   const [semesterModalMode, setSemesterModalMode] = useState<"view" | "edit">("view");
   const [courseDetailCode, setCourseDetailCode] = useState<string | null>(null);
   const [courseListModal, setCourseListModal] = useState<"completed" | "in-progress" | null>(null);
-  const metrics = useProgressMetrics();
+  const [assumptionsOn, setAssumptionsOn] = useState(false);
+  const [activeSemesterTab, setActiveSemesterTab] = useState(0);
+  const metrics = useProgressMetrics(assumptionsOn);
   const didAutoFetch = useRef(false);
   const semEditAbortRef = useRef<AbortController | null>(null);
   const semEditRequestIdRef = useRef(0);
@@ -98,20 +107,19 @@ export function PlannerLayout() {
     }
     return map;
   }, [state.courses]);
+  const courseCreditMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const course of state.courses) {
+      map.set(course.course_code, Math.max(0, Number(course.credits) || 0));
+    }
+    return map;
+  }, [state.courses]);
 
   useEffect(() => {
-    if (
-      didAutoFetch.current ||
-      !state.onboardingComplete ||
-      state.lastRecommendationData ||
-      !hasProgram ||
-      state.courses.length === 0 ||
-      loading
-    ) return;
-    didAutoFetch.current = true;
-    fetchRecommendations();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.onboardingComplete, state.lastRecommendationData, hasProgram, state.courses.length]);
+    if (!explainerOpen) {
+      setExplainerStyle(state.schedulingStyle);
+    }
+  }, [explainerOpen, state.schedulingStyle]);
 
   const openFeedbackModal = useCallback(() => {
     setFeedbackSuccess(false);
@@ -182,13 +190,33 @@ export function PlannerLayout() {
     () => getCurrentCourseLists(data, state.completed, state.inProgress),
     [data, state.completed, state.inProgress],
   );
+  const currentAssumptionNotes = useMemo(
+    () => (currentCourseLists.inputsMatchState ? data?.current_assumption_notes : undefined),
+    [currentCourseLists.inputsMatchState, data?.current_assumption_notes],
+  );
+  const canonicalCurrentProgress = useMemo(
+    () => data?.current_progress,
+    [data?.current_progress],
+  );
+  const activeCurrentProgress = useMemo(
+    () => (
+      assumptionsOn
+        ? canonicalCurrentProgress
+        : stripAssumptionsFromCurrentProgress(
+            data,
+            courseCreditMap,
+          ) ?? canonicalCurrentProgress
+    ),
+    [
+      assumptionsOn,
+      canonicalCurrentProgress,
+      courseCreditMap,
+      data,
+    ],
+  );
   const visibleData = useMemo(
     () => normalizeVisibleRecommendationData(data) ?? null,
     [data],
-  );
-  const planLevelProgress = useMemo(
-    () => getPlanLevelProgress(visibleData),
-    [visibleData],
   );
   const completedCourseCodes = useMemo(
     () => new Set(currentCourseLists.completed),
@@ -211,7 +239,7 @@ export function PlannerLayout() {
   // Reverse map: course_code -> bucket IDs from current_progress allocations
   const courseBucketMap = useMemo(() => {
     const map = new Map<string, string[]>();
-    const progress = data?.current_progress;
+    const progress = activeCurrentProgress;
     if (!progress) return map;
     for (const [bucketId, bp] of Object.entries(progress)) {
       for (const code of bp.completed_applied ?? []) {
@@ -226,7 +254,7 @@ export function PlannerLayout() {
       }
     }
     return map;
-  }, [data?.current_progress]);
+  }, [activeCurrentProgress]);
   const recommendedCourseMap = useMemo(() => {
     const map = new Map<string, RecommendedCourse>();
     for (const semester of visibleData?.semesters ?? []) {
@@ -286,6 +314,10 @@ export function PlannerLayout() {
   const modalSemester =
     semesterModalIdx !== null ? visibleData?.semesters?.[semesterModalIdx] ?? null : null;
   const canOpenEditPlan = Boolean(visibleData?.semesters?.length);
+  const semesters = visibleData?.semesters ?? [];
+  const hasRecommendations = semesters.length > 0;
+  const hasData = state.completed.size > 0 || state.inProgress.size > 0;
+  const overallPct = Math.round(metrics.overallPercent);
 
   const handleSavePlan = ({ mode, targetPlanId, name, notes }: SavePlanSubmitParams) => {
     if (!data || data.mode === "error") {
@@ -303,6 +335,7 @@ export function PlannerLayout() {
             name,
             notes,
             inputs,
+            manualAddPins: snapshotData.manual_add_pins ?? state.manualAddPins,
             recommendationData: snapshotData,
             lastRequestedCount: requestedCount,
             resultsInputHash,
@@ -314,6 +347,7 @@ export function PlannerLayout() {
         name,
         notes,
         inputs,
+        manualAddPins: snapshotData.manual_add_pins ?? state.manualAddPins,
         recommendationData: snapshotData,
         lastRequestedCount: requestedCount,
       });
@@ -350,10 +384,8 @@ export function PlannerLayout() {
   }, []);
 
   useEffect(() => {
-    if (data) {
-      manualAddPinsRef.current = data.manual_add_pins ?? [];
-    }
-  }, [data]);
+    manualAddPinsRef.current = data?.manual_add_pins ?? state.manualAddPins;
+  }, [data?.manual_add_pins, state.manualAddPins]);
 
   const buildRecommendationPayload = useCallback((overrides: Record<string, unknown>) => {
     const majors = [...state.selectedMajors];
@@ -387,23 +419,24 @@ export function PlannerLayout() {
 
   const composeRecommendationData = useCallback((params: {
     baseData?: RecommendationResponse | null;
-    rerunData: RecommendationResponse;
+    rerunData: RecommendationResponse | ReplanResponse;
     semesters: SemesterData[];
     manualAddPins: PlannerManualAddPin[];
   }): RecommendationResponse => {
     const { baseData, rerunData, semesters, manualAddPins } = params;
+    const rerunLike = rerunData as Partial<RecommendationResponse>;
     return {
       ...(baseData ?? {}),
       ...rerunData,
       semesters,
       manual_add_pins: manualAddPins,
-      input_completed_courses: rerunData.input_completed_courses ?? baseData?.input_completed_courses,
-      input_in_progress_courses: rerunData.input_in_progress_courses ?? baseData?.input_in_progress_courses,
-      current_completed_courses: rerunData.current_completed_courses ?? baseData?.current_completed_courses,
-      current_in_progress_courses: rerunData.current_in_progress_courses ?? baseData?.current_in_progress_courses,
-      current_progress: rerunData.current_progress ?? baseData?.current_progress,
-      current_assumption_notes: rerunData.current_assumption_notes ?? baseData?.current_assumption_notes,
-      selection_context: rerunData.selection_context ?? baseData?.selection_context,
+      input_completed_courses: rerunLike.input_completed_courses ?? baseData?.input_completed_courses,
+      input_in_progress_courses: rerunLike.input_in_progress_courses ?? baseData?.input_in_progress_courses,
+      current_completed_courses: rerunLike.current_completed_courses ?? baseData?.current_completed_courses,
+      current_in_progress_courses: rerunLike.current_in_progress_courses ?? baseData?.current_in_progress_courses,
+      current_progress: rerunLike.current_progress ?? baseData?.current_progress,
+      current_assumption_notes: rerunLike.current_assumption_notes ?? baseData?.current_assumption_notes,
+      selection_context: rerunLike.selection_context ?? baseData?.selection_context,
     };
   }, []);
 
@@ -451,7 +484,7 @@ export function PlannerLayout() {
       baseData: data,
       rerunData: fresh,
       semesters: fresh.semesters ?? [],
-      pins: data?.manual_add_pins ?? manualAddPinsRef.current,
+      pins: state.manualAddPins.length > 0 ? state.manualAddPins : manualAddPinsRef.current,
       rerunStartIndex: 0,
       count: maxRecommendations,
     });
@@ -462,9 +495,30 @@ export function PlannerLayout() {
     runRecommendationRequest,
     state.completed,
     state.inProgress,
+    state.manualAddPins,
     state.maxRecs,
     state.semesterCount,
     state.targetSemester,
+  ]);
+
+  useEffect(() => {
+    if (
+      didAutoFetch.current ||
+      !state.onboardingComplete ||
+      state.lastRecommendationData ||
+      !hasProgram ||
+      state.courses.length === 0 ||
+      loading
+    ) return;
+    didAutoFetch.current = true;
+    void handleProfileSubmitRecommendations();
+  }, [
+    handleProfileSubmitRecommendations,
+    hasProgram,
+    loading,
+    state.courses.length,
+    state.lastRecommendationData,
+    state.onboardingComplete,
   ]);
 
   const fetchCandidatesForSemester = useCallback(async (semIdx: number) => {
@@ -505,7 +559,7 @@ export function PlannerLayout() {
       if (state.discoveryTheme) payload.discovery_theme = state.discoveryTheme;
       if (state.includeSummer) payload.include_summer = true;
       if (state.isHonorsStudent) payload.is_honors_student = true;
-      const result = await postRecommend(payload, { signal: controller.signal });
+      const result = await postReplan(payload, { signal: controller.signal });
       if (controller.signal.aborted || requestId !== semEditRequestIdRef.current) return;
       setSemEditCandidates(
         result.semesters?.[0]?.eligible_swaps
@@ -572,7 +626,7 @@ export function PlannerLayout() {
       chosenCourses,
     });
 
-    const downstream: RecommendationResponse = await postRecommend(payload);
+    const downstream = await postReplan(payload);
     applyPinnedRecommendationResult({
       baseData: data,
       rerunData: downstream,
@@ -617,235 +671,216 @@ export function PlannerLayout() {
 
   return (
     <div className="planner-shell bg-orbs">
-      {/* ── Header bar ────────────────────────────────────────────── */}
-      {hasProgram ? (
-        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-1.5 rounded-[0.95rem] px-3 py-1.5 surface-depth-2 shine-sweep accent-top-gradient sm:px-3.5">
-          <div className="flex min-w-0 items-center gap-1 sm:gap-1.5">
-            <span className="shrink-0 text-[0.68rem] text-ink-faint sm:text-[0.78rem]">Planning for:</span>
-            <button
-              type="button"
-              onClick={() => openMajorGuide()}
-              className="truncate text-[0.74rem] font-semibold font-[family-name:var(--font-sora)] text-gold hover:underline underline-offset-2 decoration-gold/50 transition-all cursor-pointer sm:text-[0.84rem]"
-            >
-              {primaryProgramLabel}
-            </button>
-            {majorLabels.length > 0 && trackLabels.length > 0 && (
-              <span className="hidden truncate text-[0.78rem] text-ink-secondary sm:inline">
-                &bull; {trackLabels.join(" & ")}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => setProfileModalOpen(true)}
-              className="shrink-0 p-1 rounded-md text-ink-faint hover:text-gold hover:bg-surface-hover transition-colors cursor-pointer"
-              aria-label="Edit profile"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </button>
-          </div>
-          <div className="flex w-full items-center gap-1.5 sm:w-auto">
-            <Button
-              variant="ink"
-              size="xs"
-              onClick={() => setEditPlanModalOpen(true)}
-              disabled={!canOpenEditPlan}
-              className="shrink-0 border-white/10"
-            >
-              Edit Plan
-            </Button>
-            <Button
-              variant="gold"
-              size="xs"
-              onClick={() => {
-                setSaveError(null);
-                setSaveSuccess(null);
-                setSaveModalOpen(true);
-              }}
-              disabled={!savedPlansReady || !canSavePlan}
-              className="shrink-0 bg-gold text-navy hover:bg-gold-light shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
-            >
-              Save Plan
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="px-4 py-2 mb-2 rounded-xl surface-depth-2 flex items-center justify-between gap-3">
-          <span className="text-sm text-ink-faint">No program loaded</span>
-          <button
-            type="button"
-            onClick={() => setProfileModalOpen(true)}
-            className="text-xs font-semibold text-gold hover:text-gold-light transition-colors cursor-pointer"
-          >
-            Add profile
-          </button>
-        </div>
-      )}
+      <div className="flex flex-col gap-4">
 
-      {stageHistoryConflict && (
-        <div className="mb-3 rounded-xl border border-gold/20 bg-gold/10 px-4 py-3 text-sm text-gold/85">
-          History includes {studentStageLevelLabel(stageHistoryConflict)}-level coursework, but the planner is locked to {studentStageLabel(state.studentStage).toLowerCase()} recommendations. Recorded courses stay on your profile. Future recommendations and can-take checks stay in the {studentStageLevelLabel(state.studentStage)} band.
-        </div>
-      )}
-
-      {saveSuccess && (
-        <div className="mb-3 rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok flex flex-wrap items-center justify-between gap-3">
-          <span>
-            {saveSuccess.mode === "overwrite" ? "Updated" : "Saved"} &ldquo;{saveSuccess.name}&rdquo; in this browser.
-          </span>
-          <Link href="/saved" className="font-semibold underline underline-offset-2">
-            View saved plans
-          </Link>
-        </div>
-      )}
-
-      {feedbackSuccess && (
-        <div className="mb-3 rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok">
-          Feedback sent. Your current planner snapshot went with it.
-        </div>
-      )}
-
-      {/* ── Dual-column layout: Progress (40%) + Recommendations (60%) ── */}
-      <div className="planner-columns">
-        {/* LEFT: Progress (60%) + Can I Take (40%) */}
-        <div className="planner-panel planner-left">
-          <div className="lg:h-full lg:min-h-0 flex flex-col gap-3">
-            <div className="flex-1 lg:flex-[3] lg:min-h-0">
-              <ProgressDashboard
-                onViewDetails={openProgressModal}
-                onCompletedClick={openCompletedCourseList}
-                onInProgressClick={openInProgressCourseList}
+        {/* ── Progress Strip ── */}
+        <div className="glass-card gradient-border rounded-2xl p-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-faint">
+              Degree Progress
+            </span>
+            <div className="flex-1 h-1.5 rounded-full bg-ink-faint/15 overflow-hidden max-w-[200px]">
+              <div
+                className="h-full rounded-full bg-gold transition-all duration-500"
+                style={{ width: `${overallPct}%` }}
               />
             </div>
-
-            <div className="flex-1 lg:flex-[2] lg:min-h-0">
-              <CanTakeSection />
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT: Recommendations (60%) */}
-        <div className="planner-panel planner-right">
-          <div className="h-full min-h-0 flex flex-col">
-            <div className="mb-2 rounded-[1.05rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
-              <p className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[#8ec8ff]">
-                Rule-aware ranking
-              </p>
-              <div className="mt-1.5 flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-[0.98rem] md:text-[1.08rem] font-bold font-[family-name:var(--font-sora)] text-white leading-tight">
-                    Your <span className="text-emphasis-blue">next</span> moves.
-                  </h3>
-                  <p className="mt-0.5 text-[0.7rem] text-ink-faint">
-                    Eligibility, requirement value, and unlock impact.
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-stretch gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setExplainerOpen(true)}
-                    className="rounded-full border border-gold/20 bg-gold/10 px-2.5 py-0.5 text-[10px] text-gold transition-all hover:bg-gold/15 hover:border-gold/35"
-                  >
-                    How ranking works
-                  </button>
-                  <button
-                    type="button"
-                    onClick={openFeedbackModal}
-                    className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[10px] text-ink-secondary transition-all hover:border-gold/25 hover:text-gold"
-                  >
-                    Feedback
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {error && (
-              <div className="bg-bad-light rounded-xl p-4 text-sm text-bad mb-3">
-                {error}
-              </div>
-            )}
-
-            {!hasProgram && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="flex-1 flex flex-col items-center justify-center text-center px-4 py-8 space-y-4"
+            <span className="text-xs tabular-nums text-ink-faint">{overallPct}%</span>
+            {hasData && (
+              <button
+                type="button"
+                onClick={openProgressModal}
+                className="text-xs text-gold hover:underline whitespace-nowrap cursor-pointer"
               >
-                <div className="w-16 h-16 bg-gold/10 rounded-2xl flex items-center justify-center pulse-gold-soft">
-                  <svg className="w-8 h-8 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-[0.88rem] font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                    No profile loaded.
-                  </h2>
-                  <p className="text-sm text-ink-faint mt-1 max-w-sm mx-auto">
-                    Open the profile panel, pick your program, add completed courses, then run the planner.
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {hasProgram && !data && !loading && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="flex-1 flex flex-col items-center justify-center text-center px-4 py-8 space-y-4"
-              >
-                <div className="w-16 h-16 bg-surface-card rounded-2xl flex items-center justify-center border border-border-subtle float-soft">
-                  <svg className="w-8 h-8 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                    Planner is ready.
-                  </h2>
-                  <p className="text-sm text-ink-faint mt-1">
-                    Open Edit Profile to refresh recommendations, then save the version you want to keep here.
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {loading && !data && (
-              <div className="flex flex-col gap-3 p-4 h-full justify-center">
-                <Skeleton className="h-14 rounded-xl" />
-                <Skeleton className="h-14 rounded-xl" />
-                <Skeleton className="h-14 rounded-xl" />
-                <p className="text-xs text-ink-faint text-center mt-2">Crunching 5,300+ courses. One sec.</p>
-              </div>
-            )}
-
-            {hasProgram && data && (
-              <div className="flex-1 min-h-0">
-                <RecommendationsPanel
-                  data={visibleData}
-                  onExpandSemester={(index) => {
-                    setSemesterModalMode("view");
-                    setSemesterModalIdx(index);
-                  }}
-                  onCourseClick={setCourseDetailCode}
-                />
-              </div>
+                View details →
+              </button>
             )}
           </div>
+          <ProgressDashboard
+            compact
+            showAssumptions={assumptionsOn}
+            onViewDetails={openProgressModal}
+            onCompletedClick={openCompletedCourseList}
+            onInProgressClick={openInProgressCourseList}
+          />
         </div>
+
+        {/* ── Plan Card ── */}
+        <div className="glass-card gradient-border rounded-2xl p-4 flex flex-col gap-3">
+          {/* Card header row */}
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-base font-semibold text-ink">Your Plan</h2>
+              {primaryProgramLabel && (
+                <p className="text-xs text-ink-faint">{primaryProgramLabel}</p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <Button
+                variant="ink"
+                size="xs"
+                onClick={() => setEditPlanModalOpen(true)}
+                disabled={!canOpenEditPlan}
+                className="border-white/10"
+              >
+                Edit Plan
+              </Button>
+              <Button
+                variant="gold"
+                size="xs"
+                onClick={() => {
+                  setSaveError(null);
+                  setSaveSuccess(null);
+                  setSaveModalOpen(true);
+                }}
+                disabled={!savedPlansReady || !canSavePlan}
+                className="bg-gold text-navy hover:bg-gold-light shadow-[0_0_24px_rgba(255,204,0,0.35),0_0_48px_rgba(255,204,0,0.15)]"
+              >
+                Save Plan
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setExplainerStyle(state.schedulingStyle);
+                  setExplainerOpen(true);
+                }}
+                className="rounded-full border border-gold/20 bg-gold/10 px-2.5 py-0.5 text-[10px] text-gold transition-all hover:bg-gold/15 hover:border-gold/35"
+              >
+                How ranking works
+              </button>
+              <button
+                type="button"
+                onClick={openFeedbackModal}
+                className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[10px] text-ink-secondary transition-all hover:border-gold/25 hover:text-gold"
+              >
+                Feedback
+              </button>
+            </div>
+          </div>
+
+          {/* Alert messages */}
+          {stageHistoryConflict && (
+            <div className="rounded-xl border border-gold/20 bg-gold/10 px-4 py-3 text-sm text-gold/85">
+              History includes {studentStageLevelLabel(stageHistoryConflict)}-level coursework, but the planner is locked to {studentStageLabel(state.studentStage).toLowerCase()} recommendations. Recorded courses stay on your profile. Future recommendations and can-take checks stay in the {studentStageLevelLabel(state.studentStage)} band.
+            </div>
+          )}
+          {saveSuccess && (
+            <div className="rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok flex flex-wrap items-center justify-between gap-3">
+              <span>
+                {saveSuccess.mode === "overwrite" ? "Updated" : "Saved"} &ldquo;{saveSuccess.name}&rdquo; in this browser.
+              </span>
+              <Link href="/saved" className="font-semibold underline underline-offset-2">
+                View saved plans
+              </Link>
+            </div>
+          )}
+          {feedbackSuccess && (
+            <div className="rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok">
+              Feedback sent. Your current planner snapshot went with it.
+            </div>
+          )}
+          {error && (
+            <div className="bg-bad-light rounded-xl p-4 text-sm text-bad">
+              {error}
+            </div>
+          )}
+
+          {/* Semester tabs + recommendations */}
+          {hasProgram && data && (
+            <>
+              {hasRecommendations && (
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-ink-faint mb-2">
+                    Recommended Semesters
+                  </p>
+                  <SemesterSelector
+                    semesters={semesters}
+                    selectedIdx={activeSemesterTab}
+                    onSelect={setActiveSemesterTab}
+                    onExpand={() => setSemesterModalIdx(activeSemesterTab)}
+                  />
+                </div>
+              )}
+              <RecommendationsPanel
+                data={visibleData}
+                selectedSemesterIdx={activeSemesterTab}
+                onSemesterChange={setActiveSemesterTab}
+                onExpandSemester={(idx) => {
+                  setSemesterModalMode("view");
+                  setSemesterModalIdx(idx);
+                }}
+                onCourseClick={setCourseDetailCode}
+              />
+            </>
+          )}
+
+          {/* Empty / loading states */}
+          {!hasProgram && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="flex flex-col items-center justify-center text-center px-4 py-8 space-y-4"
+            >
+              <div className="w-16 h-16 bg-gold/10 rounded-2xl flex items-center justify-center pulse-gold-soft">
+                <svg className="w-8 h-8 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-[0.88rem] font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
+                  No profile loaded.
+                </h2>
+                <p className="text-sm text-ink-faint mt-1 max-w-sm mx-auto">
+                  Open the profile panel, pick your program, add completed courses, then run the planner.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {hasProgram && !data && !loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="flex flex-col items-center justify-center text-center px-4 py-8 space-y-4"
+            >
+              <div className="w-16 h-16 bg-surface-card rounded-2xl flex items-center justify-center border border-border-subtle float-soft">
+                <svg className="w-8 h-8 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
+                  Planner is ready.
+                </h2>
+                <p className="text-sm text-ink-faint mt-1">
+                  Open Edit Profile to refresh recommendations, then save the version you want to keep here.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {loading && !data && (
+            <div className="flex flex-col gap-3 p-4 justify-center">
+              <Skeleton className="h-14 rounded-xl" />
+              <Skeleton className="h-14 rounded-xl" />
+              <Skeleton className="h-14 rounded-xl" />
+              <p className="text-xs text-ink-faint text-center mt-2">Crunching 5,300+ courses. One sec.</p>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* ── Modals ────────────────────────────────────────────────── */}
@@ -859,8 +894,8 @@ export function PlannerLayout() {
         open={progressModalOpen}
         onClose={() => setProgressModalOpen(false)}
         metrics={metrics}
-        currentProgress={planLevelProgress}
-        assumptionNotes={data?.current_assumption_notes}
+        currentProgress={activeCurrentProgress}
+        assumptionNotes={currentAssumptionNotes}
         courses={state.courses}
         programLabelMap={programLabelMap}
         programOrder={programOrder}
@@ -870,6 +905,8 @@ export function PlannerLayout() {
         onCourseClick={setCourseDetailCode}
         rawCompleted={state.completed}
         rawInProgress={state.inProgress}
+        assumptionsOn={assumptionsOn}
+        onToggleAssumptions={() => setAssumptionsOn((prev) => !prev)}
       />
       <SemesterModal
         open={semesterModalIdx !== null && modalSemester !== null}
@@ -908,89 +945,20 @@ export function PlannerLayout() {
         open={majorGuideOpen}
         onClose={() => setMajorGuideOpen(false)}
         programs={majorGuideData}
+        currentStyle={state.schedulingStyle}
         onFinish={handleGuideFinish}
       />
       <Modal
         open={explainerOpen}
         onClose={() => setExplainerOpen(false)}
         title="How MarqBot Ranks Courses"
-        titleClassName="!text-[clamp(1.55rem,3.2vw,2.2rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
-        size="planner-detail"
+        titleClassName="!text-[clamp(1.1rem,2.2vw,1.5rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
+        size="default"
       >
-        <div className="space-y-4 text-base text-ink-secondary">
-          <div className="rounded-2xl border border-gold/20 bg-[linear-gradient(135deg,rgba(255,204,0,0.12),rgba(255,204,0,0.03))] px-4 py-3 sm:px-5 relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 60% at 90% 50%, rgba(255,204,0,0.06), transparent)" }} aria-hidden />
-            <p className="relative text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-gold/90">
-              Fast Read
-            </p>
-            <p className="relative mt-1 text-[0.98rem] leading-relaxed text-ink-primary sm:text-[1.02rem]">
-              MarqBot filters out what you can&rsquo;t take, respects the bucket-counting rules, then ranks the rest by priority and unlock potential.
-            </p>
-          </div>
-          <ol className="grid list-none grid-cols-1 gap-3 sm:grid-cols-2">
-            {rankingExplainerItems.map((item, idx) => (
-              <li
-                key={item.id}
-                className="rounded-2xl border border-border-card bg-[linear-gradient(180deg,rgba(11,31,77,0.72),rgba(8,16,36,0.72))] px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.16)]"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/18 text-xs font-bold text-gold shadow-[0_0_12px_rgba(255,204,0,0.14)]">
-                    {idx + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-white text-[1rem] leading-snug">
-                      {item.title}
-                    </p>
-                    <p className="mt-1 text-[0.92rem] leading-relaxed text-ink-faint">
-                      {item.detail}
-                    </p>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ol>
-          {/* Tier ladder */}
-          <div className="rounded-2xl border border-border-card bg-surface-card/40 px-4 py-3.5 sm:px-5 space-y-2.5">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-ink-faint">Priority tiers (highest first)</p>
-            <div className="space-y-1">
-              {tierLadder.map((t, i) => (
-                <div key={t.tier} className="flex items-center gap-2.5">
-                  <span
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[0.7rem] font-bold tabular-nums"
-                    style={{
-                      background: `rgba(255,204,0,${0.18 - i * 0.025})`,
-                      color: i < 2 ? "rgba(255,204,0,1)" : "rgba(255,204,0,0.7)",
-                      border: `1px solid rgba(255,204,0,${0.25 - i * 0.035})`,
-                    }}
-                  >
-                    {t.tier}
-                  </span>
-                  <div className="min-w-0 flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-[0.88rem] font-semibold text-ink-primary leading-snug">{t.label}</span>
-                    <span className="text-[0.78rem] text-ink-faint leading-snug">&mdash; {t.desc}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-[0.82rem] text-ink-faint leading-relaxed pt-1">
-              Within a tier, courses that unblock deeper prereq chains, still help more than one allowed bucket, or sit at a lower course level are picked first.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-border-subtle/60 bg-surface-card/45 px-4 py-3 sm:px-5">
-            <p className="text-[0.92rem] leading-relaxed text-ink-muted">
-              Deterministic rules, not guesswork.{" "}
-              <a
-                href="https://github.com/markiengo/marqbot/blob/main/docs/memos/algorithm.md"
-                target="_blank"
-                rel="noreferrer"
-                className="text-gold underline underline-offset-2 hover:text-gold/80 transition-colors"
-              >
-                Full technical breakdown here
-              </a>
-              .
-            </p>
-          </div>
-        </div>
+        <RankingLeaderboardExplainer
+          currentStyle={explainerStyle}
+          onStyleChange={setExplainerStyle}
+        />
       </Modal>
       <CourseDetailModal
         open={courseDetailCode !== null}
@@ -1015,10 +983,12 @@ export function PlannerLayout() {
         courses={state.courses}
         assumptionNotes={
           courseListModal === "completed" && currentCourseLists.inputsMatchState
-            ? data?.current_assumption_notes
+            ? currentAssumptionNotes
             : undefined
         }
         rawCourseCodes={courseListModal === "completed" ? state.completed : undefined}
+        assumptionsOn={assumptionsOn}
+        onToggleAssumptions={() => setAssumptionsOn((prev) => !prev)}
         onCourseClick={(code) => { setCourseListModal(null); setCourseDetailCode(code); }}
       />
       <SavePlanModal

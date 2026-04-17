@@ -22,24 +22,51 @@ function deferred<T>() {
 
 const {
   fetchRecommendationsSpy,
-  postRecommendSpy,
+  postReplanSpy,
   recommendationData,
+  progressModalSpy,
 } = vi.hoisted(() => ({
   fetchRecommendationsSpy: vi.fn(),
-  postRecommendSpy: vi.fn(),
+  postReplanSpy: vi.fn(),
+  progressModalSpy: vi.fn(),
   recommendationData: {
     mode: "recommendations" as const,
+    current_progress: {
+      MCC_WRIT: {
+        label: "MCC Writing Intensive",
+        needed: 1,
+        needed_count: 1,
+        completed_applied: [],
+        in_progress_applied: [],
+        completed_done: 0,
+        in_progress_increment: 0,
+        completed_courses: 0,
+        in_progress_courses: 0,
+        requirement_mode: "required",
+        satisfied: false,
+      },
+    },
     semesters: [
       {
         target_semester: "Fall 2026",
         recommendations: [
-          { course_code: "ACCO 1030", course_name: "Financial Accounting", credits: 3 },
+          {
+            course_code: "ACCO 1030",
+            course_name: "Financial Accounting",
+            credits: 3,
+            fills_buckets: ["MCC_WRIT"],
+          },
         ],
       },
       {
         target_semester: "Spring 2027",
         recommendations: [
-          { course_code: "FINA 3001", course_name: "Financial Management", credits: 3 },
+          {
+            course_code: "FINA 3001",
+            course_name: "Financial Management",
+            credits: 3,
+            fills_buckets: ["MCC_WRIT"],
+          },
         ],
       },
     ],
@@ -70,7 +97,7 @@ vi.mock("@/hooks/useSavedPlans", () => ({
 }));
 
 vi.mock("@/lib/api", () => ({
-  postRecommend: postRecommendSpy,
+  postReplan: postReplanSpy,
   loadProgramBuckets: vi.fn(async () => []),
 }));
 
@@ -80,7 +107,10 @@ vi.mock("../src/components/planner/ProgressDashboard", () => ({
 }));
 
 vi.mock("../src/components/planner/ProgressModal", () => ({
-  ProgressModal: () => null,
+  ProgressModal: (props: unknown) => {
+    progressModalSpy(props);
+    return null;
+  },
 }));
 
 vi.mock("../src/components/planner/ProfileModal", () => ({
@@ -165,13 +195,87 @@ vi.mock("@/components/saved/SavePlanModal", () => ({
 describe("PlannerLayout semester edit requests", () => {
   beforeEach(() => {
     fetchRecommendationsSpy.mockReset();
-    postRecommendSpy.mockReset();
+    postReplanSpy.mockReset();
+    progressModalSpy.mockReset();
+    recommendationData.current_progress = {
+      MCC_WRIT: {
+        label: "MCC Writing Intensive",
+        needed: 1,
+        needed_count: 1,
+        completed_applied: [],
+        in_progress_applied: [],
+        completed_done: 0,
+        in_progress_increment: 0,
+        completed_courses: 0,
+        in_progress_courses: 0,
+        requirement_mode: "required",
+        satisfied: false,
+      },
+    };
+    recommendationData.semesters = [
+      {
+        target_semester: "Fall 2026",
+        recommendations: [
+          {
+            course_code: "ACCO 1030",
+            course_name: "Financial Accounting",
+            credits: 3,
+            fills_buckets: ["MCC_WRIT"],
+          },
+        ],
+      },
+      {
+        target_semester: "Spring 2027",
+        recommendations: [
+          {
+            course_code: "FINA 3001",
+            course_name: "Financial Management",
+            credits: 3,
+            fills_buckets: ["MCC_WRIT"],
+          },
+        ],
+      },
+    ];
+  });
+
+  test("passes raw current progress into the current degree progress modal instead of projected plan progress", () => {
+    renderWithApp(
+      createElement(PlannerLayout),
+      makeAppState({
+        courses: [
+          { course_code: "ACCO 1030", course_name: "Financial Accounting", credits: 3, level: 1000 },
+          { course_code: "FINA 3001", course_name: "Financial Management", credits: 3, level: 3000 },
+        ],
+        programs: {
+          majors: [{ id: "FIN_MAJOR", label: "Finance", requires_primary_major: false }],
+          tracks: [],
+          minors: [],
+          default_track_id: "FIN_MAJOR",
+          bucket_labels: {},
+        },
+        selectedMajors: new Set(["FIN_MAJOR"]),
+        maxRecs: "5",
+      }),
+    );
+
+    expect(progressModalSpy).toHaveBeenCalled();
+    const lastProps = progressModalSpy.mock.calls.at(-1)?.[0] as {
+      currentProgress?: Record<string, {
+        in_progress_applied?: string[];
+        in_progress_courses?: number;
+        satisfied?: boolean;
+      }>;
+    };
+
+    expect(lastProps.currentProgress?.MCC_WRIT.in_progress_applied).toEqual([]);
+    expect(lastProps.currentProgress?.MCC_WRIT.in_progress_courses).toBe(0);
+    expect(lastProps.currentProgress?.MCC_WRIT.satisfied).toBe(false);
   });
 
   test("keeps the latest semester swap pool when older candidate requests resolve later", async () => {
     const firstRequest = deferred<any>();
     const secondRequest = deferred<any>();
-    postRecommendSpy
+    postReplanSpy
       .mockImplementationOnce(() => firstRequest.promise)
       .mockImplementationOnce(() => secondRequest.promise);
 

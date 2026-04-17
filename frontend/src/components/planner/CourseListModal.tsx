@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Modal } from "@/components/shared/Modal";
 import type { Course } from "@/lib/types";
@@ -13,6 +13,8 @@ interface CourseListModalProps {
   courses: Course[];
   assumptionNotes?: string[] | null;
   rawCourseCodes?: Set<string>;
+  assumptionsOn?: boolean;
+  onToggleAssumptions?: () => void;
   onCourseClick?: (courseCode: string) => void;
 }
 
@@ -24,10 +26,10 @@ export function CourseListModal({
   courses,
   assumptionNotes,
   rawCourseCodes,
+  assumptionsOn = false,
+  onToggleAssumptions,
   onCourseClick,
 }: CourseListModalProps) {
-  const [assumptionsOn, setAssumptionsOn] = useState(true);
-
   const courseMap = useMemo(() => {
     if (!open) return new Map<string, Course>();
     const m = new Map<string, Course>();
@@ -66,7 +68,7 @@ export function CourseListModal({
             </p>
             <button
               type="button"
-              onClick={() => setAssumptionsOn((prev) => !prev)}
+              onClick={onToggleAssumptions}
               className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                 assumptionsOn
                   ? "border-gold/30 bg-gold/10 text-gold"

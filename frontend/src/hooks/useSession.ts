@@ -12,8 +12,6 @@ import {
 import { SESSION_RECOMMENDATION_STORAGE_KEY, STORAGE_KEY } from "@/lib/constants";
 import type { SessionSnapshot } from "@/lib/types";
 
-type PersistedRecommendationSnapshot = Pick<SessionSnapshot, "lastRecommendationData">;
-
 function readLocalStorage<T>(key: string): T | null {
   try {
     const raw = localStorage.getItem(key);
@@ -56,7 +54,7 @@ export function useSession() {
     studentStageIsExplicit,
   } = usePreferencesContext();
   const { canTakeQuery, activeNavTab, onboardingComplete, dispatch } = useUiContext();
-  const { lastRecommendationData, lastRequestedCount } = useRecommendationContext();
+  const { manualAddPins, lastRequestedCount } = useRecommendationContext();
   const restoredRef = useRef(false);
 
   // Restore on mount (once courses are loaded)
@@ -65,16 +63,13 @@ export function useSession() {
     restoredRef.current = true;
 
     const snap = readLocalStorage<SessionSnapshot>(STORAGE_KEY);
-    const recommendationSnap =
-      readLocalStorage<PersistedRecommendationSnapshot>(SESSION_RECOMMENDATION_STORAGE_KEY);
     if (snap) {
       dispatch({
         type: "RESTORE_SESSION",
-        payload: recommendationSnap?.lastRecommendationData
-          ? { ...snap, lastRecommendationData: recommendationSnap.lastRecommendationData }
-          : snap,
+        payload: snap,
       });
     }
+    removeLocalStorage(SESSION_RECOMMENDATION_STORAGE_KEY);
   }, [courses, dispatch]);
 
   // Save on state changes (debounced)
@@ -100,6 +95,7 @@ export function useSession() {
         discoveryTheme,
         activeNavTab,
         onboardingComplete,
+        manualAddPins,
         lastRequestedCount,
       };
       writeLocalStorage(STORAGE_KEY, snapshot);
@@ -124,24 +120,12 @@ export function useSession() {
     discoveryTheme,
     activeNavTab,
     onboardingComplete,
+    manualAddPins,
     lastRequestedCount,
   ]);
 
   useEffect(() => {
     if (!restoredRef.current) return;
-
-    const timer = setTimeout(() => {
-      const recommendationData = lastRecommendationData;
-      if (!recommendationData) {
-        removeLocalStorage(SESSION_RECOMMENDATION_STORAGE_KEY);
-        return;
-      }
-      const snapshot: PersistedRecommendationSnapshot = {
-        lastRecommendationData: recommendationData,
-      };
-      writeLocalStorage(SESSION_RECOMMENDATION_STORAGE_KEY, snapshot);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [lastRecommendationData]);
+    removeLocalStorage(SESSION_RECOMMENDATION_STORAGE_KEY);
+  }, []);
 }

@@ -144,6 +144,16 @@ export interface RecommendationResponse {
   not_in_catalog?: string[];
 }
 
+export interface ReplanResponse {
+  mode: "recommendations" | "error";
+  semesters?: SemesterData[];
+  manual_add_pins?: PlannerManualAddPin[];
+  selection_context?: SelectionContext;
+  message?: string;
+  invalid_courses?: string[];
+  not_in_catalog?: string[];
+}
+
 export interface FeedbackSessionSnapshot {
   completed: string[];
   in_progress: string[];
@@ -248,6 +258,7 @@ export interface SessionSnapshot {
   discoveryTheme: string;
   activeNavTab: string;
   onboardingComplete?: boolean;
+  manualAddPins?: PlannerManualAddPin[];
   lastRecommendationData?: RecommendationResponse | null;
   lastRequestedCount?: number;
 }
@@ -275,6 +286,7 @@ export interface SavedPlanRecord {
   createdAt: string;
   updatedAt: string;
   inputs: SavedPlanInputs;
+  manualAddPins: PlannerManualAddPin[];
   recommendationData: RecommendationResponse | null;
   lastRequestedCount: number;
   inputHash: string;
@@ -335,6 +347,7 @@ export interface AppState {
   canTakeQuery: string;
   activeNavTab: string;
   onboardingComplete: boolean;
+  manualAddPins: PlannerManualAddPin[];
   lastRecommendationData: RecommendationResponse | null;
   lastRequestedCount: number;
 }

@@ -18,12 +18,14 @@ import { getCurrentCourseLists } from "@/lib/progressSources";
 import type { CreditKpiMetrics } from "@/lib/types";
 
 interface ProgressDashboardProps {
+  compact?: boolean;
+  showAssumptions?: boolean;
   onViewDetails?: () => void;
   onCompletedClick?: () => void;
   onInProgressClick?: () => void;
 }
 
-export function useProgressMetrics(): CreditKpiMetrics {
+export function useProgressMetrics(showAssumptions = false): CreditKpiMetrics {
   const { courses } = useCatalogContext();
   const { completed, inProgress } = useCourseHistoryContext();
   const { lastRecommendationData } = useRecommendationContext();
@@ -36,10 +38,10 @@ export function useProgressMetrics(): CreditKpiMetrics {
       inProgress,
     );
 
-    const completedCredits = sumCreditsForCourseCodes(completedSource, creditMap);
-    const inProgressCredits = sumCreditsForCourseCodes(inProgressSource, creditMap);
+    const completedCredits = sumCreditsForCourseCodes(showAssumptions ? completedSource : completed, creditMap);
+    const inProgressCredits = sumCreditsForCourseCodes(showAssumptions ? inProgressSource : inProgress, creditMap);
     return computeCreditKpiMetrics(completedCredits, inProgressCredits);
-  }, [creditMap, completed, inProgress, lastRecommendationData]);
+  }, [creditMap, completed, inProgress, lastRecommendationData, showAssumptions]);
 }
 
 function standingTone(standingLabel: string): {
@@ -76,12 +78,75 @@ function standingTone(standingLabel: string): {
   };
 }
 
-function ProgressDashboardInner({ onViewDetails, onCompletedClick, onInProgressClick }: ProgressDashboardProps) {
+function ProgressDashboardInner({
+  compact = false,
+  showAssumptions = false,
+  onViewDetails,
+  onCompletedClick,
+  onInProgressClick,
+}: ProgressDashboardProps) {
   const { completed, inProgress } = useCourseHistoryContext();
-  const metrics = useProgressMetrics();
+  const metrics = useProgressMetrics(showAssumptions);
   const hasData = completed.size > 0 || inProgress.size > 0;
   const standingStyle = standingTone(metrics.standingLabel);
   const [standingGuideOpen, setStandingGuideOpen] = useState(false);
+
+  if (compact) {
+    return (
+      <>
+        <div className="grid grid-cols-4 gap-2">
+          <KpiTile
+            value={metrics.completedCredits}
+            label="Credits Completed"
+            accentColor="border-l-ok"
+            valueClass="text-ok"
+            glowClass="kpi-glow-ok"
+            delay={0.05}
+            onClick={onCompletedClick}
+          />
+          <KpiTile
+            value={metrics.inProgressCredits}
+            label="Credits In Progress"
+            accentColor="border-l-gold"
+            valueClass="text-gold"
+            glowClass="kpi-glow-gold"
+            delay={0.1}
+            onClick={onInProgressClick}
+          />
+          <StandingTile
+            label={metrics.standingLabel}
+            valueClass={standingStyle.valueClass}
+            borderClass={standingStyle.borderClass}
+            glowClass={standingStyle.glowClass}
+            onOpenGuide={() => setStandingGuideOpen(true)}
+          />
+          <KpiTile
+            value={metrics.remainingCredits}
+            label="Credits Remaining"
+            accentColor="border-l-bad"
+            valueClass="text-bad"
+            glowClass="kpi-glow-bad"
+            delay={0.2}
+          />
+        </div>
+        <Modal
+          open={standingGuideOpen}
+          onClose={() => setStandingGuideOpen(false)}
+          title="Standing by Credits"
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-ink-faint">Based on completed credits.</p>
+            <div className="space-y-2">
+              <StandingGuideRow range="0-23" label="Freshman" valueClass="text-[#8ec8ff]" />
+              <StandingGuideRow range="24-59" label="Sophomore" valueClass="text-ok" />
+              <StandingGuideRow range="60-89" label="Junior" valueClass="text-gold" />
+              <StandingGuideRow range="90+" label="Senior" valueClass="text-[#ff9f7a]" />
+            </div>
+          </div>
+        </Modal>
+      </>
+    );
+  }
 
   return (
     <div className="lg:h-full lg:min-h-0 min-h-[17.25rem] rounded-2xl glass-card gradient-border p-2.5 sm:p-3 flex flex-col gap-1.5 relative overflow-hidden">

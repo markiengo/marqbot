@@ -127,6 +127,64 @@ function cloneProgressMap(
   ) as Record<string, BucketProgress>;
 }
 
+function getAssumedCompletedCodes(
+  response: RecommendationResponse | null | undefined,
+): Set<string> {
+  const inputCompleted = toCodeSet(response?.input_completed_courses);
+  const currentCompleted = toCodeSet(response?.current_completed_courses);
+  const assumed = new Set<string>();
+  for (const code of currentCompleted) {
+    if (!inputCompleted.has(code)) assumed.add(code);
+  }
+  return assumed;
+}
+
+function sumCredits(
+  codes: Iterable<string>,
+  creditMap?: Map<string, number>,
+): number {
+  let total = 0;
+  for (const code of codes) {
+    total += Math.max(0, Number(creditMap?.get(code) ?? 0));
+  }
+  return total;
+}
+
+export function stripAssumptionsFromCurrentProgress(
+  response: RecommendationResponse | null | undefined,
+  creditMap?: Map<string, number>,
+): Record<string, BucketProgress> | null | undefined {
+  if (!response?.current_progress) return response?.current_progress;
+
+  const assumedCompletedCodes = getAssumedCompletedCodes(response);
+  if (assumedCompletedCodes.size === 0) return response.current_progress;
+
+  const nextProgress = cloneProgressMap(response.current_progress);
+
+  for (const progress of Object.values(nextProgress)) {
+    const completedApplied = progress.completed_applied ?? [];
+    const removedCodes = completedApplied.filter((code) => assumedCompletedCodes.has(String(code || "").trim()));
+    if (removedCodes.length === 0) continue;
+
+    const decrement = progress.requirement_mode === "credits_pool"
+      ? sumCredits(removedCodes, creditMap)
+      : removedCodes.length;
+
+    progress.completed_applied = completedApplied.filter(
+      (code) => !assumedCompletedCodes.has(String(code || "").trim()),
+    );
+    progress.completed_courses = progress.completed_applied.length;
+    progress.completed_done = Math.max(0, Number(progress.completed_done ?? 0) - decrement);
+    progress.assumed_done = Math.max(0, Number(progress.assumed_done ?? progress.completed_done ?? 0) - decrement);
+    if (progress.done_count !== undefined) {
+      progress.done_count = Math.max(0, Number(progress.done_count ?? 0) - decrement);
+    }
+    markProgressSatisfied(progress);
+  }
+
+  return nextProgress;
+}
+
 function localBucketId(bucketId: string): string {
   const raw = String(bucketId || "").trim();
   if (!raw) return "";

@@ -35,6 +35,7 @@ function makePlan(overrides: Partial<SavedPlanRecord> = {}): SavedPlanRecord {
       studentStage: "undergrad",
       studentStageIsExplicit: false,
     },
+    manualAddPins: overrides.manualAddPins || [],
     recommendationData: overrides.recommendationData || { mode: "recommendations", semesters: [] },
     lastRequestedCount: overrides.lastRequestedCount || 4,
     inputHash: overrides.inputHash || "hash-a",

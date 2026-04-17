@@ -30,7 +30,7 @@
 **API and delivery layer:**
 - Purpose: Expose HTTP routes, normalize request payloads, assemble JSON responses, apply caching/rate limits, and serve `frontend/out`.
 - Location: `backend/server.py`
-- Contains: Flask app setup, `/health`, `/recommend`, `/can-take`, `/validate-prereqs`, canonical `/api/*` aliases, static-file fallback, WhiteNoise wiring, response caches, and feedback persistence hooks
+- Contains: Flask app setup, `/health`, `/recommend`, `/replan`, `/can-take`, `/validate-prereqs`, canonical `/api/*` aliases, static-file fallback, WhiteNoise wiring, response caches, and feedback persistence hooks
 - Depends on: `backend/data_loader.py`, `backend/validators.py`, `backend/allocator.py`, `backend/eligibility.py`, `backend/semester_recommender.py`, `backend/student_stage.py`, `backend/unlocks.py`, `backend/normalizer.py`
 - Used by: `frontend/src/lib/api.ts`, Render health checks defined in `render.yaml`, and local development through `scripts/run_local.py`
 
@@ -70,7 +70,7 @@
 2. `frontend/src/hooks/useRecommendations.ts` converts that state into a POST payload for `frontend/src/lib/api.ts`.
 3. `backend/server.py` normalizes courses and program selection, expands prereq assumptions through `backend/validators.py`, loads effective data from `backend/data_loader.py`, and computes progress through `backend/allocator.py`.
 4. `backend/eligibility.py`, `backend/scheduling_styles.py`, `backend/unlocks.py`, and `backend/semester_recommender.py` filter, rank, and select the semester recommendations.
-5. The JSON response returns to `frontend/src/components/planner/PlannerLayout.tsx`, which renders `RecommendationsPanel`, `ProgressDashboard`, modal drill-ins, and saved-plan actions.
+5. The JSON response returns to `frontend/src/components/planner/PlannerLayout.tsx`, which keeps current-progress surfaces tied to the canonical `/api/recommend` audit while using `/api/replan` only for downstream semester projections and edit/swap flows.
 
 **Eligibility check flow:**
 
@@ -81,9 +81,9 @@
 
 **Session and saved-plan persistence flow:**
 
-1. `frontend/src/hooks/useSession.ts` restores lightweight planner state from browser storage after the catalog is loaded.
-2. The hook writes the planner snapshot and the latest recommendation snapshot under separate keys so `frontend/src/context/AppReducer.ts` can restore inputs without requiring a live recomputation.
-3. `frontend/src/components/saved/SavedPlansLibraryPage.tsx` and `frontend/src/components/saved/SavedPlanDetailPage.tsx` use `frontend/src/hooks/useSavedPlans.ts` plus helpers in `frontend/src/lib/savedPlans.ts` and `frontend/src/lib/savedPlanPresentation.ts`.
+1. `frontend/src/hooks/useSession.ts` restores lightweight planner state plus manual-add pins from browser storage after the catalog is loaded.
+2. Session restore does not revive a cached recommendation snapshot; `frontend/src/context/AppReducer.ts` restores planner inputs, then the planner triggers a fresh canonical `/api/recommend` fetch when it needs live results again.
+3. `frontend/src/components/saved/SavedPlansLibraryPage.tsx` and `frontend/src/components/saved/SavedPlanDetailPage.tsx` use `frontend/src/hooks/useSavedPlans.ts` plus helpers in `frontend/src/lib/savedPlans.ts` and `frontend/src/lib/savedPlanPresentation.ts`, with saved-plan records carrying manual-add intent separately from the stored recommendation snapshot.
 4. `frontend/src/app/saved/page.tsx` switches between the saved-plan library and detail view by reading the `plan` query parameter instead of a true route segment.
 
 **Build and delivery flow:**

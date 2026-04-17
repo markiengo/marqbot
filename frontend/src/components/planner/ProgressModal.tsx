@@ -27,6 +27,8 @@ interface ProgressModalProps {
   onCourseClick?: (courseCode: string) => void;
   rawCompleted?: Set<string>;
   rawInProgress?: Set<string>;
+  assumptionsOn?: boolean;
+  onToggleAssumptions?: () => void;
 }
 
 export function ProgressModal({
@@ -44,6 +46,8 @@ export function ProgressModal({
   onCourseClick,
   rawCompleted,
   rawInProgress,
+  assumptionsOn = false,
+  onToggleAssumptions,
 }: ProgressModalProps) {
   const progressRenderKey = useMemo(() => {
     if (!currentProgress) return "no-progress";
@@ -83,7 +87,6 @@ export function ProgressModal({
     [allNotes, scopeNote],
   );
   const hasAssumptions = allNotes.length > 0 && rawCompleted !== undefined;
-  const [assumptionsOn, setAssumptionsOn] = useState(true);
   const [bucketDetail, setBucketDetail] = useState<BucketDetailState | null>(null);
   const [bucketMapOpen, setBucketMapOpen] = useState(false);
   const bucketTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -201,7 +204,7 @@ export function ProgressModal({
                 </h3>
                 <button
                   type="button"
-                  onClick={() => setAssumptionsOn((prev) => !prev)}
+                  onClick={onToggleAssumptions}
                   className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                     assumptionsOn
                       ? "border-gold/30 bg-gold/10 text-gold"

@@ -10,8 +10,9 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { PlannerLayout } from "../src/components/planner/PlannerLayout";
 import { makeAppState, renderWithApp } from "./testUtils";
 
-const { postRecommendSpy } = vi.hoisted(() => ({
+const { postRecommendSpy, postReplanSpy } = vi.hoisted(() => ({
   postRecommendSpy: vi.fn(),
+  postReplanSpy: vi.fn(),
 }));
 
 vi.mock("motion/react", () => ({
@@ -24,6 +25,7 @@ vi.mock("motion/react", () => ({
 
 vi.mock("@/lib/api", () => ({
   postRecommend: postRecommendSpy,
+  postReplan: postReplanSpy,
   loadProgramBuckets: vi.fn(async () => []),
 }));
 
@@ -159,36 +161,36 @@ vi.mock("@/components/saved/SavePlanModal", () => ({
 describe("PlannerLayout manual adds survive reruns", () => {
   beforeEach(() => {
     postRecommendSpy.mockReset();
+    postReplanSpy.mockReset();
   });
 
   test("preserves manual adds after a full profile rerun", async () => {
-    postRecommendSpy
-      .mockResolvedValueOnce({
-        mode: "recommendations",
-        semesters: [
-          {
-            target_semester: "Fall 2026",
-            recommendations: [{ course_code: "MATH 2100", course_name: "Applied Calculus", credits: 3 }],
-          },
-          {
-            target_semester: "Spring 2027",
-            recommendations: [{ course_code: "ECON 2000", course_name: "Economics", credits: 3 }],
-          },
-        ],
-      })
-      .mockResolvedValueOnce({
-        mode: "recommendations",
-        semesters: [
-          {
-            target_semester: "Fall 2026",
-            recommendations: [{ course_code: "ACCO 1030", course_name: "Financial Accounting", credits: 3 }],
-          },
-          {
-            target_semester: "Spring 2027",
-            recommendations: [{ course_code: "FINA 3001", course_name: "Financial Management", credits: 3 }],
-          },
-        ],
-      });
+    postReplanSpy.mockResolvedValueOnce({
+      mode: "recommendations",
+      semesters: [
+        {
+          target_semester: "Fall 2026",
+          recommendations: [{ course_code: "MATH 2100", course_name: "Applied Calculus", credits: 3 }],
+        },
+        {
+          target_semester: "Spring 2027",
+          recommendations: [{ course_code: "ECON 2000", course_name: "Economics", credits: 3 }],
+        },
+      ],
+    });
+    postRecommendSpy.mockResolvedValueOnce({
+      mode: "recommendations",
+      semesters: [
+        {
+          target_semester: "Fall 2026",
+          recommendations: [{ course_code: "ACCO 1030", course_name: "Financial Accounting", credits: 3 }],
+        },
+        {
+          target_semester: "Spring 2027",
+          recommendations: [{ course_code: "FINA 3001", course_name: "Financial Management", credits: 3 }],
+        },
+      ],
+    });
 
     const user = userEvent.setup();
 
@@ -233,8 +235,8 @@ describe("PlannerLayout manual adds survive reruns", () => {
     await user.click(screen.getByRole("button", { name: /pick fall 2026/i }));
     await user.click(screen.getByRole("button", { name: /apply edited semester/i }));
 
-    await waitFor(() => expect(postRecommendSpy).toHaveBeenCalledTimes(1));
-    const firstPayload = postRecommendSpy.mock.calls[0][0];
+    await waitFor(() => expect(postReplanSpy).toHaveBeenCalledTimes(1));
+    const firstPayload = postReplanSpy.mock.calls[0][0];
     expect(firstPayload.selected_courses).toEqual(["MATH 2100"]);
     expect(firstPayload.target_semester).toBe("Fall 2026");
     expect(firstPayload.target_semester_count).toBe(2);
@@ -244,13 +246,13 @@ describe("PlannerLayout manual adds survive reruns", () => {
     await user.click(screen.getByRole("button", { name: /edit profile/i }));
     await user.click(screen.getByRole("button", { name: /set mixer/i }));
 
-    expect(screen.getByTestId("recommendations-panel")).toHaveTextContent("Fall 2026: MATH 2100");
+    expect(screen.queryByTestId("recommendations-panel")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /run profile submit/i }));
 
-    await waitFor(() => expect(postRecommendSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(postRecommendSpy).toHaveBeenCalledTimes(1));
 
-    const secondPayload = postRecommendSpy.mock.calls[1][0];
+    const secondPayload = postRecommendSpy.mock.calls[0][0];
     expect(secondPayload.scheduling_style).toBe("mixer");
     expect(secondPayload.completed_courses).toBe("");
     expect(secondPayload.target_semester).toBe("Fall 2026");
@@ -261,7 +263,7 @@ describe("PlannerLayout manual adds survive reruns", () => {
   });
 
   test("uses eligible_swaps for the edit candidate pool when provided", async () => {
-    postRecommendSpy.mockResolvedValueOnce({
+    postReplanSpy.mockResolvedValueOnce({
       mode: "recommendations",
       semesters: [
         {
@@ -310,12 +312,12 @@ describe("PlannerLayout manual adds survive reruns", () => {
     await user.click(screen.getByRole("button", { name: /pick fall 2026/i }));
     await user.click(screen.getByRole("button", { name: /load candidate pool/i }));
 
-    await waitFor(() => expect(postRecommendSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(postReplanSpy).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByTestId("candidate-pool")).toHaveTextContent("ACCO 1030,MATH 2100"));
   });
 
   test("next semester candidate pool adapts after applying edited swaps", async () => {
-    postRecommendSpy
+    postReplanSpy
       .mockResolvedValueOnce({
         mode: "recommendations",
         semesters: [
@@ -384,8 +386,8 @@ describe("PlannerLayout manual adds survive reruns", () => {
     await user.click(screen.getByRole("button", { name: /pick fall 2026/i }));
     await user.click(screen.getByRole("button", { name: /apply edited semester/i }));
 
-    await waitFor(() => expect(postRecommendSpy).toHaveBeenCalledTimes(1));
-    const applyPayload = postRecommendSpy.mock.calls[0][0];
+    await waitFor(() => expect(postReplanSpy).toHaveBeenCalledTimes(1));
+    const applyPayload = postReplanSpy.mock.calls[0][0];
     expect(applyPayload.selected_courses).toEqual(["MATH 2100"]);
     expect(applyPayload.target_semester).toBe("Fall 2026");
     expect(applyPayload.target_semester_count).toBe(2);
@@ -396,9 +398,9 @@ describe("PlannerLayout manual adds survive reruns", () => {
     await user.click(screen.getByRole("button", { name: /pick spring 2027/i }));
     await user.click(screen.getByRole("button", { name: /load candidate pool/i }));
 
-    await waitFor(() => expect(postRecommendSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(postReplanSpy).toHaveBeenCalledTimes(2));
 
-    const nextSemesterPayload = postRecommendSpy.mock.calls[1][0];
+    const nextSemesterPayload = postReplanSpy.mock.calls[1][0];
     expect(nextSemesterPayload.target_semester).toBe("Spring 2027");
     expect(nextSemesterPayload.completed_courses).toContain("MATH 2100");
     expect(nextSemesterPayload.completed_courses).not.toContain("ACCO 1030");
@@ -407,7 +409,7 @@ describe("PlannerLayout manual adds survive reruns", () => {
   });
 
   test("preserves a future manual add when an earlier semester reruns", async () => {
-    postRecommendSpy
+    postReplanSpy
       .mockResolvedValueOnce({
         mode: "recommendations",
         semesters: [
@@ -508,12 +510,13 @@ describe("PlannerLayout manual adds survive reruns", () => {
     await user.click(screen.getByRole("button", { name: /edit plan/i }));
     await user.click(screen.getByRole("button", { name: /pick spring 2028/i }));
     await user.click(screen.getByRole("button", { name: /load candidate pool/i }));
-    await waitFor(() => expect(postRecommendSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(postReplanSpy).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole("button", { name: /apply edited semester/i }));
+    await waitFor(() => expect(postReplanSpy).toHaveBeenCalledTimes(2));
     await waitFor(() => {
       expect(screen.getByTestId("recommendations-panel")).toHaveTextContent("Spring 2028: BUAN 3065");
     });
-    const futureEditPayload = postRecommendSpy.mock.calls[1][0];
+    const futureEditPayload = postReplanSpy.mock.calls[1][0];
     expect(futureEditPayload.selected_courses).toEqual(["BUAN 3065"]);
     expect(futureEditPayload.target_semester).toBe("Spring 2028");
     expect(futureEditPayload.target_semester_count).toBe(1);
@@ -521,11 +524,11 @@ describe("PlannerLayout manual adds survive reruns", () => {
     await user.click(screen.getByRole("button", { name: /edit plan/i }));
     await user.click(screen.getByRole("button", { name: /pick fall 2027/i }));
     await user.click(screen.getByRole("button", { name: /load candidate pool/i }));
-    await waitFor(() => expect(postRecommendSpy).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(postReplanSpy).toHaveBeenCalledTimes(3));
     await user.click(screen.getByRole("button", { name: /apply edited semester/i }));
 
-    await waitFor(() => expect(postRecommendSpy).toHaveBeenCalledTimes(4));
-    const rerunPayload = postRecommendSpy.mock.calls[3][0];
+    await waitFor(() => expect(postReplanSpy).toHaveBeenCalledTimes(4));
+    const rerunPayload = postReplanSpy.mock.calls[3][0];
     expect(rerunPayload.selected_courses).toEqual(["BULA 3001"]);
     expect(rerunPayload.target_semester).toBe("Fall 2027");
     expect(rerunPayload.target_semester_count).toBe(2);

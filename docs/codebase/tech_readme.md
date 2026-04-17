@@ -1,6 +1,6 @@
 # Technical Reference
 
-Last updated: April 7, 2026
+Last updated: April 17, 2026
 
 ## Start Here
 
@@ -8,7 +8,9 @@ Read these in order if you are orienting to the current repo:
 
 | File | Purpose |
 |------|---------|
+| `AGENTS.md` | Lean repo-wide agent entrypoint and shared markdown taxonomy |
 | `README.md` | Product overview, local run commands, and deployment contract |
+| `docs/README.md` | Documentation map so agents and humans pick the right markdown file quickly |
 | `docs/CHANGELOG.md` | Shipped and unreleased change history |
 | `docs/memos/todo.md` | Open product and engineering follow-ups |
 | `data/data_model.md` | Runtime data model and CSV relationships |
@@ -119,7 +121,8 @@ These pieces are new enough that they matter for orientation:
 | `/api/programs` | Program inventory plus college-aware program metadata |
 | `/api/courses` | Course catalog data |
 | `/api/program-buckets` | Requirement map for a selected program |
-| `/api/recommend` | Main ranked semester recommendation response, plus edited-semester reruns via optional `selected_courses` |
+| `/api/recommend` | Canonical ranked semester recommendation response and current-progress audit for the student's real transcript state |
+| `/api/replan` | Synthetic downstream replanning for edited semesters and swap pools; returns projected semester data without canonical current-progress fields |
 | `/api/can-take` | Eligibility explanation for specific courses |
 | `/api/validate-prereqs` | Prerequisite validation |
 | `/api/feedback` | Planner feedback submission |
@@ -128,6 +131,7 @@ These pieces are new enough that they matter for orientation:
 
 - Core planner data is read from `data/` at startup.
 - Saved plans and most planner session state live in browser `localStorage`.
+- Session restore keeps planner inputs plus manual-add pins, clears stale recommendation snapshots, and relies on a fresh canonical `/api/recommend` fetch before live planner progress is shown again.
 - Feedback is appended to `feedback.jsonl` or `FEEDBACK_PATH`.
 - Render production config points feedback to `/var/data/marqbot/feedback.jsonl`.
 

@@ -8,6 +8,7 @@ import {
 import { inferStudentStageFromCourseCodes, normalizeStudentStage } from "./studentStage";
 import type {
   AppState,
+  PlannerManualAddPin,
   RecommendationResponse,
   SavedPlanFreshness,
   SavedPlanInputs,
@@ -32,6 +33,7 @@ export interface CreateSavedPlanParams {
   name: string;
   notes?: string;
   inputs: SavedPlanInputs;
+  manualAddPins?: PlannerManualAddPin[];
   recommendationData: RecommendationResponse | null;
   lastRequestedCount: number;
 }
@@ -40,6 +42,7 @@ export interface UpdateSavedPlanParams {
   name: string;
   notes?: string;
   inputs: SavedPlanInputs;
+  manualAddPins?: PlannerManualAddPin[];
   recommendationData: RecommendationResponse | null;
   lastRequestedCount: number;
   resultsInputHash?: string | null;
@@ -62,6 +65,30 @@ function normalizeStringArray(values: unknown): string[] {
         .filter(Boolean),
     ),
   ).sort((a, b) => a.localeCompare(b));
+}
+
+function normalizeManualAddPins(value: unknown): PlannerManualAddPin[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((pin): pin is PlannerManualAddPin => {
+      if (!pin || typeof pin !== "object") return false;
+      const record = pin as Partial<PlannerManualAddPin>;
+      return (
+        typeof record.course_code === "string" &&
+        Number.isInteger(record.semester_index) &&
+        record.course_snapshot !== undefined &&
+        Number.isFinite(Number(record.pinned_at))
+      );
+    })
+    .map((pin) => ({
+      course_code: String(pin.course_code || "").trim().toUpperCase(),
+      semester_index: pin.semester_index,
+      course_snapshot: {
+        ...pin.course_snapshot,
+        course_code: String(pin.course_code || "").trim().toUpperCase(),
+      },
+      pinned_at: Number(pin.pinned_at),
+    }));
 }
 
 export function normalizeSavedPlanInputs(inputs: Partial<SavedPlanInputs> | null | undefined): SavedPlanInputs {
@@ -143,6 +170,11 @@ function sanitizeSavedPlanRecord(value: unknown): SavedPlanRecord | null {
   const inputs = normalizeSavedPlanInputs(raw.inputs);
   const inputHash = String(raw.inputHash || "").trim() || hashSavedPlanInputs(inputs);
   const recommendationData = coerceRecommendationResponse(raw.recommendationData);
+  const manualAddPins = normalizeManualAddPins(
+    raw.manualAddPins
+    ?? recommendationData?.manual_add_pins
+    ?? [],
+  );
   const resultsInputHash = recommendationData
     ? String(raw.resultsInputHash || "").trim() || inputHash
     : null;
@@ -155,6 +187,7 @@ function sanitizeSavedPlanRecord(value: unknown): SavedPlanRecord | null {
     createdAt,
     updatedAt,
     inputs,
+    manualAddPins,
     recommendationData,
     lastRequestedCount: Math.max(1, Number(raw.lastRequestedCount) || Number(inputs.maxRecs) || 1),
     inputHash,
@@ -222,6 +255,7 @@ function buildSavedPlanRecord(params: CreateSavedPlanParams): SavedPlanRecord {
     createdAt: now,
     updatedAt: now,
     inputs,
+    manualAddPins: normalizeManualAddPins(params.manualAddPins ?? params.recommendationData?.manual_add_pins ?? []),
     recommendationData: params.recommendationData,
     lastRequestedCount: Math.max(1, Number(params.lastRequestedCount) || Number(inputs.maxRecs) || 1),
     inputHash,
@@ -280,6 +314,7 @@ export function updateSavedPlan(
     notes: String(params.notes || ""),
     updatedAt,
     inputs,
+    manualAddPins: normalizeManualAddPins(params.manualAddPins ?? params.recommendationData?.manual_add_pins ?? target.manualAddPins),
     recommendationData: params.recommendationData,
     lastRequestedCount: Math.max(1, Number(params.lastRequestedCount) || Number(inputs.maxRecs) || 1),
     inputHash,
@@ -339,7 +374,7 @@ export function buildSessionSnapshotFromSavedPlan(plan: SavedPlanRecord): Sessio
     discoveryTheme: plan.inputs.discoveryTheme,
     activeNavTab: "plan",
     onboardingComplete: true,
-    lastRecommendationData: plan.recommendationData,
+    manualAddPins: normalizeManualAddPins(plan.manualAddPins),
     lastRequestedCount: plan.lastRequestedCount,
   };
 }

@@ -144,6 +144,7 @@ vi.mock("@/components/shared/Modal", () => ({
 vi.mock("@/lib/api", () => ({
   postFeedback: postFeedbackSpy,
   postRecommend: vi.fn().mockResolvedValue(recommendationData),
+  postReplan: vi.fn(),
   loadProgramBuckets: vi.fn().mockResolvedValue([]),
 }));
 

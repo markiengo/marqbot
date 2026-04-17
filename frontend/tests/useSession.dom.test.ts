@@ -9,7 +9,6 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { useAppContext } from "../src/context/AppContext";
 import { useSession } from "../src/hooks/useSession";
 import {
-  SESSION_RECOMMENDATION_STORAGE_KEY,
   STORAGE_KEY,
 } from "../src/lib/constants";
 import type { RecommendationResponse } from "../src/lib/types";
@@ -38,6 +37,18 @@ function makeRecommendationData(): RecommendationResponse {
     current_in_progress_courses: [],
     current_progress: {},
     current_assumption_notes: [],
+    manual_add_pins: [
+      {
+        course_code: "FINA 3001",
+        semester_index: 0,
+        course_snapshot: {
+          course_code: "FINA 3001",
+          course_name: "Introduction to Financial Management",
+          credits: 3,
+        },
+        pinned_at: 1,
+      },
+    ],
     selection_context: {
       selected_program_ids: ["FIN_MAJOR"],
       selected_program_labels: ["Finance"],
@@ -114,7 +125,7 @@ describe("useSession recommendation persistence", () => {
     window.localStorage.clear();
   });
 
-  test("stores recommendation payload separately from the lightweight session snapshot", () => {
+  test("stores manual pins in the lightweight session snapshot without persisting the recommendation payload", () => {
     const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
 
     renderSessionHarness();
@@ -125,30 +136,28 @@ describe("useSession recommendation persistence", () => {
     });
 
     const sessionSnapshot = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}");
-    const recommendationSnapshot = JSON.parse(
-      window.localStorage.getItem(SESSION_RECOMMENDATION_STORAGE_KEY) || "{}",
-    );
 
     expect(sessionSnapshot.lastRecommendationData).toBeUndefined();
+    expect(sessionSnapshot.manualAddPins).toHaveLength(1);
     expect(sessionSnapshot.lastRequestedCount).toBe(5);
-    expect(recommendationSnapshot.lastRecommendationData?.mode).toBe("recommendations");
+    expect(setItemSpy.mock.calls.some(([key]) => key === STORAGE_KEY)).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "Change semester" }));
     act(() => {
       vi.advanceTimersByTime(350);
     });
 
-    const recommendationWrites = setItemSpy.mock.calls.filter(
-      ([key]) => key === SESSION_RECOMMENDATION_STORAGE_KEY,
+    const recommendationWrites = setItemSpy.mock.calls.filter(([key]) =>
+      String(key).includes("recommendation"),
     );
 
-    expect(recommendationWrites).toHaveLength(1);
+    expect(recommendationWrites).toHaveLength(0);
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}").targetSemester).toBe(
       "Spring 2027",
     );
   });
 
-  test("restores recommendation payload from the dedicated storage key", () => {
+  test("restores the session without reviving a stored recommendation snapshot", () => {
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -169,18 +178,26 @@ describe("useSession recommendation persistence", () => {
         discoveryTheme: "",
         activeNavTab: "plan",
         onboardingComplete: true,
+        manualAddPins: [
+          {
+            course_code: "FINA 3001",
+            semester_index: 0,
+            course_snapshot: {
+              course_code: "FINA 3001",
+              course_name: "Introduction to Financial Management",
+              credits: 3,
+            },
+            pinned_at: 1,
+          },
+        ],
         lastRequestedCount: 5,
       }),
-    );
-    window.localStorage.setItem(
-      SESSION_RECOMMENDATION_STORAGE_KEY,
-      JSON.stringify({ lastRecommendationData: makeRecommendationData() }),
     );
 
     renderSessionHarness();
 
     expect(screen.getByTestId("target-semester")).toHaveTextContent("Spring 2027");
-    expect(screen.getByTestId("recommendation-mode")).toHaveTextContent("recommendations");
+    expect(screen.getByTestId("recommendation-mode")).toHaveTextContent("none");
     expect(screen.getByTestId("requested-count")).toHaveTextContent("5");
   });
 });

@@ -59,6 +59,7 @@ export interface UiContextValue {
 }
 
 export interface RecommendationContextValue {
+  manualAddPins: AppState["manualAddPins"];
   lastRecommendationData: AppState["lastRecommendationData"];
   lastRequestedCount: AppState["lastRequestedCount"];
   dispatch: Dispatch<AppAction>;
@@ -168,11 +169,12 @@ export function AppProvider({ children, initialStateValue }: AppProviderProps) {
 
   const recommendationValue = useMemo<RecommendationContextValue>(
     () => ({
+      manualAddPins: state.manualAddPins,
       lastRecommendationData: state.lastRecommendationData,
       lastRequestedCount: state.lastRequestedCount,
       dispatch,
     }),
-    [state.lastRecommendationData, state.lastRequestedCount, dispatch],
+    [state.manualAddPins, state.lastRecommendationData, state.lastRequestedCount, dispatch],
   );
 
   return (
@@ -261,6 +263,7 @@ export function useAppContext(): AppContextValue {
       canTakeQuery: ui.canTakeQuery,
       activeNavTab: ui.activeNavTab,
       onboardingComplete: ui.onboardingComplete,
+      manualAddPins: recommendation.manualAddPins,
       lastRecommendationData: recommendation.lastRecommendationData,
       lastRequestedCount: recommendation.lastRequestedCount,
     },

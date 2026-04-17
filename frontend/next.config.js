@@ -23,6 +23,7 @@ const nextConfig = {
         { source: "/api/programs", destination: "http://localhost:5000/api/programs" },
         { source: "/api/program-buckets", destination: "http://localhost:5000/api/program-buckets" },
         { source: "/api/recommend", destination: "http://localhost:5000/api/recommend" },
+        { source: "/api/replan", destination: "http://localhost:5000/api/replan" },
         { source: "/api/can-take", destination: "http://localhost:5000/api/can-take" },
         { source: "/api/validate-prereqs", destination: "http://localhost:5000/api/validate-prereqs" },
         { source: "/api/health", destination: "http://localhost:5000/api/health" },

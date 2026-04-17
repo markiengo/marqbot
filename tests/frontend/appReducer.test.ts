@@ -97,6 +97,14 @@ describe("appReducer APPLY_PLANNER_SNAPSHOT", () => {
         discoveryTheme: "",
         activeNavTab: "saved",
         onboardingComplete: false,
+        manualAddPins: [
+          {
+            course_code: "FINA 3001",
+            semester_index: 0,
+            course_snapshot: { course_code: "FINA 3001", course_name: "Finance", credits: 3 },
+            pinned_at: 1,
+          },
+        ],
         lastRecommendationData: { mode: "recommendations", semesters: [], current_progress: {} },
         lastRequestedCount: 5,
       },
@@ -112,7 +120,8 @@ describe("appReducer APPLY_PLANNER_SNAPSHOT", () => {
     expect(next.includeSummer).toBe(true);
     expect(next.activeNavTab).toBe("plan");
     expect(next.onboardingComplete).toBe(true);
-    expect(next.lastRecommendationData?.mode).toBe("recommendations");
+    expect(next.manualAddPins).toHaveLength(1);
+    expect(next.lastRecommendationData).toBeNull();
   });
 
   test("infers student stage from restored history when the snapshot has no explicit stage", () => {
@@ -261,5 +270,27 @@ describe("appReducer APPLY_PLANNER_SNAPSHOT", () => {
 
     expect(next.studentStage).toBe("undergrad");
     expect(next.studentStageIsExplicit).toBe(true);
+  });
+});
+
+describe("appReducer recommendation invalidation", () => {
+  test.each([
+    [{ type: "SET_TARGET_SEMESTER", payload: "Spring 2027" }],
+    [{ type: "SET_SEMESTER_COUNT", payload: "4" }],
+    [{ type: "SET_MAX_RECS", payload: "5" }],
+    [{ type: "SET_INCLUDE_SUMMER", payload: true }],
+    [{ type: "SET_HONORS_STUDENT", payload: true }],
+    [{ type: "SET_SCHEDULING_STYLE", payload: "mixer" }],
+    [{ type: "SET_STUDENT_STAGE", payload: "graduate" }],
+  ])("clears the last recommendation snapshot for %o", (action) => {
+    const next = appReducer(
+      {
+        ...initialState,
+        lastRecommendationData: { mode: "recommendations", semesters: [], current_progress: {} },
+      },
+      action as any,
+    );
+
+    expect(next.lastRecommendationData).toBeNull();
   });
 });

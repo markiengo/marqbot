@@ -174,10 +174,17 @@ describe("Planner completed course modal", () => {
     recommendationState.data = makeRecommendationData();
   });
 
-  test("shows assumed completed courses and their explanation when recommendation inputs are current", () => {
+  test("defaults assumption-backed completed courses off and lets the user opt in", () => {
     renderPlanner();
 
     fireEvent.click(screen.getByRole("button", { name: /open completed/i }));
+
+    expect(screen.getByRole("heading", { name: /credits completed \(1\)/i })).toBeInTheDocument();
+    expect(screen.queryByText("Assumptions Applied")).not.toBeInTheDocument();
+    expect(screen.getByText("FINA 3001")).toBeInTheDocument();
+    expect(screen.queryByText("ACCO 1030")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^off$/i }));
 
     expect(screen.getByRole("heading", { name: /credits completed \(2\)/i })).toBeInTheDocument();
     expect(screen.getByText("Assumptions Applied")).toBeInTheDocument();
@@ -223,18 +230,29 @@ describe("Planner completed course modal", () => {
     expect(screen.getByText(/locked to undergraduate recommendations/i)).toBeInTheDocument();
   });
 
-  test("shows the updated ranking-rules explainer copy", () => {
+  test("shows the grinder leaderboard explainer copy", () => {
     renderPlanner();
 
     fireEvent.click(screen.getByRole("button", { name: /how ranking works/i }));
 
     expect(screen.getByRole("heading", { name: /how marqbot ranks courses/i })).toBeInTheDocument();
-    expect(screen.getByText("Respect bucket rules")).toBeInTheDocument();
-    expect(
-      screen.getByText(/required buckets beat elective pools when the rules collide/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/after the bucket rules are settled, courses that unlock more later/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Current build")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /grinder/i })).toBeInTheDocument();
+    expect(screen.getByText("Major path first. Cleanup later.")).toBeInTheDocument();
+    expect(screen.getByText("Urgent BCC gateways")).toBeInTheDocument();
+    expect(screen.getByText("MCC and discovery cleanup")).toBeInTheDocument();
+    expect(screen.queryByText("Respect bucket rules")).not.toBeInTheDocument();
+  });
+
+  test("switches the leaderboard view between builds inside the ranking modal", () => {
+    renderPlanner();
+
+    fireEvent.click(screen.getByRole("button", { name: /how ranking works/i }));
+    fireEvent.click(screen.getByRole("button", { name: /explorer/i }));
+
+    expect(screen.getByRole("button", { name: /explorer/i })).toBeInTheDocument();
+    expect(screen.getByText("Discovery and gen-eds move up.")).toBeInTheDocument();
+    expect(screen.getByText("Discovery and late MCC")).toBeInTheDocument();
+    expect(screen.getByText("Major classes stay important, but not always first.")).toBeInTheDocument();
   });
 });

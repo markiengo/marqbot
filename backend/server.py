@@ -2625,8 +2625,7 @@ def feedback_endpoint():
     }), 201
 
 
-@app.route("/recommend", methods=["POST"])
-def recommend():
+def _recommend_endpoint(*, include_current_state: bool, cache_scope: str):
     client_ip = _client_ip()
     if not app.config.get("TESTING") and not _check_rate_limit(client_ip):
         return jsonify({
@@ -2645,7 +2644,7 @@ def recommend():
             "error": {"error_code": err_code, "message": err_msg},
         }), 400
 
-    cache_key = _request_cache_key("recommend", body)
+    cache_key = _request_cache_key(cache_scope, body)
     if _cache_enabled():
         cached = _recommend_response_cache.get(cache_key)
         if cached is not None:
@@ -2934,15 +2933,18 @@ def recommend():
         "mode": "recommendations",
         "semesters": semesters_payload,
         **sem1,
-        "input_completed_courses": completed_input,
-        "input_in_progress_courses": in_progress_input,
-        "current_completed_courses": completed,
-        "current_in_progress_courses": in_progress,
-        "current_progress": current_progress,
-        "current_assumption_notes": current_assumption_notes,
         "not_in_catalog_warning": not_in_catalog_warn if not_in_catalog_warn else None,
         "error": None,
     }
+    if include_current_state:
+        response.update({
+            "input_completed_courses": completed_input,
+            "input_in_progress_courses": in_progress_input,
+            "current_completed_courses": completed,
+            "current_in_progress_courses": in_progress,
+            "current_progress": current_progress,
+            "current_assumption_notes": current_assumption_notes,
+        })
     if selection["mode"] in {"declared", "legacy"}:
         response["selection_context"] = {
             "declared_majors": selection["declared_majors"],
@@ -2959,6 +2961,16 @@ def recommend():
     if _cache_enabled():
         _recommend_response_cache.set(cache_key, response)
     return jsonify(response)
+
+
+@app.route("/recommend", methods=["POST"])
+def recommend():
+    return _recommend_endpoint(include_current_state=True, cache_scope="recommend")
+
+
+@app.route("/replan", methods=["POST"])
+def replan():
+    return _recommend_endpoint(include_current_state=False, cache_scope="replan")
 
 @app.route("/can-take", methods=["POST"])
 def can_take_endpoint():
@@ -3130,6 +3142,7 @@ app.add_url_rule("/api/programs", endpoint="api_programs", view_func=get_program
 app.add_url_rule("/api/feedback", endpoint="api_feedback", view_func=feedback_endpoint, methods=["POST"])
 app.add_url_rule("/api/program-buckets", endpoint="api_program_buckets", view_func=get_program_buckets, methods=["GET"])
 app.add_url_rule("/api/recommend", endpoint="api_recommend", view_func=recommend, methods=["POST"])
+app.add_url_rule("/api/replan", endpoint="api_replan", view_func=replan, methods=["POST"])
 app.add_url_rule("/api/can-take", endpoint="api_can_take", view_func=can_take_endpoint, methods=["POST"])
 app.add_url_rule("/api/validate-prereqs", endpoint="api_validate_prereqs", view_func=validate_prereqs_endpoint, methods=["POST"])
 

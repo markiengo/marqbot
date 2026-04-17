@@ -38,6 +38,10 @@ def _post(client, **overrides):
     return client.post("/recommend", json=_payload(**overrides))
 
 
+def _post_replan(client, **overrides):
+    return client.post("/replan", json=_payload(**overrides))
+
+
 def _catalog_course_for_level(min_level: int, max_level: int | None = None) -> str:
     rows = server._data["courses_df"]
     mask = rows["level"].astype(float) >= float(min_level)
@@ -218,6 +222,56 @@ def test_selected_courses_override_first_semester_and_keep_projected_progress(cl
         for bucket in first_semester["projected_progress"].values()
     )
     assert data["current_progress"] == baseline_data["current_progress"]
+
+
+def test_replan_omits_canonical_current_state_fields(client):
+    response = _post_replan(
+        client,
+        target_semester_count=2,
+        max_recommendations=3,
+        selected_courses=["ACCO 1030"],
+    )
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["mode"] == "recommendations"
+    assert "current_completed_courses" not in data
+    assert "current_in_progress_courses" not in data
+    assert "current_progress" not in data
+    assert "current_assumption_notes" not in data
+    assert "input_completed_courses" not in data
+    assert "input_in_progress_courses" not in data
+    assert len(data["semesters"]) == 2
+
+
+def test_replan_selected_courses_override_first_semester_without_canonical_audit(client):
+    baseline = _post(client, target_semester_count=1, max_recommendations=3)
+    baseline_data = baseline.get_json()
+    chosen_code = next(
+        (
+            code
+            for bucket in baseline_data["semesters"][0]["projected_progress"].values()
+            for code in bucket.get("in_progress_applied", [])
+        ),
+        baseline_data["semesters"][0]["recommendations"][0]["course_code"],
+    )
+
+    response = _post_replan(
+        client,
+        target_semester_count=2,
+        max_recommendations=3,
+        selected_courses=[chosen_code],
+    )
+
+    assert response.status_code == 200
+    data = response.get_json()
+    first_semester = data["semesters"][0]
+    assert [rec["course_code"] for rec in first_semester["recommendations"]] == [chosen_code]
+    assert any(
+        chosen_code in bucket.get("in_progress_applied", [])
+        for bucket in first_semester["projected_progress"].values()
+    )
+    assert "current_progress" not in data
 
 
 @pytest.mark.parametrize(

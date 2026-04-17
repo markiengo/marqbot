@@ -43,6 +43,7 @@
   - Static frontend output is built into `frontend/out/` and served by `backend/server.py`.
   - Feedback is appended to `feedback.jsonl` by default or to `FEEDBACK_PATH` in `backend/server.py`; `infra/README.md` recommends a Render persistent disk for production.
   - Client-side saved plans and session state live in browser `localStorage` via `frontend/src/lib/savedPlans.ts` and `frontend/src/hooks/useSession.ts`.
+  - Session restore keeps lightweight planner inputs plus manual-add pins in browser storage, then relies on a fresh canonical `/api/recommend` fetch instead of reviving a cached recommendation snapshot.
 
 **Caching:**
 - No external cache service detected.
@@ -97,7 +98,7 @@
 **Outgoing:**
 - `scripts/scrape_undergrad_policies.py` performs HTTP GET requests to `https://bulletin.marquette.edu` and linked policy pages.
 - The checked-in nightly workflow uses GitHub Actions only for scheduling, checkout, and artifact upload. Local developer workflows may still call GitHub APIs through `gh`.
-- Frontend runtime code in `frontend/src/lib/api.ts` only calls same-origin backend routes (`/api/courses`, `/api/programs`, `/api/program-buckets`, `/api/recommend`, `/api/validate-prereqs`, `/api/can-take`, `/api/feedback`) or `http://localhost:5000` during local server-side dev execution.
+- Frontend runtime code in `frontend/src/lib/api.ts` only calls same-origin backend routes (`/api/courses`, `/api/programs`, `/api/program-buckets`, `/api/recommend`, `/api/replan`, `/api/validate-prereqs`, `/api/can-take`, `/api/feedback`) or `http://localhost:5000` during local server-side dev execution.
 
 ---
 
