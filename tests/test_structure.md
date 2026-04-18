@@ -35,6 +35,7 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 | `test_data_integrity.py` | 24 | CSV schema, FK integrity, prereq graph sanity |
 | `test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
 | `test_dead_end_fast.py` | ~201 total | PR smoke checks plus `@pytest.mark.nightly` catalog dead-end and graduation baselines; every case runs 3x (once per scheduling style: grinder, explorer, mixer) |
+| `test_dead_end_nightly.py` | ~2,250 | Nightly-only sampled sweep: 30 seed-sampled 3-program combos × 5 progress profiles (foundation→capstone) × 5 seeded course-history variants × 3 scheduling styles. Checks for dead ends (planner stuck for 2 consecutive semesters with open requirements) and graduation by semester 8. Seed defaults to today's date (YYYYMMDD) for reproducibility. |
 | `test_eligibility.py` | 48 | Eligibility filters, restrictions, bridge courses, can-take helpers |
 | `test_equivalencies.py` | 36 | Equivalency maps, prereq satisfaction, scoped equivalent dedup, required-bucket remaining collapse, NDC blocking, schema checks |
 | `test_feedback_api.py` | 9 | `/api/feedback` contract, JSONL persistence, validation, rate limiting |
@@ -132,7 +133,7 @@ The frontend test footprint currently spans 42 test files across both roots. Use
 
 ## CI Workflow
 
-The repo includes `.github/workflows/nightly-sweep.yml` for the focused `@nightly` backend sweep on a guarded three-day cadence plus manual dispatch. The broader release gate still runs locally.
+The repo includes `.github/workflows/nightly-sweep.yml` for the focused `@nightly` backend sweep, running daily at 9:30 UTC (~4 AM Chicago year-round) plus manual dispatch. The broader release gate still runs locally.
 
 ## Running Tests Locally
 

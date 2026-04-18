@@ -7,7 +7,7 @@
 **Runner:**
 - Backend: `pytest` 9.0.2 from `requirements.txt`, configured by `pytest.ini`.
 - Frontend: `vitest` 3.2.4 from `frontend/package.json`, configured by `frontend/vitest.config.ts`.
-- Checked-in automation: `.github/workflows/nightly-sweep.yml` runs the focused `@nightly` backend suite on a guarded three-day cadence and on manual dispatch. The broader release gate is still enforced by local commands.
+- Checked-in automation: `.github/workflows/nightly-sweep.yml` runs the focused `@nightly` backend suite daily at 9:30 UTC (~4 AM Chicago year-round) and on manual dispatch. The broader release gate is still enforced by local commands.
 
 **Assertion Library:**
 - Backend uses native pytest assertions plus Flask test client response inspection, as in `tests/backend/test_recommend_api_contract.py`, `tests/backend/test_feedback_api.py`, and `tests/backend/test_server_security.py`.
