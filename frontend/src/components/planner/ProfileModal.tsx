@@ -5,6 +5,7 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { Modal } from "@/components/shared/Modal";
 import { Button } from "@/components/shared/Button";
+import { PlannerActionFrame } from "./PlannerActionFrame";
 import { ProfileProgramTab } from "./ProfileProgramTab";
 import { ProfileCoursesTab } from "./ProfileCoursesTab";
 import { ProfilePreferencesTab } from "./ProfilePreferencesTab";
@@ -59,7 +60,7 @@ export function ProfileModal({
       title="Edit Profile"
       titleClassName="!text-[clamp(1.4rem,2.8vw,1.9rem)] font-semibold font-[family-name:var(--font-sora)] text-ink-primary"
     >
-      <div className="-mx-8 -mt-8 flex flex-col" style={{ height: "calc(77vh - 8rem)", minHeight: "400px" }}>
+      <PlannerActionFrame>
         {/* Tab bar */}
         <LayoutGroup>
           <div className="flex gap-1 border-b border-border-subtle px-8">
@@ -147,7 +148,7 @@ export function ProfileModal({
             </p>
           )}
         </div>
-      </div>
+      </PlannerActionFrame>
     </Modal>
   );
 }

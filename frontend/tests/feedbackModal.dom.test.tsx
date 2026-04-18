@@ -3,7 +3,7 @@
 import "./setupTests";
 
 import { createElement } from "react";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
 import { FeedbackModal } from "../src/components/planner/FeedbackModal";
@@ -13,21 +13,16 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/planner",
 }));
 
-vi.mock("@/components/shared/Modal", () => ({
-  Modal: ({ open, title, size, children }: any) => (
-    open
-      ? createElement(
-        "div",
-        { "data-testid": "modal-shell", "data-size": size ?? "default" },
-        title ? createElement("h1", null, title) : null,
-        children,
-      )
-      : null
-  ),
+vi.mock("motion/react", () => ({
+  motion: {
+    div: ({ children, ...props }: Record<string, unknown>) => createElement("div", props, children),
+  },
+  AnimatePresence: ({ children }: Record<string, unknown>) => createElement("div", null, children),
+  useReducedMotion: () => true,
 }));
 
 describe("FeedbackModal", () => {
-  test("uses the planner-detail modal shell", () => {
+  test("uses the shared planner action frame", async () => {
     renderWithApp(
       createElement(FeedbackModal, {
         open: true,
@@ -37,7 +32,10 @@ describe("FeedbackModal", () => {
       makeAppState(),
     );
 
-    expect(screen.getByTestId("modal-shell")).toHaveAttribute("data-size", "planner-detail");
-    expect(screen.getByRole("heading", { name: /send feedback/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /send feedback/i })).toBeInTheDocument();
+    expect(await screen.findByTestId("planner-action-frame")).toHaveStyle({
+      height: "calc(77vh - 8rem)",
+      minHeight: "400px",
+    });
   });
 });

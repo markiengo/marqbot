@@ -10,14 +10,13 @@ import { EditPlanModal } from "./EditPlanModal";
 import { ProfileModal } from "./ProfileModal";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { SemesterSelector } from "./SemesterSelector";
-import { Modal } from "@/components/shared/Modal";
 import { Skeleton } from "@/components/shared/Skeleton";
 import { SavePlanModal } from "@/components/saved/SavePlanModal";
 import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
 import { CourseListModal } from "./CourseListModal";
 import { FeedbackModal } from "./FeedbackModal";
 import { MajorGuideModal } from "./MajorGuideModal";
-import { RankingLeaderboardExplainer } from "./RankingLeaderboardExplainer";
+import { PlannerPrioritiesModal } from "./PlannerPrioritiesModal";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
@@ -1019,21 +1018,15 @@ export function PlannerLayout() {
         currentStyle={state.schedulingStyle}
         onFinish={handleGuideFinish}
       />
-      <Modal
+      <PlannerPrioritiesModal
         open={explainerOpen}
         onClose={() => setExplainerOpen(false)}
-        title="Change Your Priorities"
-        titleClassName="!text-[clamp(1.1rem,2.2vw,1.5rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
-        size="planner-detail"
-      >
-        <RankingLeaderboardExplainer
-          currentStyle={explainerStyle}
-          onStyleChange={setExplainerStyle}
-          appliedStyle={state.schedulingStyle}
-          onApply={() => { void handleExplainerApply(); }}
-          isApplying={loading}
-        />
-      </Modal>
+        currentStyle={explainerStyle}
+        onStyleChange={setExplainerStyle}
+        appliedStyle={state.schedulingStyle}
+        onApply={() => { void handleExplainerApply(); }}
+        isApplying={loading}
+      />
       <CourseDetailModal
         open={courseDetailCode !== null}
         onClose={() => setCourseDetailCode(null)}

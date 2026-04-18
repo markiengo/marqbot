@@ -11,6 +11,33 @@ import { ProfileModal } from "../src/components/planner/ProfileModal";
 import { makeAppState, renderWithApp } from "./testUtils";
 
 describe("ProfileModal recommendation submit flow", () => {
+  test("uses the shared planner action frame", async () => {
+    renderWithApp(
+      createElement(ProfileModal, {
+        open: true,
+        onClose: vi.fn(),
+        loading: false,
+        error: null,
+        onSubmitRecommendations: vi.fn().mockResolvedValue(null),
+      }),
+      makeAppState({
+        selectedMajors: new Set(["FIN_MAJOR"]),
+        programs: {
+          majors: [{ id: "FIN_MAJOR", label: "Finance", requires_primary_major: false }],
+          tracks: [],
+          minors: [],
+          default_track_id: "FIN_MAJOR",
+        },
+      }),
+    );
+
+    expect(await screen.findByRole("heading", { name: /edit profile/i })).toBeInTheDocument();
+    expect(await screen.findByTestId("planner-action-frame")).toHaveStyle({
+      height: "calc(77vh - 8rem)",
+      minHeight: "400px",
+    });
+  });
+
   test("keeps the modal open when refreshing recommendations fails", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

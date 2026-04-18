@@ -9,21 +9,16 @@ import { describe, expect, test, vi } from "vitest";
 
 import { SavePlanModal } from "../src/components/saved/SavePlanModal";
 
-vi.mock("@/components/shared/Modal", () => ({
-  Modal: ({ open, title, size, children }: any) => (
-    open
-      ? createElement(
-        "div",
-        { "data-testid": "modal-shell", "data-size": size ?? "default" },
-        title ? createElement("h1", null, title) : null,
-        children,
-      )
-      : null
-  ),
+vi.mock("motion/react", () => ({
+  motion: {
+    div: ({ children, ...props }: Record<string, unknown>) => createElement("div", props, children),
+  },
+  AnimatePresence: ({ children }: Record<string, unknown>) => createElement("div", null, children),
+  useReducedMotion: () => true,
 }));
 
 describe("SavePlanModal", () => {
-  test("defaults to save as new and can switch to overwrite with prefills", async () => {
+  test("defaults to save as new, uses the shared planner frame, and can switch to overwrite with prefills", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
 
@@ -55,7 +50,11 @@ describe("SavePlanModal", () => {
       }),
     );
 
-    expect(screen.getByTestId("modal-shell")).toHaveAttribute("data-size", "planner-detail");
+    expect(await screen.findByRole("heading", { name: /save plan/i })).toBeInTheDocument();
+    expect(await screen.findByTestId("planner-action-frame")).toHaveStyle({
+      height: "calc(77vh - 8rem)",
+      minHeight: "400px",
+    });
 
     expect(screen.getByRole("button", { name: /save as new/i })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByDisplayValue("Data Science Plan")).toBeInTheDocument();
@@ -88,7 +87,7 @@ describe("SavePlanModal", () => {
     });
   });
 
-  test("disables overwrite mode when there are no saved plans", () => {
+  test("disables overwrite mode when there are no saved plans", async () => {
     render(
       createElement(SavePlanModal, {
         open: true,
@@ -100,6 +99,10 @@ describe("SavePlanModal", () => {
       }),
     );
 
+    expect(await screen.findByTestId("planner-action-frame")).toHaveStyle({
+      height: "calc(77vh - 8rem)",
+      minHeight: "400px",
+    });
     expect(screen.getByRole("button", { name: /overwrite existing/i })).toBeDisabled();
     expect(screen.getByText(/no saved plans are available to overwrite yet/i)).toBeInTheDocument();
   });
