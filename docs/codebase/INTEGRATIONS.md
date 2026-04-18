@@ -1,6 +1,6 @@
 # External Integrations
 
-**Analysis Date:** 2026-04-03
+**Analysis Date:** 2026-04-17
 
 ## APIs & External Services
 
@@ -8,11 +8,6 @@
 - Render - Production web hosting is defined in `render.yaml`, which points to `infra/docker/Dockerfile` and uses `/api/health` for health checks.
   - SDK/Client: No Render SDK in app code; deployment is configuration-driven through `render.yaml`.
   - Auth: Render-managed service credentials are outside the repo; no in-repo auth client is present.
-
-**Error Monitoring:**
-- Sentry - Optional Flask error tracking is initialized in `backend/server.py` when a DSN is available.
-  - SDK/Client: `sentry-sdk[flask]` from `requirements.txt`.
-  - Auth: `SENTRY_DSN`.
 
 **External Content Source (maintenance-only):**
 - Marquette Bulletin - Policy text scraping is implemented in `scripts/scrape_undergrad_policies.py` and writes output to `docs/memos/policies.md` by default.
@@ -58,7 +53,7 @@
 ## Monitoring & Observability
 
 **Error Tracking:**
-- Sentry is optional and only activates when `SENTRY_DSN` is set in `backend/server.py`.
+- Not detected - The backend currently relies on stdout/stderr logging in `backend/server.py`; no external error-tracking SDK is initialized.
 
 **Logs:**
 - Request timing, data reload warnings, and startup diagnostics are printed to stdout/stderr in `backend/server.py`.
@@ -82,7 +77,7 @@
 **Required env vars:**
 - No secret env vars are strictly required for local development because `backend/server.py` has defaults for `DATA_PATH`, `FEEDBACK_PATH`, `PORT`, and cache settings.
 - Production/runtime-critical variables are supplied through `render.yaml` or the host environment: `PORT`, `WEB_CONCURRENCY`, `GUNICORN_TIMEOUT`, `GUNICORN_GRACEFUL_TIMEOUT`, `REQUEST_CACHE_SIZE`, and `SLOW_REQUEST_LOG_MS`.
-- Optional integration variables include `SENTRY_DSN`, `FEEDBACK_PATH`, `DATA_PATH`, `RENDER_GIT_COMMIT`, `RECOMMEND_CACHE_SIZE`, `CAN_TAKE_CACHE_SIZE`, `PROGRAM_DATA_CACHE_SIZE`, `RECOMMEND_CACHE_TTL_SECONDS`, `CAN_TAKE_CACHE_TTL_SECONDS`, `PROGRAM_DATA_CACHE_TTL_SECONDS`, `RECOMMEND_CACHE_MAX_BYTES`, and `CAN_TAKE_CACHE_MAX_BYTES` from `backend/server.py`.
+- Optional integration variables include `FEEDBACK_PATH`, `DATA_PATH`, `RENDER_GIT_COMMIT`, `RECOMMEND_CACHE_SIZE`, `CAN_TAKE_CACHE_SIZE`, `PROGRAM_DATA_CACHE_SIZE`, `RECOMMEND_CACHE_TTL_SECONDS`, `CAN_TAKE_CACHE_TTL_SECONDS`, `PROGRAM_DATA_CACHE_TTL_SECONDS`, `RECOMMEND_CACHE_MAX_BYTES`, and `CAN_TAKE_CACHE_MAX_BYTES` from `backend/server.py`.
 
 **Secrets location:**
 - Root `.env` and `.env.example` exist and are discovered by `load_dotenv()` in `backend/server.py`; contents were not read.
@@ -102,4 +97,4 @@
 
 ---
 
-*Integration audit: 2026-03-28*
+*Integration audit: 2026-04-17*

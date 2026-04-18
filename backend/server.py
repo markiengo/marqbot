@@ -46,16 +46,7 @@ from semester_recommender import (
     annotate_progress_with_recommendation_hierarchy,
 )
 
-import sentry_sdk
-
 load_dotenv()
-
-_sentry_dsn = os.environ.get("SENTRY_DSN", "")
-if _sentry_dsn:
-    sentry_sdk.init(
-        dsn=_sentry_dsn,
-        traces_sample_rate=0.1,
-    )
 
 app = Flask(__name__)
 Compress(app)

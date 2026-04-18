@@ -1,6 +1,6 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-03-28
+**Analysis Date:** 2026-04-17
 
 ## Naming Patterns
 
@@ -66,7 +66,7 @@
 
 ## Logging
 
-**Framework:** `print` on the backend, minimal `console.error` on the frontend, optional Sentry in `backend/server.py`.
+**Framework:** `print` on the backend and minimal `console.error` on the frontend.
 
 **Patterns:**
 - Backend runtime logging uses plain `print` with status prefixes such as `[OK]`, `[WARN]`, `[FATAL]`, `[SLOW]`, and `[INFO]`; see `backend/server.py`, `backend/data_loader.py`, and `backend/requirements.py`.
@@ -99,4 +99,4 @@
 
 ---
 
-*Convention analysis: 2026-03-28*
+*Convention analysis: 2026-04-17*

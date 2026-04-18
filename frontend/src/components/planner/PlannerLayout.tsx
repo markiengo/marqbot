@@ -773,8 +773,8 @@ export function PlannerLayout() {
             )}
           </div>
 
-          {/* Action buttons — responsive 5-button row with width weighted to label length */}
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-[1.65fr_1.2fr_1.15fr_0.9fr_1.15fr]">
+          {/* Action buttons — responsive 5-button row with equal sizing */}
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
             <button
               type="button"
               onClick={() => setEditPlanModalOpen(true)}
@@ -809,16 +809,6 @@ export function PlannerLayout() {
             </button>
             <button
               type="button"
-              onClick={openFeedbackModal}
-              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#ff6b8a]/30 bg-[#ff6b8a]/10 px-3 py-4 text-[#ff9fb3] transition-all duration-200 shadow-[0_0_18px_rgba(255,107,138,0.18),0_0_36px_rgba(255,107,138,0.07)] hover:shadow-[0_0_28px_rgba(255,107,138,0.35),0_0_56px_rgba(255,107,138,0.14)] hover:bg-[#ff6b8a]/16 hover:border-[#ff6b8a]/48 cursor-pointer"
-            >
-              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span className="text-xs font-semibold text-center leading-tight">Feedback</span>
-            </button>
-            <button
-              type="button"
               onClick={() => setProfileModalOpen(true)}
               className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#9a63ff]/30 bg-[#9a63ff]/10 px-3 py-4 text-[#d3bcff] transition-all duration-200 shadow-[0_0_18px_rgba(154,99,255,0.18),0_0_36px_rgba(154,99,255,0.07)] hover:shadow-[0_0_28px_rgba(154,99,255,0.35),0_0_56px_rgba(154,99,255,0.14)] hover:bg-[#9a63ff]/16 hover:border-[#9a63ff]/48 cursor-pointer"
             >
@@ -826,6 +816,16 @@ export function PlannerLayout() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
               <span className="text-xs font-semibold text-center leading-tight">Change your preferences</span>
+            </button>
+            <button
+              type="button"
+              onClick={openFeedbackModal}
+              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#ff6b8a]/30 bg-[#ff6b8a]/10 px-3 py-4 text-[#ff9fb3] transition-all duration-200 shadow-[0_0_18px_rgba(255,107,138,0.18),0_0_36px_rgba(255,107,138,0.07)] hover:shadow-[0_0_28px_rgba(255,107,138,0.35),0_0_56px_rgba(255,107,138,0.14)] hover:bg-[#ff6b8a]/16 hover:border-[#ff6b8a]/48 cursor-pointer"
+            >
+              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span className="text-xs font-semibold text-center leading-tight">Feedback</span>
             </button>
           </div>
 
@@ -1024,7 +1024,7 @@ export function PlannerLayout() {
         onClose={() => setExplainerOpen(false)}
         title="Change Your Priorities"
         titleClassName="!text-[clamp(1.1rem,2.2vw,1.5rem)] font-semibold font-[family-name:var(--font-sora)] text-gold"
-        size="default"
+        size="planner-detail"
       >
         <RankingLeaderboardExplainer
           currentStyle={explainerStyle}

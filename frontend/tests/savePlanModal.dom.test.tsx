@@ -10,11 +10,11 @@ import { describe, expect, test, vi } from "vitest";
 import { SavePlanModal } from "../src/components/saved/SavePlanModal";
 
 vi.mock("@/components/shared/Modal", () => ({
-  Modal: ({ open, title, children }: any) => (
+  Modal: ({ open, title, size, children }: any) => (
     open
       ? createElement(
         "div",
-        { "data-testid": "modal-shell" },
+        { "data-testid": "modal-shell", "data-size": size ?? "default" },
         title ? createElement("h1", null, title) : null,
         children,
       )
@@ -54,6 +54,8 @@ describe("SavePlanModal", () => {
         error: null,
       }),
     );
+
+    expect(screen.getByTestId("modal-shell")).toHaveAttribute("data-size", "planner-detail");
 
     expect(screen.getByRole("button", { name: /save as new/i })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByDisplayValue("Data Science Plan")).toBeInTheDocument();

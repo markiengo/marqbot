@@ -246,6 +246,7 @@ Deployment facts:
 ## Common Gotchas
 
 - `course_offerings.csv` is not currently enforcing term exclusion even though the data still exists.
+- Late empty semesters are not always just term timing. The current baseline `DS_MAJOR` path can dead-end in `DS_MAJOR::DS-REQ-MATH` because the required bucket starts at `MATH 1455`, but the bridge prerequisite chain begins with `MATH 1450`, which is not itself in the bucket. Once only that math chain remains, the engine reports `eligible_count = 0` and the frontend shows the generic "No eligible courses fit this term yet" state in semesters 6+.
 - Frontend tests live in two roots; do not assume `frontend/tests/` is the whole suite.
 - Public pages now rely on shared visual runtime helpers (`EffectsModeManager`, `ReactivePageShell`, CTA wake styling). If those drift, the landing and About pages drift together.
 - The planner is still anonymous and local-first. Any cross-device save story would require a real identity and persistence layer.

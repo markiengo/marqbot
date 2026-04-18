@@ -65,7 +65,7 @@ export function FeedbackModal({ open, onClose, onSubmitted }: FeedbackModalProps
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Send feedback">
+    <Modal open={open} onClose={onClose} title="Send feedback" size="planner-detail">
       <form className="relative space-y-6" onSubmit={handleSubmit}>
         <div className="absolute -inset-4 pointer-events-none bg-[radial-gradient(ellipse_at_top_left,rgba(255,204,0,0.07),transparent_52%),radial-gradient(ellipse_at_bottom_right,rgba(0,114,206,0.08),transparent_52%)]" />
 

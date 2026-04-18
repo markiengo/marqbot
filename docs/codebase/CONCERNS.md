@@ -42,6 +42,12 @@
 - Trigger: read-only deploys, ephemeral storage issues, or invalid `FEEDBACK_PATH`.
 - Workaround: set `FEEDBACK_PATH` to a writable location or move feedback storage out of the app process.
 
+**Late-semester "No eligible courses fit this term yet" can hide a real bridge-course gap:**
+- Symptoms: semester 6-8 can render the generic empty-state message even though required work remains, especially on the Data Science baseline plan.
+- Files: `backend/semester_recommender.py`, `backend/eligibility.py`, `tests/backend/dead_end_utils.py`, `tests/backend/test_dead_end_archetypes.py`
+- Trigger: a required bucket is fully blocked by a prerequisite chain whose bridge course is not mapped into the same unmet bucket. The current concrete case is `DS_MAJOR::DS-REQ-MATH`, where `MATH 1455` is required but its prerequisite `MATH 1450` is not a bucket member.
+- Workaround: add the bridge course manually or extend the plan outside the current horizon, then verify the requirement path with an advisor. The generic frontend message does not currently distinguish this catalog/config dead-end from a harmless one-term delay.
+
 ## Security Considerations
 
 **Rate limiting trusts `X-Forwarded-For` directly:**

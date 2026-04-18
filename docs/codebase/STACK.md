@@ -1,6 +1,6 @@
 # Technology Stack
 
-**Analysis Date:** 2026-03-28
+**Analysis Date:** 2026-04-17
 
 ## Languages
 
@@ -65,7 +65,6 @@
 - `whitenoise` - Static export hosting from `frontend/out/` in `backend/server.py`.
 - `flask-compress` - Backend response compression in `backend/server.py`.
 - `python-dotenv` - Local environment loading in `backend/server.py`.
-- `sentry-sdk[flask]` - Optional error tracking in `backend/server.py`.
 - `requests` - HTTP client for maintenance scripts in `scripts/scrape_undergrad_policies.py` and `scripts/eval_advisor_match.py`.
 - `openpyxl` - Excel compatibility path for `DATA_PATH` workbook mode in `backend/data_loader.py` and migration/schema tests in `tests/backend/test_schema_migration.py`.
 
@@ -73,7 +72,7 @@
 
 **Environment:**
 - Root `.env` and `.env.example` exist for local workflow; `backend/server.py` calls `load_dotenv()` and `infra/README.md` documents that these files stay at the repo root. Contents were not read.
-- Backend runtime knobs live in `backend/server.py`: `DATA_PATH`, `FEEDBACK_PATH`, `SENTRY_DSN`, `PORT`, `FLASK_DEBUG`, `SLOW_REQUEST_LOG_MS`, `REQUEST_CACHE_SIZE`, `RECOMMEND_CACHE_SIZE`, `CAN_TAKE_CACHE_SIZE`, `PROGRAM_DATA_CACHE_SIZE`, `RECOMMEND_CACHE_TTL_SECONDS`, `CAN_TAKE_CACHE_TTL_SECONDS`, `PROGRAM_DATA_CACHE_TTL_SECONDS`, `RECOMMEND_CACHE_MAX_BYTES`, and `CAN_TAKE_CACHE_MAX_BYTES`.
+- Backend runtime knobs live in `backend/server.py`: `DATA_PATH`, `FEEDBACK_PATH`, `PORT`, `FLASK_DEBUG`, `SLOW_REQUEST_LOG_MS`, `REQUEST_CACHE_SIZE`, `RECOMMEND_CACHE_SIZE`, `CAN_TAKE_CACHE_SIZE`, `PROGRAM_DATA_CACHE_SIZE`, `RECOMMEND_CACHE_TTL_SECONDS`, `CAN_TAKE_CACHE_TTL_SECONDS`, `PROGRAM_DATA_CACHE_TTL_SECONDS`, `RECOMMEND_CACHE_MAX_BYTES`, and `CAN_TAKE_CACHE_MAX_BYTES`.
 - Render blueprint defaults live in `render.yaml`: `PYTHON_VERSION`, `WEB_CONCURRENCY`, `GUNICORN_TIMEOUT`, `GUNICORN_GRACEFUL_TIMEOUT`, `REQUEST_CACHE_SIZE`, and `SLOW_REQUEST_LOG_MS`.
 - Frontend dev mode assumes a local backend at `http://localhost:5000` through rewrites in `frontend/next.config.js` and server-side fetch defaults in `frontend/src/lib/api.ts`.
 
@@ -103,4 +102,4 @@
 
 ---
 
-*Stack analysis: 2026-03-28*
+*Stack analysis: 2026-04-17*

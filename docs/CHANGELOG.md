@@ -16,6 +16,9 @@ Format per release:
 - Current Degree Progress stops crediting future planned courses as if they were already taken; projected semester views still show future bucket fill separately.
 - Declared major ranking now keeps required child buckets ahead of `choose_n` buckets and elective pools in every scheduling style.
 - Saved-plan PDF exports use cleaner `Satisfy` labels for BCC, MCC, and major elective buckets.
+- The five action dialogs under `Your Plan` now open at one consistent size instead of mixing smaller and larger modal shells.
+- Late empty-term investigation is now documented: the current Data Science baseline can stall because its math core depends on a bridge prerequisite (`MATH 1450`) that is not surfaced as part of the required bucket.
+- Backend Sentry wiring has been removed; the app now relies on its existing stdout/stderr logging instead of optional Sentry setup.
 
 ### Technical
 
@@ -23,6 +26,8 @@ Format per release:
 - Goal: stop the current degree-progress pane from overstating completion. Problem: the planner modal was reading plan-level projected progress, so future recommended courses could appear as already counted. Decisions: wire the modal back to raw `current_progress` and add a planner-layout regression test. Outcome: current progress reflects only transcript-backed state while projected semester views keep the future overlay.
 - Goal: make declared-major ranking deterministic inside a major family. Problem: once candidates were inside major-ranked work, multi-bucket efficiency could still let `choose_n` or `credits_pool` buckets rise ahead of required major buckets. Decisions: add a major-only `primary_bucket_priority` sub-rank ahead of `multi_bucket_score`, keep scope to major parents, and add regressions for `required -> choose_n -> credits_pool` plus a non-major guard. Outcome: major core requirements stay ahead of major electives without changing track, MCC, or BCC ordering.
 - Goal: make saved-plan PDF exports read like human-facing audits instead of raw bucket IDs. Problem: exported `Satisfy` values still exposed inconsistent technical labels across BCC, MCC, and major elective buckets. Decisions: normalize export labels by bucket family and add broader export/print assertions. Outcome: saved-plan exports present cleaner, more consistent satisfy labels.
+- Goal: make planner action dialogs feel consistent and document a recurring late-semester recommendation failure. Problem: the `Your Plan` buttons mixed `default` and `planner-detail` modal shells, and the generic empty-term state obscured a real Data Science math-core dead-end. Decisions: switch the Save Plan, Feedback, and priorities explainer dialogs to the same `planner-detail` shell used by Change Your Preferences, add modal-size DOM coverage, and document the `DS_MAJOR::DS-REQ-MATH` bridge-prerequisite gap in the technical docs. Outcome: the planner dialogs open at one predictable size, and the late-semester failure mode is now traceable instead of anecdotal.
+- Goal: remove unused external error tracking. Problem: the backend still imported and initialized Sentry even though it was no longer part of the deployed workflow, which left dead dependency and env-var references in code and docs. Decisions: delete the `sentry-sdk[flask]` dependency, remove Sentry initialization from `backend/server.py`, and update the codebase reference docs to describe stdout/stderr logging as the current observability path. Outcome: runtime configuration and documentation now match the actual no-Sentry deployment.
 
 ---
 

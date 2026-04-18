@@ -126,7 +126,7 @@ export function SavePlanModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Save Plan">
+    <Modal open={open} onClose={onClose} title="Save Plan" size="planner-detail">
       <form className="relative space-y-5" onSubmit={handleSubmit}>
         <div className="absolute -inset-4 pointer-events-none bg-[radial-gradient(ellipse_at_top_right,rgba(255,204,0,0.05),transparent_50%),radial-gradient(ellipse_at_bottom_left,rgba(0,114,206,0.06),transparent_50%)]" />
         <p className="relative text-sm text-ink-secondary">
