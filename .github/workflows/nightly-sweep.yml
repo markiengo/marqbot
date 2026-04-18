@@ -3,11 +3,9 @@ name: Nightly Focused Sweep
 on:
   workflow_dispatch:
   schedule:
-    # GitHub Actions cron is UTC. These daily entries cover 4:00 AM
-    # America/Chicago across DST shifts. No hour guard — GH Actions
-    # delays scheduled jobs by 30-120 min, making exact-hour checks unreliable.
-    - cron: "0 9 * * *"
-    - cron: "0 10 * * *"
+    # 9:30 UTC splits the difference between CST (UTC-6, = 3:30 AM) and CDT (UTC-5, = 4:30 AM).
+    # One cron, no guard needed, never more than 30 min off 4 AM Chicago time year-round.
+    - cron: "30 9 * * *"
 
 permissions:
   contents: read
@@ -23,7 +21,6 @@ jobs:
   nightly-sweep:
     name: Nightly Focused Sweep
     runs-on: ubuntu-latest
-    timeout-minutes: 240
 
     steps:
       - name: Check out repository
