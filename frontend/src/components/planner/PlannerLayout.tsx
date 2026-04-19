@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion } from "motion/react";
-import { ProgressDashboard, useProgressMetrics } from "./ProgressDashboard";
+import { Modal } from "@/components/shared/Modal";
+import { useProgressMetrics } from "./ProgressDashboard";
 import { ProgressModal } from "./ProgressModal";
 import { SemesterModal } from "./SemesterModal";
 import { EditPlanModal } from "./EditPlanModal";
 import { ProfileModal } from "./ProfileModal";
+import type { ProfileModalTabKey } from "./ProfileModal";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { SemesterSelector } from "./SemesterSelector";
 import { Skeleton } from "@/components/shared/Skeleton";
@@ -16,7 +18,6 @@ import { CourseDetailModal } from "@/components/shared/CourseDetailModal";
 import { CourseListModal } from "./CourseListModal";
 import { FeedbackModal } from "./FeedbackModal";
 import { MajorGuideModal } from "./MajorGuideModal";
-import { PlannerPrioritiesModal } from "./PlannerPrioritiesModal";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
 import { useAppContext } from "@/context/AppContext";
@@ -68,11 +69,11 @@ export function PlannerLayout() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [majorGuideOpen, setMajorGuideOpen] = useState(false);
   const [majorGuideData, setMajorGuideData] = useState<ProgramBucketTree[]>([]);
-  const [explainerOpen, setExplainerOpen] = useState(false);
-  const [explainerStyle, setExplainerStyle] = useState(state.schedulingStyle);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [editPlanModalOpen, setEditPlanModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [standingGuideOpen, setStandingGuideOpen] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState<ProfileModalTabKey | undefined>(undefined);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<{ name: string; mode: SavePlanMode } | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
@@ -112,12 +113,6 @@ export function PlannerLayout() {
     }
     return map;
   }, [state.courses]);
-
-  useEffect(() => {
-    if (!explainerOpen) {
-      setExplainerStyle(state.schedulingStyle);
-    }
-  }, [explainerOpen, state.schedulingStyle]);
 
   const openFeedbackModal = useCallback(() => {
     setFeedbackSuccess(false);
@@ -312,10 +307,47 @@ export function PlannerLayout() {
   const modalSemester =
     semesterModalIdx !== null ? visibleData?.semesters?.[semesterModalIdx] ?? null : null;
   const canOpenEditPlan = Boolean(visibleData?.semesters?.length);
-  const semesters = visibleData?.semesters ?? [];
+  const semesters = useMemo(() => visibleData?.semesters ?? [], [visibleData]);
   const hasRecommendations = semesters.length > 0;
   const hasData = state.completed.size > 0 || state.inProgress.size > 0;
-  const overallPct = Math.round(metrics.overallPercent);
+  const overallPct = Number.isFinite(metrics.overallPercent)
+    ? Math.max(0, Math.min(100, Math.round(metrics.overallPercent)))
+    : 0;
+  const completedCredits = Number.isFinite(metrics.completedCredits) ? metrics.completedCredits : 0;
+  const inProgressCredits = Number.isFinite(metrics.inProgressCredits) ? metrics.inProgressCredits : 0;
+  const remainingCredits = Number.isFinite(metrics.remainingCredits) ? metrics.remainingCredits : 0;
+  const standingLabel = metrics.standingLabel || "Standing pending";
+  const activeSemester = semesters[activeSemesterTab] ?? null;
+  const activeSemesterCourses = activeSemester?.recommendations ?? [];
+  const activeSemesterCourseCount = activeSemesterCourses.length;
+  const activeSemesterCredits = activeSemesterCourses.reduce(
+    (sum, course) => sum + Math.max(0, Number(course.credits) || 0),
+    0,
+  );
+  const plannerTermCount = semesters.length || Math.max(0, Number(state.semesterCount) || 0);
+  const plannerFocusLabel = activeSemester?.target_semester ?? state.targetSemester;
+
+  const projectedSemesterStanding = useMemo(() => {
+    const priorCredits = semesters
+      .slice(0, activeSemesterTab)
+      .reduce((sum, sem) => sum + (sem.recommendations ?? []).reduce((s, c) => s + Math.max(0, Number(c.credits) || 0), 0), 0);
+    const total = completedCredits + inProgressCredits + priorCredits;
+    if (total >= 90) return { label: "Senior", color: "text-[#ff9f7a]", border: "border-[#ff9f7a]/30", bg: "bg-[#ff9f7a]/[0.07]" };
+    if (total >= 60) return { label: "Junior", color: "text-gold", border: "border-gold/30", bg: "bg-gold/[0.07]" };
+    if (total >= 24) return { label: "Sophomore", color: "text-ok", border: "border-ok/30", bg: "bg-ok/[0.07]" };
+    return { label: "Freshman", color: "text-[#8ec8ff]", border: "border-[#8ec8ff]/30", bg: "bg-[#8ec8ff]/[0.07]" };
+  }, [semesters, activeSemesterTab, completedCredits, inProgressCredits]);
+  const schedulingStyleLabel = `${state.schedulingStyle.charAt(0).toUpperCase()}${state.schedulingStyle.slice(1)}`;
+
+  useEffect(() => {
+    if (semesters.length === 0) {
+      if (activeSemesterTab !== 0) setActiveSemesterTab(0);
+      return;
+    }
+    if (activeSemesterTab > semesters.length - 1) {
+      setActiveSemesterTab(semesters.length - 1);
+    }
+  }, [activeSemesterTab, semesters.length]);
 
   const handleSavePlan = ({ mode, targetPlanId, name, notes }: SavePlanSubmitParams) => {
     if (!data || data.mode === "error") {
@@ -499,61 +531,6 @@ export function PlannerLayout() {
     state.targetSemester,
   ]);
 
-  const handleExplainerApply = useCallback(async () => {
-    if (explainerStyle === state.schedulingStyle) {
-      setExplainerOpen(false);
-      return;
-    }
-
-    if (!hasProgram || state.courses.length === 0) {
-      dispatch({ type: "SET_SCHEDULING_STYLE", payload: explainerStyle });
-      setExplainerOpen(false);
-      return;
-    }
-
-    const maxRecommendations = Number(state.maxRecs) || 3;
-    const desiredSemesterCount = Math.max(1, Number(state.semesterCount) || 3);
-    const payload = buildRecommendationPayload({
-      completed_courses: [...state.completed].join(", "),
-      in_progress_courses: [...state.inProgress].join(", "),
-      target_semester: state.targetSemester,
-      target_semester_primary: state.targetSemester,
-      target_semester_count: desiredSemesterCount,
-      max_recommendations: maxRecommendations,
-      scheduling_style: explainerStyle,
-    });
-
-    const fresh = await runRecommendationRequest(payload);
-    if (!fresh) return;
-
-    dispatch({ type: "SET_SCHEDULING_STYLE", payload: explainerStyle });
-    applyPinnedRecommendationResult({
-      baseData: data,
-      rerunData: fresh,
-      semesters: fresh.semesters ?? [],
-      pins: state.manualAddPins.length > 0 ? state.manualAddPins : manualAddPinsRef.current,
-      rerunStartIndex: 0,
-      count: maxRecommendations,
-    });
-    setExplainerOpen(false);
-  }, [
-    applyPinnedRecommendationResult,
-    buildRecommendationPayload,
-    data,
-    dispatch,
-    explainerStyle,
-    hasProgram,
-    runRecommendationRequest,
-    state.completed,
-    state.courses.length,
-    state.inProgress,
-    state.manualAddPins,
-    state.maxRecs,
-    state.schedulingStyle,
-    state.semesterCount,
-    state.targetSemester,
-  ]);
-
   useEffect(() => {
     if (
       didAutoFetch.current ||
@@ -701,7 +678,6 @@ export function PlannerLayout() {
     state.inProgress,
     state.maxRecs,
     state.targetSemester,
-    updateManualAddPinsFromEdit,
   ]);
 
   const handleSemesterEditClose = useCallback(() => {
@@ -722,257 +698,364 @@ export function PlannerLayout() {
     void fetchCandidatesForSemester(semesterModalIdx);
   }, [fetchCandidatesForSemester, semesterModalIdx]);
 
+  const handleOpenSettings = useCallback(() => {
+    setProfileInitialTab("preferences");
+    setProfileModalOpen(true);
+  }, []);
+
+  const handleOpenFeedback = useCallback(() => {
+    openFeedbackModal();
+  }, [openFeedbackModal]);
+
+  const handlePrevSemester = useCallback(() => {
+    setActiveSemesterTab((current) => Math.max(0, current - 1));
+  }, []);
+
+  const handleNextSemester = useCallback(() => {
+    setActiveSemesterTab((current) => Math.min(Math.max(semesters.length - 1, 0), current + 1));
+  }, [semesters.length]);
+
   return (
     <div className="planner-shell bg-orbs">
-      <div className="flex flex-col gap-4">
-
-        {/* ── Progress Strip (ambient single line) ── */}
-        <div className="glass-card gradient-border rounded-2xl px-5 py-3 sm:px-6 sm:py-3.5">
-          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
-              <h2 className="text-[0.8rem] font-semibold uppercase tracking-[0.08em] font-[family-name:var(--font-sora)] text-ink-secondary shrink-0">
-                Degree Progress
-              </h2>
-              {hasData && (
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={openCompletedCourseList}
-                    aria-label="View completed courses"
-                    className="rounded px-1 -mx-1 text-ink-secondary hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/60 transition-colors cursor-pointer"
-                  >
-                    <span className="font-semibold text-ok tabular-nums">{metrics.completedCredits}cr</span> done
-                  </button>
-                  <span className="text-ink-muted">·</span>
-                  <button
-                    type="button"
-                    onClick={openInProgressCourseList}
-                    aria-label="View in-progress courses"
-                    className="rounded px-1 -mx-1 text-ink-secondary hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/60 transition-colors cursor-pointer"
-                  >
-                    <span className="font-semibold text-gold tabular-nums">{metrics.inProgressCredits}cr</span> active
-                  </button>
-                  <span className="text-ink-muted">·</span>
-                  <span className="font-semibold text-ink">{metrics.standingLabel}</span>
-                  <span className="text-ink-muted">·</span>
-                  <span className="text-ink-secondary">
-                    <span className="font-semibold text-ink tabular-nums">{metrics.remainingCredits}cr</span> left
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="relative h-2 w-36 rounded-full bg-ink-faint/12 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-gold/80 to-gold transition-all duration-700"
-                  style={{ width: `${overallPct}%` }}
-                />
+      <div className="flex min-h-0 flex-1 flex-col gap-2.5 lg:gap-3">
+        <section
+          data-testid="planner-progress-strip"
+          className="rounded-[1.35rem] border border-white/8 px-4 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.18)] sm:px-5 sm:py-3.5"
+          style={{ background: "radial-gradient(ellipse 60% 90% at 95% 0%, rgba(255,204,0,0.07), transparent), radial-gradient(ellipse 45% 70% at 0% 100%, rgba(0,114,206,0.08), transparent), linear-gradient(180deg, rgba(14,28,52,0.92) 0%, rgba(9,20,40,0.97) 100%)" }}
+        >
+          <div className="flex flex-col gap-2.5">
+            {/* Label row + progress bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-secondary">Degree Progress</span>
+                {primaryProgramLabel && (
+                  <span className="hidden text-[11px] text-ink-faint/70 sm:inline">{primaryProgramLabel}</span>
+                )}
               </div>
-              <span className="text-sm font-bold tabular-nums text-gold">{overallPct}%</span>
-              {hasData && (
+              <div className="flex items-center gap-3">
+                <div className="relative h-2 w-28 overflow-hidden rounded-full bg-white/8 sm:w-36">
+                  <div
+                    className="h-full rounded-full bg-[linear-gradient(90deg,rgba(255,204,0,0.76),rgba(255,204,0,1))] transition-all duration-700"
+                    style={{ width: `${overallPct}%` }}
+                  />
+                </div>
+                <span className="min-w-[2.5rem] text-right text-sm font-bold tabular-nums text-gold">{overallPct}%</span>
                 <button
                   type="button"
                   onClick={openProgressModal}
-                  className="text-xs font-semibold text-gold bg-gold/8 border border-gold/20 rounded-lg px-3 py-1.5 hover:bg-gold/15 hover:border-gold/35 transition-all cursor-pointer whitespace-nowrap"
+                  className="rounded-full border border-gold/20 px-3 py-1.5 text-xs font-semibold text-gold transition-colors hover:border-gold/35 hover:bg-gold/[0.08] cursor-pointer"
                 >
-                  View details →
+                  View details
                 </button>
+              </div>
+            </div>
+            {/* 4 stat cards */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+              <button
+                type="button"
+                onClick={openCompletedCourseList}
+                aria-label="Open completed courses"
+                className="flex flex-col gap-1 rounded-[0.9rem] border border-ok/20 bg-ok/[0.07] px-3 py-2 text-left transition-colors hover:border-ok/38 hover:bg-ok/[0.12] cursor-pointer"
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ok/75">Done</span>
+                <span className="text-[1.05rem] font-bold tabular-nums leading-tight text-ok">
+                  {completedCredits}<span className="ml-0.5 text-[0.78rem] font-semibold">cr</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={openInProgressCourseList}
+                aria-label="Open in progress courses"
+                className="flex flex-col gap-1 rounded-[0.9rem] border border-gold/20 bg-gold/[0.07] px-3 py-2 text-left transition-colors hover:border-gold/38 hover:bg-gold/[0.12] cursor-pointer"
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gold/75">Active</span>
+                <span className="text-[1.05rem] font-bold tabular-nums leading-tight text-gold">
+                  {inProgressCredits}<span className="ml-0.5 text-[0.78rem] font-semibold">cr</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                aria-label="View standing thresholds"
+                onClick={() => setStandingGuideOpen(true)}
+                className="flex w-full flex-col gap-1 rounded-[0.9rem] border border-white/8 bg-white/[0.03] px-3 py-2 text-left transition-colors hover:border-white/16 hover:bg-white/[0.06] cursor-pointer"
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Standing</span>
+                <span className="text-[1.05rem] font-bold leading-tight text-ink">{standingLabel}</span>
+              </button>
+              <div className="flex flex-col gap-1 rounded-[0.9rem] border border-white/8 bg-white/[0.03] px-3 py-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Left</span>
+                <span className="text-[1.05rem] font-bold tabular-nums leading-tight text-ink">
+                  {remainingCredits}<span className="ml-0.5 text-[0.78rem] font-semibold">cr</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          data-testid="planner-semester-card"
+          className="flex min-h-0 flex-1 flex-col rounded-[1.75rem] border border-white/8 px-4 py-2.5 shadow-[0_22px_56px_rgba(0,0,0,0.24)] sm:px-5 sm:py-3"
+          style={{ background: "radial-gradient(ellipse 55% 45% at 90% 4%, rgba(255,204,0,0.055), transparent), radial-gradient(ellipse 48% 55% at -3% 45%, rgba(0,114,206,0.09), transparent), radial-gradient(ellipse 40% 50% at 55% 98%, rgba(155,126,219,0.055), transparent), linear-gradient(180deg, rgba(12,24,46,0.95) 0%, rgba(7,15,32,0.99) 100%)" }}
+        >
+          <div className="flex min-h-0 flex-1 flex-col gap-2.5">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                    {primaryProgramLabel || "Planner"}
+                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
+                    <span>{plannerTermCount > 0 ? `${plannerTermCount} terms` : "No terms yet"}</span>
+                    <span className="text-ink-muted">&middot;</span>
+                    <span>{schedulingStyleLabel} mode</span>
+                  </div>
+                </div>
+                <div className="hidden items-center gap-2 md:flex">
+                  <span className="rounded-full border border-white/14 bg-white/[0.06] px-3 py-1.25 text-[11px] font-semibold text-ink-primary shadow-[0_2px_8px_rgba(0,0,0,0.18)]">
+                    Semester {Math.min(activeSemesterTab + 1, Math.max(plannerTermCount, 1))}
+                  </span>
+                  <span className="rounded-full border border-white/14 bg-white/[0.06] px-3 py-1.25 text-[11px] font-semibold text-ink-primary shadow-[0_2px_8px_rgba(0,0,0,0.18)]">
+                    {plannerFocusLabel}
+                  </span>
+                  {hasRecommendations && (
+                    <span className={`rounded-full border px-3 py-1.25 text-[11px] font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.18)] ${projectedSemesterStanding.color} ${projectedSemesterStanding.border} ${projectedSemesterStanding.bg}`}>
+                      {projectedSemesterStanding.label}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {hasRecommendations && (
+                <>
+                  <div className="hidden md:block">
+                    <SemesterSelector
+                      semesters={semesters}
+                      selectedIdx={activeSemesterTab}
+                      onSelect={setActiveSemesterTab}
+                      onExpand={() => setSemesterModalIdx(activeSemesterTab)}
+                      variant="filmstrip"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-[1rem] border border-white/6 bg-white/[0.025] px-3 py-1.5 md:hidden">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+                        Current term
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-ink-primary">
+                        Semester {activeSemesterTab + 1} of {Math.max(plannerTermCount, 1)}
+                      </p>
+                    </div>
+                    <p className="text-xs text-ink-faint">Swipe or use arrows</p>
+                  </div>
+                </>
+              )}
+
+              <div className="flex flex-col gap-1.5 border-b border-white/6 pb-2 md:flex-row md:items-end md:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+                    {hasRecommendations ? `Semester ${activeSemesterTab + 1}` : "Semester workspace"}
+                  </p>
+                  <h2 className="mt-0.5 !text-[clamp(1.225rem,2.45vw,1.925rem)] font-bold tracking-[-0.02em] text-ink">
+                    {hasRecommendations ? (activeSemester?.target_semester || plannerFocusLabel) : "Keep the plan in view."}
+                  </h2>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {hasRecommendations && (
+                    <>
+                      <span className="rounded-full border border-gold/18 bg-gold/[0.06] px-3 py-1.25 text-[11px] font-semibold text-gold">
+                        {activeSemesterCourseCount} courses <span aria-hidden="true">&middot;</span> {activeSemesterCredits}cr
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handlePrevSemester}
+                        disabled={activeSemesterTab === 0}
+                        aria-label="Previous semester"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-ink-secondary transition-colors hover:border-white/18 hover:bg-white/[0.06] hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleNextSemester}
+                        disabled={activeSemesterTab >= semesters.length - 1}
+                        aria-label="Next semester"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-ink-secondary transition-colors hover:border-white/18 hover:bg-white/[0.06] hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSemesterModalMode("view");
+                          setSemesterModalIdx(activeSemesterTab);
+                        }}
+                        aria-label={`Expand semester ${activeSemesterTab + 1} details`}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-ink-secondary transition-colors hover:border-white/18 hover:bg-white/[0.06] hover:text-ink cursor-pointer"
+                      >
+                        <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 3H5a2 2 0 00-2 2v3m16 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3m-16 0v3a2 2 0 002 2h3" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    aria-label="Edit the plan"
+                    onClick={() => setEditPlanModalOpen(true)}
+                    disabled={!canOpenEditPlan}
+                    className="inline-flex h-10 items-center justify-center rounded-full border border-[#2f7fd3]/40 bg-[#0f284d] px-4 text-sm font-semibold text-[#a9d3ff] transition-colors hover:border-[#2f7fd3]/60 hover:bg-[#16335f] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Save plan"
+                    onClick={() => { setSaveError(null); setSaveSuccess(null); setSaveModalOpen(true); }}
+                    disabled={!savedPlansReady || !canSavePlan}
+                    className="inline-flex h-10 items-center justify-center rounded-full border border-gold/35 bg-gold/[0.1] px-4 text-sm font-semibold text-gold transition-colors hover:border-gold/55 hover:bg-gold/[0.16] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
+              {(stageHistoryConflict || saveSuccess || feedbackSuccess || error) && (
+                <div className="space-y-2">
+                  {stageHistoryConflict && (
+                    <div className="rounded-[1rem] border border-gold/18 bg-gold/[0.08] px-4 py-3 text-sm text-gold/90">
+                      History includes {studentStageLevelLabel(stageHistoryConflict)}-level coursework, but the planner is locked to {studentStageLabel(state.studentStage).toLowerCase()} recommendations. Recorded courses stay on your profile. Future recommendations and can-take checks stay in the {studentStageLevelLabel(state.studentStage)} band.
+                    </div>
+                  )}
+                  {saveSuccess && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1rem] border border-ok/18 bg-ok-light/40 px-4 py-3 text-sm text-ok">
+                      <span>
+                        {saveSuccess.mode === "overwrite" ? "Updated" : "Saved"} &ldquo;{saveSuccess.name}&rdquo; in this browser.
+                      </span>
+                      <Link href="/saved" className="font-semibold underline underline-offset-2">
+                        View saved plans
+                      </Link>
+                    </div>
+                  )}
+                  {feedbackSuccess && (
+                    <div className="rounded-[1rem] border border-ok/18 bg-ok-light/40 px-4 py-3 text-sm text-ok">
+                      Feedback sent. Your current planner snapshot went with it.
+                    </div>
+                  )}
+                  {error && (
+                    <div className="rounded-[1rem] bg-bad-light px-4 py-3 text-sm text-bad">
+                      {error}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* ── Plan Card ── */}
-        <div className="glass-card gradient-border rounded-2xl p-5 sm:p-7 flex flex-col gap-5">
-          {/* Card title */}
-          <div className="flex flex-col gap-1">
-            <h2 className="text-[1rem] font-bold font-[family-name:var(--font-sora)] text-ink">Your Plan</h2>
-            {primaryProgramLabel && (
-              <p className="text-[0.95rem] font-extrabold tracking-[0.01em] text-gold drop-shadow-[0_0_8px_rgba(255,204,0,0.22)]">
-                {primaryProgramLabel}
-              </p>
-            )}
-          </div>
-
-          {/* Action buttons — responsive 5-button row with equal sizing */}
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
-            <button
-              type="button"
-              onClick={() => setEditPlanModalOpen(true)}
-              disabled={!canOpenEditPlan}
-              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#0072CE]/55 bg-[#0072CE]/20 px-3 py-4 text-[#8ec8ff] transition-all duration-200 shadow-[0_0_18px_rgba(0,114,206,0.22),0_0_36px_rgba(0,114,206,0.09)] hover:shadow-[0_0_28px_rgba(0,114,206,0.40),0_0_56px_rgba(0,114,206,0.16)] hover:bg-[#0072CE]/26 hover:border-[#0072CE]/70 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            >
-              <svg className="w-5 h-5 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span className="text-xs font-semibold text-center leading-tight">Some courses not available? Edit the plan!</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setSaveError(null); setSaveSuccess(null); setSaveModalOpen(true); }}
-              disabled={!savedPlansReady || !canSavePlan}
-              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-gold/60 bg-gold/20 px-3 py-4 text-gold transition-all duration-200 shadow-[0_0_22px_rgba(255,204,0,0.32),0_0_44px_rgba(255,204,0,0.14)] hover:shadow-[0_0_32px_rgba(255,204,0,0.50),0_0_64px_rgba(255,204,0,0.22)] hover:bg-gold/26 hover:border-gold/75 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            >
-              <svg className="w-5 h-5 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
-              <span className="text-[13px] font-semibold text-center leading-tight">Satisfied? Save plan!</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setExplainerStyle(state.schedulingStyle); setExplainerOpen(true); }}
-              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#1e9f61]/30 bg-[#1e9f61]/10 px-3 py-4 text-ok transition-all duration-200 shadow-[0_0_18px_rgba(30,159,97,0.18),0_0_36px_rgba(30,159,97,0.07)] hover:shadow-[0_0_28px_rgba(30,159,97,0.35),0_0_56px_rgba(30,159,97,0.14)] hover:bg-[#1e9f61]/16 hover:border-[#1e9f61]/48 cursor-pointer"
-            >
-              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="text-xs font-semibold text-center leading-tight">Change your priorities</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setProfileModalOpen(true)}
-              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#9a63ff]/30 bg-[#9a63ff]/10 px-3 py-4 text-[#d3bcff] transition-all duration-200 shadow-[0_0_18px_rgba(154,99,255,0.18),0_0_36px_rgba(154,99,255,0.07)] hover:shadow-[0_0_28px_rgba(154,99,255,0.35),0_0_56px_rgba(154,99,255,0.14)] hover:bg-[#9a63ff]/16 hover:border-[#9a63ff]/48 cursor-pointer"
-            >
-              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              <span className="text-xs font-semibold text-center leading-tight">Change your preferences</span>
-            </button>
-            <button
-              type="button"
-              onClick={openFeedbackModal}
-              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#ff6b8a]/30 bg-[#ff6b8a]/10 px-3 py-4 text-[#ff9fb3] transition-all duration-200 shadow-[0_0_18px_rgba(255,107,138,0.18),0_0_36px_rgba(255,107,138,0.07)] hover:shadow-[0_0_28px_rgba(255,107,138,0.35),0_0_56px_rgba(255,107,138,0.14)] hover:bg-[#ff6b8a]/16 hover:border-[#ff6b8a]/48 cursor-pointer"
-            >
-              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span className="text-xs font-semibold text-center leading-tight">Feedback</span>
-            </button>
-          </div>
-
-          {/* Alert messages */}
-          {stageHistoryConflict && (
-            <div className="rounded-xl border border-gold/20 bg-gold/10 px-4 py-3 text-sm text-gold/85">
-              History includes {studentStageLevelLabel(stageHistoryConflict)}-level coursework, but the planner is locked to {studentStageLabel(state.studentStage).toLowerCase()} recommendations. Recorded courses stay on your profile. Future recommendations and can-take checks stay in the {studentStageLevelLabel(state.studentStage)} band.
-            </div>
-          )}
-          {saveSuccess && (
-            <div className="rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok flex flex-wrap items-center justify-between gap-3">
-              <span>
-                {saveSuccess.mode === "overwrite" ? "Updated" : "Saved"} &ldquo;{saveSuccess.name}&rdquo; in this browser.
-              </span>
-              <Link href="/saved" className="font-semibold underline underline-offset-2">
-                View saved plans
-              </Link>
-            </div>
-          )}
-          {feedbackSuccess && (
-            <div className="rounded-xl border border-ok/20 bg-ok-light/40 px-4 py-3 text-sm text-ok">
-              Feedback sent. Your current planner snapshot went with it.
-            </div>
-          )}
-          {error && (
-            <div className="bg-bad-light rounded-xl p-4 text-sm text-bad">
-              {error}
-            </div>
-          )}
-
-          {/* Semester tabs + recommendations */}
-          {hasProgram && data && (
-            <>
-              {hasRecommendations && (
-                <div className="flex flex-col gap-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1 px-1">
-                    Recommended Semesters
+            <div className="flex min-h-0 flex-1 flex-col">
+              {!hasProgram && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex flex-1 flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-white/10 bg-white/[0.02] px-4 py-10 text-center"
+                >
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gold/10">
+                    <svg className="h-8 w-8 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-ink-primary">No profile loaded.</h3>
+                  <p className="mt-2 max-w-sm text-sm text-ink-faint">
+                    Open Preferences, pick your program, add completed courses, then run the planner.
                   </p>
-                  <SemesterSelector
-                    semesters={semesters}
-                    selectedIdx={activeSemesterTab}
-                    onSelect={setActiveSemesterTab}
-                    onExpand={() => setSemesterModalIdx(activeSemesterTab)}
+                </motion.div>
+              )}
+
+              {loading && !data && (
+                <div className="flex flex-1 flex-col justify-center gap-3 rounded-[1.25rem] border border-white/6 bg-white/[0.02] p-4">
+                  <Skeleton className="h-14 rounded-xl" />
+                  <Skeleton className="h-14 rounded-xl" />
+                  <Skeleton className="h-14 rounded-xl" />
+                  <p className="mt-2 text-center text-xs text-ink-faint">Crunching 5,300+ courses. One sec.</p>
+                </div>
+              )}
+
+              {hasProgram && !data && !loading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex flex-1 flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-white/10 bg-white/[0.02] px-4 py-10 text-center"
+                >
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border-subtle bg-surface-card">
+                    <svg className="h-8 w-8 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-ink-primary">Planner is ready.</h3>
+                  <p className="mt-2 max-w-sm text-sm text-ink-faint">
+                    Open Edit to refresh recommendations, then save the version you want to keep here.
+                  </p>
+                </motion.div>
+              )}
+
+              {data && (
+                <div className="flex min-h-0 flex-1 flex-col">
+                  <RecommendationsPanel
+                    embedded
+                    compactRows
+                    hideHeader
+                    hideNavigation
+                    data={visibleData ?? data}
+                    selectedSemesterIdx={activeSemesterTab}
+                    onSemesterChange={setActiveSemesterTab}
+                    onExpandSemester={(idx) => {
+                      setSemesterModalMode("view");
+                      setSemesterModalIdx(idx);
+                    }}
+                    onCourseClick={setCourseDetailCode}
                   />
                 </div>
               )}
-              <RecommendationsPanel
-                data={visibleData}
-                selectedSemesterIdx={activeSemesterTab}
-                onSemesterChange={setActiveSemesterTab}
-                onExpandSemester={(idx) => {
-                  setSemesterModalMode("view");
-                  setSemesterModalIdx(idx);
-                }}
-                onCourseClick={setCourseDetailCode}
-              />
-            </>
-          )}
-
-          {/* Empty / loading states */}
-          {!hasProgram && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-col items-center justify-center text-center px-4 py-8 space-y-4"
-            >
-              <div className="w-16 h-16 bg-gold/10 rounded-2xl flex items-center justify-center pulse-gold-soft">
-                <svg className="w-8 h-8 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-[0.88rem] font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                  No profile loaded.
-                </h2>
-                <p className="text-sm text-ink-faint mt-1 max-w-sm mx-auto">
-                  Open the profile panel, pick your program, add completed courses, then run the planner.
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          {hasProgram && !data && !loading && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-col items-center justify-center text-center px-4 py-8 space-y-4"
-            >
-              <div className="w-16 h-16 bg-surface-card rounded-2xl flex items-center justify-center border border-border-subtle float-soft">
-                <svg className="w-8 h-8 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
-                  Planner is ready.
-                </h2>
-                <p className="text-sm text-ink-faint mt-1">
-                  Open Edit Profile to refresh recommendations, then save the version you want to keep here.
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          {loading && !data && (
-            <div className="flex flex-col gap-3 p-4 justify-center">
-              <Skeleton className="h-14 rounded-xl" />
-              <Skeleton className="h-14 rounded-xl" />
-              <Skeleton className="h-14 rounded-xl" />
-              <p className="text-xs text-ink-faint text-center mt-2">Crunching 5,300+ courses. One sec.</p>
             </div>
-          )}
-        </div>
 
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/6 pt-1.5">
+              <button
+                type="button"
+                onClick={handleOpenFeedback}
+                className="rounded-full border border-white/12 bg-white/[0.04] px-3.5 py-2 text-[14px] font-medium text-ink-secondary shadow-[0_0_12px_rgba(255,255,255,0.06)] transition-all hover:border-white/22 hover:bg-white/[0.08] hover:text-ink hover:shadow-[0_0_18px_rgba(255,255,255,0.10)] cursor-pointer"
+              >
+                Feedback
+              </button>
+              <button
+                type="button"
+                aria-label="Settings"
+                onClick={handleOpenSettings}
+                className="inline-flex h-[41px] items-center gap-2 rounded-full border border-white/18 bg-white/[0.05] px-[18px] text-[14px] font-semibold text-ink-secondary shadow-[0_0_16px_rgba(255,255,255,0.08),0_0_32px_rgba(255,255,255,0.04)] transition-all hover:border-white/28 hover:bg-white/[0.09] hover:text-ink hover:shadow-[0_0_22px_rgba(255,255,255,0.14),0_0_44px_rgba(255,255,255,0.07)] cursor-pointer"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317a1 1 0 011.35-.936l.625.252a1 1 0 00.7 0l.625-.252a1 1 0 011.35.936l.05.675a1 1 0 00.43.74l.553.386a1 1 0 01.21 1.474l-.403.544a1 1 0 000 .84l.403.544a1 1 0 01-.21 1.474l-.553.386a1 1 0 00-.43.74l-.05.675a1 1 0 01-1.35.936l-.625-.252a1 1 0 00-.7 0l-.625.252a1 1 0 01-1.35-.936l-.05-.675a1 1 0 00-.43-.74l-.553-.386a1 1 0 01-.21-1.474l.403-.544a1 1 0 000-.84l-.403-.544a1 1 0 01.21-1.474l.553-.386a1 1 0 00.43-.74l.05-.675z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>Settings</span>
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
 
       {/* ── Modals ────────────────────────────────────────────────── */}
@@ -999,6 +1082,8 @@ export function PlannerLayout() {
         rawInProgress={state.inProgress}
         assumptionsOn={assumptionsOn}
         onToggleAssumptions={() => setAssumptionsOn((prev) => !prev)}
+        onCompletedClick={openCompletedCourseList}
+        onInProgressClick={openInProgressCourseList}
       />
       <SemesterModal
         open={semesterModalIdx !== null && modalSemester !== null}
@@ -1028,10 +1113,11 @@ export function PlannerLayout() {
       />
       <ProfileModal
         open={profileModalOpen}
-        onClose={() => setProfileModalOpen(false)}
+        onClose={() => { setProfileModalOpen(false); setProfileInitialTab(undefined); }}
         loading={loading}
         error={error}
         onSubmitRecommendations={handleProfileSubmitRecommendations}
+        initialTab={profileInitialTab}
       />
       <MajorGuideModal
         open={majorGuideOpen}
@@ -1039,15 +1125,6 @@ export function PlannerLayout() {
         programs={majorGuideData}
         currentStyle={state.schedulingStyle}
         onFinish={handleGuideFinish}
-      />
-      <PlannerPrioritiesModal
-        open={explainerOpen}
-        onClose={() => setExplainerOpen(false)}
-        currentStyle={explainerStyle}
-        onStyleChange={setExplainerStyle}
-        appliedStyle={state.schedulingStyle}
-        onApply={() => { void handleExplainerApply(); }}
-        isApplying={loading}
       />
       <CourseDetailModal
         open={courseDetailCode !== null}
@@ -1095,6 +1172,38 @@ export function PlannerLayout() {
         onClose={() => setFeedbackModalOpen(false)}
         onSubmitted={handleFeedbackSubmitted}
       />
+      <Modal
+        open={standingGuideOpen}
+        onClose={() => setStandingGuideOpen(false)}
+        title="Standing by Credits"
+      >
+        <div className="px-6 pb-6 space-y-3">
+          <p className="text-sm text-ink-faint">Based on completed credits earned.</p>
+          <div className="space-y-2">
+            {(
+              [
+                { label: "Freshman", range: "0 – 23 cr", valueClass: "text-[#8ec8ff]", borderClass: "border-[#8ec8ff]/30" },
+                { label: "Sophomore", range: "24 – 59 cr", valueClass: "text-ok", borderClass: "border-ok/30" },
+                { label: "Junior", range: "60 – 89 cr", valueClass: "text-gold", borderClass: "border-gold/30" },
+                { label: "Senior", range: "90+ cr", valueClass: "text-[#ff9f7a]", borderClass: "border-[#ff9f7a]/30" },
+              ] as const
+            ).map(({ label, range, valueClass, borderClass }) => {
+              const active = standingLabel.startsWith(label);
+              return (
+                <div
+                  key={label}
+                  className={`flex items-center justify-between rounded-[1rem] border px-4 py-3 transition-colors ${
+                    active ? `${borderClass} bg-white/[0.05]` : "border-white/8"
+                  }`}
+                >
+                  <span className={`text-sm font-semibold ${active ? valueClass : "text-ink-secondary"}`}>{label}</span>
+                  <span className={`text-sm tabular-nums ${active ? `font-bold ${valueClass}` : "text-ink-faint"}`}>{range}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

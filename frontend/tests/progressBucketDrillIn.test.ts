@@ -54,6 +54,30 @@ function makeBucketProgress(overrides: Partial<BucketProgress> = {}): BucketProg
 }
 
 describe("Progress bucket drill-in", () => {
+  test("forwards completed and in-progress KPI clicks from the full progress modal", () => {
+    const onCompletedClick = vi.fn();
+    const onInProgressClick = vi.fn();
+
+    renderWithApp(
+      createElement(ProgressModal, {
+        open: true,
+        onClose: () => {},
+        metrics: baseMetrics,
+        currentProgress: { MCC_CORE: makeBucketProgress() },
+        courses: courseCatalog,
+        onCompletedClick,
+        onInProgressClick,
+      }),
+      state,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /view completed courses/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view in progress courses/i }));
+
+    expect(onCompletedClick).toHaveBeenCalledTimes(1);
+    expect(onInProgressClick).toHaveBeenCalledTimes(1);
+  });
+
   test("opens a bucket modal from current progress and forwards course clicks", async () => {
     const onCourseClick = vi.fn();
 

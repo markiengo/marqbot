@@ -10,10 +10,20 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { SavedPlanDetailPage } from "../src/components/saved/SavedPlanDetailPage";
 import { makeAppState, renderWithApp } from "./testUtils";
 
-const { pushSpy, deletePlanSpy, planState } = vi.hoisted(() => ({
-  pushSpy: vi.fn(),
+const {
+  buildSnapshotSpy,
+  deletePlanSpy,
+  dispatchSpy,
+  planState,
+  pushSpy,
+  updatePlanSpy,
+} = vi.hoisted(() => ({
+  buildSnapshotSpy: vi.fn((plan: { id: string }) => ({ restoredPlanId: plan.id })),
   deletePlanSpy: vi.fn(),
+  dispatchSpy: vi.fn(),
   planState: { current: null as any },
+  pushSpy: vi.fn(),
+  updatePlanSpy: vi.fn(),
 }));
 
 function makePlan(withSnapshot = true) {
@@ -37,6 +47,7 @@ function makePlan(withSnapshot = true) {
       studentStage: "undergrad",
       studentStageIsExplicit: false,
     },
+    manualAddPins: [],
     recommendationData: withSnapshot ? {
       mode: "recommendations",
       semesters: [
@@ -45,6 +56,13 @@ function makePlan(withSnapshot = true) {
           standing_label: "Sophomore",
           recommendations: [
             { course_code: "FINA 3001", course_name: "Financial Management", credits: 3 },
+          ],
+        },
+        {
+          target_semester: "Spring 2027",
+          standing_label: "Sophomore",
+          recommendations: [
+            { course_code: "MKTG 3001", course_name: "Marketing Management", credits: 3 },
           ],
         },
       ],
@@ -62,11 +80,26 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+vi.mock("@/context/AppContext", async () => {
+  const actual = await vi.importActual<typeof import("../src/context/AppContext")>("@/context/AppContext");
+  return {
+    ...actual,
+    useAppContext: () => ({
+      dispatch: dispatchSpy,
+    }),
+  };
+});
+
+vi.mock("@/lib/savedPlans", () => ({
+  buildSessionSnapshotFromSavedPlan: buildSnapshotSpy,
+}));
+
 vi.mock("@/hooks/useCourses", () => ({
   useCourses: () => ({
     courses: [
       { course_code: "ACCO 1030", course_name: "Financial Accounting", credits: 3, level: 1000 },
       { course_code: "FINA 3001", course_name: "Financial Management", credits: 3, level: 3000 },
+      { course_code: "MKTG 3001", course_name: "Marketing Management", credits: 3, level: 3000 },
     ],
     loading: false,
     error: null,
@@ -95,13 +128,29 @@ vi.mock("@/hooks/useSavedPlans", () => ({
     storageError: null,
     loadPlan: (planId: string) => (planId === "plan-1" ? planState.current : null),
     getFreshness: () => "fresh",
-    updatePlan: vi.fn(),
+    updatePlan: updatePlanSpy,
     deletePlan: deletePlanSpy,
   }),
 }));
 
 vi.mock("@/components/planner/RecommendationsPanel", () => ({
-  RecommendationsPanel: () => createElement("div", null, "Recommendations"),
+  RecommendationsPanel: ({
+    data,
+    selectedSemesterIdx = 0,
+  }: {
+    data: { semesters?: Array<{ target_semester?: string; recommendations?: Array<{ course_name?: string }> }> };
+    selectedSemesterIdx?: number;
+  }) =>
+    createElement(
+      "div",
+      { "data-testid": "recommendations-panel" },
+      createElement("p", null, `Preview ${data?.semesters?.[selectedSemesterIdx]?.target_semester ?? "none"}`),
+      createElement(
+        "p",
+        null,
+        `Lead course ${data?.semesters?.[selectedSemesterIdx]?.recommendations?.[0]?.course_name ?? "none"}`,
+      ),
+    ),
 }));
 
 vi.mock("@/components/planner/SemesterModal", () => ({
@@ -112,11 +161,15 @@ vi.mock("@/components/shared/CourseDetailModal", () => ({
   CourseDetailModal: () => null,
 }));
 
-describe("SavedPlanDetailPage export and delete actions", () => {
+describe("SavedPlanDetailPage saved-view interactions", () => {
   beforeEach(() => {
-    pushSpy.mockReset();
+    buildSnapshotSpy.mockClear();
     deletePlanSpy.mockReset();
     deletePlanSpy.mockReturnValue({ ok: true, plans: [] });
+    dispatchSpy.mockClear();
+    pushSpy.mockClear();
+    updatePlanSpy.mockReset();
+    updatePlanSpy.mockReturnValue({ ok: true, plans: [] });
     planState.current = makePlan(true);
   });
 
@@ -129,7 +182,7 @@ describe("SavedPlanDetailPage export and delete actions", () => {
 
     expect(deletePlanSpy).not.toHaveBeenCalled();
     expect(pushSpy).not.toHaveBeenCalled();
-    expect(screen.getByRole("heading", { name: /are you sure/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /delete this saved version/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /yes, delete plan/i }));
 
@@ -153,5 +206,36 @@ describe("SavedPlanDetailPage export and delete actions", () => {
 
     expect(screen.queryByRole("link", { name: /export pdf/i })).not.toBeInTheDocument();
     expect(screen.getByText(/pdf export requires a saved snapshot/i)).toBeInTheDocument();
+  });
+
+  test("resumes in planner from the saved detail view", async () => {
+    const user = userEvent.setup();
+
+    renderWithApp(createElement(SavedPlanDetailPage, { planId: "plan-1" }), makeAppState());
+
+    await user.click(screen.getByRole("button", { name: /resume in planner/i }));
+
+    expect(buildSnapshotSpy).toHaveBeenCalledWith(planState.current);
+    expect(dispatchSpy).toHaveBeenCalledWith({
+      type: "APPLY_PLANNER_SNAPSHOT",
+      payload: { restoredPlanId: "plan-1" },
+    });
+    expect(pushSpy).toHaveBeenCalledWith("/planner");
+  });
+
+  test("switches saved semesters without mutating planner state", async () => {
+    const user = userEvent.setup();
+
+    renderWithApp(createElement(SavedPlanDetailPage, { planId: "plan-1" }), makeAppState());
+
+    expect(screen.getByText(/preview fall 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/lead course financial management/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /view spring 2027 saved semester/i }));
+
+    expect(screen.getByText(/preview spring 2027/i)).toBeInTheDocument();
+    expect(screen.getByText(/lead course marketing management/i)).toBeInTheDocument();
+    expect(dispatchSpy).not.toHaveBeenCalled();
+    expect(pushSpy).not.toHaveBeenCalled();
   });
 });

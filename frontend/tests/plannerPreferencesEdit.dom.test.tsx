@@ -243,7 +243,7 @@ describe("PlannerLayout manual adds survive reruns", () => {
     await waitFor(() => expect(screen.getByTestId("recommendations-panel")).toHaveTextContent("Fall 2026: MATH 2100"));
     expect(screen.getByTestId("recommendations-panel")).toHaveTextContent("Spring 2027: ECON 2000");
 
-    await user.click(screen.getByRole("button", { name: /change your preferences/i }));
+    await user.click(screen.getByRole("button", { name: /^settings$/i }));
     await user.click(screen.getByRole("button", { name: /set mixer/i }));
 
     expect(screen.queryByTestId("recommendations-panel")).not.toBeInTheDocument();

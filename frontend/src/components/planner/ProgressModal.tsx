@@ -29,6 +29,8 @@ interface ProgressModalProps {
   rawInProgress?: Set<string>;
   assumptionsOn?: boolean;
   onToggleAssumptions?: () => void;
+  onCompletedClick?: () => void;
+  onInProgressClick?: () => void;
 }
 
 export function ProgressModal({
@@ -48,6 +50,8 @@ export function ProgressModal({
   rawInProgress,
   assumptionsOn = false,
   onToggleAssumptions,
+  onCompletedClick,
+  onInProgressClick,
 }: ProgressModalProps) {
   const progressRenderKey = useMemo(() => {
     if (!currentProgress) return "no-progress";
@@ -159,6 +163,7 @@ export function ProgressModal({
                 unit="credits"
                 color="text-ok"
                 delay={0.05}
+                onClick={onCompletedClick}
               />
               <MetricCard
                 label="In Progress"
@@ -166,6 +171,7 @@ export function ProgressModal({
                 unit="credits"
                 color="text-gold"
                 delay={0.1}
+                onClick={onInProgressClick}
               />
               <MetricCard
                 label="Remaining"
@@ -322,6 +328,7 @@ function MetricCard({
   color,
   detail,
   delay = 0,
+  onClick,
 }: {
   label: string;
   value: number;
@@ -329,6 +336,7 @@ function MetricCard({
   color: string;
   detail?: string;
   delay?: number;
+  onClick?: () => void;
 }) {
   const glowClass = color.includes("ok")
     ? "kpi-glow-ok"
@@ -337,13 +345,18 @@ function MetricCard({
       : color.includes("bad")
         ? "kpi-glow-bad"
         : "";
+  const Tag = onClick ? motion.button : motion.div;
   return (
-    <motion.div
+    <Tag
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2, transition: { duration: 0.18 } }}
+      whileHover={onClick ? { scale: 1.03, y: -2, transition: { duration: 0.18 } } : { y: -2, transition: { duration: 0.18 } }}
+      whileTap={onClick ? { scale: 0.98 } : undefined}
       transition={{ duration: 0.25, delay, ease: [0.22, 1, 0.36, 1] }}
-      className={`glass-card ${glowClass} rounded-xl p-3 text-center stat-card-decor`}
+      className={`glass-card ${glowClass} rounded-xl p-3 text-center stat-card-decor ${onClick ? "cursor-pointer" : ""}`}
+      aria-label={onClick ? `View ${label} courses` : undefined}
     >
       <div
         className={`text-[1.65rem] font-bold font-[family-name:var(--font-sora)] tabular-nums ${color}`}
@@ -354,6 +367,6 @@ function MetricCard({
       <div className="text-[0.82rem] text-ink-faint">{unit}</div>
       <div className="mt-1 text-[0.82rem] text-ink-muted">{label}</div>
       {detail && <div className="text-[0.82rem] text-ink-faint">{detail}</div>}
-    </motion.div>
+    </Tag>
   );
 }

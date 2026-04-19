@@ -225,16 +225,16 @@ h1, h2, h3, h4, h5, h6 {
 .bg-orbs::before {
   top: -10%;
   left: -10%;
-  width: 40vw;
-  height: 40vw;
-  background: radial-gradient(circle, rgba(0, 51, 102, 0.22) 0%, rgba(0, 51, 102, 0.14) 38%, transparent 72%);
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(0, 72, 140, 0.30) 0%, rgba(0, 51, 102, 0.18) 40%, transparent 72%);
 }
 .bg-orbs::after {
   bottom: -15%;
   right: -10%;
-  width: 35vw;
-  height: 35vw;
-  background: radial-gradient(circle, rgba(255, 204, 0, 0.1) 0%, rgba(255, 204, 0, 0.05) 36%, transparent 72%);
+  width: 45vw;
+  height: 45vw;
+  background: radial-gradient(circle, rgba(255, 204, 0, 0.13) 0%, rgba(255, 204, 0, 0.06) 38%, transparent 70%);
 }
 
 html[data-effects-mode="reduced"] .bg-orbs::before,
@@ -244,18 +244,30 @@ html[data-effects-mode="reduced"] .bg-orbs::after {
 
 /* ── Planner dual-column layout ─────────────────────────────────── */
 
-/* Mobile-first: scrollable stack */
+/* Mobile-first: allow page scroll and let the planner grow naturally */
 .planner-shell {
   padding: 8px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
   min-height: calc(100dvh - 4rem);
+  height: auto;
+  overflow: visible;
+  background:
+    radial-gradient(ellipse 70% 35% at 80% -2%, rgba(255, 204, 0, 0.065), transparent),
+    radial-gradient(ellipse 55% 50% at -4% 92%, rgba(0, 114, 206, 0.10), transparent),
+    radial-gradient(ellipse 45% 40% at 100% 65%, rgba(155, 126, 219, 0.055), transparent),
+    linear-gradient(180deg, rgba(7, 14, 29, 1) 0%, rgba(5, 11, 24, 1) 100%);
 }
 .planner-columns {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+.planner-left,
+.planner-right {
+  min-width: 0;
 }
 .planner-panel {
   position: relative;
@@ -290,13 +302,13 @@ html[data-effects-mode="reduced"] .bg-orbs::after {
   z-index: 1;
 }
 
-/* Desktop >=1024px: fixed viewport, 45/55 side-by-side */
+/* Desktop >=1024px: lock the shell and keep scrolling inside the columns */
 @media (min-width: 1024px) {
   .planner-shell {
-    height: auto;
-    min-height: calc(100dvh - 4rem);
-    overflow: visible;
-    padding: 10px;
+    height: calc(100dvh - 4rem);
+    overflow: hidden;
+    padding: 8px;
+    gap: 10px;
   }
   .planner-panel {
     padding: 12px;
@@ -305,18 +317,17 @@ html[data-effects-mode="reduced"] .bg-orbs::after {
     flex-direction: row;
     overflow: hidden;
     min-height: 0;
-    height: 100%;
     gap: 16px;
   }
   .planner-left {
-    flex: 0 0 45%;
-    max-width: 45%;
+    flex: 0 0 clamp(23rem, 34vw, 30rem);
+    max-width: clamp(23rem, 34vw, 30rem);
     min-height: 0;
     overflow-y: auto;
   }
   .planner-right {
-    flex: 0 0 55%;
-    max-width: 55%;
+    flex: 1 1 auto;
+    max-width: none;
     min-height: 0;
     overflow: hidden;
   }

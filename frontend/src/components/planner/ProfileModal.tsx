@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useEffectEvent } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useAppContext } from "@/context/AppContext";
 import { Modal } from "@/components/shared/Modal";
@@ -9,15 +9,18 @@ import { PlannerActionFrame } from "./PlannerActionFrame";
 import { ProfileProgramTab } from "./ProfileProgramTab";
 import { ProfileCoursesTab } from "./ProfileCoursesTab";
 import { ProfilePreferencesTab } from "./ProfilePreferencesTab";
+import { ProfileStyleTab } from "./ProfileStyleTab";
 import type { RecommendationResponse } from "@/lib/types";
 
 const TABS = [
   { key: "program" as const, label: "Program" },
   { key: "courses" as const, label: "Courses" },
   { key: "preferences" as const, label: "Preferences" },
+  { key: "style" as const, label: "Style" },
 ];
 
-type TabKey = (typeof TABS)[number]["key"];
+export type ProfileModalTabKey = (typeof TABS)[number]["key"];
+type TabKey = ProfileModalTabKey;
 
 interface ProfileModalProps {
   open: boolean;
@@ -25,6 +28,7 @@ interface ProfileModalProps {
   loading: boolean;
   error: string | null;
   onSubmitRecommendations: () => Promise<RecommendationResponse | null>;
+  initialTab?: ProfileModalTabKey;
 }
 
 export function ProfileModal({
@@ -33,10 +37,23 @@ export function ProfileModal({
   loading,
   error,
   onSubmitRecommendations,
+  initialTab,
 }: ProfileModalProps) {
   const { state } = useAppContext();
-  const [activeTab, setActiveTab] = useState<TabKey>("program");
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? "program");
   const [direction, setDirection] = useState<1 | -1>(1);
+  const syncInitialTab = useEffectEvent((nextTab: ProfileModalTabKey) => {
+    const nextIdx = TABS.findIndex((t) => t.key === nextTab);
+    const currIdx = TABS.findIndex((t) => t.key === activeTab);
+    setDirection(nextIdx >= currIdx ? 1 : -1);
+    setActiveTab(nextTab);
+  });
+
+  useEffect(() => {
+    if (open && initialTab) {
+      syncInitialTab(initialTab);
+    }
+  }, [open, initialTab]);
   const hasProgram = state.selectedMajors.size > 0 || state.selectedTracks.length > 0;
 
   const activeIdx = TABS.findIndex((t) => t.key === activeTab);
@@ -57,7 +74,7 @@ export function ProfileModal({
       open={open}
       onClose={onClose}
       size="planner-detail"
-      title="Edit Profile"
+      title="Settings"
       titleClassName="!text-[clamp(1.4rem,2.8vw,1.9rem)] font-semibold font-[family-name:var(--font-sora)] text-ink-primary"
     >
       <PlannerActionFrame>
@@ -114,6 +131,17 @@ export function ProfileModal({
                 transition={{ type: "spring", stiffness: 220, damping: 24 }}
               >
                 <ProfilePreferencesTab />
+              </motion.div>
+            )}
+            {activeTab === "style" && (
+              <motion.div
+                key="style"
+                initial={{ opacity: 0, x: direction * 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: direction * -24 }}
+                transition={{ type: "spring", stiffness: 220, damping: 24 }}
+              >
+                <ProfileStyleTab />
               </motion.div>
             )}
           </AnimatePresence>

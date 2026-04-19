@@ -16,11 +16,109 @@ import {
 import { FreshnessBadge } from "./FreshnessBadge";
 import type { ProgramsData, SavedPlanFreshness, SavedPlanRecord } from "@/lib/types";
 
+type LibrarySortMode = "newest" | "freshest" | "targetSemester";
+
+const SORT_OPTIONS: Array<{
+  value: LibrarySortMode;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "newest",
+    label: "Newest",
+    description: "See the latest saved versions first.",
+  },
+  {
+    value: "freshest",
+    label: "Freshest",
+    description: "Bring plans that still match current inputs to the top.",
+  },
+  {
+    value: "targetSemester",
+    label: "Target semester",
+    description: "Group the library by where each version is aiming to land.",
+  },
+];
+
+const FRESHNESS_RANK: Record<SavedPlanFreshness, number> = {
+  fresh: 0,
+  stale: 1,
+  missing: 2,
+};
+
+const TERM_RANK: Record<string, number> = {
+  spring: 0,
+  summer: 1,
+  fall: 2,
+  winter: 3,
+};
+
+function getTargetSemesterOrder(value: string): number {
+  const match = String(value).trim().match(/^(spring|summer|fall|winter)\s+(\d{4})$/i);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+  const season = match[1]?.toLowerCase() ?? "";
+  const year = Number(match[2]);
+  const seasonRank = TERM_RANK[season];
+  if (!Number.isFinite(year) || seasonRank === undefined) return Number.MAX_SAFE_INTEGER;
+  return year * 10 + seasonRank;
+}
+
+function compareSavedPlans(
+  a: SavedPlanRecord,
+  b: SavedPlanRecord,
+  freshnessById: Map<string, SavedPlanFreshness>,
+  sortMode: LibrarySortMode,
+) {
+  if (sortMode === "freshest") {
+    const freshnessDelta =
+      FRESHNESS_RANK[freshnessById.get(a.id) ?? "missing"] -
+      FRESHNESS_RANK[freshnessById.get(b.id) ?? "missing"];
+    if (freshnessDelta !== 0) return freshnessDelta;
+  }
+
+  if (sortMode === "targetSemester") {
+    const semesterDelta =
+      getTargetSemesterOrder(a.inputs.targetSemester) - getTargetSemesterOrder(b.inputs.targetSemester);
+    if (semesterDelta !== 0) return semesterDelta;
+    const labelDelta = a.inputs.targetSemester.localeCompare(b.inputs.targetSemester);
+    if (labelDelta !== 0) return labelDelta;
+  }
+
+  const updatedDelta = Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+  if (updatedDelta !== 0) return updatedDelta;
+
+  return a.name.localeCompare(b.name);
+}
+
 interface PlanCardProps {
   plan: SavedPlanRecord;
   freshness: SavedPlanFreshness;
   programs: ProgramsData;
   onDelete(): void;
+}
+
+function MetricCard({
+  label,
+  value,
+  accentClass,
+}: {
+  label: string;
+  value: number;
+  accentClass: string;
+}) {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(165deg,rgba(10,21,39,0.82),rgba(16,31,56,0.94))] px-4 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.16)] ${accentClass}`}
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_55%)] opacity-80" />
+      <div className="relative space-y-2">
+        <p className="text-[10px] uppercase tracking-[0.24em] text-ink-faint">{label}</p>
+        <p className="font-[family-name:var(--font-sora)] text-[clamp(1.6rem,2.8vw,2.3rem)] font-semibold leading-none text-ink-primary">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function PlanCard({ plan, freshness, programs, onDelete, index }: PlanCardProps & { index: number }) {
@@ -33,69 +131,83 @@ function PlanCard({ plan, freshness, programs, onDelete, index }: PlanCardProps 
     <motion.article
       initial={reduce ? undefined : { opacity: 0, y: 20 }}
       animate={reduce ? undefined : { opacity: 1, y: 0 }}
-      transition={reduce ? undefined : { duration: 0.4, delay: 0.08 * index, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={reduce ? undefined : { y: -4, scale: 1.008 }}
-      className="group relative overflow-hidden rounded-[26px] glass-card card-glow-hover p-4"
+      transition={reduce ? undefined : { duration: 0.42, delay: 0.06 * index, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={reduce ? undefined : { y: -4 }}
+      className="group relative flex h-full flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(155deg,rgba(9,20,39,0.95),rgba(14,31,58,0.92)_52%,rgba(17,34,62,0.88))] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.18)] transition-[border-color,box-shadow] duration-300 hover:border-gold/30 hover:shadow-[0_22px_56px_rgba(0,0,0,0.22),0_0_24px_rgba(255,204,0,0.08)]"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.12),transparent_28%),radial-gradient(ellipse_at_bottom_left,rgba(0,114,206,0.10),transparent_40%),radial-gradient(circle_at_80%_90%,rgba(255,204,0,0.06),transparent_30%),repeating-linear-gradient(135deg,rgba(255,255,255,0.02),rgba(255,255,255,0.02)_1px,transparent_1px,transparent_16px)] opacity-80" />
-      <div className="relative space-y-4">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.10),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(0,114,206,0.10),transparent_36%),repeating-linear-gradient(135deg,rgba(255,255,255,0.018),rgba(255,255,255,0.018)_1px,transparent_1px,transparent_18px)] opacity-80" />
+
+      <div className="relative flex h-full flex-col">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-2 min-w-0">
-            <p className="section-kicker !text-[10px]">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-gold/80">Target semester</p>
+            <p className="mt-2 font-[family-name:var(--font-sora)] text-[1.2rem] font-semibold leading-tight text-ink-primary">
               {plan.inputs.targetSemester}
             </p>
-            <h2 className="truncate text-lg font-semibold text-ink-primary" title={plan.name}>
-              {plan.name}
-            </h2>
           </div>
           <FreshnessBadge freshness={freshness} />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-[1.3fr_.7fr]">
+        <div className="mt-5 space-y-4">
           <div className="space-y-2">
-            <p className="text-sm text-ink-secondary">{programLine || "Program summary unavailable"}</p>
-            <p className="line-clamp-2 min-h-10 text-sm text-ink-faint">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-ink-faint">Plan context</p>
+            <h2 className="text-[1.45rem] font-semibold leading-[1.02] tracking-[-0.03em] text-ink-primary" title={plan.name}>
+              {plan.name}
+            </h2>
+            <p className="text-sm leading-6 text-ink-secondary">
+              {programLine || "Program summary unavailable"}
+            </p>
+            <p className="line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-ink-faint">
               {plan.notes || freshnessCopy.reason}
             </p>
           </div>
-          <div className="relative overflow-hidden rounded-2xl glass-card stat-card-decor p-3 text-right">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,204,0,0.08),transparent_60%),radial-gradient(ellipse_at_bottom_left,rgba(0,114,206,0.06),transparent_50%)] pointer-events-none" />
-            <p className="relative z-[1] text-[11px] uppercase tracking-[0.22em] text-ink-faint">Updated</p>
-            <p className="relative z-[1] mt-1 text-base font-semibold text-ink-primary">
-              {formatSavedPlanDate(plan.updatedAt, { month: "short", day: "numeric" })}
+
+          <div className="rounded-[22px] border border-white/9 bg-white/[0.035] px-4 py-4">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-ink-faint">Updated</p>
+            <p className="mt-2 text-lg font-semibold text-ink-primary">
+              {formatSavedPlanDate(plan.updatedAt)}
             </p>
-            <p className="relative z-[1] mt-1 text-xs text-ink-faint">
-              {plan.inputs.includeSummer ? "Summer included" : "Standard cadence"}
+            <p className="mt-1 text-sm text-ink-faint">
+              {plan.inputs.includeSummer ? "Summer included in this pacing." : "Standard term cadence."}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle/60 pt-3">
-          <div className="flex flex-wrap gap-1.5">
-            <span className="rounded-full glass-card px-2.5 py-1 text-[11px] font-medium text-ink-secondary">{plan.inputs.semesterCount} terms</span>
-            <span className="rounded-full glass-card px-2.5 py-1 text-[11px] font-medium text-ink-secondary">{plan.inputs.maxRecs} max/term</span>
-            <span className="rounded-full glass-card px-2.5 py-1 text-[11px] font-medium text-ink-secondary">{plan.inputs.completed.length} done</span>
-            <span className="rounded-full glass-card px-2.5 py-1 text-[11px] font-medium text-ink-secondary">{plan.inputs.inProgress.length} in prog</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button asChild variant="gold" size="sm">
-              <Link href={`/saved?plan=${encodeURIComponent(plan.id)}`}>Open</Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
-              className="text-bad hover:bg-bad-light/25"
-            >
-              Delete
-            </Button>
-          </div>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-ink-secondary">
+            {plan.inputs.semesterCount} terms
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-ink-secondary">
+            {plan.inputs.maxRecs} max / term
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-ink-secondary">
+            {plan.inputs.completed.length} completed
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-ink-secondary">
+            {plan.inputs.inProgress.length} in progress
+          </span>
+        </div>
+
+        <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-white/10 pt-5">
+          <Button asChild variant="gold" size="sm" className="min-w-[10.5rem]">
+            <Link href={`/saved?plan=${encodeURIComponent(plan.id)}`}>Open saved plan</Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(event) => {
+              event.stopPropagation();
+              setConfirmOpen(true);
+            }}
+            className="text-ink-faint hover:bg-white/[0.04] hover:text-bad"
+          >
+            Delete
+          </Button>
         </div>
       </div>
 
       <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)}>
         <div className="space-y-5">
-          {/* Red danger zone header */}
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-bad/15">
               <svg className="h-5 w-5 text-bad" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -110,7 +222,6 @@ function PlanCard({ plan, freshness, programs, onDelete, index }: PlanCardProps 
             </div>
           </div>
 
-          {/* Plan name callout with red accent */}
           <div className="rounded-xl border border-bad/20 bg-bad/[0.06] px-4 py-3">
             <p className="text-sm text-ink-secondary">
               <span className="font-semibold text-bad">{plan.name}</span> will be permanently deleted.
@@ -124,7 +235,10 @@ function PlanCard({ plan, freshness, programs, onDelete, index }: PlanCardProps 
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => { setConfirmOpen(false); onDelete(); }}
+              onClick={() => {
+                setConfirmOpen(false);
+                onDelete();
+              }}
               className="border-bad/50 bg-bad/15 text-bad hover:border-bad/70 hover:bg-bad/25"
             >
               Yes, Delete Plan
@@ -146,6 +260,7 @@ export function SavedPlansLibraryPage() {
   } = usePrograms();
   const { hydrated, plans, storageError, deletePlan, getFreshness } = useSavedPlans();
   const reduce = useReducedMotion();
+  const [sortMode, setSortMode] = useState<LibrarySortMode>("newest");
 
   const isLoading =
     coursesLoading ||
@@ -161,9 +276,13 @@ export function SavedPlansLibraryPage() {
     [getFreshness, plans],
   );
 
-  const visiblePlans = useMemo(() => plans, [plans]);
+  const visiblePlans = useMemo(
+    () => [...plans].sort((a, b) => compareSavedPlans(a, b, freshnessById, sortMode)),
+    [freshnessById, plans, sortMode],
+  );
 
   const staleCount = plans.filter((plan) => freshnessById.get(plan.id) === "stale").length;
+  const missingCount = plans.filter((plan) => freshnessById.get(plan.id) === "missing").length;
   const freshCount = plans.filter((plan) => freshnessById.get(plan.id) === "fresh").length;
 
   const handleRetry = () => {
@@ -173,9 +292,9 @@ export function SavedPlansLibraryPage() {
 
   if (isLoading || !hydrated) {
     return (
-      <div className="bg-orbs min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="text-center space-y-4 glass-card rounded-2xl px-8 py-6">
-          <div className="w-10 h-10 border-2 border-gold/60 border-t-transparent rounded-full animate-spin mx-auto" />
+      <div className="bg-orbs flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <div className="space-y-4 rounded-2xl glass-card px-8 py-6 text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-gold/60 border-t-transparent" />
           <p className="text-sm text-ink-muted">Loading saved plans...</p>
         </div>
       </div>
@@ -184,11 +303,11 @@ export function SavedPlansLibraryPage() {
 
   if (bootstrapError) {
     return (
-      <div className="bg-orbs min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
-        <div className="max-w-md text-center space-y-4 rounded-3xl glass-card p-8 shadow-[0_8px_40px_rgba(0,0,0,0.28),0_0_60px_rgba(255,204,0,0.04)]">
+      <div className="bg-orbs flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+        <div className="max-w-md space-y-4 rounded-3xl glass-card p-8 text-center shadow-[0_8px_40px_rgba(0,0,0,0.28),0_0_60px_rgba(255,204,0,0.04)]">
           <div className="space-y-2">
             <p className="section-kicker justify-center">Connection Error</p>
-            <h1 className="text-xl font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
+            <h1 className="font-[family-name:var(--font-sora)] text-xl font-semibold text-ink-primary">
               Couldn&apos;t load saved-plan data
             </h1>
             <p className="text-sm text-ink-muted">
@@ -206,21 +325,21 @@ export function SavedPlansLibraryPage() {
 
   if (plans.length === 0) {
     return (
-      <div className="bg-orbs min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
-        <div className="relative max-w-lg text-center space-y-5 rounded-3xl glass-card p-8 shadow-[0_8px_40px_rgba(0,0,0,0.28),0_0_60px_rgba(255,204,0,0.04)]">
-          <div className="absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.08),transparent_50%)] pointer-events-none" />
+      <div className="bg-orbs flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+        <div className="relative max-w-lg space-y-5 rounded-3xl glass-card p-8 text-center shadow-[0_8px_40px_rgba(0,0,0,0.28),0_0_60px_rgba(255,204,0,0.04)]">
+          <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.08),transparent_50%)]" />
           <div className="relative space-y-2">
-            <div className="mx-auto mb-4 w-14 h-14 rounded-2xl glass-card flex items-center justify-center float-soft">
-              <svg className="w-7 h-7 text-gold/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="float-soft mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl glass-card">
+              <svg className="h-7 w-7 text-gold/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
               </svg>
             </div>
             <p className="section-kicker justify-center">Saved Plans</p>
-            <h1 className="text-3xl font-semibold font-[family-name:var(--font-sora)] text-ink-primary">
+            <h1 className="font-[family-name:var(--font-sora)] text-3xl font-semibold text-ink-primary">
               No saved plans yet
             </h1>
             <p className="text-sm text-ink-secondary">
-              Generate recommendations in Planner, then save one to start building a local comparison library.
+              Generate recommendations in Planner, then save versions here to compare different academic paths.
             </p>
           </div>
           {storageError && (
@@ -237,6 +356,7 @@ export function SavedPlansLibraryPage() {
   }
 
   const ease = [0.22, 1, 0.36, 1] as const;
+  const selectedSort = SORT_OPTIONS.find((option) => option.value === sortMode) ?? SORT_OPTIONS[0];
 
   const anim = (y: number, delay = 0) =>
     reduce
@@ -248,47 +368,76 @@ export function SavedPlansLibraryPage() {
         };
 
   return (
-    <div className="bg-orbs mx-auto w-full max-w-[1600px] px-4 py-4 md:px-6 md:py-5 space-y-4">
-      {/* ── Compact dashboard header ──────────────────────── */}
+    <div className="bg-orbs mx-auto w-full max-w-[1600px] space-y-5 px-4 py-4 md:px-6 md:py-6">
       <motion.section
         {...anim(14)}
-        className="relative overflow-hidden rounded-2xl glass-card px-5 py-4 shadow-[0_12px_48px_rgba(0,0,0,0.22),0_0_40px_rgba(255,204,0,0.03)] md:px-6"
+        className="relative overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(155deg,rgba(7,18,35,0.98),rgba(12,29,54,0.96)_48%,rgba(16,35,65,0.92))] px-6 py-6 shadow-[0_24px_64px_rgba(0,0,0,0.18)] md:px-8 md:py-8"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.12),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(0,114,206,0.08),transparent_36%),repeating-linear-gradient(135deg,rgba(255,255,255,0.02),rgba(255,255,255,0.02)_1px,transparent_1px,transparent_18px)] opacity-80" />
-        <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          {/* Left: title cluster */}
-          <div className="space-y-1 min-w-0">
-            <motion.p {...anim(6, 0.04)} className="section-kicker !text-[10px]">Saved Library</motion.p>
-            <motion.h3
-              {...anim(10, 0.08)}
-              className="text-[clamp(1.35rem,1.9vw,1.7rem)] font-semibold leading-[1.06] text-ink-primary font-[family-name:var(--font-sora)]"
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,204,0,0.12),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(0,114,206,0.10),transparent_34%),repeating-linear-gradient(135deg,rgba(255,255,255,0.016),rgba(255,255,255,0.016)_1px,transparent_1px,transparent_20px)] opacity-90" />
+
+        <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.75fr)] xl:items-end">
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <motion.p {...anim(6, 0.04)} className="section-kicker !text-[10px]">
+                Saved plans
+              </motion.p>
+              <motion.h1
+                {...anim(10, 0.08)}
+                className="max-w-[16ch] font-[family-name:var(--font-sora)] text-[clamp(2.3rem,4.5vw,4.5rem)] font-semibold leading-[0.92] tracking-[-0.05em] text-ink-primary"
+              >
+                Compare the futures you&apos;ve already sketched.
+              </motion.h1>
+              <motion.p
+                {...anim(8, 0.12)}
+                className="max-w-[42rem] text-sm leading-7 text-ink-secondary md:text-[1rem]"
+              >
+                Keep versions side by side in your head, spot which plans still match your current inputs,
+                and reopen the one that best fits the student you&apos;re trying to become.
+              </motion.p>
+            </div>
+
+            <motion.div
+              {...anim(10, 0.16)}
+              className="rounded-[26px] border border-white/10 bg-[linear-gradient(165deg,rgba(10,21,39,0.82),rgba(14,31,56,0.94))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-5"
             >
-              Saved plans. No tab sprawl.
-            </motion.h3>
-            <motion.p
-              {...anim(8, 0.12)}
-              className="max-w-md text-[12px] text-ink-faint md:text-[13px]"
-            >
-              Browse versions, compare freshness, and reopen the one you actually want.
-            </motion.p>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-[34rem] space-y-2">
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-ink-faint">Compare builds</p>
+                  <p className="text-sm leading-6 text-ink-secondary">
+                    Use one lens at a time. This pass keeps comparison simple: newest first, freshest first,
+                    or arranged by target semester.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2" role="toolbar" aria-label="Saved plan sort options">
+                  {SORT_OPTIONS.map((option) => {
+                    const active = option.value === sortMode;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setSortMode(option.value)}
+                        className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                          active
+                            ? "border-gold/45 bg-gold/14 text-gold shadow-[0_0_18px_rgba(255,204,0,0.10)]"
+                            : "border-white/10 bg-white/[0.03] text-ink-secondary hover:border-mu-blue/35 hover:text-ink-primary"
+                        }`}
+                        title={option.description}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
           </div>
 
-          {/* Right: compact KPI row */}
-          <motion.div {...anim(12, 0.14)} className="flex items-stretch gap-2 shrink-0">
-            {[
-              { label: "Plans", value: plans.length },
-              { label: "Current", value: freshCount },
-              { label: "Needs update", value: staleCount },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="relative overflow-hidden rounded-xl glass-card kpi-glow-gold px-4 py-2.5 text-center min-w-[5.5rem]"
-              >
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,204,0,0.06),transparent_60%)] pointer-events-none" />
-                <p className="relative z-[1] text-[10px] uppercase tracking-[0.22em] text-ink-faint">{stat.label}</p>
-                <p className="relative z-[1] mt-0.5 text-2xl font-bold leading-none text-ink-primary">{stat.value}</p>
-              </div>
-            ))}
+          <motion.div {...anim(12, 0.18)} className="grid gap-3 sm:grid-cols-3">
+            <MetricCard label="Plans" value={plans.length} accentClass="border-gold/12" />
+            <MetricCard label="Current" value={freshCount} accentClass="border-ok/12" />
+            <MetricCard label="Gaps" value={staleCount + missingCount} accentClass="border-mu-blue/14" />
           </motion.div>
         </div>
       </motion.section>
@@ -299,39 +448,30 @@ export function SavedPlansLibraryPage() {
         </div>
       )}
 
-      {/* ── Plan cards grid (the main event) ──────────────── */}
-      <section className="space-y-3">
-        <motion.p {...anim(6, 0.18)} className="section-kicker !text-[10px]">
-          {visiblePlans.length} {visiblePlans.length === 1 ? "plan" : "plans"}
-        </motion.p>
+      <section className="space-y-4">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <motion.p {...anim(6, 0.2)} className="section-kicker !text-[10px]">
+            {visiblePlans.length} {visiblePlans.length === 1 ? "plan" : "plans"}
+          </motion.p>
+          <motion.p {...anim(6, 0.24)} className="text-sm text-ink-faint">
+            Sorted by <span className="font-medium text-ink-secondary">{selectedSort.label}</span>
+          </motion.p>
+        </div>
 
-        {visiblePlans.length === 0 ? (
-          <div className="relative rounded-[28px] glass-card px-6 py-10 text-center">
-            <div className="absolute inset-0 rounded-[28px] bg-[radial-gradient(circle_at_center,rgba(255,204,0,0.06),transparent_60%)] pointer-events-none" />
-            <div className="relative">
-              <p className="section-kicker justify-center">No Plans</p>
-              <h3 className="mt-2 text-2xl font-semibold text-ink-primary">No saved plans are available.</h3>
-              <p className="mt-3 text-sm text-ink-secondary">
-                Save a plan from Planner to populate this library.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-            {visiblePlans.map((plan, index) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                freshness={freshnessById.get(plan.id) || "missing"}
-                programs={programs}
-                index={index}
-                onDelete={() => {
-                  deletePlan(plan.id);
-                }}
-              />
-            ))}
-          </div>
-        )}
+        <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          {visiblePlans.map((plan, index) => (
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              freshness={freshnessById.get(plan.id) || "missing"}
+              programs={programs}
+              index={index}
+              onDelete={() => {
+                deletePlan(plan.id);
+              }}
+            />
+          ))}
+        </div>
       </section>
     </div>
   );

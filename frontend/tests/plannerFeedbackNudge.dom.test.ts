@@ -183,7 +183,8 @@ describe("Planner feedback entry point", () => {
   test("moves feedback into the ranking header and removes the old left-panel CTA", () => {
     renderPlanner();
 
-    expect(screen.getByRole("button", { name: /change your priorities/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /change your priorities/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^settings$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^feedback$/i })).toBeInTheDocument();
     expect(screen.queryByText(/have feedback on this plan/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /contact me/i })).not.toBeInTheDocument();

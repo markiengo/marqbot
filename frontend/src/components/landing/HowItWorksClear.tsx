@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/shared/Button";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
@@ -571,6 +571,15 @@ export function HowItWorksClear() {
   const reduceEffects = useReducedEffects();
   const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [visibleKey, setVisibleKey] = useState(0);
+  const sectionRef = useRef<HTMLElement>(null);
+  const resetStory = useEffectEvent((restartTimer: boolean) => {
+    activeIndexRef.current = 0;
+    setActiveIndex(0);
+    if (restartTimer) {
+      setVisibleKey((current) => current + 1);
+    }
+  });
 
   const setPreviewIndex = (nextIndex: number) => {
     const clamped = Math.max(0, Math.min(storySteps.length - 1, nextIndex));
@@ -581,10 +590,26 @@ export function HowItWorksClear() {
 
   useEffect(() => {
     if (reduceEffects) {
-      activeIndexRef.current = 0;
-      setActiveIndex(0);
+      resetStory(false);
     }
   }, [reduceEffects]);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    let wasIntersecting = false;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !wasIntersecting) {
+          resetStory(true);
+        }
+        wasIntersecting = entry.isIntersecting;
+      },
+      { threshold: 0.15 },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (reduceEffects) return;
@@ -593,10 +618,11 @@ export function HowItWorksClear() {
       setPreviewIndex(next);
     }, 9000);
     return () => window.clearInterval(timer);
-  }, [reduceEffects]);
+  }, [reduceEffects, visibleKey]);
 
   return (
     <section
+      ref={sectionRef}
       id="story"
       data-testid="landing-story"
       data-tour-mode={reduceEffects ? "poster" : "auto"}
@@ -652,9 +678,9 @@ export function HowItWorksClear() {
             <div className="relative min-h-[34rem] overflow-hidden lg:h-full lg:min-h-[44rem]">
               <motion.div
                 key={activeIndex}
-                initial={reduceEffects ? false : { opacity: 0.9, y: 10 }}
+                initial={reduceEffects ? false : { opacity: 0, y: 22 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: reduceEffects ? 0.12 : 0.18, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: reduceEffects ? 0.12 : 0.32, ease: [0.22, 1, 0.36, 1] }}
                 className="absolute inset-0 min-w-0"
               >
                 <StoryFrame activeIndex={activeIndex} reduceEffects={reduceEffects} />

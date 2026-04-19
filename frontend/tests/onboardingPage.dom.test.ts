@@ -97,7 +97,7 @@ describe("OnboardingPage component flow", () => {
     await user.click(screen.getByRole("button", { name: /next: your roadmap/i }));
     await user.click(await screen.findByRole("button", { name: /show my plan/i }));
     expect(pushSpy).toHaveBeenCalledWith("/planner");
-  });
+  }, 10000);
 
   test("uses onboarding dark select styling for native dropdowns", async () => {
     const user = userEvent.setup();

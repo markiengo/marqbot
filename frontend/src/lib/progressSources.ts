@@ -103,7 +103,8 @@ function markProgressSatisfied(progress: BucketProgress) {
   }
 }
 
-function bucketHasRemainingCapacity(progress: BucketProgress): boolean {
+function bucketHasRemainingCapacity(progress: BucketProgress | undefined): boolean {
+  if (!progress) return false;
   if (progress.requirement_mode === "credits_pool") {
     const neededUnits = Math.max(0, Number(progress.needed ?? 0));
     if (neededUnits <= 0) return true;

@@ -6,22 +6,69 @@ interface SemesterSelectorProps {
   semesters: SemesterData[];
   selectedIdx: number;
   onSelect: (index: number) => void;
-  onExpand: (index: number) => void;
+  onExpand?: (index: number) => void;
+  variant?: "grid" | "filmstrip";
+  className?: string;
+  ariaLabel?: string;
 }
 
 export function SemesterSelector({
   semesters,
   selectedIdx,
   onSelect,
+  variant = "grid",
+  className,
+  ariaLabel = "Semester selector",
 }: SemesterSelectorProps) {
   if (!semesters.length) return null;
 
+  if (variant === "filmstrip") {
+    return (
+      <div
+        className={[
+          "scrollbar-hide flex w-full gap-1.5 overflow-x-auto rounded-[0.95rem] border border-white/7 bg-white/[0.025] px-1.5 py-1.5",
+          className,
+        ].filter(Boolean).join(" ")}
+        role="tablist"
+        aria-label={ariaLabel}
+      >
+        {semesters.map((sem, idx) => {
+          const active = idx === selectedIdx;
+          const term = sem.target_semester || "Auto-selected";
+
+          return (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => onSelect(idx)}
+              role="tab"
+              aria-selected={active}
+              className={[
+                "min-w-[6.9rem] shrink-0 rounded-[0.85rem] border px-3 py-1.5 text-left transition-colors duration-200",
+                active
+                  ? "border-gold/45 bg-gold/[0.11] text-gold"
+                  : "border-transparent bg-transparent text-ink-faint hover:border-white/8 hover:bg-white/[0.03] hover:text-ink-secondary",
+              ].join(" ")}
+            >
+              <div className="text-[10px] font-semibold uppercase tracking-[0.13em] text-inherit/80">
+                Semester {idx + 1}
+              </div>
+              <div className={["mt-0.5 text-[0.95rem] font-semibold leading-[1.12]", active ? "text-gold" : "text-ink-secondary"].join(" ")}>
+                {term}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div
-      className="grid w-full gap-2 rounded-xl border border-gold/10 bg-white/[0.015] p-1.5"
+      className={["grid w-full gap-2 rounded-xl border border-gold/10 bg-white/[0.015] p-1.5", className].filter(Boolean).join(" ")}
       style={{ gridTemplateColumns: `repeat(${semesters.length}, minmax(0, 1fr))` }}
       role="tablist"
-      aria-label="Semester selector"
+      aria-label={ariaLabel}
     >
       {semesters.map((sem, idx) => {
         const active = idx === selectedIdx;

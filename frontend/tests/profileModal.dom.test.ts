@@ -8,7 +8,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 
 import { ProfileModal } from "../src/components/planner/ProfileModal";
+import { useAppContext } from "../src/context/AppContext";
 import { makeAppState, renderWithApp } from "./testUtils";
+
+function SchedulingStyleProbe() {
+  const { state } = useAppContext();
+  return createElement("div", { "data-testid": "scheduling-style-probe" }, state.schedulingStyle);
+}
 
 describe("ProfileModal recommendation submit flow", () => {
   test("uses the shared planner action frame", async () => {
@@ -31,11 +37,49 @@ describe("ProfileModal recommendation submit flow", () => {
       }),
     );
 
-    expect(await screen.findByRole("heading", { name: /edit profile/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /settings/i })).toBeInTheDocument();
     expect(await screen.findByTestId("planner-action-frame")).toHaveStyle({
       height: "calc(77vh - 8rem)",
       minHeight: "400px",
     });
+  });
+
+  test("only commits a style change after apply is clicked", async () => {
+    const user = userEvent.setup();
+
+    renderWithApp(
+      createElement(
+        "div",
+        null,
+        createElement(ProfileModal, {
+          open: true,
+          onClose: vi.fn(),
+          loading: false,
+          error: null,
+          onSubmitRecommendations: vi.fn().mockResolvedValue(null),
+          initialTab: "style",
+        }),
+        createElement(SchedulingStyleProbe),
+      ),
+      makeAppState({
+        schedulingStyle: "grinder",
+        selectedMajors: new Set(["FIN_MAJOR"]),
+        programs: {
+          majors: [{ id: "FIN_MAJOR", label: "Finance", requires_primary_major: false }],
+          tracks: [],
+          minors: [],
+          default_track_id: "FIN_MAJOR",
+        },
+      }),
+    );
+
+    expect(screen.getByTestId("scheduling-style-probe")).toHaveTextContent("grinder");
+
+    await user.click(screen.getByRole("button", { name: /explorer/i }));
+    expect(screen.getByTestId("scheduling-style-probe")).toHaveTextContent("grinder");
+
+    await user.click(screen.getByRole("button", { name: /^apply$/i }));
+    expect(screen.getByTestId("scheduling-style-probe")).toHaveTextContent("explorer");
   });
 
   test("keeps the modal open when refreshing recommendations fails", async () => {

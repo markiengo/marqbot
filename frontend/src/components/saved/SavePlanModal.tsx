@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/shared/Button";
 import { Modal } from "@/components/shared/Modal";
 import { PlannerActionFrame } from "@/components/planner/PlannerActionFrame";
@@ -38,37 +38,15 @@ export function SavePlanModal({
     () => existingPlans.find((plan) => plan.id === targetPlanId) ?? null,
     [existingPlans, targetPlanId],
   );
-
-  useEffect(() => {
-    if (!open) return;
-    const nextTargetId = (
-      defaultOverwriteTargetId
-      && existingPlans.some((plan) => plan.id === defaultOverwriteTargetId)
-    )
-      ? defaultOverwriteTargetId
-      : existingPlans[0]?.id ?? null;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset draft fields when modal opens
+  const resetDraftState = useEffectEvent((nextTargetId: string | null) => {
     setMode("create");
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset overwrite selection when modal opens
     setTargetPlanId(nextTargetId);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset draft fields when modal opens
     setName(defaultName);
     setNotes("");
-  }, [defaultName, defaultOverwriteTargetId, existingPlans, open]);
-
-  useEffect(() => {
-    if (!open) return;
-    nameInputRef.current?.focus();
-    nameInputRef.current?.select();
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || mode !== "overwrite") return;
+  });
+  const syncOverwriteState = useEffectEvent(() => {
     if (!overwriteEnabled) {
-      setMode("create");
-      setTargetPlanId(null);
-      setName(defaultName);
-      setNotes("");
+      resetDraftState(null);
       return;
     }
     const fallbackTargetId = (
@@ -85,6 +63,28 @@ export function SavePlanModal({
       setName(selectedOverwritePlan.name);
       setNotes(selectedOverwritePlan.notes);
     }
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const nextTargetId = (
+      defaultOverwriteTargetId
+      && existingPlans.some((plan) => plan.id === defaultOverwriteTargetId)
+    )
+      ? defaultOverwriteTargetId
+      : existingPlans[0]?.id ?? null;
+    resetDraftState(nextTargetId);
+  }, [defaultName, defaultOverwriteTargetId, existingPlans, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    nameInputRef.current?.focus();
+    nameInputRef.current?.select();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || mode !== "overwrite") return;
+    syncOverwriteState();
   }, [defaultName, existingPlans, mode, open, overwriteEnabled, selectedOverwritePlan, targetPlanId]);
 
   const handleModeChange = (nextMode: SavePlanMode) => {

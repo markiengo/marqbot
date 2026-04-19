@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useRef, useState, type TouchEvent } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { RecommendationResponse, BucketProgress } from "@/lib/types";
 import { esc } from "@/lib/utils";
@@ -10,24 +10,33 @@ import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 interface RecommendationsPanelProps {
   data: RecommendationResponse | null;
+  embedded?: boolean;
   selectedSemesterIdx?: number;
   onSemesterChange?: (idx: number) => void;
   onExpandSemester: (index: number) => void;
   onCourseClick?: (courseCode: string) => void;
+  hideHeader?: boolean;
+  hideNavigation?: boolean;
+  compactRows?: boolean;
 }
 
 function RecommendationsPanelInner({
   data,
+  embedded = false,
   selectedSemesterIdx,
   onSemesterChange,
   onExpandSemester,
   onCourseClick,
+  hideHeader = false,
+  hideNavigation = false,
+  compactRows = false,
 }: RecommendationsPanelProps) {
   const [localSelectedIdx, setLocalSelectedIdx] = useState(0);
   const isControlled = selectedSemesterIdx !== undefined;
   const selectedIdx = isControlled ? selectedSemesterIdx : localSelectedIdx;
   const setSelectedIdx = isControlled ? (onSemesterChange ?? (() => {})) : setLocalSelectedIdx;
   const reduceEffects = useReducedEffects();
+  const swipeStartXRef = useRef<number | null>(null);
   const semesters = data?.semesters || [];
 
   if (!data) return null;
@@ -88,22 +97,43 @@ function RecommendationsPanelInner({
   const listPadClass =
     courseCount >= 6 ? "px-2 py-2" : courseCount >= 5 ? "px-2.5 py-2" : "px-2.5 py-2.5";
 
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    swipeStartXRef.current = event.changedTouches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    if (semesters.length <= 1) return;
+    const startX = swipeStartXRef.current;
+    const endX = event.changedTouches[0]?.clientX ?? null;
+    swipeStartXRef.current = null;
+    if (startX === null || endX === null) return;
+
+    const deltaX = endX - startX;
+    if (Math.abs(deltaX) < 40) return;
+    if (deltaX < 0 && selectedIdx < semesters.length - 1) {
+      setSelectedIdx(selectedIdx + 1);
+    }
+    if (deltaX > 0 && selectedIdx > 0) {
+      setSelectedIdx(selectedIdx - 1);
+    }
+  };
+
   return (
     <div
       data-testid="recommendations-panel"
       data-reduced-motion={reduceEffects ? "true" : "false"}
-      className="relative min-h-0 overflow-hidden rounded-xl glass-card p-2 lg:h-full"
+      className={`relative min-h-0 overflow-hidden ${embedded ? "rounded-[1.2rem] border border-white/7 bg-[linear-gradient(180deg,rgba(10,21,40,0.78),rgba(10,20,37,0.92))]" : "rounded-xl glass-card p-2"} h-full`}
     >
       <div
-        className="absolute inset-0 rounded-xl pointer-events-none"
+        className={`absolute inset-0 pointer-events-none ${embedded ? "rounded-[1.15rem]" : "rounded-xl"}`}
         style={{
           background:
             "radial-gradient(ellipse 55% 45% at 92% 8%, rgba(255, 204, 0, 0.05), transparent), radial-gradient(ellipse 50% 40% at 8% 90%, rgba(0, 114, 206, 0.04), transparent)",
         }}
       />
 
-      <div className="relative z-[1] flex min-h-0 flex-col gap-3 lg:h-full">
-        {!isControlled && semesters.length > 1 && (
+      <div className="relative z-[1] flex min-h-0 h-full flex-col gap-3">
+        {!hideNavigation && !isControlled && semesters.length > 1 && (
           <div className="shrink-0 w-full">
             <SemesterSelector
               semesters={semesters}
@@ -114,41 +144,47 @@ function RecommendationsPanelInner({
           </div>
         )}
 
-        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg glass-card lg:flex-1">
-          <div className="relative flex shrink-0 items-center justify-between gap-3 border-b border-gold/15 px-3 py-2.5">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-3 inset-y-1 rounded-md opacity-70"
-              style={{
-                background:
-                  "radial-gradient(ellipse 40% 80% at 20% 40%, rgba(255,204,0,0.10), transparent), radial-gradient(ellipse 55% 70% at 85% 50%, rgba(0,114,206,0.10), transparent)",
-              }}
-            />
+        <div className={`flex min-h-0 min-w-0 flex-col overflow-hidden ${embedded ? "rounded-[1.05rem] border border-white/7 bg-[linear-gradient(180deg,rgba(14,27,50,0.86),rgba(10,20,39,0.98))]" : "rounded-lg glass-card"} flex-1`}>
+          {!hideHeader && (
+            <div className="relative flex shrink-0 items-center justify-between gap-3 border-b border-gold/15 px-3 py-2.5">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-3 inset-y-1 rounded-md opacity-70"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 40% 80% at 20% 40%, rgba(255,204,0,0.10), transparent), radial-gradient(ellipse 55% 70% at 85% 50%, rgba(0,114,206,0.10), transparent)",
+                }}
+              />
 
-            <h4 className="relative hash-mark font-[family-name:var(--font-sora)] text-[14px] font-bold leading-[1.25] tracking-[0.01em] text-gold md:text-[17px]">
-              Semester {selectedIdx + 1}
-              {activeSemester.target_semester && ` - ${activeSemester.target_semester}`}
-            </h4>
-            {activeRecs.length > 0 && (
-              <button
-                type="button"
-                onClick={() => onExpandSemester(selectedIdx)}
-                className="relative inline-flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-lg border border-gold/30 bg-gold/[0.03] text-gold/75 shadow-[0_0_14px_rgba(255,204,0,0.08)] transition-all hover:border-gold/55 hover:bg-gold/10 hover:text-gold hover:shadow-[0_0_18px_rgba(255,204,0,0.18)]"
-                aria-label={`Expand semester ${selectedIdx + 1} details`}
-              >
-                <svg className="h-[19px] w-[19px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-                  />
-                </svg>
-              </button>
-            )}
-          </div>
+              <h4 className="relative hash-mark font-[family-name:var(--font-sora)] text-[14px] font-bold leading-[1.25] tracking-[0.01em] text-gold md:text-[17px]">
+                Semester {selectedIdx + 1}
+                {activeSemester.target_semester && ` - ${activeSemester.target_semester}`}
+              </h4>
+              {activeRecs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onExpandSemester(selectedIdx)}
+                  className="relative inline-flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-lg border border-gold/30 bg-gold/[0.03] text-gold/75 shadow-[0_0_14px_rgba(255,204,0,0.08)] transition-all hover:border-gold/55 hover:bg-gold/10 hover:text-gold hover:shadow-[0_0_18px_rgba(255,204,0,0.18)]"
+                  aria-label={`Expand semester ${selectedIdx + 1} details`}
+                >
+                  <svg className="h-[19px] w-[19px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
 
-          <div className={`min-h-0 overflow-visible ${listPadClass} lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto`}>
+          <div
+            className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${compactRows ? "px-3 py-3" : listPadClass}`}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={selectedIdx}
@@ -164,6 +200,7 @@ function RecommendationsPanelInner({
                       key={c.course_code}
                       course={c}
                       courseCount={courseCount}
+                      compact={compactRows}
                       onClick={onCourseClick ? () => onCourseClick(c.course_code) : undefined}
                     />
                   ))

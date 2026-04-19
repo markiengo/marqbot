@@ -10,7 +10,7 @@ import { ProgressDashboard } from "../src/components/planner/ProgressDashboard";
 import { makeAppState, renderWithApp } from "./testUtils";
 
 function motionTag(tag: "div" | "button") {
-  return ({ children, ...props }: Record<string, unknown>) => {
+  const MotionTag = ({ children, ...props }: Record<string, unknown>) => {
     const {
       initial,
       animate,
@@ -30,6 +30,8 @@ function motionTag(tag: "div" | "button") {
     void layout;
     return createElement(tag, domProps, children);
   };
+  MotionTag.displayName = `MockMotion${tag.toUpperCase()}`;
+  return MotionTag;
 }
 
 vi.mock("motion/react", () => ({

@@ -103,14 +103,14 @@ export function RankingLeaderboardExplainer({
   const isApplied = appliedStyle === currentStyle;
 
   return (
-    <div className="space-y-2.5 text-sm text-ink-secondary">
+    <div className="space-y-3 text-base text-ink-secondary">
       {onStyleChange && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div>
-            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-gold-light">
+            <p className="text-[0.74rem] font-semibold uppercase tracking-[0.18em] text-gold-light">
               Compare builds
             </p>
-            <p className="mt-0.5 text-[0.76rem] leading-relaxed text-slate-300">
+            <p className="mt-1 text-[0.96rem] leading-relaxed text-slate-300">
               {canApply
                 ? "Preview another build, then apply it to rerun this plan."
                 : "View another build without changing your plan settings."}
@@ -140,11 +140,11 @@ export function RankingLeaderboardExplainer({
                           : "border-white/25 bg-transparent"
                       }`}
                     />
-                    <span className={`text-[0.85rem] font-semibold ${isActive ? "text-white" : "text-slate-200"}`}>
+                    <span className={`text-[1rem] font-semibold ${isActive ? "text-white" : "text-slate-200"}`}>
                       {option.label}
                     </span>
                   </div>
-                  <p className="mt-1 text-[0.7rem] leading-snug text-slate-400">
+                  <p className="mt-1.5 text-[0.84rem] leading-snug text-slate-400">
                     {option.helper}
                   </p>
                 </button>
@@ -166,26 +166,26 @@ export function RankingLeaderboardExplainer({
           }}
         />
 
-        <p className="relative text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-gold-light">
+        <p className="relative text-[0.74rem] font-semibold uppercase tracking-[0.18em] text-gold-light">
           Current build
         </p>
 
         <div className="relative mt-2 flex flex-wrap items-center gap-1.5">
           <span
-            className={`inline-flex rounded-full border px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.16em] ${accent.badge}`}
+            className={`inline-flex rounded-full border px-2.5 py-0.5 text-[0.72rem] font-semibold uppercase tracking-[0.14em] ${accent.badge}`}
           >
             {getStyleLabel(currentStyle)}
           </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-slate-200">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-slate-200">
             Rules-based
           </span>
         </div>
 
-        <p className="relative mt-2.5 text-[clamp(1.1rem,2vw,1.55rem)] font-bold leading-[1] tracking-[-0.03em] text-white">
+        <p className="relative mt-2.5 text-[clamp(1.28rem,2.3vw,1.85rem)] font-bold leading-[1] tracking-[-0.03em] text-white">
           {content.summary}
         </p>
 
-        <p className="relative mt-1.5 max-w-[22rem] text-[0.76rem] leading-relaxed text-slate-300">
+        <p className="relative mt-1.5 max-w-[24rem] text-[0.95rem] leading-relaxed text-slate-300">
           First, MarqBot hides anything you cannot take yet.
         </p>
 
@@ -203,15 +203,15 @@ export function RankingLeaderboardExplainer({
             <div className={`h-1 w-9 rounded-full ${accent.bar}`} />
             <div className="mt-2.5 flex items-start gap-2.5">
               <span
-                className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[0.7rem] font-bold ${accent.number}`}
+                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[0.82rem] font-bold ${accent.number}`}
               >
                 {idx + 1}
               </span>
               <div className="min-w-0">
-                <p className="text-[0.9rem] font-semibold leading-[1.06] tracking-[-0.02em] text-white">
+                <p className="text-[1.02rem] font-semibold leading-[1.12] tracking-[-0.02em] text-white">
                   {row.title}
                 </p>
-                <p className="mt-1 text-[0.74rem] leading-relaxed text-slate-300">
+                <p className="mt-1 text-[0.88rem] leading-relaxed text-slate-300">
                   {row.detail}
                 </p>
               </div>
@@ -221,16 +221,16 @@ export function RankingLeaderboardExplainer({
       </div>
 
       <div className="rounded-[1.15rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,28,54,0.94),rgba(10,25,47,0.96))] px-3.5 py-3 shadow-[0_14px_38px_rgba(0,0,0,0.18)] sm:px-4">
-        <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-[#8ec8ff]">
+        <p className="text-[0.74rem] font-semibold uppercase tracking-[0.18em] text-[#8ec8ff]">
           Still true
         </p>
-        <p className="mt-1 text-[0.76rem] leading-relaxed text-slate-300">
+        <p className="mt-1.5 text-[0.94rem] leading-relaxed text-slate-300">
           Bridge courses and hard prereqs can jump higher when they unlock the next step.
         </p>
       </div>
 
       <div className="rounded-[0.95rem] border border-white/10 bg-white/[0.03] px-3.5 py-2.5 sm:px-4">
-        <p className="text-[0.72rem] leading-relaxed text-slate-300">
+        <p className="text-[0.9rem] leading-relaxed text-slate-300">
           Want the full logic?{" "}
           <a
             href="https://github.com/markiengo/marqbot/blob/main/docs/memos/algorithm.md"
@@ -251,7 +251,7 @@ export function RankingLeaderboardExplainer({
             onClick={() => onApply(currentStyle)}
             disabled={isApplying || isApplied}
             className={[
-              "inline-flex min-w-[7.5rem] items-center justify-center rounded-xl border px-4 py-2 text-[0.78rem] font-semibold transition-all",
+              "inline-flex min-w-[8rem] items-center justify-center rounded-xl border px-4 py-2.5 text-[0.92rem] font-semibold transition-all",
               isApplied
                 ? "cursor-not-allowed border-white/12 bg-white/[0.05] text-slate-400"
                 : `cursor-pointer ${accent.badge} shadow-[0_0_20px_rgba(255,204,0,0.10)] hover:brightness-110`,

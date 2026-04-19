@@ -87,9 +87,9 @@ describe("rendering.groupProgressByTierSections", () => {
     });
     expect(sections.map((section) => section.label)).toEqual([
       "MCC",
-      "Business Core (BCC)",
-      "Major Requirements",
-      "Tracks & Minors",
+      "BCC",
+      "Majors",
+      "Tracks",
     ]);
   });
 });
@@ -130,13 +130,18 @@ describe("rendering.groupProgressByTierWithMajors", () => {
       ["ACCO_MAJOR", "MARK_MAJOR"],
     );
 
-    expect(sections).toHaveLength(1);
+    expect(sections).toHaveLength(3);
+    expect(sections[0].sectionKey).toBe("major");
     expect(sections[0].subGroups).toHaveLength(2);
     expect(sections[0].subGroups?.[0].entries.map(([bucketId]) => bucketId)).toEqual([
       "ACCO_MAJOR::acco-req-core",
       "ACCO_MAJOR::acco-choose-2",
       "ACCO_MAJOR::acco-electives",
     ]);
+    expect(sections[1].sectionKey).toBe("track");
+    expect(sections[1].entries).toHaveLength(0);
+    expect(sections[2].sectionKey).toBe("minor");
+    expect(sections[2].entries).toHaveLength(0);
   });
 });
 
