@@ -726,13 +726,42 @@ export function PlannerLayout() {
     <div className="planner-shell bg-orbs">
       <div className="flex flex-col gap-4">
 
-        {/* ── Progress Strip ── */}
-        <div className="glass-card gradient-border rounded-2xl p-5 sm:p-7 flex flex-col gap-5">
-          <div className="flex items-start justify-between gap-4">
-            <h2 className="text-[1rem] font-bold font-[family-name:var(--font-sora)] text-ink">
-              Degree Progress
-            </h2>
-            <div className="flex items-center gap-3 pt-1">
+        {/* ── Progress Strip (ambient single line) ── */}
+        <div className="glass-card gradient-border rounded-2xl px-5 py-3 sm:px-6 sm:py-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+              <h2 className="text-[0.8rem] font-semibold uppercase tracking-[0.08em] font-[family-name:var(--font-sora)] text-ink-secondary shrink-0">
+                Degree Progress
+              </h2>
+              {hasData && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={openCompletedCourseList}
+                    aria-label="View completed courses"
+                    className="rounded px-1 -mx-1 text-ink-secondary hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/60 transition-colors cursor-pointer"
+                  >
+                    <span className="font-semibold text-ok tabular-nums">{metrics.completedCredits}cr</span> done
+                  </button>
+                  <span className="text-ink-muted">·</span>
+                  <button
+                    type="button"
+                    onClick={openInProgressCourseList}
+                    aria-label="View in-progress courses"
+                    className="rounded px-1 -mx-1 text-ink-secondary hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/60 transition-colors cursor-pointer"
+                  >
+                    <span className="font-semibold text-gold tabular-nums">{metrics.inProgressCredits}cr</span> active
+                  </button>
+                  <span className="text-ink-muted">·</span>
+                  <span className="font-semibold text-ink">{metrics.standingLabel}</span>
+                  <span className="text-ink-muted">·</span>
+                  <span className="text-ink-secondary">
+                    <span className="font-semibold text-ink tabular-nums">{metrics.remainingCredits}cr</span> left
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
               <div className="relative h-2 w-36 rounded-full bg-ink-faint/12 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-gold/80 to-gold transition-all duration-700"
@@ -751,13 +780,6 @@ export function PlannerLayout() {
               )}
             </div>
           </div>
-          <ProgressDashboard
-            compact
-            showAssumptions={assumptionsOn}
-            onViewDetails={openProgressModal}
-            onCompletedClick={openCompletedCourseList}
-            onInProgressClick={openInProgressCourseList}
-          />
         </div>
 
         {/* ── Plan Card ── */}
@@ -778,9 +800,9 @@ export function PlannerLayout() {
               type="button"
               onClick={() => setEditPlanModalOpen(true)}
               disabled={!canOpenEditPlan}
-              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#0072CE]/30 bg-[#0072CE]/10 px-3 py-4 text-[#8ec8ff] transition-all duration-200 shadow-[0_0_18px_rgba(0,114,206,0.18),0_0_36px_rgba(0,114,206,0.07)] hover:shadow-[0_0_28px_rgba(0,114,206,0.35),0_0_56px_rgba(0,114,206,0.14)] hover:bg-[#0072CE]/16 hover:border-[#0072CE]/48 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#0072CE]/55 bg-[#0072CE]/20 px-3 py-4 text-[#8ec8ff] transition-all duration-200 shadow-[0_0_18px_rgba(0,114,206,0.22),0_0_36px_rgba(0,114,206,0.09)] hover:shadow-[0_0_28px_rgba(0,114,206,0.40),0_0_56px_rgba(0,114,206,0.16)] hover:bg-[#0072CE]/26 hover:border-[#0072CE]/70 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
               <span className="text-xs font-semibold text-center leading-tight">Some courses not available? Edit the plan!</span>
@@ -789,12 +811,12 @@ export function PlannerLayout() {
               type="button"
               onClick={() => { setSaveError(null); setSaveSuccess(null); setSaveModalOpen(true); }}
               disabled={!savedPlansReady || !canSavePlan}
-              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-gold/35 bg-gold/10 px-3 py-4 text-gold transition-all duration-200 shadow-[0_0_22px_rgba(255,204,0,0.26),0_0_44px_rgba(255,204,0,0.10)] hover:shadow-[0_0_32px_rgba(255,204,0,0.44),0_0_64px_rgba(255,204,0,0.18)] hover:bg-gold/16 hover:border-gold/52 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="group flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-xl border border-gold/60 bg-gold/20 px-3 py-4 text-gold transition-all duration-200 shadow-[0_0_22px_rgba(255,204,0,0.32),0_0_44px_rgba(255,204,0,0.14)] hover:shadow-[0_0_32px_rgba(255,204,0,0.50),0_0_64px_rgba(255,204,0,0.22)] hover:bg-gold/26 hover:border-gold/75 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <svg className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 shrink-0 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
               </svg>
-              <span className="text-xs font-semibold text-center leading-tight">Satisfied? Save plan!</span>
+              <span className="text-[13px] font-semibold text-center leading-tight">Satisfied? Save plan!</span>
             </button>
             <button
               type="button"
