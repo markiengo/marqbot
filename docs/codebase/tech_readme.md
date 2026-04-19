@@ -4,18 +4,20 @@ Last updated: April 17, 2026
 
 ## Start Here
 
-Read these in order if you are orienting to the current repo:
+Read these in order if you need technical orientation to the current repo:
 
 | File | Purpose |
 |------|---------|
 | `AGENTS.md` | Lean repo-wide agent entrypoint and shared markdown taxonomy |
 | `README.md` | Product overview, local run commands, and deployment contract |
 | `docs/README.md` | Documentation map so agents and humans pick the right markdown file quickly |
-| `docs/CHANGELOG.md` | Shipped and unreleased change history |
-| `docs/memos/todo.md` | Open product and engineering follow-ups |
-| `data/data_model.md` | Runtime data model and CSV relationships |
 | `tests/test_structure.md` | Test suite map and quick command matrix |
-| `infra/README.md` | Docker and Render deployment notes |
+| `docs/CHANGELOG.md` | Read `Unreleased` and the newest relevant release only when recent behavior matters |
+| `data/data_model.md` | Runtime data model and CSV relationships when the task touches data |
+| `infra/README.md` | Docker and Render deployment notes when the task touches deploy/runtime shape |
+| `docs/memos/todo.md` | Open product and engineering follow-ups when planning future work |
+
+Do not treat this file as default startup context for every task. Open it when you need internals.
 
 For deeper references, use the rest of `docs/codebase/`:
 

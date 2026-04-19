@@ -6,6 +6,12 @@ Format per release:
 - `User`: student/advisor-facing changes in plain language.
 - `Technical`: compact engineering context using Goal + Problem + Decisions + Outcome.
 
+Fast path:
+- Start with `Unreleased`.
+- Then read the newest release relevant to the area you are touching.
+- Use older sections only when tracing regression history or release chronology.
+- This file is release history, not a repo-level memory file.
+
 ---
 
 ## [Unreleased]

@@ -11,10 +11,16 @@ Read these first:
 | File | Why it exists |
 |---|---|
 | `../AGENTS.md` | Lean repo-wide entrypoint for coding agents and shared doc taxonomy |
-| `../README.md` | Product overview, local run commands, deployment contract |
-| `codebase/tech_readme.md` | Technical map of runtime, APIs, data, and tests |
+| `../README.md` | Product overview, local run commands, and deployment contract |
 | `../tests/test_structure.md` | Quick test-command map |
-| `CHANGELOG.md` | Unreleased and shipped behavior changes |
+| `codebase/tech_readme.md` | Technical map of runtime, APIs, data, and tests when you need internals |
+| `CHANGELOG.md` | Release history. Read `Unreleased` and the newest relevant release first |
+
+## Default Read Depth
+
+- For startup context, stop after `../AGENTS.md`, `../README.md`, this file, and `../tests/test_structure.md` unless the task clearly needs more.
+- Open `codebase/tech_readme.md` for runtime, API, data, or architecture work.
+- Open `CHANGELOG.md` only when recent shipped behavior matters. Do not read the full history by default.
 
 ## By Audience
 
@@ -26,6 +32,7 @@ Read these first:
 | Folder-specific implementation | `../backend/TECHNICAL_README.md`, `../frontend/TECHNICAL_README.md` |
 | Test strategy | `../tests/test_structure.md`, `codebase/TESTING.md` |
 | Deployment | `../infra/README.md` |
+| Agent-tooling wiring | `../.claude/CLAUDE.md`, `../.codex/CODEX.md` after `../AGENTS.md`, but only when the task is about agent tooling |
 
 ## What Lives Where
 

@@ -88,6 +88,7 @@ Use it to plan faster. Then confirm with your advisor before you register.
 | [Changelog](docs/CHANGELOG.md) | Version history and release notes |
 
 Coding agents should start with [AGENTS.md](AGENTS.md), then use [docs/README.md](docs/README.md) instead of scanning every markdown file blindly.
+If recent shipped behavior matters, read the `Unreleased` section and newest relevant release in [docs/CHANGELOG.md](docs/CHANGELOG.md) rather than loading the full history by default.
 
 The [`docs/memos/`](docs/memos/) folder is useful if you want fast project context without reading the whole codebase. Start with:
 
