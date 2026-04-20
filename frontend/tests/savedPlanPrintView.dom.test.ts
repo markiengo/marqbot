@@ -108,6 +108,7 @@ vi.mock("@/hooks/useSavedPlans", () => ({
     hydrated: true,
     storageError: null,
     loadPlan: (planId: string) => (planId === "plan-1" ? planState.current : null),
+    getFreshness: () => "fresh",
   }),
 }));
 
@@ -122,11 +123,17 @@ describe("SavedPlanPrintView", () => {
     });
   });
 
-  test("renders the trimmed print export view and auto-triggers print", async () => {
+  test("renders the summary-first print export view and auto-triggers print", async () => {
     renderWithApp(createElement(SavedPlanPrintView, { planId: "plan-1" }), makeAppState());
 
     expect(screen.getByTestId("saved-plan-print-view")).toBeInTheDocument();
+    expect(screen.getByTestId("saved-plan-print-toolbar")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /finance sprint/i })).toBeInTheDocument();
+    expect(screen.getByText(/target semester/i)).toBeInTheDocument();
+    expect(screen.getByText(/updated/i)).toBeInTheDocument();
+    expect(screen.getByText(/freshness/i)).toBeInTheDocument();
+    expect(screen.getByText(/pacing/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /note/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /semester plan/i })).toBeInTheDocument();
     expect(screen.getByText(/credits/i)).toBeInTheDocument();
     expect(screen.getByText(/prereq/i)).toBeInTheDocument();

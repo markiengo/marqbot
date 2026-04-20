@@ -35,7 +35,7 @@ The standard suite runs everything in `tests/backend/` except `nightly`-marked t
 | `test_data_integrity.py` | 24 | CSV schema, FK integrity, prereq graph sanity |
 | `test_dead_end_archetypes.py` | 9 | Synthetic dead-end classifier archetypes |
 | `test_dead_end_fast.py` | ~201 total | PR smoke checks plus `@pytest.mark.nightly` catalog dead-end and graduation baselines; every case runs 3x (once per scheduling style: grinder, explorer, mixer) |
-| `test_dead_end_nightly.py` | ~2,250 | Nightly-only sampled sweep: 30 seed-sampled 3-program combos × 5 progress profiles (foundation→capstone) × 5 seeded course-history variants × 3 scheduling styles. Checks for dead ends (planner stuck for 2 consecutive semesters with open requirements) and graduation by semester 8. Seed defaults to today's date (YYYYMMDD) for reproducibility. |
+| `test_dead_end_nightly.py` | ~360 | Nightly-only sampled sweep: 10 seed-sampled 3-program combos × 4 progress profiles (foundation→late) × 3 seeded course-history variants × 3 scheduling styles. Discovery-theme `MCC_DISC_*` tracks are included in the track pool. Checks for dead ends (planner stuck for 2 consecutive semesters with open requirements) and graduation by semester 8. Seed defaults to today's date (YYYYMMDD) for reproducibility. |
 | `test_eligibility.py` | 48 | Eligibility filters, restrictions, bridge courses, can-take helpers |
 | `test_equivalencies.py` | 36 | Equivalency maps, prereq satisfaction, scoped equivalent dedup, required-bucket remaining collapse, NDC blocking, schema checks |
 | `test_feedback_api.py` | 9 | `/api/feedback` contract, JSONL persistence, validation, rate limiting |

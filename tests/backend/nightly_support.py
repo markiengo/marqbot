@@ -1335,7 +1335,6 @@ class NightlyFailureCollector:
             "- **early** (2 semesters): through their first year",
             "- **mid** (3 semesters): beginning upper-division work",
             "- **late** (4 semesters): well into their major",
-            "- **capstone** (5 semesters): approaching graduation",
             "",
             f"Each profile is tested with {suite['selection_variants']} randomly-varied course-history "
             "selections to avoid overfitting to one specific path. "

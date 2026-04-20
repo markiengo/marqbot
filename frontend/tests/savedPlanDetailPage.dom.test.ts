@@ -3,7 +3,7 @@
 import "./setupTests";
 
 import { createElement } from "react";
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -21,7 +21,7 @@ const {
   buildSnapshotSpy: vi.fn((plan: { id: string }) => ({ restoredPlanId: plan.id })),
   deletePlanSpy: vi.fn(),
   dispatchSpy: vi.fn(),
-  planState: { current: null as any },
+  planState: { current: [] as any[] },
   pushSpy: vi.fn(),
   updatePlanSpy: vi.fn(),
 }));
@@ -69,8 +69,8 @@ function makePlan(withSnapshot = true) {
     } : null,
     lastRequestedCount: 5,
     inputHash: "abc",
-    resultsInputHash: "abc",
-    lastGeneratedAt: "2026-03-02T10:00:00.000Z",
+    resultsInputHash: withSnapshot ? "abc" : null,
+    lastGeneratedAt: withSnapshot ? "2026-03-02T10:00:00.000Z" : null,
   };
 }
 
@@ -125,8 +125,8 @@ vi.mock("@/hooks/usePrograms", () => ({
 vi.mock("@/hooks/useSavedPlans", () => ({
   useSavedPlans: () => ({
     hydrated: true,
+    plans: planState.current,
     storageError: null,
-    loadPlan: (planId: string) => (planId === "plan-1" ? planState.current : null),
     getFreshness: () => "fresh",
     updatePlan: updatePlanSpy,
     deletePlan: deletePlanSpy,
@@ -170,7 +170,57 @@ describe("SavedPlanDetailPage saved-view interactions", () => {
     pushSpy.mockClear();
     updatePlanSpy.mockReset();
     updatePlanSpy.mockReturnValue({ ok: true, plans: [] });
-    planState.current = makePlan(true);
+    planState.current = [makePlan(true)];
+  });
+
+  test("shows the action bar and export link only when a saved snapshot exists", () => {
+    const { unmount } = renderWithApp(
+      createElement(SavedPlanDetailPage, { planId: "plan-1" }),
+      makeAppState(),
+    );
+
+    expect(screen.getByRole("button", { name: /resume in planner/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /edit details/i })).toBeInTheDocument();
+    const exportLink = screen.getByRole("link", { name: /export pdf/i });
+    expect(exportLink).toHaveAttribute("href", "/saved?plan=plan-1&export=pdf");
+    expect(exportLink).toHaveAttribute("target", "_blank");
+
+    planState.current = [makePlan(false)];
+    unmount();
+    renderWithApp(createElement(SavedPlanDetailPage, { planId: "plan-1" }), makeAppState());
+
+    expect(screen.queryByRole("link", { name: /export pdf/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/pdf export requires a saved snapshot/i)).toBeInTheDocument();
+  });
+
+  test("opens the edit dialog and saves updated detail fields", async () => {
+    const user = userEvent.setup();
+
+    renderWithApp(createElement(SavedPlanDetailPage, { planId: "plan-1" }), makeAppState());
+
+    await user.click(screen.getByRole("button", { name: /edit details/i }));
+
+    expect(screen.getByRole("heading", { name: /edit plan details/i })).toBeInTheDocument();
+
+    const nameInput = screen.getByRole("textbox", { name: /plan name/i });
+    const noteInput = screen.getByRole("textbox", { name: /saved note/i });
+
+    fireEvent.change(nameInput, { target: { value: "Updated Finance Sprint" } });
+    fireEvent.change(noteInput, { target: { value: "Career fair semester" } });
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() =>
+      expect(updatePlanSpy).toHaveBeenCalledWith(
+        "plan-1",
+        expect.objectContaining({
+          name: "Updated Finance Sprint",
+          notes: "Career fair semester",
+        }),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("heading", { name: /edit plan details/i })).not.toBeInTheDocument(),
+    );
   });
 
   test("requires confirmation before deleting from the detail page", async () => {
@@ -178,34 +228,16 @@ describe("SavedPlanDetailPage saved-view interactions", () => {
 
     renderWithApp(createElement(SavedPlanDetailPage, { planId: "plan-1" }), makeAppState());
 
-    await user.click(screen.getByRole("button", { name: /delete plan/i }));
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
 
     expect(deletePlanSpy).not.toHaveBeenCalled();
     expect(pushSpy).not.toHaveBeenCalled();
-    expect(screen.getByRole("heading", { name: /delete this saved version/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /delete saved plan/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /yes, delete plan/i }));
 
     await waitFor(() => expect(deletePlanSpy).toHaveBeenCalledWith("plan-1"));
     await waitFor(() => expect(pushSpy).toHaveBeenCalledWith("/saved"));
-  });
-
-  test("shows an export link only when a saved snapshot exists", () => {
-    const { unmount } = renderWithApp(
-      createElement(SavedPlanDetailPage, { planId: "plan-1" }),
-      makeAppState(),
-    );
-
-    const exportLink = screen.getByRole("link", { name: /export pdf/i });
-    expect(exportLink).toHaveAttribute("href", "/saved?plan=plan-1&export=pdf");
-    expect(exportLink).toHaveAttribute("target", "_blank");
-
-    planState.current = makePlan(false);
-    unmount();
-    renderWithApp(createElement(SavedPlanDetailPage, { planId: "plan-1" }), makeAppState());
-
-    expect(screen.queryByRole("link", { name: /export pdf/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/pdf export requires a saved snapshot/i)).toBeInTheDocument();
   });
 
   test("resumes in planner from the saved detail view", async () => {
@@ -215,7 +247,7 @@ describe("SavedPlanDetailPage saved-view interactions", () => {
 
     await user.click(screen.getByRole("button", { name: /resume in planner/i }));
 
-    expect(buildSnapshotSpy).toHaveBeenCalledWith(planState.current);
+    expect(buildSnapshotSpy).toHaveBeenCalledWith(planState.current[0]);
     expect(dispatchSpy).toHaveBeenCalledWith({
       type: "APPLY_PLANNER_SNAPSHOT",
       payload: { restoredPlanId: "plan-1" },

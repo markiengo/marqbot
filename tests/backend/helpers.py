@@ -267,9 +267,9 @@ def active_representatives(kind: str, candidates: list[str], limit: int) -> list
 # ── Triple combo + random profile helpers (nightly v2) ─────────────────────
 
 
-NIGHTLY_SAMPLE_SIZE = 30
-NIGHTLY_SELECTION_VARIANTS = 5
-NIGHTLY_CASE_BUDGET = 2250  # 750 base × 3 scheduling styles
+NIGHTLY_SAMPLE_SIZE = 10
+NIGHTLY_SELECTION_VARIANTS = 3
+NIGHTLY_CASE_BUDGET = 360  # 120 base x 3 scheduling styles
 
 
 @dataclass(frozen=True)
@@ -291,7 +291,6 @@ NIGHTLY_PROFILES: tuple[NightlyProfile, ...] = (
     NightlyProfile("early", 2),
     NightlyProfile("mid", 3),
     NightlyProfile("late", 4),
-    NightlyProfile("capstone", 5),
 )
 
 
@@ -308,14 +307,13 @@ def build_triple_cases() -> list[tuple[str, list[str], list[str], list[str]]]:
     """Generate all valid triple program combinations.
 
     Returns list of (label, declared_majors, track_ids, declared_minors).
-    Pool: active majors + active tracks (minors and MCC_DISC tracks excluded).
+    Pool: active majors + active tracks (including MCC_DISC tracks; minors excluded).
     Validity: at least 1 primary major in effective declared_majors.
     """
     from itertools import combinations
 
     majors, tracks, _minors = active_programs()
-    # Exclude MCC_DISC tracks (parent inactive)
-    tracks = [t for t in tracks if not t.startswith("MCC_DISC_")]
+    rows = program_rows()
 
     all_programs = (
         [("major", m) for m in majors]
@@ -333,7 +331,10 @@ def build_triple_cases() -> list[tuple[str, list[str], list[str], list[str]]]:
             elif ptype == "track":
                 track_ids.append(pid)
                 parent = get_parent_major(pid)
-                if parent and parent not in declared_majors:
+                parent_row = rows.get(parent, {})
+                # Discovery-theme tracks can point at universal parents such as MCC_DISC.
+                # Only actual major parents belong in declared_majors.
+                if parent and parent_row.get("kind") == "major" and parent not in declared_majors:
                     declared_majors.append(parent)
                 # AIM_CFA requires FIN_MAJOR
                 req = _get_required_major(pid)

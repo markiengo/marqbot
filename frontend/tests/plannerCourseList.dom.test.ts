@@ -230,31 +230,4 @@ describe("Planner completed course modal", () => {
     expect(screen.getByText(/locked to undergraduate recommendations/i)).toBeInTheDocument();
   });
 
-  test("shows the grinder leaderboard explainer copy", () => {
-    renderPlanner();
-
-    fireEvent.click(screen.getByRole("button", { name: /change your priorities/i }));
-
-    expect(screen.getByRole("heading", { name: /change your priorities/i })).toBeInTheDocument();
-    expect(screen.getByText("Current build")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /grinder/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /applied/i })).toBeInTheDocument();
-    expect(screen.getByText("Major path first. Cleanup later.")).toBeInTheDocument();
-    expect(screen.getByText("Urgent BCC gateways")).toBeInTheDocument();
-    expect(screen.getByText("MCC and discovery cleanup")).toBeInTheDocument();
-    expect(screen.queryByText("Respect bucket rules")).not.toBeInTheDocument();
-  });
-
-  test("switches the leaderboard view between builds inside the ranking modal", () => {
-    renderPlanner();
-
-    fireEvent.click(screen.getByRole("button", { name: /change your priorities/i }));
-    fireEvent.click(screen.getByRole("button", { name: /explorer/i }));
-
-    expect(screen.getByRole("button", { name: /explorer/i })).toBeInTheDocument();
-    expect(screen.getByText("Discovery and gen-eds move up.")).toBeInTheDocument();
-    expect(screen.getByText("Discovery and late MCC")).toBeInTheDocument();
-    expect(screen.getByText("Major classes stay important, but not always first.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^apply$/i })).toBeInTheDocument();
-  });
 });

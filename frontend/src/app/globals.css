@@ -1903,38 +1903,46 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
 }
 
 .saved-plan-print-view {
-  max-width: 980px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: 24px 16px 40px;
+  background: #eef2f7;
+  color: #0f172a;
 }
 
 .print-paper-stack {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 24px;
 }
 
 .print-toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 18px;
 }
 
 .print-paper {
-  background: linear-gradient(180deg, rgba(7, 18, 39, 0.98), rgba(12, 29, 56, 0.96));
-  border: 1px solid rgba(141, 170, 224, 0.16);
-  border-radius: 24px;
-  max-width: 8.2in;
+  background: #ffffff;
+  border: 1px solid #d6dde8;
+  border-radius: 20px;
+  max-width: 8.1in;
   margin: 0 auto;
-  padding: 28px;
+  padding: 30px;
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.26),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 20px 48px rgba(15, 23, 42, 0.08),
+    0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.print-paper--empty {
+  min-height: 16rem;
 }
 
 .print-header {
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 
 .print-kicker {
@@ -1943,31 +1951,32 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-gold);
+  color: #836236;
 }
 
 .print-title {
   margin: 0;
-  font-size: 41px;
+  font-size: 34px;
   font-weight: 700;
-  color: var(--color-ink-primary);
+  color: #0f172a;
 }
 
 .print-subtitle {
   margin: 10px 0 0;
-  color: var(--color-ink-secondary);
+  color: #334155;
   font-size: 18px;
+  line-height: 1.45;
 }
 
 .print-notes {
-  margin: 14px 0 0;
+  margin: 0;
   padding: 14px 16px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--color-ink-secondary);
-  font-size: 18px;
-  max-height: 66px;
-  overflow: hidden;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 15px;
+  line-height: 1.6;
+  border: 1px solid #e2e8f0;
 }
 
 .print-meta-grid {
@@ -1977,14 +1986,21 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
   margin-top: 16px;
 }
 
+.print-meta-grid--summary {
+  margin-top: 20px;
+}
+
 .print-meta-grid > div {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 14px 16px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 17px;
+  background: #f8fafc;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
 }
 
 .print-history-section {
@@ -2010,7 +2026,7 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
 }
 
 .print-history-summary {
-  color: var(--color-ink-faint);
+  color: #64748b;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -2040,11 +2056,15 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-ink-faint);
+  color: #64748b;
 }
 
 .print-section {
   margin-top: 26px;
+}
+
+.print-section--tight {
+  margin-top: 18px;
 }
 
 .print-section-header {
@@ -2054,7 +2074,7 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
   gap: 12px;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(141, 170, 224, 0.18);
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .print-section-header h2,
@@ -2062,7 +2082,7 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
 .print-bucket-header h4,
 .print-card h3 {
   margin: 0;
-  color: var(--color-ink-primary);
+  color: #0f172a;
 }
 
 .print-paper-semesters .print-section {
@@ -2081,9 +2101,9 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
 }
 
 .print-card {
-  border: 1px solid rgba(141, 170, 224, 0.16);
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.035);
+  background: #ffffff;
   padding: 14px 16px;
 }
 
@@ -2099,13 +2119,13 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
   display: flex;
   gap: 10px;
   font-size: 14px;
-  color: var(--color-ink-secondary);
+  color: #334155;
 }
 
 .print-course-code {
   min-width: 88px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--color-gold-light);
+  color: #475569;
   font-weight: 700;
 }
 
@@ -2124,17 +2144,18 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
 .print-semester-summary {
   white-space: nowrap;
   border-radius: 999px;
-  border: 1px solid rgba(141, 170, 224, 0.22);
+  border: 1px solid #d6dde8;
   padding: 7px 12px;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-ink-faint);
+  color: #475569;
+  background: #f8fafc;
 }
 
 .print-semester-page-caption {
-  color: var(--color-ink-faint);
+  color: #64748b;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -2150,7 +2171,7 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
 .print-semester-table th,
 .print-semester-table td {
   padding: 12px 14px 12px 0;
-  border-bottom: 1px solid rgba(141, 170, 224, 0.18);
+  border-bottom: 1px solid #e2e8f0;
   vertical-align: top;
 }
 
@@ -2164,7 +2185,7 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-ink-faint);
+  color: #64748b;
   text-align: left;
 }
 
@@ -2201,41 +2222,42 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
 
 .print-semester-table-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--color-gold-light);
+  color: #475569;
   font-weight: 700;
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .print-semester-table-credits {
   text-align: right;
-  color: var(--color-ink-primary);
-  font-size: 16px;
+  color: #0f172a;
+  font-size: 15px;
   font-weight: 700;
 }
 
 .print-semester-table-title {
-  color: var(--color-ink-primary);
-  font-size: 17px;
+  color: #0f172a;
+  font-size: 15px;
   overflow-wrap: anywhere;
 }
 
 .print-semester-table-prereq {
-  color: var(--color-ink-secondary);
-  font-size: 16px;
+  color: #334155;
+  font-size: 14px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
 .print-semester-table-buckets {
-  color: var(--color-ink-secondary);
-  font-size: 16px;
+  color: #334155;
+  font-size: 14px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
 .print-muted {
-  color: var(--color-ink-faint);
-  font-size: 17px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .print-group {
@@ -2294,10 +2316,19 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-ink-faint);
+  color: #64748b;
 }
 
 @media (max-width: 768px) {
+  .saved-plan-print-view {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .print-paper {
+    padding: 22px;
+  }
+
   .print-bucket-columns {
     grid-template-columns: 1fr;
   }
@@ -2311,7 +2342,7 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
 @media print {
   @page {
     size: portrait;
-    margin: 0.45in;
+    margin: 0.5in;
   }
 
   html,
@@ -2332,54 +2363,26 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
   .saved-plan-print-view {
     max-width: none;
     padding: 0;
+    background: #ffffff !important;
   }
 
   .print-paper-stack {
     gap: 0;
   }
 
+  .bg-orbs::before,
+  .bg-orbs::after {
+    display: none !important;
+  }
+
   .print-paper,
   .print-card,
-  .print-meta-grid > div {
+  .print-meta-grid > div,
+  .print-notes {
     background: #ffffff !important;
     color: #111827 !important;
     border-color: #d1d5db !important;
     box-shadow: none !important;
-  }
-
-  .print-title,
-  .print-section-header h2,
-  .print-group-title,
-  .print-bucket-header h4,
-  .print-card h3 {
-    color: #111827 !important;
-  }
-
-  .print-subtitle,
-  .print-notes,
-  .print-course-list li,
-  .print-muted,
-  .print-meta-label,
-  .print-semester-table-title,
-  .print-semester-table-buckets,
-  .print-semester-summary {
-    color: #374151 !important;
-  }
-
-  .print-kicker,
-  .print-course-code,
-  .print-semester-table-code {
-    color: #836236 !important;
-  }
-
-  .print-semester-table th,
-  .print-semester-table td {
-    border-color: #d1d5db !important;
-  }
-
-  .bg-orbs::before,
-  .bg-orbs::after {
-    display: none !important;
   }
 
   .print-section,
@@ -2401,7 +2404,9 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
 
   .print-paper {
     max-width: none;
-    padding: 0.22in;
+    border: none !important;
+    border-radius: 0;
+    padding: 0.18in 0;
   }
 
   .print-header {
@@ -2413,14 +2418,8 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
   }
 
   .print-subtitle,
-  .print-notes,
   .print-muted {
     font-size: 12px;
-  }
-
-  .print-notes {
-    margin-top: 8px;
-    padding: 8px 10px;
   }
 
   .print-meta-grid {
@@ -2476,7 +2475,7 @@ html[data-effects-mode="reduced"] .feature-spotlight-step[data-active="true"] {
   }
 
   .print-semester-card h3 {
-    font-size: 19px;
+    font-size: 17px;
   }
 
   .print-semester-summary {

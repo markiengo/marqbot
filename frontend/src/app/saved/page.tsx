@@ -2,23 +2,19 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { SavedPlansLibraryPage } from "@/components/saved/SavedPlansLibraryPage";
-import { SavedPlanDetailPage } from "@/components/saved/SavedPlanDetailPage";
 import { SavedPlanPrintView } from "@/components/saved/SavedPlanPrintView";
+import { SavedPlansWorkspace } from "@/components/saved/SavedPlansWorkspace";
 
 function SavedPageInner() {
   const searchParams = useSearchParams();
   const planId = searchParams.get("plan");
   const exportMode = searchParams.get("export");
 
-  if (planId) {
-    if (exportMode === "pdf") {
-      return <SavedPlanPrintView planId={planId} />;
-    }
-    return <SavedPlanDetailPage planId={planId} />;
+  if (planId && exportMode === "pdf") {
+    return <SavedPlanPrintView planId={planId} />;
   }
 
-  return <SavedPlansLibraryPage />;
+  return <SavedPlansWorkspace planId={planId} />;
 }
 
 export default function SavedPage() {

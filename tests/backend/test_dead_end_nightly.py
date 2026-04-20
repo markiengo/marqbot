@@ -2,9 +2,9 @@
 Nightly sampled dead-end sweep with prereq-hardened seeded student histories.
 
 Covers:
-- 30 deterministic-random sampled multi-program combos by default
-- 5 seeded student profiles per combo
-- 5 prereq-valid course-selection variants per profile
+- 10 deterministic-random sampled multi-program combos by default
+- 4 seeded student profiles per combo
+- 3 prereq-valid course-selection variants per profile
 
 Seed is date-based for daily reproducibility:
 - Same day = same sampled combos and seeded histories

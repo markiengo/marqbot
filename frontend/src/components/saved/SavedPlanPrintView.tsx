@@ -6,7 +6,11 @@ import { Button } from "@/components/shared/Button";
 import { useCourses } from "@/hooks/useCourses";
 import { usePrograms } from "@/hooks/usePrograms";
 import { useSavedPlans } from "@/hooks/useSavedPlans";
-import { formatSavedPlanDate, resolveProgramLabels } from "@/lib/savedPlanPresentation";
+import {
+  formatSavedPlanDate,
+  getSavedPlanFreshnessCopy,
+  resolveProgramLabels,
+} from "@/lib/savedPlanPresentation";
 import { buildSavedPlanExportData } from "@/lib/savedPlanExport";
 import type { Course } from "@/lib/types";
 
@@ -51,7 +55,7 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
     error: programsError,
     retry: retryPrograms,
   } = usePrograms();
-  const { hydrated, storageError, loadPlan } = useSavedPlans();
+  const { hydrated, storageError, loadPlan, getFreshness } = useSavedPlans();
   const printTriggeredRef = useRef(false);
 
   const plan = loadPlan(planId);
@@ -69,6 +73,8 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
     () => (plan ? buildSavedPlanExportData(plan, courses, programs) : null),
     [courses, plan, programs],
   );
+  const freshness = plan ? getFreshness(plan) : "missing";
+  const freshnessCopy = getSavedPlanFreshnessCopy(freshness);
 
   const majorLabels = useMemo(
     () => (plan ? resolveProgramLabels(plan.inputs.declaredMajors, programs.majors) : []),
@@ -112,7 +118,7 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
 
   if (!hydrated || isLoading) {
     return (
-      <div className="saved-plan-print-view print-paper">
+      <div className="saved-plan-print-view print-paper print-paper--empty">
         <p className="print-kicker">Preparing export</p>
         <p className="print-muted">Loading saved plan data...</p>
       </div>
@@ -121,8 +127,8 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
 
   if (bootstrapError) {
     return (
-      <div className="saved-plan-print-view print-paper">
-        <div className="print-screen-only print-toolbar">
+      <div className="saved-plan-print-view print-paper print-paper--empty">
+        <div className="print-screen-only print-toolbar" data-testid="saved-plan-print-toolbar">
           <Button asChild variant="ghost" size="sm">
             <Link href={planId ? `/saved?plan=${encodeURIComponent(planId)}` : "/saved"}>Back to Saved Plan</Link>
           </Button>
@@ -136,8 +142,8 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
 
   if (!plan) {
     return (
-      <div className="saved-plan-print-view print-paper">
-        <div className="print-screen-only print-toolbar">
+      <div className="saved-plan-print-view print-paper print-paper--empty">
+        <div className="print-screen-only print-toolbar" data-testid="saved-plan-print-toolbar">
           <Button asChild variant="ghost" size="sm">
             <Link href="/saved">Back to Saved Plans</Link>
           </Button>
@@ -150,8 +156,8 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
 
   if (!plan.recommendationData || !exportData) {
     return (
-      <div className="saved-plan-print-view print-paper">
-        <div className="print-screen-only print-toolbar">
+      <div className="saved-plan-print-view print-paper print-paper--empty">
+        <div className="print-screen-only print-toolbar" data-testid="saved-plan-print-toolbar">
           <Button asChild variant="ghost" size="sm">
             <Link href={`/saved?plan=${encodeURIComponent(plan.id)}`}>Back to Saved Plan</Link>
           </Button>
@@ -165,7 +171,7 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
 
   return (
     <div className="saved-plan-print-view" data-testid="saved-plan-print-view">
-      <div className="print-screen-only print-toolbar">
+      <div className="print-screen-only print-toolbar" data-testid="saved-plan-print-toolbar">
         <Button asChild variant="ghost" size="sm">
           <Link href={`/saved?plan=${encodeURIComponent(plan.id)}`}>Back to Saved Plan</Link>
         </Button>
@@ -175,14 +181,35 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
       <div className="print-paper-stack">
         <article className="print-paper">
           <header className="print-header">
-            <p className="print-kicker">Saved Plan Export</p>
+            <p className="print-kicker">Saved plan</p>
             <h1 className="print-title">{exportData.planName}</h1>
-            <p className="print-subtitle">
-              {exportData.programLine || "Program summary unavailable"} | Target {exportData.targetSemester} | Updated {formatSavedPlanDate(exportData.updatedAt)}
-            </p>
-            {exportData.planNotes ? (
-              <p className="print-notes">{exportData.planNotes}</p>
-            ) : null}
+            <p className="print-subtitle">{exportData.programLine || "Program summary unavailable"}</p>
+            <div className="print-meta-grid print-meta-grid--summary">
+              <div>
+                <span className="print-meta-label">Target semester</span>
+                <span>{exportData.targetSemester}</span>
+              </div>
+              <div>
+                <span className="print-meta-label">Updated</span>
+                <span>{formatSavedPlanDate(exportData.updatedAt)}</span>
+              </div>
+              <div>
+                <span className="print-meta-label">Freshness</span>
+                <span>{freshnessCopy.label}</span>
+              </div>
+              <div>
+                <span className="print-meta-label">Pacing</span>
+                <span>{plan.inputs.semesterCount} terms · {plan.inputs.maxRecs} max / term</span>
+              </div>
+              <div>
+                <span className="print-meta-label">Summer</span>
+                <span>{plan.inputs.includeSummer ? "Included" : "Skipped"}</span>
+              </div>
+              <div>
+                <span className="print-meta-label">Snapshot</span>
+                <span>{plan.recommendationData ? "Saved snapshot available" : "No saved snapshot"}</span>
+              </div>
+            </div>
             <div className="print-meta-grid">
               <div>
                 <span className="print-meta-label">Majors</span>
@@ -197,6 +224,14 @@ export function SavedPlanPrintView({ planId }: { planId: string }) {
                 <span>{minorLabels.length > 0 ? minorLabels.join(", ") : "None"}</span>
               </div>
             </div>
+            {exportData.planNotes ? (
+              <section className="print-section print-section--tight">
+                <div className="print-section-header">
+                  <h2>Note</h2>
+                </div>
+                <p className="print-notes">{exportData.planNotes}</p>
+              </section>
+            ) : null}
           </header>
 
           <section className="print-section print-history-section">
