@@ -389,7 +389,8 @@ describe("PlannerLayout save-plan routing", () => {
     const savedSnapshot = updatePlanSpy.mock.calls[0][1]?.recommendationData;
     expect(savedSnapshot?.semesters?.[0]?.recommendations?.[0]?.fills_buckets).toEqual(["MCC_WRIT"]);
     expect(savedSnapshot?.semesters?.[1]?.recommendations?.[0]?.fills_buckets).toEqual([]);
-    expect(savedSnapshot?.semesters?.[1]?.projected_progress?.MCC_WRIT?.in_progress_applied).toEqual(["ENGL 3250"]);
+    expect(savedSnapshot?.semesters?.[1]?.projected_progress?.MCC_WRIT?.in_progress_applied).toEqual([]);
+    expect(savedSnapshot?.semesters?.[1]?.projected_progress?.MCC_WRIT?.completed_applied).toEqual(["ENGL 3250"]);
   });
 
   test("full saved-plan library still allows overwrite", async () => {

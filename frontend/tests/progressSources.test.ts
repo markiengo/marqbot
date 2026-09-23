@@ -76,8 +76,10 @@ describe("getPlanLevelProgress", () => {
     });
 
     const progress = getPlanLevelProgress(response);
-    expect(progress?.MCC_CORE.in_progress_applied).toEqual(["CORE 1929", "ENGL 3250"]);
-    expect(progress?.MCC_CORE.in_progress_courses).toBe(2);
+    expect(progress?.MCC_CORE.completed_applied).toEqual(["THEO 1001", "PHIL 1001", "CORE 1929", "ENGL 3250"]);
+    expect(progress?.MCC_CORE.completed_courses).toBe(4);
+    expect(progress?.MCC_CORE.in_progress_applied).toEqual([]);
+    expect(progress?.MCC_CORE.in_progress_courses).toBe(0);
     expect(progress?.MCC_CORE.satisfied).toBe(true);
   });
 
@@ -103,9 +105,10 @@ describe("getPlanLevelProgress", () => {
     });
 
     const progress = getPlanLevelProgress(response);
-    expect(progress?.MCC_CORE.completed_courses).toBe(2);
-    expect(progress?.MCC_CORE.in_progress_courses).toBe(2);
-    expect(progress?.MCC_CORE.in_progress_applied).toEqual(["CORE 1929", "ENGL 3250"]);
+    expect(progress?.MCC_CORE.completed_courses).toBe(4);
+    expect(progress?.MCC_CORE.in_progress_courses).toBe(0);
+    expect(progress?.MCC_CORE.in_progress_applied).toEqual([]);
+    expect(progress?.MCC_CORE.completed_applied).toEqual(["THEO 1001", "PHIL 1001", "CORE 1929", "ENGL 3250"]);
     expect(progress?.MCC_CORE.satisfied).toBe(true);
   });
 
@@ -181,11 +184,12 @@ describe("getPlanLevelProgress", () => {
 
     const progress = getPlanLevelProgress(response);
 
-    expect(progress?.MCC_WRIT.in_progress_applied).toEqual(["ENGL 3250"]);
-    expect(progress?.MCC_WRIT.in_progress_courses).toBe(1);
-    expect(progress?.MCC_ESSV2.in_progress_applied).toEqual(["ENGL 3250"]);
+    expect(progress?.MCC_WRIT.completed_applied).toEqual(["ENGL 3250"]);
+    expect(progress?.MCC_WRIT.completed_courses).toBe(1);
+    expect(progress?.MCC_WRIT.in_progress_applied).toEqual([]);
+    expect(progress?.MCC_ESSV2.completed_applied).toEqual(["ENGL 3250"]);
     expect(progress?.MCC_ESSV2.satisfied).toBe(true);
-    expect(progress?.MCC_DISC_CMI_HUM.in_progress_applied).toEqual(["ENGL 3250"]);
+    expect(progress?.MCC_DISC_CMI_HUM.completed_applied).toEqual(["ENGL 3250"]);
     expect(progress?.MCC_DISC_CMI_HUM.satisfied).toBe(true);
   });
 
@@ -279,6 +283,68 @@ describe("getPlanLevelProgress", () => {
 
     expect(firstSemesterCourse?.fills_buckets).toEqual(["MCC_DISC_CMI_HUM", "MCC_ESSV2", "MCC_WRIT"]);
     expect(secondSemesterCourse?.fills_buckets).toEqual([]);
-    expect(normalized?.semesters?.[1]?.projected_progress?.MCC_WRIT?.in_progress_applied).toEqual(["ENGL 3250"]);
+    expect(normalized?.semesters?.[1]?.projected_progress?.MCC_WRIT?.in_progress_applied).toEqual([]);
+    expect(normalized?.semesters?.[1]?.projected_progress?.MCC_WRIT?.completed_applied).toEqual(["ENGL 3250"]);
+  });
+});
+
+describe("normalizeVisibleRecommendationData", () => {
+  test("earlier-semester picks count as completed in later semesters' projected progress", () => {
+    const bucket = {
+      label: "Core",
+      needed: 3,
+      needed_count: 3,
+      completed_applied: [] as string[],
+      in_progress_applied: [] as string[],
+      completed_done: 0,
+      in_progress_increment: 0,
+      completed_courses: 0,
+      in_progress_courses: 0,
+      requirement_mode: "required",
+      satisfied: false,
+    };
+    const response = {
+      mode: "recommendations" as const,
+      current_progress: { CORE: { ...bucket } },
+      semesters: [
+        {
+          target_semester: "Fall 2026",
+          recommendations: [
+            { course_code: "COSC 1010", credits: 4, fills_buckets: ["CORE"] },
+          ],
+        },
+        {
+          target_semester: "Spring 2027",
+          recommendations: [
+            { course_code: "COSC 4600", credits: 3, fills_buckets: ["CORE"] },
+          ],
+        },
+        {
+          target_semester: "Fall 2027",
+          recommendations: [
+            { course_code: "COSC 1020", credits: 4, fills_buckets: ["CORE"] },
+          ],
+        },
+      ],
+    } satisfies RecommendationResponse;
+
+    const normalized = normalizeVisibleRecommendationData(response);
+    const sem0 = normalized?.semesters?.[0]?.projected_progress?.CORE;
+    const sem1 = normalized?.semesters?.[1]?.projected_progress?.CORE;
+    const sem2 = normalized?.semesters?.[2]?.projected_progress?.CORE;
+
+    // Semester 1 view: its own pick is still "in progress / planned".
+    expect(sem0?.in_progress_applied).toEqual(["COSC 1010"]);
+    expect(sem0?.completed_applied).toEqual([]);
+
+    // Semester 2 view: semester 1's pick has graduated to completed.
+    expect(sem1?.completed_applied).toEqual(["COSC 1010"]);
+    expect(sem1?.in_progress_applied).toEqual(["COSC 4600"]);
+
+    // Semester 3 view: both earlier picks are completed, only its own is planned.
+    expect(sem2?.completed_applied).toEqual(["COSC 1010", "COSC 4600"]);
+    expect(sem2?.in_progress_applied).toEqual(["COSC 1020"]);
+    expect(sem2?.completed_courses).toBe(2);
+    expect(sem2?.in_progress_courses).toBe(1);
   });
 });

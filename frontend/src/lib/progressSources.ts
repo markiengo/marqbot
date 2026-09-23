@@ -267,6 +267,28 @@ function applyCourseToBucketProgress(
   }
 }
 
+function promoteInProgressToCompleted(
+  progressMap: Record<string, BucketProgress>,
+): void {
+  for (const progress of Object.values(progressMap)) {
+    const movedCodes = progress.in_progress_applied ?? [];
+    const movedCourses = Number(progress.in_progress_courses ?? 0);
+    const movedUnits = Number(progress.in_progress_increment ?? 0);
+    if (movedCodes.length === 0 && movedCourses === 0 && movedUnits === 0) continue;
+
+    progress.completed_applied = [...(progress.completed_applied ?? []), ...movedCodes];
+    progress.in_progress_applied = [];
+    progress.completed_courses = Number(progress.completed_courses ?? 0) + movedCourses;
+    progress.in_progress_courses = 0;
+    progress.completed_done = Number(progress.completed_done ?? progress.done_count ?? 0) + movedUnits;
+    if (progress.done_count !== undefined) {
+      progress.done_count = Number(progress.done_count ?? 0) + movedUnits;
+    }
+    progress.in_progress_increment = 0;
+    markProgressSatisfied(progress);
+  }
+}
+
 function buildVisiblePlanProjection(
   response: RecommendationResponse,
 ): {
@@ -281,6 +303,10 @@ function buildVisiblePlanProjection(
   const normalizedSemesters: SemesterData[] = [];
 
   for (const semester of response.semesters ?? []) {
+    // Courses planned in earlier semesters count as completed by the time
+    // this semester's progress is projected — only this semester's own picks
+    // stay in the "in progress / planned" segment.
+    promoteInProgressToCompleted(projected);
     const nextSemester = cloneSemester(semester);
     const recommendations = [...(nextSemester.recommendations ?? [])];
     const processingOrder = [...recommendations].sort((left, right) => {
@@ -308,6 +334,9 @@ function buildVisiblePlanProjection(
     nextSemester.projected_progress = cloneProgressMap(projected);
     normalizedSemesters.push(nextSemester);
   }
+
+  // Plan-level progress describes the state after the whole plan is done.
+  promoteInProgressToCompleted(projected);
 
   return {
     semesters: normalizedSemesters,
