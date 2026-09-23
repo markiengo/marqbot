@@ -3,12 +3,12 @@
   "outputDirectory": "frontend/out",
   "installCommand": "pip install -r requirements.txt",
   "functions": {
-    "api/index.py": {
-      "maxDuration": 60
+    "api/**/*.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{node_modules/**,frontend/node_modules/**,tests/**,docs/**,.git/**}"
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api" },
-    { "source": "/health", "destination": "/api" }
+    { "source": "/health", "destination": "/api/health" }
   ]
 }
